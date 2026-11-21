@@ -266,12 +266,13 @@ def rohbau(bk, korb, EL=None, vorlagen=None):
     vl = lambda kid, std: (Kb.get(kid) or {}).get("vorlage") or std   # noqa: E731
     G = {}
 
-    def add(teil, kg, art, nm, v, menge, ids, aussen):
+    def add(teil, kg, art, nm, v, menge, ids, aussen, kid=""):
         if menge < 0.3:
             return
         key = (teil, kg, v)
         g = G.setdefault(key, {"kg": kg, "art": art, "material": "", "dicke": 0, "einheit": "m²", "menge": 0.0, "anzahl": 1, "aussen": aussen, "name": nm, "code": "", "ids": [],
-                               "zustand": "", "hinweis": "Aus dem Gebäude-Baukasten gemessen.", "vorlage": v, "geschaetzt": True, "teil": teil, "baukasten": True})
+                               "zustand": "", "hinweis": "Aus dem Gebäude-Baukasten gemessen.", "vorlage": v, "geschaetzt": True, "teil": teil, "baukasten": True,
+                               **({"korb": kid} if kid and kid in Kb else {})})   # Korb-Eintrag: Zeile ↔ Aufbau (bauteilliste: Kennung je Eintrag, Aufbau-Wahl führt ihn nach)
         g["menge"] += menge
         g["ids"] += ids
 
@@ -286,18 +287,18 @@ def rohbau(bk, korb, EL=None, vorlagen=None):
             fl = L * k["h"] - _beruehrt(k, s, K) + sum(a for _, a in GB.get(s, []))
             kid = (k.get("seiten") or {}).get(s) or k.get("wand")
             v = vl(kid, VORGABE["wand"])
-            add(k["teil"], "331", "Wand", f"Außenwand – {name(kid, v)}", v, fl, [ID0 + b * 20 + si] + [ID0 + b * 20 + 6 + j for j, _ in GB.get(s, [])], True)
+            add(k["teil"], "331", "Wand", f"Außenwand – {name(kid, v)}", v, fl, [ID0 + b * 20 + si] + [ID0 + b * 20 + 6 + j for j, _ in GB.get(s, [])], True, kid)
         unten = k["z"] <= teil_tief[k["teil"]] + 0.01
         kid = k.get("boden")
         v = vl(kid, VORGABE["boden"] if unten else VORGABE["decke"])
         kg = v.split(".")[0] if "." in v else ("322" if unten else "351")
-        add(k["teil"], kg, "Bodenplatte" if kg.startswith("32") else "Decke", ("Bodenplatte – " if kg.startswith("32") else "Decke – ") + name(kid, v), v, k["w"] * k["d"], [ID0 + b * 20 + 5], kg.startswith("32"))
+        add(k["teil"], kg, "Bodenplatte" if kg.startswith("32") else "Decke", ("Bodenplatte – " if kg.startswith("32") else "Decke – ") + name(kid, v), v, k["w"] * k["d"], [ID0 + b * 20 + 5], kg.startswith("32"), kid)
         if D:
             ges, fn = dach_flaeche(k, D["form"], D.get("first"), K), dict(sattel="Satteldach", walm="Walmdach", pult="Pultdach", flach="Flachdach")[D["form"]]
             for i, ant in dach_anteile(k, D["form"], D.get("first"), K).items():   # je Dachfläche – eigener Aufbau (fl) oder der des Dachs
                 kid = (D.get("fl") or {}).get(str(i)) or D.get("aufbau")
                 v = vl(kid, VORGABE["flach"] if D["form"] == "flach" else VORGABE["dach"])
-                add(k["teil"], v.split(".")[0] if "." in v else "363", "Dach", f"Dach ({fn}) – {name(kid, v)}", v, ges * ant, [ID0 + b * 20 + 6 + i], True)
+                add(k["teil"], v.split(".")[0] if "." in v else "363", "Dach", f"Dach ({fn}) – {name(kid, v)}", v, ges * ant, [ID0 + b * 20 + 6 + i], True, kid)
         unter = next((q for q in K if q["teil"] == k["teil"] and k.get("staffel") and abs(q["z"] + q["h"] - k["z"]) < 0.01), None)
         if unter:   # Terrasse (H1): Decke darunter minus Staffelgeschoss
             add(k["teil"], "363", "Dach", "Terrasse um das Staffelgeschoss", VORGABE["flach"], unter["w"] * unter["d"] - k["w"] * k["d"], [], True)
@@ -308,7 +309,7 @@ def rohbau(bk, korb, EL=None, vorlagen=None):
         if a:
             kid = k.get("wand")
             v = vl(kid, VORGABE["wand"])
-            add(k["teil"], "331", "Wand", f"Außenwand – {name(kid, v)}", v, a, [GID + n * 4, GID + n * 4 + 3], True)
+            add(k["teil"], "331", "Wand", f"Außenwand – {name(kid, v)}", v, a, [GID + n * 4, GID + n * 4 + 3], True, kid)
     # Fensterflächen des Assistenten anteilig von den Außenwänden je Teil
     for teil in {k["teil"] for k in K}:
         W = [g for (t, kg, _), g in G.items() if t == teil and kg == "331"]

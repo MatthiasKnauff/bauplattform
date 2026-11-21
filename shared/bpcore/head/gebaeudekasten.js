@@ -79,6 +79,7 @@
       const wD = DOC.createElement('div'), wK = DOC.createElement('div'); wD.className = 'bkx bkx-aus'; wK.className = 'bkx bkx-aus';
       wD.append(AS.querySelector('[data-bk="palk"]'), AS.querySelector('[data-bk="detail"]'), AS.querySelector('[data-bk="raeume"]'));
       wK.append(...AS.children); AS.remove();
+      if (OPT.eigenschaften) wD.appendChild(wK.querySelector('[data-bk="stand"]'));   // Gebäudemodell ohne Korb-Reiter (I1): der Stand („gespeichert …“) unter den Angaben
       ORTE.push(wD, wK); HOER = [wD, wK]; OPT.seite({ detail: wD, korb: wK });
     }
     const $ = (s) => { const q = s.replace(/^#(\w+)$/, '[data-bk="$1"]'); for (const o of ORTE) { const x = o.querySelector(q); if (x) return x; } return null; };
@@ -400,6 +401,9 @@
       <label class="feld">Verglasung</label><div class="chips">${[2, 3].map((f) => `<button type="button" data-fach="${f}" aria-pressed="${o.fach === f}">${f}-fach</button>`).join('')}</div>
       <label class="feld">Uw in W/(m²K) – aus dem Katalog: ${de(kat)}</label><div class="uw"><input type="number" step="0.01" min="0.5" max="6" value="${uw}" data-uw>${o.uw != null ? '<button type="button" class="kn" data-uwzur title="Wert aus dem Katalog">↺</button>' : ''}${pruef(uw, UMAX.fenster)}</div>`;
     const obj = () => M.oeff.find((x) => x.id === SEL.id) || M.gauben.find((x) => x.id === SEL.id);
+    /* Im Gebäudemodell (Mock „Bauteile wie der LV-Baum“ F1, 21.11.2026): rechts nur der Baukörper – Maße und Befehle; den Aufbau wählt man im
+       Eigenschaften-Fenster der Bauteile (OPT.eigenschaften(ids) – derselbe Editor wie in der Tabelle; der Korb-Eintrag folgt im Kern) */
+    const eigKurz = (titel, A, ids, mehr) => `<div class="feld bkx-eig"><span>${esc(titel)}: <b>${esc(A[1])}</b></span><button type="button" class="kn" data-bkeig="${ids.join(',')}">Aufbau … (Eigenschaften)</button>${mehr ? `<div class="hinweis">${mehr}</div>` : ''}</div>`;
     function detail() {
       const el = $('#detail'); if (!el) return;
       if (SEL && MEHR.length) return mehrfach(el);
@@ -410,15 +414,17 @@
           ${befHtml(SEL)}
           ${k.z > 0 && SEL.art === 'koerper' ? `<div class="chips"><button type="button" data-staffel="0" aria-pressed="${!k.staffel}">Vollgeschoss</button><button type="button" data-staffel="1" aria-pressed="${!!k.staffel}">Staffelgeschoss</button></div>` : ''}
           <div class="reihe"><label class="feld">Länge m<input type="number" step="0.5" min="2" value="${k.w}" data-mass="w"></label><label class="feld">Breite m<input type="number" step="0.5" min="2" value="${k.d}" data-mass="d"></label><label class="feld">Höhe m<input type="number" step="0.1" min="2" value="${k.h}" data-mass="h"></label></div>
-          <label class="feld">Aufbau Außenwand${SEL.art === 'wand' ? ' – diese Seite' : ''}<select data-wand>${optK('wand', Wd[0])}</select></label>${verkn(Wd[0])}${dickeTxt(wid, DICKE.wand)}<div>${pruef(Wd[2], UMAX.wand)}</div>
-          <label class="feld">${k.z < 0 ? 'Kellersohle' : 'Boden'}<select data-boden>${optK('boden', k.boden)}</select></label>`; return; }
+          ${OPT.eigenschaften ? eigKurz(`Außenwand${SEL.art === 'wand' ? ' – diese Seite' : 'e'}`, Wd, idsVon(SEL.art === 'wand' ? SEL : { art: 'wand', id: k.id, seite: 'ym' }), dickeTxt(wid, DICKE.wand) + pruef(Wd[2], UMAX.wand))
+            + eigKurz(k.z < 0 ? 'Kellersohle' : 'Boden', aufbau(k.boden), [ID0 + M.koerper.indexOf(k) * 20 + 5], '')
+          : `<label class="feld">Aufbau Außenwand${SEL.art === 'wand' ? ' – diese Seite' : ''}<select data-wand>${optK('wand', Wd[0])}</select></label>${verkn(Wd[0])}${dickeTxt(wid, DICKE.wand)}<div>${pruef(Wd[2], UMAX.wand)}</div>
+          <label class="feld">${k.z < 0 ? 'Kellersohle' : 'Boden'}<select data-boden>${optK('boden', k.boden)}</select></label>`}`; return; }
       if (SEL.art === 'dach') { const k = kz(SEL.id), D = M.dach[SEL.id]; if (!k || !D) { SEL = null; return detail(); }
         const i = flNr(SEL), af = i == null ? D.aufbau : flAuf(SEL.id, i), A = aufbau(af), nF = DFL[D.form].length;
         el.innerHTML = `<h2>${i == null ? 'Dach' : `Dachfläche${nF > 1 ? ' ' + (i + 1) + ' von ' + nF : ''}`}</h2><dl class="w"><dt>Teil</dt><dd>${esc(M.teile[k.teil] || '')}</dd><dt>auf</dt><dd>${esc(k.name)}</dd></dl>
           ${befHtml(SEL)}
-          ${i == null ? '' : `<label class="feld">Aufbau dieser Dachfläche<select data-dflauf>${optK('dach', af)}</select></label>`}
+          ${OPT.eigenschaften ? eigKurz(i == null ? 'Dach' : 'Dachfläche', A, idsVon(SEL), dickeTxt(af, D.form === 'flach' ? DICKE.flach : DICKE.dach) + pruef(A[2], UMAX.dach)) : `${i == null ? '' : `<label class="feld">Aufbau dieser Dachfläche<select data-dflauf>${optK('dach', af)}</select></label>`}
           <label class="feld">Aufbau ${i == null ? '' : 'des ganzen Dachs'}<select data-dachauf>${optK('dach', D.aufbau)}</select></label>${verkn(af)}${dickeTxt(af, D.form === 'flach' ? DICKE.flach : DICKE.dach)}<div>${pruef(A[2], UMAX.dach)}</div>
-          ${i != null && D.fl && D.fl[i] ? '<p class="hinweis">Diese Fläche hat einen eigenen Aufbau – „Aufbau des ganzen Dachs“ gilt für die übrigen.</p>' : ''}`; return; }
+          ${i != null && D.fl && D.fl[i] ? '<p class="hinweis">Diese Fläche hat einen eigenen Aufbau – „Aufbau des ganzen Dachs“ gilt für die übrigen.</p>' : ''}`}`; return; }
       if (SEL.art === 'gaube') { const g = M.gauben.find((x) => x.id === SEL.id); if (!g) { SEL = null; return detail(); } const kat = UW[g.rahmen][g.fach === 3 ? 1 : 0], uw = g.uw ?? kat;
         el.innerHTML = `<h2>Gaube</h2>${befHtml(SEL)}<div class="chips">${['Schleppgaube', 'Satteldachgaube', 'Flachdachgaube'].map((f) => `<button type="button" data-gform="${f}" aria-pressed="${g.form === f}">${f}</button>`).join('')}</div>
           <label class="feld">Breite m<input type="number" step="0.1" min="1" max="8" value="${g.b}" data-gb></label><h2>Fenster der Gaube</h2>${fensterHtml(g, kat, uw)}`; return; }
@@ -442,6 +448,7 @@
       if ('dflauf' in d) flSetzen(SEL.id, flNr(SEL), korbWahl('dach', t.value));
       if (['wand', 'boden', 'dachauf', 'dflauf'].some((x) => x in d)) bild(); });
     $('#detail').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; const d = b.dataset;
+      if ('bkeig' in d) return OPT.eigenschaften && OPT.eigenschaften(d.bkeig.split(',').map(Number).filter(Boolean));
       if ('bef' in d) { const f = BEF[+d.bef]; if (f && !f.aus) f.fn(); return; }
       if (MEHR.length && MF) { const FE = MF.FE;
         if ('mrahmen' in d) FE.forEach((o) => { o.rahmen = d.mrahmen; o.uw = null; });
@@ -470,8 +477,9 @@
       const ms = (f, st, mn) => `<label class="feld">${{ w: 'Länge', d: 'Breite', h: 'Höhe' }[f]} m<input type="number" step="${st}" min="${mn}" value="${gl(K, f) ?? ''}" placeholder="verschieden" data-mmass="${f}"></label>`;
       el.innerHTML = `<h2>Auswahl</h2><b>${L.length} Bauteile gewählt</b><p class="hinweis">Jede Angabe gilt für alle – „verschieden“, wo sie sich unterscheiden. Mit Strg weitere dazu oder wieder weg.</p>`
         + (K.length ? `<div class="reihe">${ms('w', 0.5, 2)}${ms('d', 0.5, 2)}${ms('h', 0.1, 2)}</div>` : '')
-        + (W2.length ? `<label class="feld">Aufbau für alle ${W2.length} Wände${wg ? '' : ' (verschieden)'}<select data-mwand>${wg ? '' : '<option value="">– wählen –</option>'}${optK('wand', wg)}</select></label>` : '')
-        + (D.length ? `<label class="feld">Aufbau für alle ${D.length} Dächer/Dachflächen${dg ? '' : ' (verschieden)'}<select data-mdach>${dg ? '' : '<option value="">– wählen –</option>'}${optK('dach', dg)}</select></label>` : '')
+        + (OPT.eigenschaften && (W2.length || D.length) ? `<div class="bef"><button type="button" data-bkeig="${[...W2, ...D].flatMap(idsVon).join(',')}">Aufbau für alle ${W2.length + D.length} … (Eigenschaften)</button></div>` : '')
+        + (W2.length && !OPT.eigenschaften ? `<label class="feld">Aufbau für alle ${W2.length} Wände${wg ? '' : ' (verschieden)'}<select data-mwand>${wg ? '' : '<option value="">– wählen –</option>'}${optK('wand', wg)}</select></label>` : '')
+        + (D.length && !OPT.eigenschaften ? `<label class="feld">Aufbau für alle ${D.length} Dächer/Dachflächen${dg ? '' : ' (verschieden)'}<select data-mdach>${dg ? '' : '<option value="">– wählen –</option>'}${optK('dach', dg)}</select></label>` : '')
         + (FE.length ? `<label class="feld">Rahmen für alle ${FE.length} Fenster${gl(FE, 'rahmen') ? '' : ' (verschieden)'}</label><div class="chips">${RAHMEN.map((r) => `<button type="button" data-mrahmen="${r}" aria-pressed="${gl(FE, 'rahmen') === r}">${r}</button>`).join('')}</div>
           <label class="feld">Verglasung</label><div class="chips">${[2, 3].map((f) => `<button type="button" data-mfach="${f}" aria-pressed="${gl(FE, 'fach') === f}">${f}-fach</button>`).join('')}</div>
           <label class="feld">Uw für alle (leer = aus dem Katalog je Fenster)</label><div class="uw"><input type="number" step="0.01" min="0.5" max="6" value="${gl(FE, 'uw') ?? ''}" data-muw placeholder="Katalog"></div>` : '')

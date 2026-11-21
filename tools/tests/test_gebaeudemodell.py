@@ -326,6 +326,13 @@ def test_baukasten_neuer_planstand(ctx):
     r = a.get(f"{B}/netz")
     n = json.loads(gzip.decompress(r.body) if (r.headers.get("Content-Encoding") or "") == "gzip" else r.body)
     gleich([e["i"] for e in n["e"]], [9600000], "Netz des Bausteins am Planstand")
+    # Aufbau einer Zeile aus dem Baukasten geändert → ihr Korb-Eintrag folgt (I1, 21.11.2026: kein Korb mehr in der Oberfläche)
+    w = next(z for z in L["zeilen"] if z.get("korb") and str(z.get("kg", "")).startswith("33"))
+    andere = next((r["id"] for r in a.gj(f"{B}/bauteile/vorlagen?kg={w['kg']}") if r["id"] != w.get("vorlage") and str(r["kg"])[:3] == str(w["kg"])[:3]), None)
+    if andere:
+        m = a.post(f"{B}/bauteile/zeile", {"id": w["id"], "vorlage": andere}).json
+        gleich(m["modell"]["korb"][w["korb"]]["vorlage"], andere, "Korb-Eintrag hat den neuen Aufbau")
+        pruefe(any(z["id"] == w["id"] for z in m["modell"]["bauteilliste"]["zeilen"]), "Zeile behält ihre Kennung")
     a.put(f"{B}/baukasten", {**v, "netz": {"e": [{"i": 1, "t": "<x>", "v": [1]}]}})
     sid = L["quelle"]["planstand"]
     a.post(f"{B}/planstand/{sid}", {"loeschen": True, **({"nachfolger": vor["gilt"]} if vor.get("gilt") else {})})

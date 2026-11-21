@@ -128,7 +128,7 @@ export async function bauteilePruefen(browser, repo) {
   const T = { L: { quelle: {}, raeume: [], zeilen: [] }, hand: [] };
   await q.route('http://gm.test/**', async (r) => {
     const u = new URL(r.request().url()).pathname, J = (o) => r.fulfill({ contentType: 'application/json', body: JSON.stringify(o) });
-    if (u === '/seite') return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><body><div id="feld"></div><div id="det"></div><script>${fs.readFileSync(R + 'bp.js', 'utf8')}</script><script>${fs.readFileSync(R + 'baum.js', 'utf8')}</script><script>${fs.readFileSync(R + 'bauteile.js', 'utf8')}</script>
+    if (u === '/seite') return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><body><div id="feld"></div><div id="det"></div><script>${fs.readFileSync(R + 'bp.js', 'utf8')}</script><script>${fs.readFileSync(R + 'baum.js', 'utf8')}</script><script>${fs.readFileSync(R + 'gruppen.js', 'utf8')}</script><script>${fs.readFileSync(R + 'bauteile.js', 'utf8')}</script>
       <script>window.bpEingabe = async () => 'Mauerwerk Nord'; window.BPHead = { projekt: { name: 'A100 Testhaus' }, conf: { apps: [] }, appUrl: () => '' }; window.BT = bpBauteile.mount(document.getElementById('feld'), 7, { einlesen: true, baum: true }); BT.details(document.getElementById('det'))</script>` });
     if (u.endsWith('/bauteile/hand')) { const d = r.request().postDataJSON(); T.hand.push(d);
       T.L = { quelle: { planstand: 9, name: 'Von Hand', art: 'hand' }, raeume: [], zeilen: [{ id: 'frage:elektro', bereich: 'frage', art: 'Elektro', kg: '444', name: 'Elektroinstallation', menge: 0, einheit: 'm²', zustand: 'frage', status: 'offen', erlaubt: ['bleibt', 'erneuern'], quelle: 'frage', ids: [], nummern: [] }]
@@ -171,7 +171,24 @@ export async function bauteilePruefen(browser, repo) {
     pruef(w.m && w.m.trim() === '–', `Frage ohne Menge: „${w.m}“`);
     await q.click('[data-btz="frage:elektro"] .bt-tn');
     pruef(/Elektroinstallation/.test(await q.textContent('#det')), 'angetippte Frage steht in den Details');
-  } catch (e) { fehler.push('Standardbaum: bricht ab – ' + String(e.message).split('\n')[0]); }
+    // Bauteile wie der LV-Baum (21.11.2026, Mock A1 … I1): Gruppieren-Leiste (C1), Dreieck = schnelle Aufbau-Wahl (E3), Doppelklick = Eigenschaften-Fenster (D4)
+    const chips = () => q.evaluate(() => [...document.querySelectorAll('.bt-grp [data-bpgk]')].map((c) => c.dataset.bpgk).join(','));
+    pruef(await chips() === 'bereich', `Gruppieren: Vorgabe „Bereich“ – ${await chips()}`);
+    await q.click('.bt-grp [data-bpgplus]'); await q.click('.pickm .pm-o:has-text("Gebäudeteil")'); await q.waitForTimeout(100);
+    pruef(await chips() === 'bereich,teil', `＋ fügt „Gebäudeteil“ an – ${await chips()}`);
+    await q.click('.bt-grp [data-bpgweg="bereich"]'); await q.waitForTimeout(100);
+    pruef(await chips() === 'teil' && await q.evaluate(() => !!document.querySelector('.bt-baum [data-btz="hand:1"]') && JSON.parse(localStorage.getItem('bp.bt.grp')).join() === 'teil'), `nur nach Gebäudeteil, gemerkt, Zeile bleibt – ${await chips()}`);
+    await q.click('.bt-grp [data-bpgplus]'); await q.click('.pickm .pm-o:has-text("Bereich")'); await q.waitForTimeout(100); await q.click('.bt-grp [data-bpgweg="teil"]'); await q.waitForTimeout(100);
+    await q.evaluate(() => document.querySelector('.bt-baum tr[data-btz="hand:1"]:not(.bt-snz) [data-btschnell]').click());   // Dreieck ohne head.css ohne Größe await q.waitForTimeout(100);
+    pruef(await q.evaluate(() => !!document.querySelector('tr.bt-snz [data-btsuch]') && !!document.querySelector('tr.bt-snz [data-btpop]')), 'Dreieck: Zeile mit Aufbau-Suche und „Eigenschaften …“ darunter');
+    await q.evaluate(() => document.querySelector('.bt-baum tr[data-btz="hand:1"]:not(.bt-snz) [data-btschnell]').click());   // Dreieck ohne head.css ohne Größe await q.waitForTimeout(100);
+    pruef(await q.evaluate(() => !document.querySelector('tr.bt-snz')), 'Dreieck noch einmal: zu');
+    await q.dblclick('.bt-baum tr[data-btz="hand:1"] .bt-tn'); await q.waitForSelector('.bt-pop', { state: 'attached', timeout: 5000 });
+    const pp = await q.evaluate(() => ({ k: document.querySelector('.bt-pop .bt-popk b').textContent, t: [...document.querySelectorAll('.bt-pop [data-btpu]')].map((b) => b.textContent), d: ((document.querySelector('.bt-pop .bt-popd [data-btname]') || {}).value || '') + document.querySelector('.bt-pop .bt-popd').textContent }));
+    pruef(/Mauerwerk Nord/.test(pp.k) && /angewählte \(1\)/.test(pp.t[0]) && /gleiche Bauteile/.test(pp.t[1] || '') && /Mauerwerk Nord/.test(pp.d), `Doppelklick: Eigenschaften-Fenster mit zwei Reitern – ${JSON.stringify(pp).slice(0, 200)}`);
+    await q.click('.bt-pop [data-btpopzu]');
+    pruef(await q.evaluate(() => !document.querySelector('.bt-pop')), 'Eigenschaften schließen');
+  } catch (e) { fehler.push('Standardbaum: bricht ab – ' + String(e.message).split('\n').slice(0, 3).join(' / ')); }
   await q.close();
   return fehler;
 }

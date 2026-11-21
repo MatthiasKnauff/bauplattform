@@ -25,6 +25,10 @@
   const ROHG = [['grund', 'Gründung · Bodenplatte', '320', (z) => /^32/.test(z.kg || '')], ['aw', 'Außenwände', '330', (z) => /^33/.test(z.kg || '')],   // Rohbau nach Bauteilen (A1)
     ['iw', 'Innenwände', '340', (z) => /^34/.test(z.kg || '')], ['tr', 'Treppen', '350', (z) => /trepp/i.test(`${z.name} ${z.art}`)], ['de', 'Decken', '350', (z) => /^35/.test(z.kg || '')],
     ['da', 'Dach', '360', (z) => /^36/.test(z.kg || '')]];
+  /* Gruppieren oben (Mock „Bauteile wie der LV-Baum“ C1, 21.11.2026) – Ebenen der Baumtabelle, gemerkt je Browser; „Bereich“ allein = die
+     gewohnte Gliederung (Rohbau nach Bauteilen, Fragen, „＋ Zeile“ je Gruppe) */
+  const GRUPPEN = { bereich: 'Bereich', teil: 'Gebäudeteil', art: 'Bauteilart', aufbau: 'Aufbau', mass: 'Maßnahme' };
+  const grpLies = () => { try { const v = JSON.parse(localStorage.getItem('bp.bt.grp')); return Array.isArray(v) ? v.filter((k) => k in GRUPPEN) : ['bereich']; } catch { return ['bereich']; } };
   const BEREICH = [['rohbau', 'Rohbau'], ['oeffnung', 'Öffnungen – Fenster und Türen'], ['raum', 'Räume – Oberflächen'], ['ausbau', 'Küche und Bad'], ['frage', 'Nicht im Modell – bitte beantworten'], ['hand', 'Von Hand'], ['leistung', 'Leistungen ohne Bauteil']];
   const HAND = ['hand', 'leistung'];   // Name/Menge hier änderbar, entfernen möglich
   let KONTEXT = null; document.addEventListener('bph:kontext', (e) => { if (KONTEXT) KONTEXT(e); });
@@ -88,7 +92,12 @@
 .bt-weg4{width:100%;text-align:left;font:inherit;color:inherit;background:var(--card,transparent)}.bt-weg4:hover,.bt-weg4:focus-visible{border-color:var(--y,#3b5a8f);box-shadow:inset 0 0 0 1px var(--y,#3b5a8f)}.bt-anf{width:min(520px,100%)}
 .bt-hd{width:min(480px,100%)}.bt-hdl{display:flex;flex-direction:column;gap:.2rem;font-size:.86rem}.bt-hdl>span{opacity:.75}.bt-hdl input{font:inherit;padding:.3rem .5rem}.bt-hdz{display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end}.bt-hdz .bt-m{width:7rem}
 .bt-ehb{font:inherit;font-size:.85rem;border:1px solid var(--line,#d5d9de);background:none;color:inherit;border-radius:calc(6px*var(--rk,1));padding:0 .4rem;cursor:pointer}.bt-baum tr.bt-erg td:first-child{box-shadow:inset 3px 0 0 #e0b100}
-.bt-ap small{display:block;opacity:.7}.bt-lk{border:0;background:none;color:var(--y,#3b5a8f);font:inherit;cursor:pointer;padding:.2rem 0}`;
+.bt-ap small{display:block;opacity:.7}.bt-lk{border:0;background:none;color:var(--y,#3b5a8f);font:inherit;cursor:pointer;padding:.2rem 0}
+.bt-grp{flex:none}.bt-snz>td{background:color-mix(in srgb,var(--y,#2f6fb3) 5%,transparent)}.bt-sn{display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-start;padding:.35rem .5rem .45rem}.bt-sn .bt-such{flex:1;min-width:16rem;max-width:34rem}.bt-sni{align-self:center;font-size:.85rem}
+.bt-pop .bt-popb{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:.6rem;padding:.5rem .7rem}.bt-popu{border-top:1px solid var(--line,#d5d9de);padding-top:.5rem}
+.bt-popr{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.35rem}.bt-seg{display:inline-flex;padding:2px;border:1px solid var(--line,#d5d9de);border-radius:calc(999px*var(--rkp,1))}
+.bt-seg button{border:0;background:none;border-radius:calc(999px*var(--rkp,1));padding:.1rem .65rem;cursor:pointer;font:inherit;color:inherit}.bt-seg button.on{background:var(--y,#2f6fb3);color:#fff}
+.bt-popu tr[data-btpz]{cursor:pointer}.bt-popu tr[data-btpz]:hover td{background:var(--hov,rgba(47,111,179,.08))}.bt-popu tr.on td{background:color-mix(in srgb,#7b2ff7 12%,transparent)}`;
   const stil = () => { if (document.getElementById('bt-stil')) return; const s = document.createElement('style'); s.id = 'bt-stil'; s.textContent = STIL; document.head.appendChild(s); };
 
   const tag = (s) => (window.bpTag ? bpTag(String(s || '').slice(0, 10)) : String(s || '').slice(0, 10));
@@ -143,7 +152,7 @@
   function mount(el, pid, opt = {}) {
     stil();
     const H = window.BPHead || {};
-    const Z = { d: null, auf: null, vorl: {}, vorlD: {}, blk: {}, laeuft: false, kg: {}, ps: [], an: null, rw: null, rwW: {}, sel: null, det: null, mw: [] };   // sel: markierte Zeile (Baumtabelle), det: Feld „Details“ rechts   // rw: Vorschläge der Apps (Rückweg), rwW: Wahl je Vorschlag   // an: Planstand, der gerade angesehen wird (gilt nicht)
+    const Z = { d: null, auf: null, vorl: {}, vorlD: {}, blk: {}, laeuft: false, kg: {}, ps: [], an: null, rw: null, rwW: {}, sel: null, det: null, mw: [], grp: grpLies(), gk: [], schnell: null, pop: null, popU: 'an' };   // sel: markierte Zeile (Baumtabelle), det: Feld „Details“ rechts   // rw: Vorschläge der Apps (Rückweg), rwW: Wahl je Vorschlag   // an: Planstand, der gerade angesehen wird (gilt nicht)
     const G = () => (Z.d && Z.d.modell && Z.d.modell.bauteilliste) || { zeilen: [], raeume: [], quelle: {} };
     const L = () => (Z.an ? Z.an.liste : G());
     const gilt = () => (G().quelle || {}).planstand || null;
@@ -507,12 +516,13 @@
     /* Aufbau-Editor: sind die Vorlagen schon da, steht er gleich mit in der Zeile (kein „wird geladen“ dazwischen – sonst springt die Seite bei jeder Wahl, 20.11.2026) */
     function editorSofort(z) { const kg = Z.kg[z.id] || z.kg, V = Z.vorlD[String(kg || '').slice(0, 2)]; return V ? editorHtml(z, kg, V) : ''; }
     async function editor(neu) {
-      const sel = `[data-btz="${CSS.escape(Z.auf || '')}"] .bt-e`, z = L().zeilen.find((x) => x.id === Z.auf), box = (Z.det && Z.det.querySelector(sel)) || el.querySelector(sel);
-      if (!z || !box || (!neu && !box.querySelector('.bt-w'))) return;   // schon gefüllt (editorSofort)
+      const sel = `[data-btz="${CSS.escape(Z.auf || '')}"] .bt-e`, z = L().zeilen.find((x) => x.id === Z.auf);
+      const B = [Z.det, Z.pop && Z.pop.isConnected ? Z.pop : null, el].map((x) => x && x.querySelector(sel)).filter(Boolean).filter((b) => neu || b.querySelector('.bt-w'));   // rechts, Fenster, Zeile – nur, was noch nicht gefüllt ist (editorSofort)
+      if (!z || !B.length) return;
       let V;
       const kg = Z.kg[z.id] || z.kg;
-      try { V = await vorlagen(kg); } catch (e) { box.innerHTML = `<div class="bt-w">${esc(e.message)}</div>`; return; }
-      box.innerHTML = editorHtml(z, kg, V);
+      try { V = await vorlagen(kg); } catch (e) { B.forEach((b) => { b.innerHTML = `<div class="bt-w">${esc(e.message)}</div>`; }); return; }
+      B.forEach((b) => { b.innerHTML = editorHtml(z, kg, V); });
     }
     /* Suche nach dem Aufbau (GO 21.11.2026, Mock „Baukasten wie 3D“ F1): ganz oben im Editor – findet Vorlagen, Optionen in den Schichten
        (Material, Kurzname, Text) und Kürzel aus dem Plan (PP, KS, HLz, WDVS … – Liste des Kerns, bpcore/kuerzel.py). Ein Treffer setzt Vorlage
@@ -554,6 +564,8 @@
       const t = e.target, r = t.closest('[data-btz]'), id = r && r.dataset.btz;
       if (opt.baum && t.closest('[data-btrwzeig]')) { Z.sel = '__rw'; Z.auf = null; zeichne(); if (opt.auswahl) opt.auswahl(null); return; }
       if (t.closest('[data-btmw]') && id) return mwUm(id, true);
+      if (t.closest('[data-btschnell]') && id) { Z.schnell = Z.schnell === id ? null : id; Z.sel = Z.auf = id; return zeichne(); }   // E3: schnelle Aufbau-Wahl in der Zeile
+      if (t.closest('[data-btpop]') && id) return eigenschaften(id);
       if (opt.baum && r && r.tagName === 'TR' && (e.ctrlKey || e.metaKey) && !t.closest('[data-zu],input,button')) return mwUm(id, true);
       if (t.closest('[data-btmwweg]')) return mwSetzen([]);
       if (t.closest('[data-btmwst]')) return mwAendern({ status: t.closest('[data-btmwst]').dataset.btmwst });
@@ -687,9 +699,11 @@
       const zeilenHtml = (z, t) => {
         const fr = z.bereich === 'frage', w = (fr ? WORT_FRAGE : WORT)[z.status] || z.status;
         const menge = fr && !z.menge ? '<span title="kommt, sobald Fläche oder Räume bekannt sind (Assistent, Plan oder von Hand)">–</span>' : `${zahl(z.menge)}&nbsp;${esc(z.einheit)}`;
-        return `<tr data-btz="${esc(z.id)}" class="${Z.sel === z.id ? 'akt' : ''}${Z.mw.includes(z.id) ? ' bt-mwz' : ''}${z.status === 'offen' ? ' offen' : ''}${z.entfaellt ? ' weg' : ''}${z.ergaenzt ? ' bt-erg' : ''}">${bpBaum.zelle({ tiefe: t, html: `${Z.an ? '' : `<input type="checkbox" class="bt-mwh" data-btmw${Z.mw.includes(z.id) || (!Z.mw.length && Z.sel === z.id) ? ' checked' : ''} title="Mehrere Zeilen wählen und gemeinsam ändern" aria-label="${esc(z.name)} wählen">`}<span class="bt-tn">${esc(mitTeil(z))}</span>${z.einordnung ? `<small class="bt-nr"> ${esc(z.einordnung)}</small>` : ''}${typeof bpWk === 'function' ? bpWk([z.name, z.material]) : ''}${(z.nummern || []).length && t < 2 ? `<small class="bt-nr"> ${esc(z.nummern.length > 6 ? z.nummern[0] + ' … ' + z.nummern[z.nummern.length - 1] : z.nummern.join(' · '))}</small>` : ''}` })}
+        const sn = Z.schnell === z.id && !Z.an && z.bereich !== 'frage';
+        return `<tr data-btz="${esc(z.id)}" class="${Z.sel === z.id ? 'akt' : ''}${Z.mw.includes(z.id) ? ' bt-mwz' : ''}${z.status === 'offen' ? ' offen' : ''}${z.entfaellt ? ' weg' : ''}${z.ergaenzt ? ' bt-erg' : ''}">${bpBaum.zelle({ tiefe: t, auf: Z.an || z.bereich === 'frage' ? undefined : sn, car: ` data-btschnell title="${sn ? 'zuklappen' : 'Aufbau schnell wählen – Doppelklick: alle Eigenschaften'}"`, html: `${Z.an ? '' : `<input type="checkbox" class="bt-mwh" data-btmw${Z.mw.includes(z.id) || (!Z.mw.length && Z.sel === z.id) ? ' checked' : ''} title="Mehrere Zeilen wählen und gemeinsam ändern" aria-label="${esc(z.name)} wählen">`}<span class="bt-tn">${esc(mitTeil(z))}</span>${z.einordnung ? `<small class="bt-nr"> ${esc(z.einordnung)}</small>` : ''}${typeof bpWk === 'function' ? bpWk([z.name, z.material]) : ''}${(z.nummern || []).length && t < 2 ? `<small class="bt-nr"> ${esc(z.nummern.length > 6 ? z.nummern[0] + ' … ' + z.nummern[z.nummern.length - 1] : z.nummern.join(' · '))}</small>` : ''}` })}
           <td class="r">${z.bereich === 'hand' && !z.menge ? '<span class="bt-chip gelb" title="Menge fehlt – die Zeile wird mit 0 gerechnet. Eintragen rechts unter „Details“.">Menge fehlt</span>' : menge}</td><td><span class="bt-chip${z.status === 'offen' ? ' bt-ext' : ''}">${esc(w)}</span>${z.ergaenzt ? ' <span class="bt-chip gelb" title="Neben dem Plan ergänzt">ergänzt</span>' : ''}${z.entfaellt ? ' <span class="bt-chip">entfällt</span>' : ''}${z.kuerzel && !z.bestaetigt && !z.entfaellt ? ' <span class="bt-chip gelb" title="Aufbau aus dem Kürzel im Plan – bitte bestätigen">bestätigen</span>' : ''}</td>
-          <td class="bt-kz" title="${esc(z.kurz || '')}">${esc(z.kurz || (z.berechnen ? 'kein Aufbau' : ''))}</td><td class="r" data-btu="${esc(z.id)}"></td><td class="c"><input type="checkbox" data-btber title="wird berechnet (Kosten, LV)"${z.berechnen ? ' checked' : ''}${z.status === 'offen' || Z.an ? ' disabled' : ''}></td></tr>`;
+          <td class="bt-kz" title="${esc(z.kurz || '')}">${esc(z.kurz || (z.berechnen ? 'kein Aufbau' : ''))}</td><td class="r" data-btu="${esc(z.id)}"></td><td class="c"><input type="checkbox" data-btber title="wird berechnet (Kosten, LV)"${z.berechnen ? ' checked' : ''}${z.status === 'offen' || Z.an ? ' disabled' : ''}></td></tr>`
+          + (sn ? `<tr class="bt-snz" data-btz="${esc(z.id)}"><td colspan="6"><div class="bt-sn" style="${'padding-left:' + (1.2 * (t + 1) + 1) + 'rem'}">${schnellHtml(z)}</div></td></tr>` : '');
       };
       /* Eine Baumtabelle für alles (17.11.2026, „konsequent“): alle Bereiche und Gruppen stehen immer da – leer mit 0 und „＋ Zeile“, gefüllt
          klappbar; „＋ Zeile“ am Kopf jeder Gruppe, in die man von Hand etwas eintragen kann. Ohne Zeilen oben die Meldung wie in allen Apps. */
@@ -700,8 +714,20 @@
       };
       const ort = (z) => z.bereich !== 'hand' ? z.bereich : /^3[2-6]/.test(z.kg || '') ? 'rohbau' : /^41/.test(z.kg || '') ? 'ausbau' : 'hand';   // „＋ Zeile“ in einer Gruppe: die Zeile steht dort
       const PLUS = { ausbau: '412', hand: '300' };
-      let body = '';
-      for (const [b, t] of BEREICH) {
+      let body = ''; Z.gk = [];
+      const G = Z.grp, gewohnt = G.length === 1 && G[0] === 'bereich';
+      if (!gewohnt) {   // Ebenen aus der Leiste oben, außen vor innen – je Ebene klappbar
+        const artVon = (z) => { if (ort(z) === 'rohbau') { const g = ROHG.find((x) => x[3](z)); return g ? g[1] : 'Sonstiges'; } return (BEREICH.find(([b]) => b === ort(z)) || [, 'Sonstiges'])[1]; };
+        const wert = (z, k) => (k === 'bereich' ? (BEREICH.find(([b]) => b === ort(z)) || [, 'Sonstiges'])[1] : k === 'teil' ? z.teil || 'ohne Gebäudeteil' : k === 'art' ? artVon(z)
+          : k === 'aufbau' ? z.kurz || 'ohne Aufbau' : (z.bereich === 'frage' ? WORT_FRAGE : WORT)[z.status] || z.status || '–');
+        const ebene = (R, i, pfad) => {
+          if (i >= G.length) { body += R.map((z) => zeilenHtml(z, i)).join(''); return; }
+          const M = new Map(); R.forEach((z) => { const w = wert(z, G[i]); (M.get(w) || M.set(w, []).get(w)).push(z); });
+          [...M.entries()].sort((a, b) => a[0].localeCompare(b[0], 'de', { numeric: true })).forEach(([w, RR]) => { const k = `g:${pfad}/${w}`; Z.gk.push(k); const [zu, h] = kopfZ(RR, w, k, i); body += h; if (!zu) ebene(RR, i + 1, `${pfad}/${w}`); });
+        };
+        ebene(ZZ, 0, G.join('>'));
+      }
+      for (const [b, t] of gewohnt ? BEREICH : []) {
         const R = ZZ.filter((z) => ort(z) === b);
         if (!R.length && (b === 'hand' || (b === 'leistung' && !leer))) continue;   // „Von Hand“ nur mit Zeilen; Leistungen ohne Bauteil kommen aus den Apps
         const [zu, k] = kopfZ(R, t, 'b:' + b, 0, PLUS[b] ? plus(PLUS[b], t) : ''); body += k;
@@ -718,24 +744,69 @@
       const meldung = leer && typeof bpLeer === 'function' ? bpLeer({ was: 'kein Gebäudemodell', text: 'Mit Plan oder ohne: aus der Planung, Räume und Fenster selbst eintragen, einzelne Bauteile oder einen Plan einlesen (IFC, DXF, PDF).', knoepfe: [{ t: 'Anfangen …', attrs: 'data-btanfang' }] }) : '';
       const y = el.querySelector('.bt-bw') ? el.querySelector('.bt-bw').scrollTop : 0;
       const mwl = Z.mw.length > 1 && !Z.an ? `<div class="bt-mwl">${mwHtml(true)}</div>` : '';   // H1: gemeinsam ändern über der Tabelle
-      el.innerHTML = `<div class="bt-bl">${an}${rwl}${zl}${tw}${meldung}${mwl}<div class="bt-w"></div><div class="bt-bw"><table class="bp-baum bt-baum${leer ? ' bt-gerust' : ''}"><thead><tr><th>Bauteil</th><th class="r">Menge</th><th>Antwort</th><th>Aufbau</th><th class="r" title="U-Wert aus dem gewählten Aufbau, W/(m²K) – Farbe nach GModG (Neubau: Referenzgebäude, Bestand: Anlage 7)">U</th><th class="c" title="wird berechnet">€</th></tr></thead><tbody>${body}</tbody></table></div>
+      const grp = window.bpGruppen && !leer ? `<div class="bt-grp">${bpGruppen.html(Z.grp, GRUPPEN, { rechts: 'Doppelklick: Eigenschaften · Strg + Klick: mehrere' })}</div>` : '';
+      el.innerHTML = `<div class="bt-bl">${an}${rwl}${zl}${tw}${meldung}${mwl}<div class="bt-w"></div>${grp}<div class="bt-bw"><table class="bp-baum bt-baum${leer ? ' bt-gerust' : ''}"><thead><tr><th>Bauteil</th><th class="r">Menge</th><th>Antwort</th><th>Aufbau</th><th class="r" title="U-Wert aus dem gewählten Aufbau, W/(m²K) – Farbe nach GModG (Neubau: Referenzgebäude, Bestand: Anlage 7)">U</th><th class="c" title="wird berechnet">€</th></tr></thead><tbody>${body}</tbody></table></div>
         <input type="file" accept=".ifc,.dxf,.pdf" data-btdatei hidden></div>`;
       el.querySelector('.bt-bw').scrollTop = y;
+      const gb = el.querySelector('.bt-grp');
+      if (gb) bpGruppen.an(gb, { lies: () => Z.grp, namen: GRUPPEN, setze: (G2) => { Z.grp = G2.length ? G2 : ['bereich']; try { localStorage.setItem('bp.bt.grp', JSON.stringify(Z.grp)); } catch { /* egal */ } baumZeichnen(); } });
+    }
+    /* Dreieck an der Zeile (E3): darunter die schnelle Wahl eines fertigen Aufbaus – erst Standardbauteile, dann Schichten (dieselbe Suche wie im Editor) */
+    function schnellHtml(z) {
+      const k2 = String(Z.kg[z.id] || z.kg || '').slice(0, 2); if (k2 && !Z.vorlD[k2]) vorlagen(Z.kg[z.id] || z.kg).catch(() => {});
+      return `<div class="bt-such"><input data-btsuch placeholder="Fertigen Aufbau suchen: Standardbauteil, Material oder Kürzel (KS, PP, WDVS …)" aria-label="Aufbau suchen" autocomplete="off"><div class="bt-vs"></div></div>
+        <span class="bt-sni">Jetzt: <b>${esc(z.kurz || 'kein Aufbau')}</b></span><button type="button" class="btn sm" data-btpop>Eigenschaften …</button>`;
+    }
+    /* Eigenschaften-Fenster (Doppelklick auf eine Zeile oder im 3D, Mock D4 G1 H1): ein freies Fenster über der Seite – die Seite bleibt bedienbar,
+       daneben in der Tabelle oder im 3D an- und abwählen; oben derselbe Editor wie rechts (Aufbau, Schichten, U), unten zwei Reiter
+       „angewählte“ · „gleiche Bauteile“ (gleicher Aufbau) – „alle wählen“ macht die gleichen zur Auswahl, dann gilt jede Änderung für alle */
+    function eigenschaften(id) {
+      if (id && !Z.mw.includes(id)) { Z.mw = []; Z.sel = Z.auf = id; }
+      if (!Z.pop || !Z.pop.isConnected) {
+        const D = el.ownerDocument, f = D.createElement('div');
+        f.className = 'sr-flo bt-pop'; f.setAttribute('role', 'dialog'); f.setAttribute('aria-label', 'Eigenschaften');
+        f.innerHTML = '<div class="sr-fk bt-popk"><b>Eigenschaften</b><button type="button" class="sr-ik" data-btpopzu title="Schließen">✕</button></div><div class="bt-popb"><div class="bt-popd"></div><div class="bt-popu"></div></div>';
+        D.body.appendChild(f); Z.pop = f;
+        if (window.bpFrei) bpFrei(f, { key: 'bt.pop', start: { x: Math.max(16, Math.round(innerWidth * 0.3)), y: 96, w: 640, h: Math.min(780, innerHeight - 130) }, griff: '.bt-popk' });
+        const d = f.querySelector('.bt-popd'); d.onclick = klick; d.onchange = wechsel; d.oninput = suchen; d.onkeydown = suchTaste; d.addEventListener('toggle', blkMerk, true);
+        f.querySelector('.bt-popk').onclick = (e) => { if (e.target.closest('[data-btpopzu]')) { f.remove(); Z.pop = null; } };
+        f.querySelector('.bt-popu').onclick = (e) => {
+          const b = e.target.closest('[data-btpu]'); if (b) { Z.popU = b.dataset.btpu; return popUnten(); }
+          if (e.target.closest('[data-btpualle]')) return mwSetzen(gleiche().map((x) => x.id));
+          const r = e.target.closest('tr[data-btpz]'); if (r) mwUm(r.dataset.btpz, true);
+        };
+      }
+      zeichne(); if (opt.mehr) opt.mehr(Z.mw.length ? Z.mw : Z.sel ? [Z.sel] : []);
+    }
+    const gewaehlt = () => (Z.mw.length ? mwZ() : L().zeilen.filter((x) => x.id === Z.sel));
+    const gleiche = () => { const r = gewaehlt()[0]; return r && r.kurz ? L().zeilen.filter((x) => !x.entfaellt && x.kurz === r.kurz && String(x.kg || '').slice(0, 2) === String(r.kg || '').slice(0, 2)) : []; };
+    function popUnten() {
+      const u = Z.pop && Z.pop.querySelector('.bt-popu'); if (!u) return;
+      const S = gewaehlt(), GL = gleiche(), R = Z.popU === 'gleich' ? GL : S, an = new Set(S.map((x) => x.id));
+      Z.pop.querySelector('.bt-popk b').textContent = !S.length ? 'Eigenschaften' : S.length > 1 ? `Eigenschaften · ${S.length} Bauteile` : `Eigenschaften · ${S[0].name}`;
+      u.innerHTML = `<div class="bt-popr"><span class="bt-seg" role="tablist"><button type="button" role="tab" data-btpu="an" class="${Z.popU !== 'gleich' ? 'on' : ''}">angewählte (${S.length})</button><button type="button" role="tab" data-btpu="gleich" class="${Z.popU === 'gleich' ? 'on' : ''}">gleiche Bauteile (${GL.length})</button></span>
+        ${Z.popU === 'gleich' && GL.length > 1 && GL.some((x) => !an.has(x.id)) ? `<button type="button" class="btn sm" data-btpualle title="Alle mit diesem Aufbau wählen – dann gilt jede Änderung oben für alle">alle ${GL.length} wählen</button>` : ''}<span class="bt-nr">Klick: dazu/weg · daneben in der Tabelle oder im 3D mit Strg + Klick</span></div>
+        <table class="bt-el"><thead><tr><th>Bauteil</th><th>Gebäudeteil</th><th>Aufbau</th><th class="r">Menge</th></tr></thead><tbody>${R.map((x) => `<tr data-btpz="${esc(x.id)}" class="${an.has(x.id) ? 'on' : ''}"><td>${esc(x.name)}</td><td>${esc(x.teil || '')}</td><td>${esc(x.kurz || '')}</td><td class="r">${zahl(x.menge)} ${esc(x.einheit || '')}</td></tr>`).join('') || '<tr><td colspan="4" class="bt-nr">nichts gewählt</td></tr>'}</tbody></table>`;
     }
     if (opt.baum && window.bpBaum) {
-      bpBaum.klappbar(el, { klapp: () => KL, neu: () => baumZeichnen(), alle: () => BEREICH.map(([b]) => 'b:' + b).concat(ROHG.map(([g]) => 'r:' + g), ['r:so']) });
+      bpBaum.klappbar(el, { klapp: () => KL, neu: () => baumZeichnen(), alle: () => BEREICH.map(([b]) => 'b:' + b).concat(ROHG.map(([g]) => 'r:' + g), ['r:so'], Z.gk) });
       bpBaum.tasten({ wurzel: '.bt-baum > tbody', zeilen: 'tr[data-btz]', waehle: (z) => z.querySelector('td').click(), loesche: (tr) => handWeg(tr.dataset.btz) });
       /* Zeilen von Hand auch im Baum ändern (20.11.2026: „lassen sich weder bearbeiten noch löschen“ – ging nur rechts in den Details): Kontextmenü, F2, Entf */
       KONTEXT = (e) => { const tr = e.detail.ziel.closest && e.detail.ziel.closest('tr[data-btz]'); if (!tr || !el.contains(tr) || Z.an) return;
         const z = L().zeilen.find((x) => x.id === tr.dataset.btz); if (!z || !HAND.includes(z.bereich)) return;
         e.detail.punkte.push({ titel: z.name }, { text: 'Umbenennen …', k: 'F2', fn: () => handName(z.id) }, { text: 'Entfernen', k: 'Entf', gefahr: true, fn: () => handWeg(z.id) }); };   // ein Lauscher für die Seite (unten), immer der zuletzt aufgebaute Baum
       el.addEventListener('keydown', (e) => { if (e.key !== 'F2' || !Z.sel || Z.an || (window.bpTippt && bpTippt(e.target))) return; e.preventDefault(); handName(Z.sel); });
+      el.addEventListener('click', (e) => { if (e.detail !== 2) return; const r = e.target.closest('tr[data-btz]'); if (!r || !el.contains(r) || e.target.closest('input,button,select,[data-btschnell]')) return; e.preventDefault(); e.stopPropagation(); eigenschaften(r.dataset.btz); }, true);   // Doppelklick = Eigenschaften wie im LV – als zweiter Klick (detail 2) vor dem Neuzeichnen: der erste Klick zeichnet die Zeile neu, dann käme kein dblclick an
     }
     const ladeJs = (n, da) => (da() ? Promise.resolve() : new Promise((ok) => { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + n + v; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); }));
     const raumbuchJs = () => ladeJs('raumbuch.js', () => window.bpRaumbuch);
     const uFuellen = (w) => { if (w && Z.d && !Z.an) ladeJs('uwert.js', () => window.bpUwert).then(() => window.bpUwert && bpUwert.fuellen(w, basis, Z.d.rev, { name: (id) => ((G().zeilen || []).find((x) => x.id === id) || {}).name || id, setzen: (id, v) => zeile(id, v) })); };   // U-Werte (bp/uwert.js, UW-A1)
-    function detailsZeichnen() {
-      const box = Z.det; if (!box || !box.isConnected) return;
+    function detailsZeichnen() {   // rechts unter „Bauteil“ und im Eigenschaften-Fenster – derselbe Inhalt
+      const P = Z.pop && Z.pop.isConnected ? Z.pop.querySelector('.bt-popd') : null;
+      [Z.det, P].forEach((b) => { if (b && b.isConnected) detailsIn(b); });
+      if (P) popUnten();
+    }
+    function detailsIn(box) {
       if (Z.mw.length > 1) {   // mehrere: oben das Gemeinsame; gleiche Bauteilart → darunter derselbe Aufbau-Editor wie bei einem Bauteil, jede Wahl gilt für alle (21.11.2026)
         const R = mwZ(), k2 = String((R[0] || {}).kg || '').slice(0, 2), ein = k2 && R.every((z) => String(z.kg || '').slice(0, 2) === k2);
         if (!ein) { box.innerHTML = `<div class="bt-l bt-mwd">${mwHtml(false)}</div>`; return; }
@@ -816,6 +887,7 @@
       details(box) { Z.det = box; box.onclick = klick; box.onchange = wechsel; box.oninput = suchen; box.onkeydown = suchTaste; box.addEventListener('toggle', blkMerk, true); detailsZeichnen(); },
       zustand: () => ({ an: Z.an, planstaende: Z.ps.length, gilt: (G().quelle || {}).planstand || null, ifc: ifcDa(G().quelle || {}), plan: !!(G().quelle || {}).planstand && ((G().quelle || {}).art || 'ifc') !== 'hand', planart: (G().quelle || {}).art || '', zeilen: L().zeilen, weg: G().zeilen.filter((z) => z.entfaellt).length, extern: !!(Z.rw && Z.rw.extern), sel: Z.sel, modell: Z.d && Z.d.modell, rev: Z.d && Z.d.rev }),
       mehr(ids) { mwSetzen(ids || []); },   // im 3D mehrere gewählt (Zeilen-Kennungen)
+      eigenschaften(id) { eigenschaften(id); },   // Doppelklick im 3D (G1)
       mehrfach: () => [...Z.mw],
       zeige(id, rollen) { Z.mw = []; Z.sel = id; Z.auf = id; zeichne(); const r = rollen && el.querySelector(`[data-btz="${CSS.escape(id)}"]`); if (r) r.scrollIntoView({ block: 'nearest' }); },   // rollen: aus der 3D-Ansicht gewählt – die Zeile ins Bild
       neu(d) { Z.d = d; zeichne(); },

@@ -126,6 +126,17 @@ export async function baukastenPruefen(browser, repo) {
       await p.waitForFunction(() => window.BKH.d3 && document.querySelector('#h .b3 canvas'), null, { timeout: 8000 });
       pruef(await p.evaluate(() => !document.querySelector('#h aside') && !!document.querySelector('#rechts [data-bk="detail"]') && !!document.querySelector('#rechts [data-bk="korb"]') && !!document.querySelector('#rechts [data-bk="pal"] [data-stein]') && document.querySelector('#h .bkx').classList.contains('eingebettet')), 'eingebettet: Symbolreihe, Angaben und Korb stehen rechts');
     }
+    {   // Gebäudemodell (21.11.2026, I1 F1): kein Korb-Reiter – rechts nur Maße und Befehle, „Aufbau … (Eigenschaften)“ öffnet das Eigenschaften-Fenster der Bauteilliste
+      await p.evaluate(() => { document.getElementById('rechts').innerHTML = ''; window.__eig = [];
+        window.BKH = bpBaukasten.mount(document.getElementById('h'), 1, { seite: ({ detail }) => document.getElementById('rechts').append(detail), eigenschaften: (ids) => window.__eig.push(ids) }); });
+      await p.waitForFunction(() => window.BKH.d3 && document.querySelector('#h .b3 canvas'), null, { timeout: 8000 }); await p.waitForTimeout(250);
+      const w2 = await punkt([5, 0, 1.45]); await p.mouse.click(w2[0], w2[1]); await p.waitForTimeout(250);
+      const e = await p.evaluate(() => ({ sel: document.querySelectorAll('#rechts [data-bk="detail"] select').length, k: !!document.querySelector('#rechts [data-bk="korb"]'), st: !!document.querySelector('#rechts [data-bk="stand"]'), b: document.querySelectorAll('#rechts [data-bkeig]').length }));
+      pruef(!e.k && e.st && e.b >= 2, `ohne Korb, Stand rechts, „Aufbau …“-Knöpfe: ${JSON.stringify(e)}`);
+      await p.click('#rechts [data-bkeig]'); await p.waitForTimeout(100);
+      const ids = await p.evaluate(() => window.__eig);
+      pruef(ids.length === 1 && ids[0].length >= 1 && ids[0].every((i) => i >= 9600000), `„Aufbau …“ meldet die Nummern der Wand: ${JSON.stringify(ids)}`);
+    }
     {   // „Neuer Planstand – mit dem Baukasten“: Vorschlag (Erdgeschoss + Satteldach), sofort gespeichert als eigener Planstand
       const n = S.puts.length;
       await p.evaluate(() => { window.BKH = bpBaukasten.mount(document.getElementById('h'), 1, { neu: true }); }); await warte(n + 1);

@@ -145,15 +145,14 @@ async function gmTab(k, mitte) {
   if (k !== 'bauteile') { const st = BT ? BT.zustand() : {}; G3.liRev = `${st.rev}|${st.an ? st.an.id : null}`; await gmListe(k, null, true); }
 }
 /* Bereich rechts: Bauteil (Baukasten: Angaben des gewählten Körpers, Tabelle: Details der Zeile – darunter die Liste jedes Bauteils einzeln),
-   Korb (nur Baukasten, F1), Fragen (Fragen & Anweisungen), Planung */
+   Fragen (Fragen & Anweisungen), Planung – den Korb gibt es hier nicht mehr (I1, 21.11.2026: „Gruppieren nach Aufbau“ und das Eigenschaften-Fenster) */
 function g3Seite() {
   if (!window.seite) return;
-  const R = [{ id: 'details', titel: 'Bauteil', mount: (el) => {
+  const R = [{ id: 'details', titel: G3.bk ? 'Baukörper' : 'Bauteil', mount: (el) => {   // Baukasten: Maße und Befehle des Baukörpers (F1)
     el.innerHTML = '<div class="g3-teil"><div class="g3-oben"><div class="g3-bk"></div><div class="g3-det"></div></div><div class="g3-tr" role="separator" aria-orientation="horizontal" title="Ziehen: Platz zwischen Angaben und Liste"></div><div class="g3-li"></div></div>';
     const h = +LS.get('g3h'); if (h > 60) el.querySelector('.g3-teil').style.setProperty('--g3h', h + 'px');
     if (G3.bkD) el.querySelector('.g3-bk').appendChild(G3.bkD);
     BT.details(el.querySelector('.g3-det')); G3.liste = el.querySelector('.g3-li'); g3Liste(G3.liste); g3Rechts(); } }];
-  if (G3.bk) R.push({ id: 'korb', titel: 'Korb', mount: (el) => { el.innerHTML = ''; if (G3.bkK) el.appendChild(G3.bkK); else el.innerHTML = '<p class="mute" style="padding:.8rem">Der Korb erscheint mit dem Baukasten (Ansicht „3D“).</p>'; } });
   R.push(FRAGEN_R, seite.planung);   // Fragen & Anweisungen als Reiter (21.11.2026)
   seite(WORK, 'gm', R, { start: 'details', w: 0.62, minL: 520, min: 340, planung: false });
 }
@@ -174,11 +173,13 @@ document.addEventListener('pointerdown', (e) => {
 });
 function g3Laden(feld, st) {
   if (!feld.isConnected) return;
-  const F = (G3.E || {}).f || 'f1', D3O = { abdocken: { zurueck: g3Ab(), fn: g3Abdocken }, zeilen: g3Zeilen(st), modi: g3Modi(), start: G3.farbe, info: g3Info, spreizen: F === 'f2' ? 'aussen' : 'alle', spreizWahl: F !== 'f2', teil: (e) => { const z = g3Zeile(e); return z ? z.teil || '' : ''; } };
+  const F = (G3.E || {}).f || 'f1', D3O = { abdocken: { zurueck: g3Ab(), fn: g3Abdocken }, doppel: (e) => { const x = G3.zu.get(e.i); if (x && BT) BT.eigenschaften(x.z.id); }, zeilen: g3Zeilen(st), modi: g3Modi(), start: G3.farbe, info: g3Info, spreizen: F === 'f2' ? 'aussen' : 'alle', spreizWahl: F !== 'f2', teil: (e) => { const z = g3Zeile(e); return z ? z.teil || '' : ''; } };
   g3Extras(st);
   if (G3.bk) {   // ohne Plan: das Gebäude im Baukasten bauen – dieselbe 3D-Ansicht (A1), Angaben und Korb rechts
-    G3.BK = bpBaukasten.mount(feld, PID, { seite: ({ detail, korb }) => { G3.bkD = detail; G3.bkK = korb; const b = document.querySelector('.g3-bk'); if (b) b.appendChild(detail);
-      if (window.seiteFuellen) seiteFuellen('gm', 'korb'); },
+    G3.BK = bpBaukasten.mount(feld, PID, { seite: ({ detail }) => { G3.bkD = detail; const b = document.querySelector('.g3-bk'); if (b) b.appendChild(detail); },
+    eigenschaften: (ids) => {   // „Aufbau …“ beim Baukörper → Eigenschaften-Fenster der Zeile(n) dieser Bauteile
+      const Z = [...new Set(ids.map((i) => (G3.zu.get(+i) || {}).z).filter(Boolean).map((z) => z.id))]; if (!Z.length || !BT) return toast('Zu diesem Bauteil gibt es noch keine Zeile – erst speichern lassen.', true);
+      if (Z.length > 1) { BT.mehr(Z); BT.eigenschaften(null); } else BT.eigenschaften(Z[0]); },
     d3: { ...D3O, geladen: (N) => { G3.N = N; if (G3.BK) G3.D3 = G3.BK.d3; }, onWahl: (ids) => { if (ids && ids.length && window.seiteReiter) seiteReiter('gm', 'details'); } }, neu: !!G3.bkNeu, planung: G3.bkNeu === 'planung',   // Gewähltes rechts unter „Bauteil“ zeigen
     nachher: () => { G3.bkNeu = false; if (BT && BT.laden) BT.laden(); } });
     return;
@@ -241,3 +242,6 @@ async function g3Einst(host) {
     try { G3.E = await api('api/bp/modell/einst', 'PUT', { werte: { [r.name.slice(4)]: r.value } }); toast('Gespeichert.'); } catch (er) { toast(er.message, true); } });
 }
 const g3EinstMelden = () => { if (window.BPHead && BPHead.appEinstellungen) BPHead.appEinstellungen([{ key: 'bauteile', label: 'Gebäude: Liste, Wände', render: (h) => g3Einst(h) }, { key: 'gelernt', label: 'Gelerntes aus dem Planungsassistenten', render: (h) => gelernt(h) }]); };   // Gelerntes (D1)   // nach header() (gebaeudemodell.js)
+/* Aufbau im Eigenschaften-Fenster geändert, während der Baukasten zeigt (I1, 21.11.2026): der Kern führt den Aufbau im Baukasten nach (bauteile_zeile → korb),
+   der Baukasten lädt neu – so folgt die Dicke im 3D */
+window.addEventListener('bp:bauteile', () => { if (!G3.bk || !G3.BK) return; clearTimeout(G3.bkT); G3.bkT = setTimeout(() => G3.BK && G3.BK.neu(), 400); });

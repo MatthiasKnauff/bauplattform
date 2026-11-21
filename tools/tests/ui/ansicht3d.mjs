@@ -48,6 +48,13 @@ export async function ansicht3dPruefen(browser, repo) {
         const A = bp3d.mount(g, { url: '/netz', zeilen: [], wahl: true, info: (e) => 'Bauteil ' + e.i }); await new Promise((x) => setTimeout(x, 400));
         A.waehle([10]); const i = g.querySelector('.b3-i'); return i.hidden ? 'Feld leer' : i.textContent; });
       pruef(s === 'Bauteil 10', `seitlich / Auswahl von außen: ${s}`); }
+    // 21.11.2026 (G1): Doppelklick auf ein Bauteil meldet es über doppel(e) – im Gebäudemodell öffnet das die Eigenschaften
+    { const d = await p.evaluate(async () => { const g = document.createElement('div'); g.style.cssText = 'width:600px;position:fixed;left:0;top:0;z-index:9;background:#fff'; document.body.append(g);
+        window.__dop = []; bp3d.mount(g, { url: '/netz', zeilen: [], wahl: true, doppel: (e) => window.__dop.push(e.i) }); await new Promise((x) => setTimeout(x, 400));
+        const r = g.querySelector('canvas').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
+      await p.mouse.dblclick(d[0], d[1]); await p.waitForTimeout(200);
+      const n = await p.evaluate(() => window.__dop);
+      pruef(n.length === 1 && [10, 20].includes(n[0]), `Doppelklick im 3D: ${JSON.stringify(n)}`); }
     // abgedocktes Fenster (seite.js) = anderes Dokument: der Stil muss dort ankommen, sonst steht eine winzige Zeichenfläche ohne Leiste da (20.11.2026)
     const fr = await p.evaluate(async () => { const f = document.createElement('iframe'); f.style.cssText = 'width:700px;height:500px'; document.body.append(f);
       const d = f.contentDocument; d.body.innerHTML = '<div id="g" style="height:460px"></div>';

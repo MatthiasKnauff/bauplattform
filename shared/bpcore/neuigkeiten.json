@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-btbaum-2111",
+  "datum": "2026-11-21",
+  "app": "gebaeudemodell",
+  "titel": "Bauteile wie der LV-Baum",
+  "text": "Über der Tabelle wählst du, wonach gruppiert wird (Bereich, Gebäudeteil, Bauteilart, Aufbau, Maßnahme – ziehen ordnet um). Das Dreieck an einer Zeile öffnet die schnelle Aufbau-Wahl, ein Doppelklick – auch im 3D – das Fenster „Eigenschaften“ mit den angewählten oder gleichen Bauteilen darunter. Im Baukasten heißt der Reiter rechts jetzt „Baukörper“; den Korb gibt es nicht mehr.",
+  "ziel": ".bt-grp"
+ },
+ {
   "id": "gm-3d-ab-2111",
   "datum": "2026-11-21",
   "app": "gebaeudemodell",

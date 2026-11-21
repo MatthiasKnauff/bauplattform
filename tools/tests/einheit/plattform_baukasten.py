@@ -81,6 +81,7 @@ def test_zeilen_aus_baukasten():
     W = [z for z in L["zeilen"] if z["kg"] == "331"]
     pruefe(len(W) == 3 and all(z["teil"] for z in W), f"je Teil und Aufbau eine Zeile: {[z['id'] for z in W]}")
     pruefe(all(z["quelle"] == "schaetzung" and "Baukasten" in z["hinweis"] for z in W), "Herkunft: aus dem Baukasten gemessen")
+    pruefe(all(z.get("korb") in KORB and "|k:" + z["korb"] + "|" in z["id"] for z in W), f"Zeile kennt ihren Korb-Eintrag, Kennung bleibt bei anderem Aufbau: {[(z['id'], z.get('korb')) for z in W]}")
 
 
 def test_dachflaechen_einzeln():

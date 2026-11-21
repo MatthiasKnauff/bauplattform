@@ -305,6 +305,11 @@
     });
     const los = (e) => { const z = RZ; RZ = null; rahmenBild(); if (z && weg >= 6 && e.type === 'pointerup') rahmenWahl(z, e.ctrlKey || e.metaKey); else if (P_.size === 1 && weg < 6 && e.type === 'pointerup') antippen(e.clientX, e.clientY, e.ctrlKey || e.metaKey); P_.delete(e.pointerId); if (P_.size < 2) abst = 0; };
     cv.addEventListener('pointerup', los); cv.addEventListener('pointercancel', los);
+    if (o.doppel) cv.addEventListener('dblclick', (ev) => {   // o.doppel(e): Doppelklick auf ein Bauteil (Gebäudemodell: Eigenschaften-Fenster, 21.11.2026) – bleibt gewählt
+      const e = bei(ev.clientX, ev.clientY); if (!e) return;
+      if (o.wahl && !(WAHL.size === 1 && WAHL.has(e.i))) { WAHL.clear(); WAHL.add(e.i); bauen(); if (o.onWahl) o.onWahl([...WAHL], e); }
+      o.doppel(e);
+    });
     cv.addEventListener('contextmenu', (e) => { if (!o.kontext || weg >= 6) e.preventDefault(); });   // nach Verschieben mit der rechten Taste kein Menü
     if (o.kontext) { cv.dataset.kontext = ''; box.addEventListener('bph:kontext', (ev) => { const d = ev.detail; o.kontext(bei(d.x, d.y), d.punkte); }); }
     cv.addEventListener('wheel', (e) => { e.preventDefault(); S.dist = Math.max(1, Math.min(2000, S.dist * Math.exp(e.deltaY * 0.0012))); zeichne(); }, { passive: false });

@@ -186,6 +186,7 @@ def sauber(d):
                               **({"menge_basis": _z(z["menge_basis"]), "anzahl_basis": int(_z(z.get("anzahl_basis"), 0, 1e6))} if z.get("menge_basis") is not None else {}),
                               **({"ergaenzt": True} if z.get("ergaenzt") else {}),   # ergänzt neben dem Plan (modell_plus.py)
                               **({"einheit_hand": True} if z.get("einheit_hand") else {}),   # Einheit von Hand gewählt – der Aufbau ändert sie nicht
+                              **({"korb": _s(z["korb"], 12)} if z.get("korb") else {}),   # Zeile aus dem Baukasten: ihr Eintrag im Korb (Aufbau ↔ 3D, 21.11.2026)
                               **_kuerzel_sauber(z), **_plan_sauber(z)})
         z_ = out["zeilen"][-1]
         z_["erlaubt"] = erlaubt(z_)
@@ -340,7 +341,7 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
             zu = "neu"
         art = g["art"]
         ber = "oeffnung" if g["kg"] in ("334", "344") else "rohbau"
-        zid = "|".join(str(x) for x in (g["kg"], art, g.get("material") or "", g.get("dicke") or 0, g.get("einheit"), g.get("code") or (g.get("vorlage") if g.get("geschaetzt") else "") or "", zu))   # geschätzt: andere Bauweise = neue Zeile
+        zid = "|".join(str(x) for x in (g["kg"], art, g.get("material") or "", g.get("dicke") or 0, g.get("einheit"), g.get("code") or ("k:" + g["korb"] if g.get("korb") else "") or (g.get("vorlage") if g.get("geschaetzt") else "") or "", zu))   # Baukasten: je Korb-Eintrag – die Zeile bleibt dieselbe, wenn sich ihr Aufbau ändert   # geschätzt: andere Bauweise = neue Zeile
         if g.get("teil"):   # Gebäudeteil (GT-C1): eigene Zeile je Teil
             zid += "|t:" + g["teil"]
         KZ = kuerzel.zerlegen(g["kuerzel"], art, g.get("aussen")) if g.get("kuerzel") else None
@@ -352,7 +353,7 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
                    lagen=[[str(n)[:80], round(float(d or 0), 4)] for n, d in (g.get("lagen") or [])[:20] if n and d],   # Schichten mit dem Allplan-Material (B1)
                    material=g.get("material") or "", menge=g["menge"], einheit=g["einheit"], anzahl=g["anzahl"], zustand=zu, ids=list(g.get("ids") or []),
                    status="abbruch" if zu == "abbruch" else "neu" if g.get("code") or zu == "neu" else "offen",   # beantworten lassen – klar sind Katalogbauteile und neue Teile
-                   hinweis=g.get("hinweis") or "", teil=g.get("teil") or "")   # z. B. „aus dem DXF geschätzt“
+                   hinweis=g.get("hinweis") or "", teil=g.get("teil") or "", **({"korb": g["korb"]} if g.get("korb") else {}))   # z. B. „aus dem DXF geschätzt“
         if KZ and ber != "oeffnung":   # Kürzel aus dem Plan (nicht bei Fenstern/Türen – der Name ist dort der Typ; Ausführung über die Türliste): wie verstanden, Vorschlag aus dem Baukasten (bzw. Gelerntes), „bitte bestätigen“ (C1)
             z.update(kuerzel=g["kuerzel"], dicke_plan=g.get("dicke") or 0, richtung=g.get("richtung") or {}, bestaetigt=True,
                      erkannt={"stufe": kuerzel.stufe(KZ), "folge": kuerzel.lesbar(KZ), "frage": KZ["frage"], "waerme": KZ["waerme"]})
@@ -845,6 +846,11 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
             neu = {k: d[k] for k in ("status", "berechnen", "vorlage", "wahl", "dicken", "ausf", "name", "menge", "einheit", "loeschen", "bestaetigt", "wie", "uw", "kg") if k in d}
             if not any(setzen(c, L, _s(i, 200), dict(neu)) for i in ids[:400]):
                 return jsonify(error="Zeile nicht gefunden – bitte neu laden."), 404
+            if neu.get("vorlage") and m.get("korb"):   # Zeile aus dem Baukasten: ihr Korb-Eintrag bekommt denselben Aufbau – Dicke im 3D und neue Zeilen folgen (21.11.2026)
+                vn = {r["id"]: r["name"] for r in c.execute("SELECT id, name FROM pdb_vorlage WHERE id=?", (neu["vorlage"],)).fetchall()}
+                for z in L["zeilen"]:
+                    if z["id"] in ids and z.get("korb") in m["korb"]:
+                        m["korb"][z["korb"]] = dict(m["korb"][z["korb"]], vorlage=neu["vorlage"], name=vn.get(neu["vorlage"]) or m["korb"][z["korb"]].get("name"))
             m["bauteilliste"] = L
             schreiben_modell(c, pid, m, wer)
             return jsonify(lesen_modell(c, pid))

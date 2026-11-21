@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-durchdringung-2111",
+  "datum": "2026-11-21",
+  "app": "gebaeudemodell",
+  "titel": "Baukasten: Körper stoßen sauber aneinander",
+  "text": "Dächer stehen nicht mehr in den Nachbarkörper hinein, Ziehen und Maße halten am Nachbarn an, das Flachdach liegt auf der Wand. Giebel und Gaubenwände gehören zur Außenwand. Der Reiter „Änderungen“ ist weg – Rückgängig sagt jetzt, was es zurücknimmt (z. B. „Dach: First gedreht“). „Darstellung ▾“ steht ganz rechts.",
+  "ziel": ".b3-l [data-b3dar]"
+ },
+ {
   "id": "gm-first-2111",
   "datum": "2026-11-21",
   "app": "gebaeudemodell",

@@ -227,20 +227,24 @@ def _pfl(P):
     return math.sqrt(sx * sx + sy * sy + sz * sz) / 2
 
 
-def dach_anteile(k, form, first=None):
+def dach_anteile(k, form, first=None, K=None):
     """Anteil jeder Dachfläche an der Dachfläche gesamt (dach_flaeche) – für einen eigenen Aufbau je Fläche."""
-    P = dach_polygone(k, form, first)
+    P = dach_polygone(k, form, first, K)
     A = {i: _pfl(P[i]) for i in FLAECHEN[form] if i < len(P)}
     s = sum(A.values()) or 1
     return {i: a / s for i, a in A.items()}
 
 
-def dach_flaeche(k, form):
+def dach_flaeche(k, form, first=None, K=None):
+    """Dachfläche; mit den Körpern K ohne den Überstand an Seiten, an denen ein anderer Körper anliegt (wie dachFlaechen im Baustein)."""
     if form == "flach":
         return k["w"] * k["d"]
     ue = 0.0 if form == "pult" else 0.4
-    g = (k["w"] + 2 * ue) * (k["d"] + 2 * ue)
-    return g / math.cos(math.radians(NEIGUNG.get(form, 38)))
+    g = (k["w"] + 2 * ue) * (k["d"] + 2 * ue) / math.cos(math.radians(NEIGUNG.get(form, 38)))
+    if K and anliegend(k, K):
+        roh, ab = (sum(_pfl(P[i]) for i in FLAECHEN[form] if i < len(P) and P[i]) for P in (dach_polygone(k, form, first), dach_polygone(k, form, first, K)))
+        g *= ab / (roh or 1)
+    return g
 
 
 def rohbau(bk, korb, EL=None, vorlagen=None):
@@ -265,29 +269,36 @@ def rohbau(bk, korb, EL=None, vorlagen=None):
     for k in K:
         teil_tief[k["teil"]] = min(teil_tief.get(k["teil"], 1e9), k["z"])
     for b, k in enumerate(K):
+        D = (bk.get("dach") or {}).get(k["id"])
+        GB = giebel(k, D, K) if D else {}   # Giebel/Ortgang gehören zur Wand ihrer Seite (21.11.2026), nicht zum Dach
         for si, s in enumerate(SEITEN):
             L = k["d"] if s[0] == "x" else k["w"]
-            fl = L * k["h"] - _beruehrt(k, s, K)
+            fl = L * k["h"] - _beruehrt(k, s, K) + sum(a for _, a in GB.get(s, []))
             kid = (k.get("seiten") or {}).get(s) or k.get("wand")
             v = vl(kid, VORGABE["wand"])
-            add(k["teil"], "331", "Wand", f"Außenwand – {name(kid, v)}", v, fl, [ID0 + b * 20 + si], True)
+            add(k["teil"], "331", "Wand", f"Außenwand – {name(kid, v)}", v, fl, [ID0 + b * 20 + si] + [ID0 + b * 20 + 6 + j for j, _ in GB.get(s, [])], True)
         unten = k["z"] <= teil_tief[k["teil"]] + 0.01
         kid = k.get("boden")
         v = vl(kid, VORGABE["boden"] if unten else VORGABE["decke"])
         kg = v.split(".")[0] if "." in v else ("322" if unten else "351")
         add(k["teil"], kg, "Bodenplatte" if kg.startswith("32") else "Decke", ("Bodenplatte – " if kg.startswith("32") else "Decke – ") + name(kid, v), v, k["w"] * k["d"], [ID0 + b * 20 + 5], kg.startswith("32"))
-        D = (bk.get("dach") or {}).get(k["id"])
         if D:
-            ges, fn = dach_flaeche(k, D["form"]), dict(sattel="Satteldach", walm="Walmdach", pult="Pultdach", flach="Flachdach")[D["form"]]
-            npoly = len(dach_polygone(k, D["form"], D.get("first")))
-            for i, ant in dach_anteile(k, D["form"], D.get("first")).items():   # je Dachfläche – eigener Aufbau (fl) oder der des Dachs
+            ges, fn = dach_flaeche(k, D["form"], D.get("first"), K), dict(sattel="Satteldach", walm="Walmdach", pult="Pultdach", flach="Flachdach")[D["form"]]
+            for i, ant in dach_anteile(k, D["form"], D.get("first"), K).items():   # je Dachfläche – eigener Aufbau (fl) oder der des Dachs
                 kid = (D.get("fl") or {}).get(str(i)) or D.get("aufbau")
                 v = vl(kid, VORGABE["flach"] if D["form"] == "flach" else VORGABE["dach"])
-                ids = [ID0 + b * 20 + 6 + i] + ([ID0 + b * 20 + 6 + j for j in range(npoly) if j not in FLAECHEN[D["form"]]] if i == 0 else [])   # Giebel/Ortgang an der ersten Fläche
-                add(k["teil"], v.split(".")[0] if "." in v else "363", "Dach", f"Dach ({fn}) – {name(kid, v)}", v, ges * ant, ids, True)
+                add(k["teil"], v.split(".")[0] if "." in v else "363", "Dach", f"Dach ({fn}) – {name(kid, v)}", v, ges * ant, [ID0 + b * 20 + 6 + i], True)
         unter = next((q for q in K if q["teil"] == k["teil"] and k.get("staffel") and abs(q["z"] + q["h"] - k["z"]) < 0.01), None)
         if unter:   # Terrasse (H1): Decke darunter minus Staffelgeschoss
             add(k["teil"], "363", "Dach", "Terrasse um das Staffelgeschoss", VORGABE["flach"], unter["w"] * unter["d"] - k["w"] * k["d"], [], True)
+    for n, g in enumerate(bk.get("gauben") or []):   # Front und beide Wangen der Gaube: Außenwand (21.11.2026), Wand des Geschosses darunter
+        k = next((q for q in K if q["id"] == g["k"]), None)
+        D = (bk.get("dach") or {}).get(g["k"])
+        a = gauben_wand(g, k, D, K) if k and D else 0
+        if a:
+            kid = k.get("wand")
+            v = vl(kid, VORGABE["wand"])
+            add(k["teil"], "331", "Wand", f"Außenwand – {name(kid, v)}", v, a, [GID + n * 4, GID + n * 4 + 3], True)
     # Fensterflächen des Assistenten anteilig von den Außenwänden je Teil
     for teil in {k["teil"] for k in K}:
         W = [g for (t, kg, _), g in G.items() if t == teil and kg == "331"]
@@ -314,9 +325,90 @@ def fenster_vorgabe(bk):
     return {"rahmen": r, "uw": round(sum(uw(o) for o in F) / len(F), 2), "anzahl": len(F)}
 
 
-def dach_polygone(k, form, first=None):
+ZU = 0.01
+GID = ID0 + 800_000   # Gauben im Netz: je Gaube 4 Nummern – Front, Dach, Fenster, Wangen (wie GID im Baustein)
+GIEBEL = {"sattel": {True: {2: "xp", 3: "xm"}, False: {2: "yp", 3: "ym"}}, "pult": {True: {1: "xp", 2: "xm", 3: "ym"}, False: {1: "xp", 2: "xm", 3: "ym"}}}
+
+
+def giebel(k, D, K=None):
+    """Giebel und Ortgang eines Dachs als Wandflächen: {Seite: [(Nr. der Dachfläche, m²), …]}."""
+    la = D.get("first") == "x" if D.get("first") in ("x", "y") else k["w"] >= k["d"]
+    P = dach_polygone(k, D["form"], D.get("first"), K)
+    out = {}
+    for j, s in GIEBEL.get(D["form"], {}).get(la, {}).items():
+        if j < len(P) and P[j]:
+            out.setdefault(s, []).append((j, _pfl(P[j])))
+    return out
+
+
+def gauben_wand(g, k, D, K=None):
+    """Fläche der Gaubenfront und beider Wangen in m² – dieselbe Form wie gaubeGeo() im Baustein."""
+    P = dach_polygone(k, D["form"], D.get("first"), K)
+    fl = P[g["fl"]] if g["fl"] < len(P) else None
+    if not fl or len(fl) < 4:
+        return 0.0
+    a, b, d = fl[0], fl[1], fl[3]
+    L = math.hypot(b[0] - a[0], b[1] - a[1]) or 1
+    br = g["b"] / L
+    at = lambda t, s: tuple(a[j] + (b[j] - a[j]) * t + (d[j] - a[j]) * s for j in range(3))   # noqa: E731
+    p0, p1, q0, q1 = at(g["u"] - br / 2, 0.2), at(g["u"] + br / 2, 0.2), at(g["u"] - br / 2, 0.75), at(g["u"] + br / 2, 0.75)
+    hz = max(q0[2], q1[2])
+    zq = hz + 0.25 if g.get("form") == "Schleppgaube" else hz
+    front = [p0, p1, (p1[0], p1[1], hz), (p0[0], p0[1], hz)]
+    if g.get("form") == "Satteldachgaube":
+        fm = ((p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2, hz + 0.9)
+        front = [p0, p1, (p1[0], p1[1], hz), fm, (p0[0], p0[1], hz)]
+    W = [[p0, (p0[0], p0[1], hz), (q0[0], q0[1], zq), q0], [p1, q1, (q1[0], q1[1], zq), (p1[0], p1[1], hz)]]
+    return _pfl(front) + sum(_pfl(w) for w in W)
+
+
+def anliegend(k, K, z=None):
+    """Seiten von k, an denen auf Höhe der Traufe ein anderer Körper anliegt – dort endet der Dachüberstand an der Wand (21.11.2026: keine
+    durchdringenden Körper; wie anliegend() im Baustein)."""
+    z = k["z"] + k["h"] if z is None else z
+    out = []
+    for s, (nx, ny) in SEITEN.items():
+        e = (k["x"] + k["w"] if nx > 0 else k["x"]) if nx else (k["y"] + k["d"] if ny > 0 else k["y"])
+        for q in K:
+            if q is k or q.get("id") == k.get("id") or not (q["z"] < z + ZU and q["z"] + q["h"] + 0.5 > z):
+                continue
+            quer = (q["y"] < k["y"] + k["d"] - ZU and q["y"] + q["d"] > k["y"] + ZU) if nx else (q["x"] < k["x"] + k["w"] - ZU and q["x"] + q["w"] > k["x"] + ZU)
+            qe = (q["x"] if nx > 0 else q["x"] + q["w"]) if nx else (q["y"] if ny > 0 else q["y"] + q["d"])
+            if quer and abs(qe - e) < ZU:
+                out.append(s)
+                break
+    return out
+
+
+def kappen(P, ax, wert, kleiner):
+    """Polygon an der senkrechten Ebene ax = wert abschneiden (kleiner: nur ≤ wert bleibt), beginnend beim Punkt nächst P[0]."""
+    ok = (lambda p: p[ax] <= wert + 1e-6) if kleiner else (lambda p: p[ax] >= wert - 1e-6)
+    R = []
+    for i, p in enumerate(P):
+        q = P[(i + 1) % len(P)]
+        if ok(p):
+            R.append(p)
+        if ok(p) != ok(q):
+            t = (wert - p[ax]) / (q[ax] - p[ax])
+            R.append(tuple(wert if j == ax else v + (q[j] - v) * t for j, v in enumerate(p)))
+    if len(R) < 3:
+        return []
+    i0 = min(range(len(R)), key=lambda i: sum((R[i][j] - P[0][j]) ** 2 for j in range(3)))
+    return R[i0:] + R[:i0]
+
+
+def dach_polygone(k, form, first=None, K=None):
     """Dachflächen eines Körpers (Weltkoordinaten) – dieselbe Reihenfolge und Form wie dachFlaechen() im Baustein (Nummern im Netz).
-    first „x“/„y“ = Richtung des Firsts (fest, 21.11.2026), sonst längs der längeren Seite; Giebel stehen in der Wand."""
+    first „x“/„y“ = Richtung des Firsts (fest, 21.11.2026), sonst längs der längeren Seite; Giebel stehen in der Wand.
+    Mit K (alle Körper) an anliegenden Seiten gekappt – ganz weggekappte Flächen bleiben als leere Liste (Nummern bleiben)."""
+    P = _dach_roh(k, form, first)
+    for s in (anliegend(k, K) if K else []):
+        ax, wert = (0, k["x"] + k["w"] if s == "xp" else k["x"]) if s[0] == "x" else (1, k["y"] + k["d"] if s == "yp" else k["y"])
+        P = [kappen(p, ax, wert, s.endswith("p")) if p else p for p in P]
+    return P
+
+
+def _dach_roh(k, form, first=None):
     ue = 0.0 if form == "pult" else 0.4
     x0, x1, y0, y1, z = k["x"] - ue, k["x"] + k["w"] + ue, k["y"] - ue, k["y"] + k["d"] + ue, k["z"] + k["h"]
     la = first == "x" if first in ("x", "y") else k["w"] >= k["d"]

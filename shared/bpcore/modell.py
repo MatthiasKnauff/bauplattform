@@ -33,7 +33,7 @@ from datetime import datetime
 
 from flask import jsonify, request
 
-from . import anweisung, baukasten, bauteilliste, modell_aenderung, modell_hand, db, elemente, ki_fragen, lernen, planstand, rueckweg, skizze, stammdaten, verfeinern, versionen, vorgang
+from . import anweisung, baukasten, bauteilliste, modell_einst, modell_hand, db, elemente, ki_fragen, lernen, planstand, rueckweg, skizze, stammdaten, verfeinern, versionen, vorgang
 from .jsonwert import lies as _j
 
 RICHTUNG = ("beide", "zur_app", "zum_modell")
@@ -253,7 +253,6 @@ def schreiben(c, pid, daten, wer, rev=None):
                   "data=EXCLUDED.data, rev=pm_modell.rev+1, geaendert=EXCLUDED.geaendert, von=EXCLUDED.von",
                   (pid, json.dumps(sauber(daten), ensure_ascii=False), _jetzt(), _jetzt(), wer))
     lernen.merken(c, pid, sauber(daten), wer)   # Ergänzungen im Assistenten: fürs Büro merken
-    modell_aenderung.merken(c, pid, vorher, sauber(daten), wer)   # Änderungen je Bauteil – Färbung „Änderungen“ und Zeitschieber im Gebäudemodell
     return lesen(c, pid)
 
 
@@ -534,7 +533,7 @@ def routen(bp, _uid):
         return mit(pid, tun)
 
     bauteilliste.routen(bp, mit, lesen, schreiben)   # /api/bp/modell/<pid>/bauteile/… – Bauteil-Checkliste
-    modell_aenderung.routen(bp, mit, _uid, lesen, schreiben)
+    modell_einst.routen(bp, _uid)
     baukasten.routen(bp, mit, lesen, schreiben)   # Gebäude-Baukasten: GET/PUT /api/bp/modell/<pid>/baukasten (20.11.2026)   # Änderungen je Bauteil, Zurücknehmen, Einstellungen A–F (20.11.2026)
     planstand.routen(bp, mit, lesen, schreiben)   # Planstände: einlesen mit Abgleich, ansehen, gelten lassen, aufräumen
     ki_fragen.routen(bp, mit, _uid)   # KI-Gespräch „Fragen“ – nur Ollama, eigene Daten und Preise

@@ -14,7 +14,7 @@
   const STIL = `.bkx{--linie:var(--line,#d6dce3);--text:var(--ink,#1c2733);--leise:var(--mute,#5d6b7a);--akzent:var(--y,#1f6fb2);--akzent-hell:color-mix(in srgb,var(--akzent) 12%,transparent);
 --wahl:#7b2ff7;--wahl-hell:color-mix(in srgb,#7b2ff7 10%,transparent);--rot:var(--red,#c92a2a);--gruen:var(--ok,#2b8a3e);--gruen-hell:color-mix(in srgb,var(--gruen) 10%,transparent);--flaeche:var(--card,#fff);--r:calc(8px*var(--rk,1));display:grid;gap:10px;color:var(--text)}
 .bkx .haupt{display:grid;grid-template-columns:minmax(0,1fr) 20rem;gap:12px;align-items:start}.bkx:not(.breit) .haupt,.bkx.eingebettet .haupt{grid-template-columns:minmax(0,1fr)}
-.bkx .buehne{position:relative;min-width:0}.bkx .buehne .b3{height:min(74vh,700px);min-height:380px}.bkx.eingebettet .buehne .b3{height:calc(100vh - 230px)}
+.bkx .buehne{position:relative;min-width:0}.bkx .buehne .b3{height:min(74vh,700px);min-height:380px}.bkx.eingebettet{flex:1;min-height:0;height:100%;display:flex;flex-direction:column}.bkx.eingebettet .haupt{flex:1;min-height:0;display:flex}.bkx.eingebettet .buehne,.bkx.eingebettet [data-bk=d3]{flex:1;min-height:0;height:100%}.bkx.eingebettet .buehne .b3{height:100%;min-height:380px}
 .bkx .bkx-seite{display:grid;gap:12px;align-content:start;min-width:0}.bkx.bkx-aus{padding:10px;gap:10px}
 .bkx .kasten{background:var(--flaeche);border:1px solid var(--linie);border-radius:var(--r);padding:10px 12px;display:grid;gap:8px;min-width:0}
 .bkx .kasten h2{font-size:.74rem;text-transform:uppercase;letter-spacing:.07em;color:var(--leise);margin:0;font-weight:600}
@@ -107,12 +107,45 @@
     /* First (21.11.2026): die Richtung bleibt beim Ziehen fest (D.first „x“ = First parallel zur Länge, „y“ = zur Breite) – vorher kippte er,
        sobald die Breite größer als die Länge wurde. Spannweite quer zum First; Pultdach fällt immer über die Breite. Wie bpcore/baukasten.dach_polygone. */
     const firstX = (k, D) => (D && D.first ? D.first === 'x' : k.w >= k.d);
-    const DACHH = (k, f, D) => { const ng = (DACHF.find((x) => x[0] === f) || [, , 0])[2], sp = f === 'pult' ? k.d : firstX(k, D) ? k.d : k.w; return f === 'pult' ? Math.tan(ng * Math.PI / 180) * sp : f === 'flach' ? 0.35 : Math.tan(ng * Math.PI / 180) * sp / 2; };
+    const DACHH = (k, f, D) => { const ng = (DACHF.find((x) => x[0] === f) || [, , 0])[2], sp = f === 'pult' ? k.d : firstX(k, D) ? k.d : k.w; return f === 'pult' ? Math.tan(ng * Math.PI / 180) * sp : f === 'flach' ? dicke(D && ((D.fl && D.fl[0]) || D.aufbau), DICKE.flach) : Math.tan(ng * Math.PI / 180) * sp / 2; };
     const flAuf = (kid, i) => { const D = M.dach[kid]; return (D && D.fl && D.fl[i]) || (D && D.aufbau); };
     function flSetzen(kid, i, v) { const D = M.dach[kid]; if (!D) return; D.fl = { ...(D.fl || {}) }; if (v === D.aufbau) delete D.fl[i]; else D.fl[i] = v; if (!Object.keys(D.fl).length) delete D.fl; }
     const flNr = (x) => (x && x.seite && x.seite[0] === 'f' ? +x.seite.slice(1) : null);
-    function dachFlaechen(k) {   // Polygone des Dachs (Weltkoordinaten) – Reihenfolge wie bpcore/baukasten.dach_polygone (+ Attika beim Flachdach)
+    /* Keine durchdringenden Körper (21.11.2026): Dachüberstand endet an der Wand, wo ein anderer Körper anliegt; Ziehen, Maße und Anbau
+       halten an einem anderen Körper an (platz). Wie bpcore/baukasten.dach_polygone (kappen, anliegend). */
+    const ZU = 0.01, zUeber = (a, b) => a.z < b.z + b.h - ZU && a.z + a.h > b.z + ZU;
+    const quer = (a, b, nx) => (nx ? a.y < b.y + b.d - ZU && a.y + a.d > b.y + ZU : a.x < b.x + b.w - ZU && a.x + a.w > b.x + ZU);
+    function anliegend(k, z) {   // Seiten von k, an denen auf Höhe der Traufe z ein anderer Körper anliegt
+      return SK.filter((s) => { const [nx, ny] = SEITEN[s], e = nx > 0 ? k.x + k.w : nx < 0 ? k.x : ny > 0 ? k.y + k.d : k.y;
+        return M.koerper.some((q) => q.id !== k.id && q.z < z + ZU && q.z + q.h + 0.5 > z && quer(q, k, nx)
+          && Math.abs((nx ? (nx > 0 ? q.x : q.x + q.w) : (ny > 0 ? q.y : q.y + q.d)) - e) < ZU); });
+    }
+    function kappen(P, ax, wert, kleiner) {   // Polygon an der senkrechten Ebene ax = wert abschneiden, Reihenfolge ab dem Punkt nächst P[0]
+      const ok = (p) => (kleiner ? p[ax] <= wert + 1e-6 : p[ax] >= wert - 1e-6), R = [];
+      P.forEach((p, i) => { const q = P[(i + 1) % P.length], a = ok(p);
+        if (a) R.push(p);
+        if (a !== ok(q)) { const t = (wert - p[ax]) / (q[ax] - p[ax]); R.push(p.map((v, j) => (j === ax ? wert : v + (q[j] - v) * t))); } });
+      if (R.length < 3) return [];
+      const d = (p) => (p[0] - P[0][0]) ** 2 + (p[1] - P[0][1]) ** 2 + (p[2] - P[0][2]) ** 2, i0 = R.reduce((b, p, i) => (d(p) < d(R[b]) ? i : b), 0);
+      return R.slice(i0).concat(R.slice(0, i0));
+    }
+    function platz(k, s, mit) {   // bis wohin Seite s von k nach außen darf, ohne einen anderen Körper zu durchdringen (mit = Ids, die mitwandern)
+      const [nx, ny] = SEITEN[s]; let g = nx + ny > 0 ? Infinity : -Infinity;
+      M.koerper.forEach((q) => { if (q.id === k.id || mit.has(q.id) || !zUeber(q, k) || !quer(q, k, nx)) return;
+        if (nx > 0 && q.x >= k.x + k.w - ZU) g = Math.min(g, q.x); if (nx < 0 && q.x + q.w <= k.x + ZU) g = Math.max(g, q.x + q.w);
+        if (ny > 0 && q.y >= k.y + k.d - ZU) g = Math.min(g, q.y); if (ny < 0 && q.y + q.d <= k.y + ZU) g = Math.max(g, q.y + q.d); });
+      return g;
+    }
+    const r2 = (v) => Math.round(v * 100) / 100;
+    function bisPlatz(K, f, v) {   // Länge (w) bzw. Breite (d) mehrerer Körper nach + ändern – höchstens bis zum nächsten Körper
+      const mit = new Set(K.map((k) => k.id)); K.forEach((k) => { k[f] = Math.min(v, r2(platz(k, f === 'w' ? 'xp' : 'yp', mit) - (f === 'w' ? k.x : k.y))); });
+    }
+    function dachFlaechen(k) {   // Polygone des Dachs (Weltkoordinaten) – Reihenfolge wie bpcore/baukasten.dach_polygone; an anliegenden Seiten gekappt
       const D = M.dach[k.id]; if (!D) return [];
+      const A = anliegend(k, k.z + k.h), P = dachRoh(k, D);
+      return A.length ? P.map((x) => { let p = x.p; A.forEach((s) => { if (p.length) p = kappen(p, s[0] === 'x' ? 0 : 1, s === 'xp' ? k.x + k.w : s === 'xm' ? k.x : s === 'yp' ? k.y + k.d : k.y, s.endsWith('p')); }); return { ...x, p }; }) : P;
+    }
+    function dachRoh(k, D) {
       const ue = D.form === 'pult' ? 0 : 0.4, x0 = k.x - ue, x1 = k.x + k.w + ue, y0 = k.y - ue, y1 = k.y + k.d + ue, z = k.z + k.h, H = DACHH(k, D.form, D), la = firstX(k, D);
       const X0 = k.x, X1 = k.x + k.w, Y0 = k.y, Y1 = k.y + k.d, hb = H * ue / ((la ? k.d : k.w) / 2 + ue);   // Giebel in der Wand: Höhe des Dachs über der Wand
       if (D.form === 'flach') return [{ n: 'Dach', p: [[x0, y0, z + H], [x1, y0, z + H], [x1, y1, z + H], [x0, y1, z + H]], seite: 'top' }];
@@ -140,8 +173,9 @@
       if (g.form === 'Flachdachgaube') D1 = [[p0[0], p0[1], hz], [p1[0], p1[1], hz], [q1[0], q1[1], hz], [q0[0], q0[1], hz]];
       if (g.form === 'Satteldachgaube') { const fm = mid(p0, p1), qm = mid(q0, q1); front = [p0, p1, [p1[0], p1[1], hz], [fm[0], fm[1], first], [p0[0], p0[1], hz]];
         D1 = [[p0[0], p0[1], hz], [fm[0], fm[1], first], [qm[0], qm[1], first], [q0[0], q0[1], hz]]; D2 = [[p1[0], p1[1], hz], [fm[0], fm[1], first], [qm[0], qm[1], first], [q1[0], q1[1], hz]]; }
+      const zq = g.form === 'Schleppgaube' ? hz + 0.25 : hz, W = [[p0, [p0[0], p0[1], hz], [q0[0], q0[1], zq], q0], [p1, q1, [q1[0], q1[1], zq], [p1[0], p1[1], hz]]];   // Wangen: Wand zwischen Dachfläche und Gaubendach
       const sch = (t) => [p0[0] + (p1[0] - p0[0]) * t, p0[1] + (p1[1] - p0[1]) * t], fen = [[...sch(0.2), p0[2] + 0.25], [...sch(0.8), p0[2] + 0.25], [...sch(0.8), hz - 0.2], [...sch(0.2), hz - 0.2]];
-      return { front, D1, D2, fen, fl, at };
+      return { front, W, D1, D2, fen, fl, at };
     }
 
     /* ───────── Netz (Format von bpcore/netz.py) – Bauteile mit Dicke (E1) ───────── */
@@ -178,10 +212,11 @@
         E.push({ i: ib, t: 's', g, c: '#c9c4ba', a: 0, v: prisma([[x0 + tw, y0 + tw], [x1 - tw, y0 + tw], [x1 - tw, y1 - tw], [x0 + tw, y1 - tw]], unten ? k.z - ds : k.z, unten ? k.z : k.z + Math.min(ds, k.h / 3)) });
         REF.set(ib, { art: 'koerper', id: k.id });
         const D = M.dach[k.id];
-        if (D) dachFlaechen(k).forEach((x, fi) => { const i = ID0 + b * 20 + 6 + fi, td = dicke(flAuf(k.id, fi), D.form === 'flach' ? DICKE.flach : DICKE.dach);
+        if (D) dachFlaechen(k).forEach((x, fi) => { if (x.p.length < 3) return; const i = ID0 + b * 20 + 6 + fi, td = dicke(flAuf(k.id, fi), D.form === 'flach' ? DICKE.flach : DICKE.dach);
           const v = x.s ? wandDick(x.p, ...SEITEN[x.s], tw) : platte(x.p, x.n === 'Dach' ? td : td / Math.cos(((DACHF.find((f) => f[0] === D.form) || [, , 0])[2]) * Math.PI / 180));
-          E.push({ i, t: x.s ? 'w' : 'r', g, c: x.s ? c : D.form === 'flach' ? '#9aa3ad' : '#b56a4f', a: 0, v }); REF.set(i, { art: 'dach', id: k.id, ...(DFL[D.form].includes(fi) ? { seite: 'f' + fi } : {}) }); });
-        else if (oben(k)) { const i = ID0 + b * 20 + 19;   // oben offen: Decke als Abschluss
+          E.push({ i, t: x.s ? 'w' : 'r', g, c: x.s ? c : D.form === 'flach' ? '#9aa3ad' : '#b56a4f', a: 0, v });
+          REF.set(i, x.s ? { art: 'wand', id: k.id, seite: x.s } : { art: 'dach', id: k.id, ...(DFL[D.form].includes(fi) ? { seite: 'f' + fi } : {}) }); });   // Giebel/Ortgang gehören zur Wand ihrer Seite (21.11.2026)
+        else if (oben(k) || M.koerper.some((q) => q.teil === k.teil && q.staffel && Math.abs(q.z - k.z - k.h) < ZU)) { const i = ID0 + b * 20 + 19;   // oben offen bzw. Terrasse um ein Staffelgeschoss: Decke als Abschluss
           E.push({ i, t: 's', g, c: '#c9c4ba', a: 0, v: prisma([[x0 + tw, y0 + tw], [x1 - tw, y0 + tw], [x1 - tw, y1 - tw], [x0 + tw, y1 - tw]], k.z + k.h - DICKE.decke, k.z + k.h) }); REF.set(i, { art: 'koerper', id: k.id }); }
       });
       M.oeff.forEach((o, n) => { const b = K.findIndex((k) => k.id === o.k); if (b < 0) return; const k = K[b], E4 = seiteEcken(k, o.seite), L = Math.hypot(E4[1][0] - E4[0][0], E4[1][1] - E4[0][1]) || 1, [nx, ny] = SEITEN[o.seite];
@@ -189,9 +224,9 @@
         const i = OID + n; E.push({ i, t: o.art === 'tuer' ? 'd' : 'f', g: gv(k.z), c: o.art === 'tuer' ? '#9d7c5c' : '', a: 0, h: ID0 + b * 20 + SK.indexOf(o.seite), v: flaeche([at(t0, z0), at(t1, z0), at(t1, z0 + o.h), at(t0, z0 + o.h)], []) });
         REF.set(i, { art: 'oeff', id: o.id }); });
       M.gauben.forEach((gb, n) => { const G = gaubeGeo(gb), k = kz(gb.k); if (!G) return; const g = gv(k.z), i = GID + n * 4;
-        E.push({ i, t: 'w', g, c: '#ece4d8', a: 0, v: flaeche(G.front, []) }); E.push({ i: i + 1, t: 'r', g, c: '#a65f46', a: 0, v: flaeche(G.D1, G.D2 ? flaeche(G.D2, []) : []) });
+        E.push({ i, t: 'w', g, c: '#ece4d8', a: 0, v: flaeche(G.front, []) }); E.push({ i: i + 3, t: 'w', g, c: '#ece4d8', a: 0, v: flaeche(G.W[1], flaeche(G.W[0], [])) }); E.push({ i: i + 1, t: 'r', g, c: '#a65f46', a: 0, v: flaeche(G.D1, G.D2 ? flaeche(G.D2, []) : []) });
         E.push({ i: i + 2, t: 'f', g, c: '', a: 0, h: i, v: flaeche(G.fen.map((p) => [p[0], p[1], p[2]]), []) });
-        [i, i + 1, i + 2].forEach((x) => REF.set(x, { art: 'gaube', id: gb.id })); });
+        [i, i + 1, i + 2, i + 3].forEach((x) => REF.set(x, { art: 'gaube', id: gb.id })); });   // Front und Wangen zählt der Kern zur Außenwand (rohbau)
       return { stand: 2, e: E, geschosse: zs.map((z) => ({ n: z < 0 ? 'Kellergeschoss' : (zs.filter((y) => y >= 0).indexOf(z) ? zs.filter((y) => y >= 0).indexOf(z) + '. Obergeschoss' : 'Erdgeschoss'), z })), dreiecke: E.reduce((a, e) => a + e.v.length / 9, 0), voll: true };
     }
     const idsVon = (x) => [...REF.entries()].filter(([, r]) => r.art === x.art && r.id === x.id && (x.art === 'wand' || x.art === 'dach' ? (r.seite || '') === (x.seite || '') || (x.art === 'dach' && !x.seite) : true)).map(([i]) => i);
@@ -247,9 +282,13 @@
       M.koerper.forEach((q) => { if (q.teil === k.teil && KORB[q.boden] && KORB[q.boden].von === VOR.boden) q.boden = korbHol('boden', VOR.decke); }); n.boden = korbHol('boden', VOR.boden); M.koerper.push(n); SEL = { art: 'koerper', id: n.id }; MEHR = []; }
     function anbau(K, s) {   // Anbau an einer Seite über ein oder mehrere Geschosse – je Geschoss ein Körper, oben ein Flachdach
       K = K.slice().sort((a, b) => a.z - b.z); const k = K[0], [nx, ny] = SEITEN[s], t = 't' + (++M.n), nw = nx ? 7 : Math.min(8, k.w), nd = ny ? 6 : Math.min(7, k.d);
+      let x = nx > 0 ? k.x + k.w : nx < 0 ? k.x - nw : k.x + (k.w - nw) / 2, y = ny > 0 ? k.y + k.d : ny < 0 ? k.y - nd : k.y + (k.d - nd) / 2, w = nw, dd = nd, n = null;
+      const z0 = K[0].z, z1 = K[K.length - 1].z + K[K.length - 1].h;   // Platz für den Anbau: nicht in einen anderen Körper hinein – in Richtung der Seite kürzen
+      for (const q of M.koerper) { const p = { x, y, w, d: dd, z: z0, h: z1 - z0 }; if (!zUeber(q, p) || !quer(q, p, 1) || !quer(q, p, 0)) continue;
+        if (nx > 0) w = r2(q.x - x); else if (nx < 0) { w = r2(x + w - q.x - q.w); x = r2(q.x + q.w); } else if (ny > 0) dd = r2(q.y - y); else { dd = r2(y + dd - q.y - q.d); y = r2(q.y + q.d); } }
+      if (w < 1.5 || dd < 1.5) { if (window.toast) toast('Hier ist kein Platz für einen Anbau – ein anderer Körper steht im Weg.', true); return; }
       M.teile[t] = 'Anbau ' + Object.keys(M.teile).length;
-      const x = nx > 0 ? k.x + k.w : nx < 0 ? k.x - nw : k.x + (k.w - nw) / 2, y = ny > 0 ? k.y + k.d : ny < 0 ? k.y - nd : k.y + (k.d - nd) / 2; let n = null;
-      K.forEach((q, i) => { n = { id: 'k' + (++M.n), teil: t, z: q.z, h: q.h, w: nw, d: nd, x, y, wand: korbHol('wand', VOR.wand), boden: korbHol('boden', i ? VOR.decke : VOR.boden), seiten: {} }; M.koerper.push(n); });
+      K.forEach((q, i) => { n = { id: 'k' + (++M.n), teil: t, z: q.z, h: q.h, w, d: dd, x, y, wand: korbHol('wand', VOR.wand), boden: korbHol('boden', i ? VOR.decke : VOR.boden), seiten: {} }; M.koerper.push(n); });
       M.dach[n.id] = { form: 'flach', aufbau: korbHol('dach', VOR.flach) }; SEL = { art: 'koerper', id: n.id }; MEHR = [];
     }
     function entfernen(k) {   // Geschoss weg: darüber rückt nach unten, das Dach bleibt oben
@@ -279,9 +318,11 @@
       }
       if (SEL.art === 'koerper' || SEL.art === 'wand') { const k = kz(SEL.id); if (!k) return L; const zm = k.z + k.h / 2;
         SK.forEach((s) => { const [nx, ny] = SEITEN[s];
-          add([k.x + k.w / 2 + nx * k.w / 2, k.y + k.d / 2 + ny * k.d / 2, zm], [nx, ny, 0], (A, d) => {
-            if (nx) { const w = Math.max(2, rund(A.w + d)); M.koerper.forEach((q) => { if (q.teil === k.teil && Math.abs(q.x - A.x) < .01 && Math.abs(q.w - A.w) < .01) { if (nx < 0) q.x = rund(A.x + A.w - w); q.w = w; } }); }
-            else { const dd = Math.max(2, rund(A.d + d)); M.koerper.forEach((q) => { if (q.teil === k.teil && Math.abs(q.y - A.y) < .01 && Math.abs(q.d - A.d) < .01) { if (ny < 0) q.y = rund(A.y + A.d - dd); q.d = dd; } }); }
+          add([k.x + k.w / 2 + nx * k.w / 2, k.y + k.d / 2 + ny * k.d / 2, zm], [nx, ny, 0], (A, d) => {   // gleich große Geschosse des Teils wandern mit (beim Anfassen gemerkt)
+            const Q = A._Q || (A._Q = M.koerper.filter((q) => q.teil === k.teil && (nx ? Math.abs(q.x - A.x) < .01 && Math.abs(q.w - A.w) < .01 : Math.abs(q.y - A.y) < .01 && Math.abs(q.d - A.d) < .01)).map((q) => ({ q, a: { ...q } })));
+            const mit = new Set(Q.map((x) => x.q.id)), f = nx ? 'w' : 'd', o = nx ? 'x' : 'y'; let v = Math.max(2, rund(A[f] + d));
+            Q.forEach(({ a }) => { const g = platz(a, s, mit); v = Math.min(v, r2(nx + ny > 0 ? g - a[o] : a[o] + a[f] - g)); });   // nicht in einen anderen Körper hinein
+            Q.forEach(({ q, a }) => { if (nx + ny < 0) q[o] = r2(a[o] + a[f] - v); q[f] = v; });
             einrasten(k, nx, ny); }, nx ? 'Länge ziehen' : 'Breite ziehen', [nx, ny, 0]); });
         add([k.x + k.w / 2, k.y + k.d / 2, k.z + k.h], [0, 0, 1], (A, d) => { const h = Math.max(2.2, Math.min(6, Math.round((A.h + d) * 20) / 20)), dz = h - k.h; k.h = h; M.koerper.forEach((q) => { if (q.teil === k.teil && q.z > k.z) q.z = Math.round((q.z + dz) * 100) / 100; }); }, 'Geschosshöhe ziehen'); }
       if (SEL.art === 'oeff') { const o = M.oeff.find((x) => x.id === SEL.id), k = o && kz(o.k); if (!k) return L;
@@ -388,9 +429,9 @@
     }
     let tz = 0; const spaeterBild = () => { clearTimeout(tz); tz = setTimeout(() => bild(), 350); };
     $('#detail').addEventListener('input', (e) => { const t = e.target, d = t.dataset;
-      if (MEHR.length && MF) { if ('mmass' in d) { const v = +t.value; if (!(v >= (d.mmass === 'h' ? 2 : 1))) return; MF.K.forEach((k) => { const alt = k[d.mmass]; k[d.mmass] = v; if (d.mmass === 'h') M.koerper.forEach((q) => { if (q.teil === k.teil && q.z > k.z) q.z = Math.round((q.z + v - alt) * 100) / 100; }); }); spaeterBild(); }
+      if (MEHR.length && MF) { if ('mmass' in d) { const v = +t.value; if (!(v >= (d.mmass === 'h' ? 2 : 1))) return; if (d.mmass !== 'h') bisPlatz(MF.K, d.mmass, v); else MF.K.forEach((k) => { const alt = k[d.mmass]; k[d.mmass] = v; if (d.mmass === 'h') M.koerper.forEach((q) => { if (q.teil === k.teil && q.z > k.z) q.z = Math.round((q.z + v - alt) * 100) / 100; }); }); spaeterBild(); }
         if ('muw' in d) MF.FE.forEach((o) => { o.uw = t.value ? +t.value : null; }); return; }
-      if (d.mass) { const k = kz(SEL.id), v = Math.max(1, +t.value || 0), alt = k[d.mass]; k[d.mass] = v; if (d.mass === 'h') M.koerper.forEach((q) => { if (q.teil === k.teil && q.z > k.z) q.z = Math.round((q.z + v - alt) * 100) / 100; }); else M.koerper.forEach((q) => { if (q.teil === k.teil && q.id !== k.id && q.x === k.x && q.y === k.y) q[d.mass] = v; }); spaeterBild(); }
+      if (d.mass) { const k = kz(SEL.id), v = Math.max(1, +t.value || 0), alt = k[d.mass]; k[d.mass] = v; if (d.mass === 'h') M.koerper.forEach((q) => { if (q.teil === k.teil && q.z > k.z) q.z = Math.round((q.z + v - alt) * 100) / 100; }); else { k[d.mass] = alt; bisPlatz(M.koerper.filter((q) => q.teil === k.teil && q.x === k.x && q.y === k.y && q[d.mass] === alt), d.mass, v); } spaeterBild(); }
       if ('ob' in d || 'oh' in d || 'uw' in d || 'gb' in d) { const o = obj(); if ('ob' in d) o.b = +t.value; if ('oh' in d) o.h = +t.value; if ('gb' in d) o.b = +t.value; if ('uw' in d) o.uw = +t.value; spaeterBild(); } });
     $('#detail').addEventListener('change', (e) => { const t = e.target, d = t.dataset;
       if (MEHR.length && MF) { if (!t.value) return; if ('mwand' in d) { const v = korbWahl('wand', t.value); MF.W.forEach((x) => { const k = kz(x.id); if (x.art === 'wand') { k.seiten = k.seiten || {}; k.seiten[x.seite] = v; } else { k.wand = v; k.seiten = {}; } }); }
@@ -491,13 +532,47 @@
       korb: Object.fromEntries(Object.values(KORB).map((e) => [e.id, { art: e.art, vorlage: e.von, name: e.name, eigen: !!e.eigen }])) };
     }
     function spaeter() { if (LADEN) return; const s = JSON.stringify(daten()); if (s === STAND) return; clearTimeout(TS); TS = setTimeout(() => speichern(s), 700); }
+    /* Text fürs Rückgängig (21.11.2026: statt „Baukasten geändert“) – was sich zwischen zwei Ständen geändert hat, z. B. „Außenwand rechts
+       (Erdgeschoss): Aufbau“, „Hauptgebäude, Erdgeschoss: Länge 10 → 12 m“, „Dach: Satteldach → Walmdach“, „Fenster eingesetzt“ */
+    function wasText(a, b) {
+      const A = a.baukasten, B = b.baukasten, T = [], tn = (k) => (B.teile || {})[k.teil] || (A.teile || {})[k.teil] || '', wo = (k) => { const q = kz(k.id); return [tn(k), q ? gname(q) : ''].filter(Boolean).join(', '); };
+      const dm = (n) => Number(n).toLocaleString('de-DE', { maximumFractionDigits: 2 }), kn = (id) => (KORB[id] ? `„${KORB[id].name}“` : ''), MN = { w: 'Länge', d: 'Breite', h: 'Höhe' }, ON = { fenster: 'Fenster', fenstertuer: 'Fenstertür', tuer: 'Tür' };
+      const DF = Object.fromEntries(DACHF.map((f) => [f[0], f[1]])), by = (L) => new Map((L || []).map((x) => [x.id, x])), KA = by(A.koerper), KB = by(B.koerper);
+      KB.forEach((k, id) => { const o = KA.get(id);
+        if (!o) { T.push(!Object.values(A.koerper).some((q) => q.teil === k.teil) ? `${tn(k) || 'Anbau'} angelegt` : k.staffel ? 'Staffelgeschoss darauf' : k.z < 0 ? 'Keller darunter' : `${tn(k)}: Geschoss darauf`); return; }
+        Object.keys(MN).forEach((f) => { if (o[f] !== k[f]) T.push(`${wo(k)}: ${MN[f]} ${dm(o[f])} → ${dm(k[f])} m`); });
+        if (o.wand !== k.wand) T.push(`Außenwände (${wo(k)}): Aufbau ${kn(k.wand)}`);
+        SK.forEach((sd) => { if ((o.seiten || {})[sd] !== (k.seiten || {})[sd] && o.wand === k.wand) T.push(`Außenwand ${SNAME[sd]} (${wo(k)}): Aufbau ${kn((k.seiten || {})[sd] || k.wand)}`); });
+        if (o.boden !== k.boden) T.push(`${k.z <= Math.min(...B.koerper.filter((q) => q.teil === k.teil).map((q) => q.z)) + 0.01 ? 'Bodenplatte' : 'Decke'} (${wo(k)}): Aufbau ${kn(k.boden)}`);
+        if (!!o.staffel !== !!k.staffel) T.push(`${wo(k)}: ${k.staffel ? 'als Staffelgeschoss' : 'volle Größe'}`); });
+      KA.forEach((k, id) => { if (!KB.has(id)) T.push(`${tn(k) ? tn(k) + ': ' : ''}Geschoss entfernt`); });
+      const DA = A.dach || {}, DB = B.dach || {};
+      Object.keys({ ...DA, ...DB }).forEach((id) => { const o = DA[id], n = DB[id];
+        const zahl = Object.keys(DB).length - Object.keys(DA).length;   // wandert ein Dach nur aufs neue Geschoss, bleibt die Zahl gleich
+        if (o && !n) { if (zahl < 0) T.push('Dach entfernt'); return; }
+        if (!o) { if (zahl > 0) T.push(`Dach: ${DF[n.form] || n.form}`); return; }
+        if (o.form !== n.form) T.push(`Dach: ${DF[o.form] || o.form} → ${DF[n.form] || n.form}`);
+        else if (o.first !== n.first) T.push('Dach: First gedreht');
+        if (o.aufbau !== n.aufbau) T.push(`Dach: Aufbau ${kn(n.aufbau)}`);
+        if (JSON.stringify(o.fl || {}) !== JSON.stringify(n.fl || {})) T.push('Dachfläche: eigener Aufbau'); });
+      const GA = by(A.gauben), GB = by(B.gauben), OA = by(A.oeff), OB = by(B.oeff);
+      GB.forEach((g, id) => { const o = GA.get(id); if (!o) T.push(`${g.form} eingesetzt`); else if (JSON.stringify(o) !== JSON.stringify(g)) T.push(`${g.form}: ${o.b !== g.b ? `Breite ${dm(o.b)} → ${dm(g.b)} m` : o.form !== g.form ? 'Form' : 'Fenster'}`); });
+      GA.forEach((g, id) => { if (!GB.has(id)) T.push('Gaube entfernt'); });
+      OB.forEach((x, id) => { const o = OA.get(id), n = ON[x.art] || 'Fenster'; if (!o) T.push(`${n} eingesetzt`); else if (JSON.stringify(o) !== JSON.stringify(x)) T.push(`${n}: ${o.b !== x.b || o.h !== x.h ? `${dm(x.b)} × ${dm(x.h)} m` : o.u !== x.u ? 'verschoben' : 'Rahmen, Verglasung, Uw'}`); });
+      OA.forEach((x, id) => { if (!OB.has(id)) T.push(`${ON[x.art] || 'Fenster'} entfernt`); });
+      if (!!A.raeume !== !!B.raeume) T.push(`Räume je Geschoss ${B.raeume ? 'an' : 'aus'}`);
+      if (JSON.stringify(A.teile) !== JSON.stringify(B.teile) && !T.length) T.push('Gebäudeteil umbenannt');
+      if (!T.length && JSON.stringify(a.korb) !== JSON.stringify(b.korb)) T.push('Korb: Aufbau geändert');
+      const U = [...new Set(T)]; return U.length ? U[0] + (U.length > 1 ? ` (+${U.length - 1})` : '') : 'Baukasten geändert';
+    }
     async function speichern(s) {
       const vor = STAND, neu = NEU; STAND = s; NEU = false; tippe('wird gespeichert …');
       try {
         const r = await J(`${basis}/baukasten`, 'PUT', { ...JSON.parse(s), netz: netzBauen(), ...(neu ? { neu: true } : {}) }); PLAN = r.plan;
         tippe(PLAN === 'ifc' ? 'Gespeichert – es gilt ein Plan: Bauteile und 3D kommen aus dem Plan.' : 'Gespeichert – der Planstand ist nachgeführt.');
         uWerte(r);
-        if (window.rueckgaengig && vor) rueckgaengig('Baukasten geändert', async () => { await J(`${basis}/baukasten`, 'PUT', { ...JSON.parse(vor), netz: null }); await laden(); }, { neu: () => laden() });
+        if (window.rueckgaengig && vor) rueckgaengig(wasText(JSON.parse(vor), JSON.parse(s)), async () => { await J(`${basis}/baukasten`, 'PUT', { ...JSON.parse(vor), netz: null }); await laden();
+          await J(`${basis}/baukasten`, 'PUT', { ...daten(), netz: netzBauen() }); }, { neu: () => laden() });   // dann das Netz des alten Stands (ohne neuen Schritt) – sonst zeigten die anderen Apps das 3D von eben
         (DOC.defaultView || window).dispatchEvent(new CustomEvent('bp:modellGeaendert', { detail: { pid } }));
         if (OPT.nachher) OPT.nachher(r);
       } catch (e) { STAND = vor; NEU = neu; tippe(e.message); if (window.toast) toast(e.message, true); }

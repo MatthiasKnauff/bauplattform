@@ -28,7 +28,7 @@ export async function baukastenPruefen(browser, repo) {
     if (pf === '/api/bp/modell/1/bauteile/vorlagen') return J(VL[u.searchParams.get('kg')] || []);
     if (pf === '/api/bp/modell/1/baukasten' && r.request().method() === 'GET') { S.gets.push(u.search);
       const neu = u.searchParams.get('neu') === '1';
-      return J({ baukasten: neu ? { koerper: [{ id: 'k1', teil: 'h', x: 0, y: 0, z: 0, w: 12, d: 9, h: 2.9, seiten: {} }], dach: { k1: { form: 'sattel', aufbau: '' } }, gauben: [], oeff: [], teile: { h: 'Hauptgebäude' } } : BK,
+      return J({ baukasten: neu ? { koerper: [{ id: 'k1', teil: 'h', x: 0, y: 0, z: 0, w: 12, d: 9, h: 2.9, seiten: {} }], dach: { k1: { form: 'sattel', aufbau: '' } }, gauben: [], oeff: [], teile: { h: 'Hauptgebäude' } } : S.bk || BK,
         korb: neu ? {} : KORB, plan: 'hand', herkunft: neu ? 'leer' : 'baukasten', raeume: [{ nr: '0.01', name: 'Wohnen', geschoss: 'Erdgeschoss', flaeche: 32 }] }); }
     if (pf === '/api/bp/modell/1/baukasten') { const b = r.request().postDataJSON(); S.puts.push(b); return J({ rev: S.puts.length, plan: 'hand', modell: { bauteilliste: { zeilen: [] } } }); }
     return r.fulfill({ status: 404, body: '{}' });
@@ -96,8 +96,30 @@ export async function baukastenPruefen(browser, repo) {
     { const n = S.puts.length; await p.click('[data-bkrm]'); await p.waitForTimeout(150);
       pruef(await p.evaluate(() => { const r = document.querySelector('[data-bk="raeume"]'); return r && !r.hidden && r.textContent.includes('Wohnen'); }), 'Räume je Geschoss lassen sich zuschalten');
       await warte(n + 1); pruef(S.puts[n] && S.puts[n].baukasten.raeume === true, 'Schalter Räume wird gespeichert'); }
-    { const n = S.puts.length; await p.evaluate(() => UNDO[0][1]()); await warte(n + 1);
+    { await p.waitForTimeout(150); const T = await p.evaluate(() => UNDO.map((u) => u[0]));   // Rückgängig sagt, was sich geändert hat (21.11.2026)
+      pruef(T[0] === 'Hauptgebäude: Geschoss darauf' && T.includes('Dach: First gedreht') && T.includes('Fenster eingesetzt') && T.includes('Räume je Geschoss an') && T.some((t) => /: Länge 7,5 → \d/.test(t)), `Texte fürs Rückgängig: ${T.join(' · ')}`); }
+    { const n = S.puts.length; await p.evaluate(() => UNDO[0][1]()); await warte(n + 2);
+      pruef(S.puts[n + 1] && S.puts[n + 1].netz && S.puts[n + 1].baukasten.koerper.length === 1, 'nach dem Rückgängig geht das Netz des alten Stands mit');
       pruef(S.puts[n] && S.puts[n].baukasten.koerper.length === 1, 'Rückgängig schickt den alten Stand'); }
+    {   // keine durchdringenden Körper (21.11.2026): Länge bis zum Anbau, Dachüberstand endet an der Wand, Giebel gehören zur Wand
+      S.bk = { ...BK, koerper: [BK.koerper[0], { id: 'k2', teil: 't2', x: 12, y: 1, z: 0, w: 5, d: 6, h: 2.9, wand: 'A1', boden: 'A2', seiten: {} }],
+        dach: { k1: { form: 'sattel', aufbau: 'A3', first: 'x' }, k2: { form: 'flach', aufbau: 'A3' } }, teile: { h: 'Hauptgebäude', t2: 'Anbau 1' } };
+      await p.evaluate(() => { window.BKH = bpBaukasten.mount(document.getElementById('h'), 1); });
+      await p.waitForFunction(() => window.BKH.d3 && document.querySelector('#h .b3 canvas'), null, { timeout: 8000 }); await p.waitForTimeout(200);
+      const w3 = await punkt([5, 0, 1.45]); await p.mouse.click(w3[0], w3[1]); await p.waitForSelector('[data-bk="detail"] [data-mass="w"]');
+      const n = S.puts.length; await p.fill('[data-bk="detail"] [data-mass="w"]', '15'); await warte(n + 1);
+      const c = S.puts[n], k1 = c && c.baukasten.koerper.find((k) => k.id === 'k1');
+      pruef(k1 && k1.w === 12, `Länge hält am Anbau an (12 statt 15): ${k1 && k1.w}`);
+      const xs = (i) => { const e = c && c.netz.e.find((x) => x.i === i); return e ? e.v.filter((_, j) => j % 3 === 0) : []; };
+      pruef(xs(9600026).length && Math.min(...xs(9600026)) >= 1200, `Flachdach des Anbaus ragt nicht ins Hauptgebäude: ab ${Math.min(...xs(9600026))} cm`);
+      pruef(xs(9600006).length && Math.max(...xs(9600006)) <= 1200, `Satteldach ohne Überstand über dem Anbau: bis ${Math.max(...xs(9600006))} cm`);
+      const g = c && c.netz.e.find((x) => x.i === 9600008);
+      pruef(g && g.t === 'w', 'Giebel als Wand im Netz');
+      const gp = await punkt([0, 4, 3.6]); await p.mouse.click(gp[0], gp[1]); await p.waitForTimeout(250);
+      pruef(await p.evaluate(() => /Außenwand/.test(document.querySelector('[data-bk="detail"]').textContent)), 'Klick auf den Giebel wählt die Außenwand, nicht das Dach');
+      if (process.env.BILD) { await p.click('.b3-l [data-b3dar]'); await p.waitForTimeout(150); await p.screenshot({ path: process.env.BILD }); await p.click('.b3-l [data-b3dar]'); }   // zum Ansehen
+      S.bk = null;
+    }
     {   // eingebettet im Gebäudemodell: Symbolreihe, Angaben und Korb gehen in den Bereich rechts
       await p.evaluate(() => { const h = document.getElementById('h'), r = document.createElement('div'); r.id = 'rechts'; document.body.appendChild(r);
         window.BKH = bpBaukasten.mount(h, 1, { seite: ({ detail, korb }) => { r.append(detail, korb); } }); });

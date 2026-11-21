@@ -51,13 +51,11 @@ export async function gebaeudemodellPruefen(browser, repo) {
     if (pf === 'api/bp/modell/7/hand/vorschlag') return J({ quelle: 'assistent', raeume: [{ nr: 'EG.01', name: 'Wohnen', geschoss: 'EG', flaeche: 30, hoehe: 2.5 }], elemente: [{ nr: 'F 01', art: 'Fenster', geschoss: 'EG', raum: 'EG.01', b: 1.26, h: 1.38, bruestung: 0.9 }] });
     if (pf === 'api/bp/modell/7/raum') { const b = JSON.parse(q.postData() || '{}'); S.rn = b.name; return J(M()); }
     if (pf === 'api/bp/modell/7/netz') { S.netzUrl = q.url(); return J(NETZ); }
-    if (pf === 'api/bp/modell/7/aenderungen') return J({ aenderungen: [{ id: 3, zeile: 'f', ids: [11], art: 'bauteil', feld: 'status', text: 'Maßnahme: noch offen → erneuern', wann: new Date().toISOString().slice(0, 19), wer: 'anna', app: 'waermeschutz', zurueck: false, kann: true }], einst: { a: 'a1', b: 'b1', c: 'c2', d: 'd2', e: 'e1', f: 'f1' } });
-    if (pf === 'api/bp/modell/7/aenderungen/3/zurueck') { S.zur = true; return J({ ...M(), aenderungen: [] }); }
     if (pf === 'api/bp/ki/stufen') return J({ buero: true, extern: false, grund: {} });
     if (pf === 'api/bp/modell/7/verfeinern') { S.verf = JSON.parse(q.postData() || '{}'); return J({ n: 2, vorschlaege: [] }); }
     if (pf === 'api/bp/modell/7/grundriss') return J({ art: 'ifc', geschosse: [{ n: 'EG', z: 0 }], flaechen: [{ g: 0, umriss: [[-4.8, 0.3], [-0.2, 0.3], [-0.2, 4], [-4.8, 4]], flaeche: 17, z: 0, hoehe: 2.5, mitte: [-2.5, 2], raum: { nr: '0.01', name: 'Wohnen' } },
       { g: 0, umriss: [[0.2, 0.3], [4.8, 0.3], [4.8, 1.3], [0.2, 1.3]], flaeche: 4.5, z: 0, hoehe: 2.5, mitte: [2.5, 0.8], raum: null }] });
-    if (pf === 'api/bp/modell/einst') return J({ a: 'a1', b: 'b1', c: 'c2', e: 'e1', f: 'f1' });
+    if (pf === 'api/bp/modell/einst') return J({ e: 'e1', f: 'f1' });
     if (pf === 'api/bp/modell/7/baukasten' && q.method() === 'GET') { S.bkGet = q.url(); return J({ baukasten: { koerper: [{ id: 'k1', teil: 'h', x: 0, y: 0, z: 0, w: 12, d: 9, h: 2.9, seiten: {} }], dach: { k1: { form: 'sattel', aufbau: '' } }, gauben: [], oeff: [], teile: { h: 'Hauptgebäude' } }, korb: {}, plan: 'hand', herkunft: 'leer', raeume: [] }); }
     if (pf === 'api/bp/modell/7/baukasten') { S.bkPut = JSON.parse(q.postData() || '{}'); return J({ ...M(), plan: 'hand' }); }
     if (pf === 'api/bp/modell/7') return J(M());
@@ -75,7 +73,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
     pruef(a.bf.includes('Planstand') && a.bf.includes('Ansicht') && !['Neu', 'KI', 'Ausgabe', 'Teilen'].some((g) => a.bf.includes(g)), `Befehlsleiste: ${a.bf.join('|')}`);
     pruef(['3D', 'Grundriss', 'Tabelle'].every((t) => a.kn.some((k) => k.endsWith(t))) && !a.kn.some((k) => /Details|Aufräumen|entfallene/.test(k)), `Knöpfe: ${a.kn.join('|')}`);
     pruef(a.reiter.join('|') === 'Bauteile|Räume|Fenster & Türen', `Reiter über der Tabelle: ${a.reiter.join('|')}`);
-    pruef(a.tabs.join('|') === 'Bauteil|Änderungen|Planung', `Reiter rechts: ${a.tabs.join('|')}`);
+    pruef(a.tabs.join('|') === 'Bauteil|Planung', `Reiter rechts: ${a.tabs.join('|')}`);
     pruef(a.vm, 'Versionsmenü der Planstände in der Navigation fehlt');
     pruef(!a.quer, 'waagerechter Scrollbalken');
     await p.click('tr[data-btz="raum:boden:trocken"] td.baumz'); await p.waitForSelector('.sr-r [data-btz="raum:boden:trocken"] [data-btst="erneuern"]');
@@ -110,7 +108,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
       await p.evaluate(() => { window.RECHTS = document.querySelector('#work .sr-r'); });
       await p.click('#view [data-gmtr="raeume"]'); await p.waitForSelector('#view .gm-li tr[data-gmz]');
       pruef(await p.evaluate(() => document.querySelector('#view .gm-tabi').hidden && !document.querySelector('#view .gm-li').hidden && document.querySelector('#work .sr-r') === window.RECHTS
-        && [...document.querySelectorAll('.sr-tab')].map((x) => x.textContent.trim()).join('|') === 'Bauteil|Änderungen|Planung'), 'Reiter „Räume“: Liste in derselben Seite, rechts unverändert');
+        && [...document.querySelectorAll('.sr-tab')].map((x) => x.textContent.trim()).join('|') === 'Bauteil|Planung'), 'Reiter „Räume“: Liste in derselben Seite, rechts unverändert');
       await p.click('#view [data-gmtr="fenster"]'); await p.waitForSelector('#view .gm-li tr[data-gmz]');
       pruef(await p.evaluate(() => document.querySelector('#work .sr-r') === window.RECHTS && !/Planungsassistent wird geladen/.test(document.querySelector('#work').textContent)), 'Wechsel Räume → Fenster lädt rechts nicht neu');
       // angesehener Planstand, der nicht gilt: Räume, 3D und Grundriss bleiben bei ihm, nur zum Ansehen
@@ -164,7 +162,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
     await p.click('.modal [data-m="x"]');
     {   // 20.11.2026: Zeilen von Hand lassen sich ändern und entfernen – Name rechts in den Details, im Baum Kontextmenü/F2/Entf; ein Klick auf die Zeile holt „Bauteil“ nach vorn
       S.mh = true; S.hand = false; S.zeile = []; await zu('bauteile'); await p.waitForSelector('table.bt-baum tr[data-btz="hand:1"]');
-      await p.evaluate(() => seiteReiter('gm', 'aend')); await p.waitForTimeout(200);
+      await p.evaluate(() => seiteReiter('gm', 'planung')); await p.waitForTimeout(200);
       await p.click('tr[data-btz="hand:1"] td.baumz'); await p.waitForSelector('.sr-r [data-btz="hand:1"] [data-btname]', { timeout: 4000 }).catch(() => {});
       pruef(await p.evaluate(() => { const t = document.querySelector('#work .sr-tab.on'); return t && t.dataset.srt === 'details' && !!document.querySelector('.sr-r [data-btz="hand:1"] [data-btweg]'); }), 'Zeile von Hand gewählt: „Bauteil“ kommt nicht nach vorn');
       await p.fill('.sr-r [data-btz="hand:1"] [data-btname]', 'Trockenbauwand Diele'); await p.keyboard.press('Tab'); await p.waitForTimeout(250);
@@ -211,13 +209,13 @@ export async function gebaeudemodellPruefen(browser, repo) {
       pruef(await p.evaluate(() => !!document.querySelector('#view .gr-w') && document.querySelectorAll('#view .gr-f').length === 2 && /Wohnen/.test(document.querySelector('#view .gr-b').textContent)), 'Grundriss: Wände und zwei Flächen, eine mit Raum aus dem Plan');
       await p.click('#view .gr-f.frei'); await p.waitForSelector('.bph-frage-in'); await p.fill('.bph-frage-in', 'Abstellraum'); await p.click('.bph-frage [data-f="ja"]'); await p.waitForTimeout(400);
       pruef(S.plusPut && S.plusPut.raeume && S.plusPut.raeume[0].name === 'Abstellraum' && S.plusPut.raeume[0].flaeche === 4.5, `Fläche als Raum angenommen: ${JSON.stringify(S.plusPut)}`); S.plus = null; }
-    // Gebäude mit großem 3D (20.11.2026): Mitte 3D, rechts oben Angaben, darunter die Liste einzeln (L-B), Änderungen mit Zeitschieber und Zurücknehmen
+    // Gebäude mit großem 3D (20.11.2026): Mitte 3D, rechts oben Angaben, darunter die Liste einzeln (L-B); den Reiter „Änderungen“ gibt es seit 21.11.2026 nicht mehr
     { S.leer = false; S.mh = false; S.hand = false; S.plus = null;
       await p.evaluate(() => { localStorage.setItem('pl.mitte', '"3d"'); SICHT = 'bauteile'; return zeichne(); });
       await p.waitForSelector('#view .gm-d3 .b3 canvas', { timeout: 8000 }); await p.waitForSelector('#work [data-g3auf]', { timeout: 8000 }); await p.evaluate(() => { for (let k = 0; k < 9; k++) { const b = [...document.querySelectorAll('#work .g3-g:not(.auf) [data-g3auf]')][0]; if (!b) break; b.click(); } }); await p.waitForSelector('#work [data-g3e]', { timeout: 4000 });
       const a = await p.evaluate(() => ({ tab: !!document.querySelector('#view .gm-tab[hidden]'), modi: [...document.querySelectorAll('.b3-l [data-b3f]')].map((b) => b.textContent),
         liste: document.querySelectorAll('#work [data-g3e]').length, getrennt: !!document.querySelector('#work .g3-teil > .g3-oben') && !!document.querySelector('#work .g3-teil > .g3-tr') && !!document.querySelector('#work .g3-teil > .g3-li') }));
-      pruef(a.tab && a.modi.join('|') === 'U-Wert|Änderungen|Maßnahmen' && a.liste === 2 && a.getrennt, `3D in der Mitte, nur drei Färbungen, Liste getrennt unter den Angaben: ${JSON.stringify(a)}`);
+      pruef(a.tab && a.modi.join('|') === 'U-Wert|Maßnahmen' && a.liste === 2 && a.getrennt, `3D in der Mitte, nur zwei Färbungen, Liste getrennt unter den Angaben: ${JSON.stringify(a)}`);
       await p.click('#work [data-g3e="11"]'); await p.waitForTimeout(250);
       { const w = await p.evaluate(() => ({ wahl: document.querySelector('.b3 canvas').dataset.wahl, det: !!document.querySelector('.sr-r [data-btz="f"]'), an: !!document.querySelector('#work .g3-e.an[data-g3e="11"]') }));
         pruef(w.wahl === '1' && w.det && w.an, `Klick in der Liste wählt im Modell und zeigt die Zeile: ${JSON.stringify(w)}`); }
@@ -228,14 +226,9 @@ export async function gebaeudemodellPruefen(browser, repo) {
       if (process.env.BILD) await p.screenshot({ path: process.env.BILD });   // zum Ansehen: BILD=/tmp/gm.png node tools/tests/ui/gebaeudemodell.mjs
       await p.click('.b3-l [data-b3dar]'); await p.waitForSelector('.b3-l [data-b3o]');
       { await p.evaluate(() => { const r = document.querySelector('.b3-l [data-b3o]'); r.value = 60; r.dispatchEvent(new Event('input', { bubbles: true })); }); await p.waitForTimeout(150); }
-      await p.click('#work .sr-tab[data-srt="aend"]'); await p.waitForSelector('#work [data-g3zeit]');
-      await p.evaluate(() => { const r = document.querySelector('[data-g3zeit]'); r.value = -7; r.dispatchEvent(new Event('input', { bubbles: true })); }); await p.waitForTimeout(350);
-      const z = await p.evaluate(() => ({ on: (document.querySelector('.b3-l [data-b3f].on') || {}).textContent, leg: document.querySelector('.b3-k').textContent, alt: document.querySelector('[data-g3a="3"]').classList.contains('alt') }));
-      pruef(z.on === 'Änderungen' && /Wärmeschutz/.test(z.leg) && !z.alt, `Zeitschieber: Färbung Änderungen, je App: ${JSON.stringify(z)}`);
-      { const r = await p.evaluate(() => { const a = document.querySelector('[data-g3a="3"]'), m = a.querySelector('.g3-am').getBoundingClientRect(), t = a.querySelector('.g3-at').getBoundingClientRect();
-          return { unter: t.top >= m.bottom - 1, breit: t.width > a.getBoundingClientRect().width * 0.5, filter: !!document.querySelector('#work .g3-aend .g3-fl .bpf-in'), schieber: !!document.querySelector('#work .g3-aend .g3-ak [data-g3zeit]') }; });
-        pruef(r.unter && r.breit && r.filter && r.schieber, `Änderung: Datum/App/Person über dem Text in voller Breite, Filter darüber: ${JSON.stringify(r)}`); }
-      await p.click('[data-g3zur="3"]'); await p.waitForTimeout(250); pruef(S.zur, 'Zurücknehmen');
+      { const d = await p.evaluate(() => { const l = document.querySelector('.b3-l').getBoundingClientRect(), b = document.querySelector('.b3-l [data-b3dar]').getBoundingClientRect(), x = document.querySelector('.b3-dar').getBoundingClientRect(), c = document.querySelector('.b3 canvas').getBoundingClientRect();
+          return { rechts: l.right - b.right < 4, unter: x.top >= b.bottom - 1, buendig: Math.abs(x.right - b.right) < 4, hoehe: c.bottom > document.querySelector('#view').getBoundingClientRect().bottom - 30 }; });
+        pruef(d.rechts && d.unter && d.buendig && d.hoehe, `„Darstellung ▾“ ganz rechts, klappt darunter auf; 3D bis unten: ${JSON.stringify(d)}`); }
       await p.evaluate(() => [...document.querySelectorAll('#bfl button')].find((b) => /Tabelle/.test(b.textContent)).click()); await p.waitForSelector('table.bt-baum', { timeout: 4000 });
       pruef(await p.evaluate(() => !!document.querySelector('#view .gm-d3[hidden]')), 'Umschalten auf die Tabelle'); }
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n').slice(0, 3).join(' ')); }

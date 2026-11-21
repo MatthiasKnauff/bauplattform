@@ -247,6 +247,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Baukasten: keine durchdringenden Körper, Flachdach auf der Wand, Giebel/Gaubenwände = Außenwand, 3D bis unten, „Darstellung“ rechts; Reiter „Änderungen“ gestrichen, Rückgängig mit Beschriftung~~ (21.11.2026)
 - ~~Aufräumen seit 20.11. mittags: Hülle-Beschreibung und unbenutzter Parameter, Einstellung D „Material“ samt Färbung, tote Gliederungen, verschluckte Fehler (Grundriss meldet die Ursache, Baukasten-Vorlagen, Änderungen), Testkrücke `_hat` im Kern~~ (21.11.2026)
 - ~~Schneller: Person und Plattformliste in allen Apps gleichzeitig, Kopfleiste holt die Plattformliste nicht noch einmal (auch Bauzeitenplan, Bautagebuch), Bautagebuch lädt seine Startdaten gleichzeitig, Raumbuch und Änderungen je Stand nur einmal~~ (21.11.2026)
 - ~~Baukasten: First bleibt beim Ziehen fest („First drehen“), Giebel in der Wand, Griffe nur an zugewandten Seiten, Gebäudeteil mit Namen statt „h“~~ (21.11.2026)

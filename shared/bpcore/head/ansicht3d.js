@@ -33,10 +33,10 @@
 .b3.rahmen canvas{cursor:crosshair}
 .b3{position:relative;width:100%;height:min(72vh,720px);min-height:320px;border:1px solid var(--line,#d5d9de);border-radius:calc(8px*var(--rk,1));overflow:hidden;background:linear-gradient(#f4f6f8,#e3e7eb);touch-action:none}
 .b3 canvas{width:100%;height:100%;display:block;cursor:grab}.b3 canvas:active{cursor:grabbing}
-.b3-l{position:absolute;left:.5rem;top:.5rem;display:flex;flex-wrap:wrap;align-items:center;gap:.3rem;max-width:calc(100% - 1rem)}
+.b3-l{position:absolute;left:.5rem;right:.5rem;top:.5rem;display:flex;flex-wrap:wrap;align-items:center;gap:.3rem;pointer-events:none}.b3-l>*{pointer-events:auto}.b3-l button[data-b3dar]{margin-left:auto}
 .b3-l button{font:inherit;font-size:.78rem;border:1px solid var(--line,#c9ced4);background:rgba(255,255,255,.88);color:#23282b;border-radius:calc(99px*var(--rkp,1));padding:.12rem .6rem;cursor:pointer}
 .b3-seg{display:inline-flex;padding:2px;border:1px solid var(--line,#d6dce3);border-radius:calc(999px*var(--rkp,1))}.b3-l .b3-seg button{border:0;border-radius:calc(999px*var(--rkp,1));margin:0}
-.b3-dar{flex:1 0 100%;display:flex;flex-wrap:wrap;align-items:center;gap:.3rem}
+.b3-dar{position:absolute;right:0;top:calc(100% + .3rem);z-index:3;display:flex;flex-direction:column;align-items:stretch;gap:.3rem;min-width:13rem;max-height:calc(100vh - 12rem);overflow:auto;padding:.45rem;background:var(--card,#fff);border:1px solid var(--line,#d6dce3);border-radius:calc(8px*var(--rk,1));box-shadow:0 6px 18px rgba(0,0,0,.14)}.b3-dar button{text-align:left}.b3-dar .b3-z{display:flex;align-items:center;justify-content:space-between;gap:.4rem}
 .b3-l button.on{border-color:var(--y,#2f6fb3);box-shadow:inset 0 0 0 1px var(--y,#2f6fb3);font-weight:600}
 .b3-k{position:absolute;left:.5rem;bottom:.5rem;display:flex;flex-wrap:wrap;gap:.2rem .6rem;font-size:.74rem;color:#23282b;background:rgba(255,255,255,.85);border-radius:6px;padding:.25rem .5rem}
 .b3-k i{display:inline-block;width:.75rem;height:.75rem;border-radius:2px;margin-right:.25rem;vertical-align:-.1rem}
@@ -228,7 +228,7 @@
     function leiste() {
       const G = S.N.geschosse;
       /* oben nur Färbungen, Auswahl und Rahmen; Geschosse, Dach, Schieber und „Farben des Modells“ unter „Darstellung ▾“ (GO 20.11.2026, Mock
-         „Gebäudemodell schlank“: drei Zeilen Knöpfe nahmen dem Modell den Platz) */
+         „Gebäudemodell schlank“: drei Zeilen Knöpfe nahmen dem Modell den Platz) – seit 21.11.2026 ganz rechts, klappt darunter auf */
       const haupt = MODI.map((m) => `<button type="button" data-b3f="${esc(m.key)}" class="${S.farbe === m.key ? 'on' : ''}">${esc(m.name)}</button>`).join('')
         + `<button type="button" data-b3f="massnahme" class="${S.farbe === 'massnahme' ? 'on' : ''}">Maßnahmen</button>`
         + (o.wahl ? `<button type="button" data-b3x ${WAHL.size ? '' : 'hidden'} title="Auswahl aufheben (Esc)">✕ Auswahl aufheben${WAHL.size > 1 ? ' (' + WAHL.size + ')' : ''}</button><button type="button" data-b3w class="${S.rahmen ? 'on' : ''}" title="Rahmen ziehen wählt viele Bauteile (nach rechts: ganz darin · nach links: berührt) – Strg wählt ab, Umschalt + Ziehen dreht; auch mit Alt + Ziehen">▭ Rahmen</button>` : '')

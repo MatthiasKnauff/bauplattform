@@ -300,7 +300,7 @@
           let sc = el; while (sc && sc !== document.body && !(sc.scrollHeight > sc.clientHeight && /auto|scroll/.test(getComputedStyle(sc).overflowY))) sc = sc.parentElement;
           const o1 = oben(); if (o0 != null && o1 != null && sc && sc !== document.body && Math.abs(o1 - o0) > 2) sc.scrollTop += o1 - o0; }
         window.dispatchEvent(new CustomEvent('bp:bauteile', { detail: { pid, id } }));   // andere Ansichten (Kosten links) rechnen nach
-        if (alt && !still && window.rueckgaengig) rueckgaengig(`„${z0.name}“ geändert`, () => zeile(id, alt, true), 10000, () => zeile(id, neu, true));
+        if (alt && !still && window.rueckgaengig) rueckgaengig(`${z0.name}: ${wasText(neu)}`, () => zeile(id, alt, true), 10000, () => zeile(id, neu, true));
       } catch (e) { sag(e.message, true); if (e.status === 409) laden(); }
     }
     async function vorlagen(kg) {
@@ -807,6 +807,9 @@
         <p class="bt-h">Jede Änderung hier gilt für alle ${R.length}. „verschieden“ = die Gewählten haben verschiedene Werte; wählst du einen, gilt er für alle. Mit Strg + Klick weitere dazu oder weg.</p>
         <button type="button" class="btn sm" data-btmwweg>Auswahl aufheben</button>`;
     }
+    /* Text fürs Rückgängig (21.11.2026): welches Bauteil, welche Angabe – „Außenwand – KS + WDVS: Aufbau“ statt „… geändert“ */
+    const FELD = { status: 'Maßnahme', vorlage: 'Aufbau', wahl: 'Ausführung', dicken: 'Schichtdicke', ausf: 'Ausführung', menge: 'Menge', name: 'Name', uw: 'Uw', kg: 'Art', einheit: 'Einheit', berechnen: 'Menge berechnen', wie: 'Aufbau wie …', bestaetigt: 'Kürzel bestätigt' };
+    const wasText = (neu) => [...new Set(Object.keys(neu).map((k) => FELD[k]).filter(Boolean))].join(', ') || 'geändert';
     async function mwAendern(neu) {
       const R = mwZ(); if (!R.length) return;
       const alt = R.map((z) => [z.id, Object.fromEntries(Object.keys(neu).map((k) => [k, z[k]]).concat('status' in neu ? [['vorlage', z.vorlage], ['wahl', [...(z.wahl || [])]], ['berechnen', z.berechnen]] : 'vorlage' in neu ? [['wahl', [...(z.wahl || [])]]] : []))]);
@@ -814,7 +817,7 @@
       const stop = warte(`${R.length} Bauteile werden geändert …`);
       try { await lauf(R.map((z) => [z.id, neu])); } finally { stop(); }
       sag(`${R.length} Bauteile geändert.`);
-      if (window.rueckgaengig) rueckgaengig(`${R.length} Bauteile geändert`, () => lauf(alt), 10000, () => lauf(R.map((z) => [z.id, neu])));
+      if (window.rueckgaengig) rueckgaengig(`${R.length} Bauteile: ${wasText(neu)}`, () => lauf(alt), 10000, () => lauf(R.map((z) => [z.id, neu])));
     }
     const handZ = (id) => { const z = L().zeilen.find((x) => x.id === id); return z && HAND.includes(z.bereich) && !Z.an ? z : null; };
     async function handWeg(id) { const z = handZ(id); if (!z) return sag('Nur Zeilen von Hand lassen sich entfernen – Bauteile aus dem Plan entfallen mit dem nächsten Planstand.'); const alt = { ...z, wahl: [...(z.wahl || [])] };

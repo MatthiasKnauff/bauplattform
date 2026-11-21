@@ -49,7 +49,13 @@ def test_rohbau_und_netz():
     W = {g["vorlage"]: g for g in R if g["kg"] == "331"}
     gleich(set(W), {"331.02", "331.03"}, "Außenwände je Aufbau im Korb")
     # Hauptteil: EG 2×(12+9)×2,9 − Anlage des Anbaus (6×2,9) · OG ohne Vorderseite (eigener Aufbau A3) …
-    pruefe(abs(W["331.02"]["menge"] - (2 * 21 * 2.9 - 6 * 2.9 + (21 + 9) * 2.8 - 1.26 * 1.38 * 108 / 150 * (W["331.02"]["menge"] and 1))) < 3, f"Wandfläche gemessen: {W['331.02']['menge']}")
+    # … dazu die Giebel (gehören zur Wand ihrer Seite) und Front + Wangen der Gaube (21.11.2026)
+    k2, D2 = bk["koerper"][1], bk["dach"]["k2"]
+    gb = sum(a for L in BK.giebel(k2, D2, bk["koerper"]).values() for _, a in L)
+    gw = BK.gauben_wand(bk["gauben"][0], k2, D2, bk["koerper"])
+    pruefe(25 < gb < 40 and 2 < gw < 12, f"Giebel {gb:.1f} m², Gaubenwände {gw:.1f} m²")
+    pruefe(abs(W["331.02"]["menge"] - (2 * 21 * 2.9 - 6 * 2.9 + (21 + 9) * 2.8 + gb + gw - 1.26 * 1.38 * 108 / 150 * (W["331.02"]["menge"] and 1))) < 3, f"Wandfläche gemessen: {W['331.02']['menge']}")
+    pruefe(BK.ID0 + 1 * 20 + 6 + 2 in W["331.02"]["ids"] and BK.GID + 3 in W["331.02"]["ids"], "Giebel und Gaubenwangen hängen an der Wand-Zeile")
     pruefe(all(g["teil"] for g in R) and any(g["kg"] == "322" for g in R) and any(g["kg"] == "351" for g in R) and any(g["kg"] == "363" for g in R), "Bodenplatte, Decke, Dach je Teil")
     D = next(g for g in R if g["kg"] == "363" and g["teil"] == "Hauptgebäude")   # Name des Teils, nicht der Schlüssel (21.11.2026)
     pruefe(D["menge"] > 12.8 * 9.8 and D["vorlage"] == "363.04", f"Satteldach geneigt größer als der Grundriss, Aufbau aus dem Korb: {D['menge']}")
@@ -87,3 +93,19 @@ def test_dachflaechen_einzeln():
     gleich(sorted(g["vorlage"] for g in D), ["363.04", "363.05"], "zwei Dach-Zeilen")
     ges = BK.dach_flaeche(bk["koerper"][0], "sattel")
     pruefe(abs(sum(g["menge"] for g in D) - ges) < 0.05 and abs(D[0]["menge"] - D[1]["menge"]) < 0.05, f"Flächen: {[g['menge'] for g in D]} / {ges}")
+
+
+def test_keine_durchdringung():
+    """Keine durchdringenden Körper (21.11.2026): am Anbau endet der Dachüberstand an der Wand – Fläche kleiner, Polygone gekappt."""
+    h = {"id": "k1", "teil": "h", "x": 0, "y": 0, "z": 0, "w": 10, "d": 8, "h": 2.9}
+    a = {"id": "k2", "teil": "t2", "x": 10, "y": 1, "z": 0, "w": 5, "d": 6, "h": 2.9}
+    gleich(BK.anliegend(a, [h, a]), ["xm"], "Anbau liegt links am Hauptgebäude an")
+    gleich(BK.anliegend(h, [h, a]), ["xp"], "Hauptgebäude rechts am Anbau")
+    P = BK.dach_polygone(a, "flach", None, [h, a])
+    pruefe(min(p[0] for p in P[0]) >= 10 - 1e-6, f"Flachdach des Anbaus ragt nicht ins Hauptgebäude: {P[0]}")
+    pruefe(BK.dach_flaeche(h, "sattel", "x", [h, a]) < BK.dach_flaeche(h, "sattel", "x") - 0.5, "Satteldach ohne Überstand über dem Anbau")
+    S = BK.dach_polygone(h, "sattel", "x", [h, a])
+    pruefe(all(p[0] <= 10 + 1e-6 for P in S for p in P), "kein Punkt des Satteldachs jenseits der Wand")
+    gleich([len(P) for P in S][:2], [4, 4], "Dachflächen bleiben Vierecke, Nummern bleiben")
+    hoch = dict(a, z=6)   # Körper weit darüber: kein Anliegen
+    gleich(BK.anliegend(h, [h, hoch]), [], "nur auf Höhe der Traufe")

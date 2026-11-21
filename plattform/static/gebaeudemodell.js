@@ -140,8 +140,7 @@ V.addEventListener('click', async (e) => {
 });
 
 (async () => {
-  const me = await api('api/me'); applyLook(me);
-  const PC = await api('api/platform');
+  const [me, PC] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(me);   // gleichzeitig
   await header('Gebäudemodell', me, PC);
   bpNav.breite(NAV, { key: 'gebaeudemodell' });
   g3EinstMelden();   // Verwaltung → Einstellungen → Gebäudemodell (A–F, Gelerntes)

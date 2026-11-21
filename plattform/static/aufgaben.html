@@ -941,8 +941,7 @@ async function setDialog(host) {
 }
 
 (async () => {
-  ME = await api('api/me'); applyLook(ME);
-  CONF = await api('api/platform');
+  [ME, CONF] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(ME);   // gleichzeitig
   await header('Aufgaben & Post', ME, CONF);
   BPHead.appEinstellungen([{ key: 'todo', label: 'To-dos', render: (h) => tdEinstellungen(h) }, { key: 'erinnerungen', label: 'Erinnerungen', render: (h) => setDialog(h) }]);   // Druck-Layouts: nur in der Verwaltung
   try { CFG = await api('api/einstellungen'); } catch { /* egal */ }

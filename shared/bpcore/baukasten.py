@@ -72,7 +72,7 @@ def sauber(bk):
     D = {}
     for kid, d in list((bk.get("dach") if isinstance(bk.get("dach"), dict) else {}).items())[:80]:
         if kid in ids and isinstance(d, dict) and d.get("form") in FORMEN:
-            D[kid] = {"form": d["form"], "aufbau": _s(d.get("aufbau"), 12)}
+            D[kid] = {"form": d["form"], "aufbau": _s(d.get("aufbau"), 12), **({"first": d["first"]} if d.get("first") in ("x", "y") else {})}   # First fest (21.11.2026)
             fl = {str(i): _s(a, 12) for i, a in (d.get("fl") if isinstance(d.get("fl"), dict) else {}).items()
                   if str(i).isdigit() and int(i) < len(FLAECHEN[d["form"]]) and _s(a, 12) and _s(a, 12) != D[kid]["aufbau"]}
             if fl:   # einzelne Dachflächen mit eigenem Aufbau (20.11.2026: „Dachflächen auch einzeln anwählbar“)
@@ -227,9 +227,9 @@ def _pfl(P):
     return math.sqrt(sx * sx + sy * sy + sz * sz) / 2
 
 
-def dach_anteile(k, form):
+def dach_anteile(k, form, first=None):
     """Anteil jeder Dachfläche an der Dachfläche gesamt (dach_flaeche) – für einen eigenen Aufbau je Fläche."""
-    P = dach_polygone(k, form)
+    P = dach_polygone(k, form, first)
     A = {i: _pfl(P[i]) for i in FLAECHEN[form] if i < len(P)}
     s = sum(A.values()) or 1
     return {i: a / s for i, a in A.items()}
@@ -279,8 +279,8 @@ def rohbau(bk, korb, EL=None, vorlagen=None):
         D = (bk.get("dach") or {}).get(k["id"])
         if D:
             ges, fn = dach_flaeche(k, D["form"]), dict(sattel="Satteldach", walm="Walmdach", pult="Pultdach", flach="Flachdach")[D["form"]]
-            npoly = len(dach_polygone(k, D["form"]))
-            for i, ant in dach_anteile(k, D["form"]).items():   # je Dachfläche – eigener Aufbau (fl) oder der des Dachs
+            npoly = len(dach_polygone(k, D["form"], D.get("first")))
+            for i, ant in dach_anteile(k, D["form"], D.get("first")).items():   # je Dachfläche – eigener Aufbau (fl) oder der des Dachs
                 kid = (D.get("fl") or {}).get(str(i)) or D.get("aufbau")
                 v = vl(kid, VORGABE["flach"] if D["form"] == "flach" else VORGABE["dach"])
                 ids = [ID0 + b * 20 + 6 + i] + ([ID0 + b * 20 + 6 + j for j in range(npoly) if j not in FLAECHEN[D["form"]]] if i == 0 else [])   # Giebel/Ortgang an der ersten Fläche
@@ -297,8 +297,10 @@ def rohbau(bk, korb, EL=None, vorlagen=None):
         for g in W:
             g["menge"] = max(0.0, g["menge"] - fen * anteil * g["menge"] / ges)
     out = []
+    TN = bk.get("teile") or {}
     for g in G.values():
         g["menge"] = round(g["menge"], 2)
+        g["teil"] = TN.get(g["teil"], g["teil"])   # Name des Teils („Hauptgebäude“), nicht der Schlüssel – so steht er in Liste, 3D und Kosten
         out.append(g)
     return out
 
@@ -312,24 +314,37 @@ def fenster_vorgabe(bk):
     return {"rahmen": r, "uw": round(sum(uw(o) for o in F) / len(F), 2), "anzahl": len(F)}
 
 
-def dach_polygone(k, form):
-    """Dachflächen eines Körpers (Weltkoordinaten) – dieselbe Reihenfolge wie dachFlaechen() im Baustein (Nummern im Netz)."""
+def dach_polygone(k, form, first=None):
+    """Dachflächen eines Körpers (Weltkoordinaten) – dieselbe Reihenfolge und Form wie dachFlaechen() im Baustein (Nummern im Netz).
+    first „x“/„y“ = Richtung des Firsts (fest, 21.11.2026), sonst längs der längeren Seite; Giebel stehen in der Wand."""
     ue = 0.0 if form == "pult" else 0.4
     x0, x1, y0, y1, z = k["x"] - ue, k["x"] + k["w"] + ue, k["y"] - ue, k["y"] + k["d"] + ue, k["z"] + k["h"]
-    kurz = min(k["w"], k["d"])
-    H = 0.35 if form == "flach" else math.tan(math.radians(NEIGUNG[form])) * (kurz if form == "pult" else kurz / 2)
-    la = k["w"] >= k["d"]
+    la = first == "x" if first in ("x", "y") else k["w"] >= k["d"]
+    sp = k["d"] if form == "pult" or la else k["w"]
+    H = 0.35 if form == "flach" else math.tan(math.radians(NEIGUNG[form])) * (sp if form == "pult" else sp / 2)
+    X0, X1, Y0, Y1 = k["x"], k["x"] + k["w"], k["y"], k["y"] + k["d"]
+    hb = H * ue / (sp / 2 + ue) if form != "pult" else 0
     if form == "flach":
         return [[(x0, y0, z + H), (x1, y0, z + H), (x1, y1, z + H), (x0, y1, z + H)]]
     if form == "pult":
         return [[(x0, y0, z + H), (x1, y0, z + H), (x1, y1, z), (x0, y1, z)], [(x1, y1, z), (x1, y0, z), (x1, y0, z + H)], [(x0, y0, z), (x0, y1, z), (x0, y0, z + H)],
                 [(x1, y0, z), (x0, y0, z), (x0, y0, z + H), (x1, y0, z + H)]]
-    e = kurz / 2 if form == "walm" else 0
+    if form == "walm":
+        e = sp / 2
+        if la:
+            r0, r1 = (x0 + e, (y0 + y1) / 2, z + H), (x1 - e, (y0 + y1) / 2, z + H)
+            return [[(x0, y1, z), (x1, y1, z), r1, r0], [(x1, y0, z), (x0, y0, z), r0, r1], [(x1, y1, z), (x1, y0, z), r1], [(x0, y0, z), (x0, y1, z), r0]]
+        r0, r1 = ((x0 + x1) / 2, y0 + e, z + H), ((x0 + x1) / 2, y1 - e, z + H)
+        return [[(x1, y1, z), (x1, y0, z), r0, r1], [(x0, y0, z), (x0, y1, z), r1, r0], [(x0, y1, z), (x1, y1, z), r1], [(x1, y0, z), (x0, y0, z), r0]]
     if la:
-        r0, r1 = (x0 + e, (y0 + y1) / 2, z + H), (x1 - e, (y0 + y1) / 2, z + H)
-        return [[(x0, y1, z), (x1, y1, z), r1, r0], [(x1, y0, z), (x0, y0, z), r0, r1], [(x1, y1, z), (x1, y0, z), r1], [(x0, y0, z), (x0, y1, z), r0]]
-    r0, r1 = ((x0 + x1) / 2, y0 + e, z + H), ((x0 + x1) / 2, y1 - e, z + H)
-    return [[(x1, y1, z), (x1, y0, z), r0, r1], [(x0, y0, z), (x0, y1, z), r1, r0], [(x0, y1, z), (x1, y1, z), r1], [(x1, y0, z), (x0, y0, z), r0]]
+        ym = (y0 + y1) / 2
+        r0, r1 = (x0, ym, z + H), (x1, ym, z + H)
+        return [[(x0, y1, z), (x1, y1, z), r1, r0], [(x1, y0, z), (x0, y0, z), r0, r1],
+                [(X1, Y1, z), (X1, Y0, z), (X1, Y0, z + hb), (X1, ym, z + H), (X1, Y1, z + hb)], [(X0, Y0, z), (X0, Y1, z), (X0, Y1, z + hb), (X0, ym, z + H), (X0, Y0, z + hb)]]
+    xm = (x0 + x1) / 2
+    r0, r1 = (xm, y0, z + H), (xm, y1, z + H)
+    return [[(x1, y1, z), (x1, y0, z), r0, r1], [(x0, y0, z), (x0, y1, z), r1, r0],
+            [(X0, Y1, z), (X1, Y1, z), (X1, Y1, z + hb), (xm, Y1, z + H), (X0, Y1, z + hb)], [(X1, Y0, z), (X0, Y0, z), (X0, Y0, z + hb), (xm, Y0, z + H), (X1, Y0, z + hb)]]
 
 
 # ------------------------------------------------------------------ 3D-Netz (Format von netz.py)
@@ -416,7 +431,7 @@ def nachfuehren(c, pid, m, wer, schreiben_modell, N=None, neu=False):
     else:
         RA, EA = MH.sauber(MH.vorschlag(m, alt))
     R = MH.R_aus(RA, EA, schaetzen=False)
-    V = {r["id"]: r["name"] for r in c.execute("SELECT id, name FROM pdb_vorlage").fetchall()} if _hat(c, "pdb_vorlage") else {}
+    V = {r["id"]: r["name"] for r in c.execute("SELECT id, name FROM pdb_vorlage").fetchall()}
     roh = rohbau(m["baukasten"], m.get("korb") or {}, R["elemente"], V)
     inn = [g for g in MH.rohbau(R["raeume"], R["elemente"], m.get("assistent"), m.get("teile")) if g["kg"] == "341"] if R["raeume"] else []   # Innenwände schätzt weiter der Assistent
     R["bauteile"] = roh + inn + R["bauteile"]
@@ -441,11 +456,3 @@ def nachfuehren(c, pid, m, wer, schreiben_modell, N=None, neu=False):
             c.execute("INSERT INTO pm_netz(planstand, daten, erstellt) VALUES(?,?,?) ON CONFLICT (planstand) DO UPDATE SET daten=EXCLUDED.daten, erstellt=EXCLUDED.erstellt",
                       (sid, NZ.packen(N), P._jetzt()))
     schreiben_modell(c, pid, P.anwenden(m, L), wer)
-
-
-def _hat(c, tabelle):
-    try:
-        c.execute(f"SELECT 1 FROM {tabelle} LIMIT 1").fetchall()
-        return True
-    except Exception:   # noqa: BLE001 – Tabelle fehlt (Test ohne Baudaten)
-        return False

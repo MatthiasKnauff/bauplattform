@@ -280,8 +280,7 @@ async function loeschen() {
 }
 
 (async () => {
-  ME = await api('api/me'); applyLook(ME);
-  const PC = await api('api/platform');
+  let PC; [ME, PC] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(ME);   // gleichzeitig
   await header('Honorar', ME, PC);
   bpNav.breite(NAV, { key: 'honorar' });
   BPHead.appEinstellungen([{ key: 'abrechnung', label: 'Rechnungen & Vertrag', text: 'Rechnungsnummer, Zahlungsziel, Texte', render: (h) => honorarEinstellungen(h) }]);

@@ -231,8 +231,7 @@ V.addEventListener('change', (e) => {
 });
 
 (async () => {
-  const me = await api('api/me'); applyLook(me);
-  const conf = await api('api/platform');
+  const [me, conf] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(me);   // gleichzeitig
   await header('Kosten', me, conf);
   if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(async () => { await laden(); });
   const hb = /^#bk=(\d+)/.exec(location.hash);

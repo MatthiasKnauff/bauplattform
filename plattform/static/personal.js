@@ -381,8 +381,7 @@ function peEinst(host) {
 }
 
 (async () => {
-  ME = await api('api/me'); applyLook(ME);
-  const PC = await api('api/platform');
+  let PC; [ME, PC] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(ME);   // gleichzeitig
   await header('Personal', ME, PC);
   BPHead.appEinstellungen([{ key: 'personal', label: 'Gehalt und Aufbewahrung', render: (h) => peEinst(h) }, { key: 'abwarten', label: 'Abwesenheitsarten', render: (h) => BPHead.abwArten(h) }, { key: 'einw', label: 'Datenschutzhinweise', render: (h) => einwEinst(h) }, { key: 'ablage', label: 'Ablage: Ordner der Personalakte', render: (h) => BPHead.ablageEinst(h, 'personal') }]);
   bpNav.breite(NAV, { key: 'personal' });

@@ -509,8 +509,7 @@ async function loeschen() {
 
 HANDY.addEventListener('change', () => { if (L) zeichne(); });
 (async () => {
-  ME = await api('api/me'); applyLook(ME);
-  const PC = await api('api/platform');
+  let PC; [ME, PC] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(ME);   // gleichzeitig
   await header('Bauantrag', ME, PC);
   bpNav.breite(NAV, { key: 'bauantrag' });
   const hz = /(?:^#|&)antrag=(\d+)(?:&bv=(\w+))?/.exec(location.hash);   // aus einem To-do / dem Bautagebuch: Antrag und Bauvorlage

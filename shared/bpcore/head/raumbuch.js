@@ -33,6 +33,7 @@
     return j;
   }
 
+  const LAUF = {};   // laufende Abfragen je Basis und Stand
   function mount(host, o) {
     const S = { an: new Set() };
     const D = () => CACHE[o.basis];
@@ -93,7 +94,12 @@
       })();
     });
     if (D() && D().rev === o.rev) zeichne();
-    else { host.innerHTML = '<p class="rb-mu">Lade Raumbuch …</p>'; J(`${o.basis}/raumbuch`).then((d) => { if (!d || !Array.isArray(d.raeume) || !d.vorlagen) throw new Error('Raumbuch nicht lesbar.'); CACHE[o.basis] = { raumbuch: {}, vorschlag: {}, grund: {}, ...d, rev: o.rev }; zeichne(); }).catch((e) => { host.innerHTML = `<p class="rb-mu">${esc(e.message)}</p>`; }); }
+    else {   // eine Abfrage je Stand – zeichnen die Details mehrmals hintereinander, warten alle auf dieselbe Antwort
+      host.innerHTML = '<p class="rb-mu">Lade Raumbuch …</p>';
+      const k = o.basis + '|' + o.rev;
+      if (!LAUF[k]) LAUF[k] = J(`${o.basis}/raumbuch`).then((d) => { if (!d || !Array.isArray(d.raeume) || !d.vorlagen) throw new Error('Raumbuch nicht lesbar.'); CACHE[o.basis] = { raumbuch: {}, vorschlag: {}, grund: {}, ...d, rev: o.rev }; }).finally(() => { delete LAUF[k]; });
+      LAUF[k].then(() => { if (host.isConnected) zeichne(); }, (e) => { host.innerHTML = `<p class="rb-mu">${esc(e.message)}</p>`; });
+    }
   }
 
   if (!document.getElementById('bp-rb-css')) {

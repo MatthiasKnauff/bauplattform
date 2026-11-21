@@ -51,7 +51,7 @@ def test_rohbau_und_netz():
     # Hauptteil: EG 2×(12+9)×2,9 − Anlage des Anbaus (6×2,9) · OG ohne Vorderseite (eigener Aufbau A3) …
     pruefe(abs(W["331.02"]["menge"] - (2 * 21 * 2.9 - 6 * 2.9 + (21 + 9) * 2.8 - 1.26 * 1.38 * 108 / 150 * (W["331.02"]["menge"] and 1))) < 3, f"Wandfläche gemessen: {W['331.02']['menge']}")
     pruefe(all(g["teil"] for g in R) and any(g["kg"] == "322" for g in R) and any(g["kg"] == "351" for g in R) and any(g["kg"] == "363" for g in R), "Bodenplatte, Decke, Dach je Teil")
-    D = next(g for g in R if g["kg"] == "363" and g["teil"] == "h")
+    D = next(g for g in R if g["kg"] == "363" and g["teil"] == "Hauptgebäude")   # Name des Teils, nicht der Schlüssel (21.11.2026)
     pruefe(D["menge"] > 12.8 * 9.8 and D["vorlage"] == "363.04", f"Satteldach geneigt größer als der Grundriss, Aufbau aus dem Korb: {D['menge']}")
     fv = BK.fenster_vorgabe(bk)
     gleich((fv["rahmen"], fv["uw"], fv["anzahl"]), ("Holz-Alu", 0.85, 2), "Fenster-Vorgabe D2 (Fenster + Gaube)")

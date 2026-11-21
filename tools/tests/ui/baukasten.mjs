@@ -65,19 +65,26 @@ export async function baukastenPruefen(browser, repo) {
     { const xm = N && N.e.find((e) => e.i === 9600001), xs = xm ? xm.v.filter((_, i) => i % 3 === 0) : [];   // Wand links (xm) des EG: 0 … 33,5 cm
       pruef(xs.length && Math.min(...xs) === 0 && Math.max(...xs) === 34, `Wand links 33,5 cm dick (cm gerundet): ${Math.min(...xs)}–${Math.max(...xs)}`); }
     pruef(N && N.e.some((e) => e.i === 9600005) && N.e.some((e) => e.i === 9600020 + 6), 'Nummern wie im Kern: Boden EG, Dachfläche des OG');
+    {   // First bleibt fest (21.11.2026) und lässt sich drehen – Rechtsklick aufs Dach des EG-Teils
+      const d = await punkt([5, 2.5, 5.8 + 1.2]); const P3 = await kontext(d), n = S.puts.length;
+      pruef(P3.includes('First drehen'), `Rechtsklick aufs Satteldach: „First drehen“ – ${P3.join(' · ')}`);
+      if (P3.includes('First drehen')) { await p.evaluate(() => KP.find((q) => q.text === 'First drehen').fn()); await warte(n + 1);
+        const x = S.puts[n] && Object.values(S.puts[n].baukasten.dach).find((D) => D.form === 'sattel'); pruef(x && x.first === 'y', `First gedreht (war längs): ${JSON.stringify(x)}`); }
+    }
     // Staffelgeschoss per Rechtsklick auf das obere Geschoss
     const w2 = await punkt([5, 0, 4.3]); const P2 = await kontext(w2);
     pruef(P2.includes('＋ Staffelgeschoss'), `Rechtsklick oben: Staffelgeschoss – ${P2.join(' · ')}`);
-    await p.evaluate(() => KP.find((q) => q.text === '＋ Staffelgeschoss').fn());
-    await warte(2);
-    const b = S.puts[1] && S.puts[1].baukasten, st = b && b.koerper.find((k) => k.staffel);
+    const nS = S.puts.length; await p.evaluate(() => KP.find((q) => q.text === '＋ Staffelgeschoss').fn());
+    await warte(nS + 1);
+    const b = S.puts[nS] && S.puts[nS].baukasten, st = b && b.koerper.find((k) => k.staffel);
     pruef(st && Math.abs(st.w - 7.5) < 0.01 && Math.abs(st.x - 1.25) < 0.01 && b.dach[st.id] && b.dach[st.id].form === 'flach', `Staffelgeschoss 1,25 m zurück mit Flachdach: ${JSON.stringify(st)}`);
     // Griff ziehen: Länge (am gewählten Staffelgeschoss rechts) – im 0,5-m-Raster
-    { await p.waitForTimeout(200); const g = await p.evaluate(() => { const L = [...document.querySelectorAll('.bkx-gr .griff')].filter((x) => !x.hidden && x.title === 'Länge ziehen'); const r = L[0] && L[0].getBoundingClientRect(); return r && [r.left + r.width / 2, r.top + r.height / 2]; });
+    { await p.waitForTimeout(200); const g = await p.evaluate(() => { const L = [...document.querySelectorAll('.bkx-gr .griff')].filter((x) => !x.hidden && x.title === 'Länge ziehen'); const r = L[0] && L[0].getBoundingClientRect(), c = document.querySelector('#h .b3 canvas').getBoundingClientRect(); return r && [r.left + r.width / 2, r.top + r.height / 2, c.left + c.width / 2, c.top + c.height / 2]; });
       pruef(!!g, 'Griff „Länge ziehen“ da');
-      if (g) { const n = S.puts.length; await p.mouse.move(g[0], g[1]); await p.mouse.down(); await p.mouse.move(g[0] - 60, g[1] + 10, { steps: 6 }); await p.mouse.up(); await warte(n + 1);
+      if (g) { const n = S.puts.length; await p.mouse.move(g[0], g[1]); await p.mouse.down(); await p.mouse.move(g[0] + Math.sign(g[0] - g[2]) * 110, g[1], { steps: 6 }); await p.mouse.up(); await warte(n + 1);   // waagrecht nach außen ziehen
         const c = S.puts[n] && S.puts[n].baukasten.koerper.find((k) => k.staffel);
         pruef(c && Math.abs(c.w - 7.5) > 0.2 && Math.abs(c.w * 2 - Math.round(c.w * 2)) < 0.01, `Griff ändert die Länge im 0,5-m-Raster: ${c && c.w}`); } }
+    pruef(await p.evaluate(() => { const L = [...document.querySelectorAll('.bkx-gr .griff')]; return L.some((x) => x.hidden) && L.some((x) => !x.hidden); }), 'Griffe nur an den zugewandten Seiten (abgewandte nicht durchs Gebäude)');
     // Fenster aus der Symbolreihe auf die Wand des EG ziehen (C1) – Symbolreihe erst wieder aufklappen
     await p.click('[data-bk="palzu"]');
     { const s = await p.locator('[data-stein="fenster"]').boundingBox(), z = await punkt([6, 0, 1.4]), n = S.puts.length;

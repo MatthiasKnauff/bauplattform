@@ -78,8 +78,11 @@ def routen(bp, mit, lesen_modell):
                 return jsonify(art="ifc", geschosse=[], flaechen=[], hinweis="Für diesen Planstand ist die Datei nicht gespeichert – bitte noch einmal einlesen.")
             try:
                 d = berechnen(datei[1])
-            except Exception:   # noqa: BLE001 – ohne lesbare Geometrie kein Grundriss
-                return jsonify(art="ifc", geschosse=[], flaechen=[], hinweis="Aus diesem Plan ließ sich kein Grundriss rechnen.")
+            except Exception as e:   # noqa: BLE001 – fremde Datei: Hinweis an die Person, Ursache in Verwaltung → Fehlermeldungen
+                import traceback
+                from . import fehler
+                fehler.melden("gebaeudemodell", "server", f"Grundriss nicht gerechnet (Planstand {sid}): {e}", traceback.format_exc(), f"/api/bp/modell/{pid}/grundriss")
+                return jsonify(art="ifc", geschosse=[], flaechen=[], hinweis="Aus diesem Plan ließ sich kein Grundriss rechnen – die Ursache steht unter Verwaltung → Fehlermeldungen.")
             c.execute("INSERT INTO bp_store(key, data) VALUES(?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data", (key, json.dumps({**d, "stand": STAND})))
             return jsonify(art="ifc", **d)
         return mit(pid, tun)

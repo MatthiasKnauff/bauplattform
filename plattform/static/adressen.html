@@ -378,8 +378,8 @@ async function openPdf(url) {
 $('#xlsx').onclick = () => { if (!tableRows().length) return toast('Keine Kontakte in der Liste.', true); location.assign('api/contacts/export.xlsx' + exportQS()); toast('Excel-Datei wird geladen …'); };
 
 (async () => {
-  const me = await api('api/me'); applyLook(me);
-  const conf = await api('api/platform'); conf0 = conf;
+  const [me, conf] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(me);   // gleichzeitig
+  conf0 = conf;
   await header('Adressen', me, conf);
   if (BPHead.projekt) betN = BPHead.projekt.name;
   await load();

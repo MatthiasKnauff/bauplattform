@@ -220,8 +220,7 @@ async function eintragLoeschen() {
 }
 
 (async () => {
-  const ME = await api('api/me'); applyLook(ME);
-  const PC = await api('api/platform');
+  const [ME, PC] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(ME);   // gleichzeitig
   await header('Wiki', ME, PC);
   bpNav.breite(NAV, { key: 'wiki' });
   BPHead.appEinstellungen([{ key: 'runde', label: 'Runde: sammeln, vorsichten, auswerten, prüfen', render: (h) => rundeEinst(h) }, { key: 'sammeln', label: 'Von Hand sammeln', render: (h) => sammelnEinst(h) }, { key: 'ablage', label: 'Ablage', render: (h) => BPHead.ablageEinst(h, 'wiki') }]);   // Verwaltung → Einstellungen → Wiki

@@ -247,6 +247,9 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Aufräumen seit 20.11. mittags: Hülle-Beschreibung und unbenutzter Parameter, Einstellung D „Material“ samt Färbung, tote Gliederungen, verschluckte Fehler (Grundriss meldet die Ursache, Baukasten-Vorlagen, Änderungen), Testkrücke `_hat` im Kern~~ (21.11.2026)
+- ~~Schneller: Person und Plattformliste in allen Apps gleichzeitig, Kopfleiste holt die Plattformliste nicht noch einmal (auch Bauzeitenplan, Bautagebuch), Bautagebuch lädt seine Startdaten gleichzeitig, Raumbuch und Änderungen je Stand nur einmal~~ (21.11.2026)
+- ~~Baukasten: First bleibt beim Ziehen fest („First drehen“), Giebel in der Wand, Griffe nur an zugewandten Seiten, Gebäudeteil mit Namen statt „h“~~ (21.11.2026)
 - ~~Baukasten in derselben 3D-Ansicht wie das IFC-Modell (Mock „Baukasten wie 3D“ A1 B3 C1 D2 E1): Maus und Auswahl gleich, Dicke aus dem Aufbau, Befehle rechts und per Rechtsklick, Bausteine als Symbolreihe aufs Modell ziehen (Stelle grün), Maße als Zahlen und an Griffen; Netz rechnet der Baustein~~ (21.11.2026)
 - ~~„Neuer Planstand …“: Fenster „Wie willst du beginnen?“ – Baukasten (Erdgeschoss + Satteldach, eigener Planstand, gilt sofort) · Planung · Datei; ohne Planstand legt der Baukasten erst mit der ersten Änderung einen an~~ (21.11.2026)
 - ~~Gebäudemodell: angesehener Planstand gilt für die ganze Seite (Räume, Fenster & Türen, 3D, Grundriss) und ist nur zum Ansehen; Räume/Fenster als Reiter derselben Seite (rechts lädt nichts neu)~~ (21.11.2026)

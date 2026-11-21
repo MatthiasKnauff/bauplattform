@@ -516,9 +516,9 @@ $('#vs').onclick = async () => {
 addEventListener('beforeunload', () => { if (speichT) { sofort(); } });
 window.layoutSichern = () => sofort();   // „Fertig“ im Fenster der App: erst speichern, dann schließen
 (async () => {
-  const me = await api('api/me'); applyLook(me);
+  const [me, PC] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(me);   // gleichzeitig
   if (EMB) document.body.classList.add('emb');   // eingebettet (Verwaltung → Büro-Einstellungen → Druck, oder aus dem Druckdialog): Kopfleiste ausgeblendet, Versionen bleiben
-  await header('Verwaltung', me, await api('api/platform'));
+  await header('Verwaltung', me, PC);
   window.bpNachVerlauf = () => laden();
   await laden();
 })().catch((e) => toast(e.message, true));

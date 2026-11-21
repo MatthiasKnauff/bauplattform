@@ -19,8 +19,8 @@ from datetime import datetime
 
 from .jsonwert import lies as _j
 
-EINST = {"a": "a1", "b": "b1", "c": "c2", "d": "d2", "e": "e1", "f": "f1"}   # sinnvolle Vorgabe (20.11.2026): Bauteile · je App · mit Zurücknehmen · Material wählen · Liste nach Färbung · alle Wände
-ERLAUBT = {"a": ("a1", "a2", "a3"), "b": ("b1", "b2", "b3"), "c": ("c1", "c2"), "d": ("d1", "d2"), "e": ("e1", "e2"), "f": ("f1", "f2")}
+EINST = {"a": "a1", "b": "b1", "c": "c2", "e": "e1", "f": "f1"}   # sinnvolle Vorgabe (20.11.2026): Bauteile · je App · mit Zurücknehmen · Liste nach Färbung · alle Wände
+ERLAUBT = {"a": ("a1", "a2", "a3"), "b": ("b1", "b2", "b3"), "c": ("c1", "c2"), "e": ("e1", "e2"), "f": ("f1", "f2")}   # D (Färbung Material) entfiel mit der Färbung (21.11.2026)
 FELDER = {"kg": "Art", "status": "Maßnahme", "vorlage": "Aufbau", "wahl": "Ausführung", "dicken": "Schichtdicke", "ausf": "Ausführung", "menge": "Menge", "name": "Name", "uw": "Uw"}
 ZURUECK = ("kg", "status", "vorlage", "wahl", "dicken", "ausf", "menge", "name", "uw")   # Felder, die sich zurücknehmen lassen (C2)
 MASS = {"offen": "noch offen", "neu": "neu", "erneuern": "erneuern", "instandsetzen": "instandsetzen", "bleibt": "bleibt", "abbruch": "Abbruch", "pruefen": "prüfen"}

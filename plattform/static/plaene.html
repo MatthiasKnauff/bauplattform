@@ -480,8 +480,7 @@ function head() { /* Projekt steht in der Kopfleiste (BPHead) */ }
 window.bpNachVerlauf = () => { if (document.getElementById('bphEV')) BPHead.einstSeite(); };   // Einstellungen als Seite in der Verwaltung neu zeichnen
 
 (async () => {
-  ME = await api('api/me'); applyLook(ME);
-  const PC = await api('api/platform');
+  let PC; [ME, PC] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(ME);   // gleichzeitig
   await header('Pläne & Dateien', ME, PC);
   BPHead.appEinstellungen([{ key: 'plannr', label: 'Plannummerierung & Gewerke', render: (h) => setDialog(h) }, { key: 'ablage', label: 'Ablage: Büro-Vorlagen', render: (h) => BPHead.ablageEinst(h, 'plaene') }]);
   [PROJ, CFG] = await Promise.all([api('api/projekte'), api('api/einstellungen')]);

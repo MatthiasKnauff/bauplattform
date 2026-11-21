@@ -392,8 +392,7 @@ let qT = 0;
 QIN.addEventListener('input', (e) => { clearTimeout(qT); qT = setTimeout(() => { F.q = e.target.value.trim(); laden(); }, 300); });
 
 (async () => {
-  ME = await api('api/me'); applyLook(ME);
-  const PC = await api('api/platform');
+  let PC; [ME, PC] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(ME);   // gleichzeitig
   await header('Aufgaben & Post', ME, PC);
   const ah = /(?:^#|&)art=(\w*)/.exec(location.hash);   // aus den Aufgaben: #art=planversand (leer = alles)
   if (ah) { F.arten = new Set(ah[1] ? [ah[1]] : []); LS.set('arten', [...F.arten]); history.replaceState(null, '', location.pathname); }

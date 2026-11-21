@@ -23,9 +23,11 @@ function chrome() {
 let PLATFORM = {};
 const showApp = async () => {
   $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
+  const daten = Promise.all(['api/meta', 'api/contacts', 'api/settings', 'api/people', 'api/leaders'].map((u) => api(u)));   // gleich mit losschicken – nicht erst nach der Kopfleiste
+  daten.catch(() => {});   // Fehler fängt das await unten
   try { PLATFORM = await api('api/platform'); } catch { PLATFORM = {}; }
   if (window.BPHead) {   // gemeinsame Kopfleiste; ⚙ → „Bautagebuch“ zeigt die Einstellungen der App im Einstellungsfenster
-    BPHead.mount({ app: 'bautagebuch', name: 'Bautagebuch', parent: $('#app'), before: $('#leiste') });
+    BPHead.mount({ app: 'bautagebuch', name: 'Bautagebuch', parent: $('#app'), before: $('#leiste'), conf: PLATFORM, me });   // schon geholt – nicht doppelt
     if (BPHead.beiProjektWahl) BPHead.beiProjektWahl((id) => pickProject(id));   // eine Projektauswahl: die oben in der Kopfleiste
     // ⚙ → Bautagebuch: nur noch der Bericht-Assistent – Benutzer verwaltet die Verwaltung, Firma/Ablage/Mail/Sicherung stehen unter Verwaltung → Einstellungen
     BPHead.appEinstellungen([{ key: 'bt', label: 'Bautagebuch', render: (h) => {
@@ -34,7 +36,7 @@ const showApp = async () => {
     } }, { key: 'ablage', label: 'Ablage der Berichte und Fotos', render: (h) => BPHead.ablageEinst(h, 'bautagebuch', { unten: btAlteStaende }) }]);   // bis 17.11.2026 in der Verwaltung → Ablage & Server
     try { await BPHead.ready; } catch { /* ohne Kopfleiste weiter */ }
   }
-  try { meta = await api('api/meta'); contacts = await api('api/contacts'); settings = await api('api/settings'); people = await api('api/people'); leaderUsers = await api('api/leaders'); await loadProjects(); } catch { return; }
+  try { [meta, contacts, settings, people, leaderUsers] = await daten; await loadProjects(); } catch { return; }   // gleichzeitig statt nacheinander
   const hp = /^#projekt=(\d+)(?:&bericht=(\d+))?/.exec(location.hash), hEdit = /bearbeiten=1/.test(location.hash), hNeu = location.hash === '#neues-projekt';   // Link aus Verwaltung / Mängelliste: dieses Projekt (und diesen Bericht) öffnen
   const hs = location.hash === '#einstellungen';    // Link aus der Verwaltung → Einstellungen
   const hSchritt = location.hash === '#schritt', hMangel = location.hash === '#mangel';   // Startseite (einfache Ansicht): Bericht Schritt für Schritt / Mangel melden

@@ -162,8 +162,7 @@ window.bpMobilAn = () => { try { localStorage.removeItem('ava.mobilAus'); } catc
 /* ---------- Start ---------- */
 (async () => {
   $('#lbList').innerHTML = LB.map((l) => `<option value="${l}">`).join('');
-  const me = await api('api/me'); applyLook(me);
-  const conf = await api('api/platform');
+  const [me, conf] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(me);   // gleichzeitig
   await header('Ausschreibung & Abrechnung', me, conf);
   if (me.seite && me.seite.nachverfolgen) return nvNurSeite(me.seite.nachverfolgen);   // Seiten als Rechte: nur „Nachverfolgen“ (ava-nachverfolgen.js)
   // Kopf (Titel, Stand, Phasen) und Befehlsleiste zweistufig ausblenden – Heftzwecke oben rechts über der Tabelle (beschlossen am 16.11.2026)

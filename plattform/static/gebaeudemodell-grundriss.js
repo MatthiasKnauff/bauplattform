@@ -14,7 +14,7 @@ async function gmGrundriss(box, neu) {
   if (!GR.F) {
     box.innerHTML = '<p class="mute">Grundriss wird gerechnet …</p>';
     try {
-      const [N, F] = await Promise.all([G3.N ? Promise.resolve(G3.N) : api(`api/bp/modell/${PID}/netz${q}`).catch(() => null), api(`api/bp/modell/${PID}/grundriss${q}`)]);
+      const [N, F] = await Promise.all([G3.N ? Promise.resolve(G3.N) : api(`api/bp/modell/${PID}/netz${q}`), api(`api/bp/modell/${PID}/grundriss${q}`)]);
       GR.N = N; GR.F = F;
     } catch (e) { box.innerHTML = `<p class="mute">${esc(e.message)}</p>`; return; }
   }

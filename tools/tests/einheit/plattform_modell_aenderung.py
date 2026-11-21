@@ -62,6 +62,6 @@ def test_zurueck_und_einst():
         B.erlaubt, B.vorschlag, B.aufbau_setzen = alt, B_vor, B_auf
     pruefe(ok and gesp and gesp[0]["bauteilliste"]["zeilen"][0]["status"] == "neu", f"zurückgenommen: {gesp}")
     pruefe(A.liste(c, 5)[0]["zurueck"] and not A.liste(c, 5)[0]["kann"], "nicht zweimal")
-    gleich(A.einst(c), A.EINST, "Vorgabe A1 B1 C2 D2 E1 F1")
+    gleich(A.einst(c), A.EINST, "Vorgabe A1 B1 C2 E1 F1")
     gleich(A.einst_setzen(c, {"b": "b3", "x": 1, "c": "zz"}, "admin")["b"], "b3", "setzen")
     gleich((A.einst(c)["b"], A.einst(c)["c"]), ("b3", "c2"), "Unbekanntes bleibt bei der Vorgabe")

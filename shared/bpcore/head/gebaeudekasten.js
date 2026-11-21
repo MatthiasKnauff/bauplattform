@@ -104,25 +104,32 @@
       const L = { xp: [[x1, y1], [x1, y0]], xm: [[x0, y0], [x0, y1]], yp: [[x0, y1], [x1, y1]], ym: [[x1, y0], [x0, y0]] }[s];
       return [[...L[0], z0], [...L[1], z0], [...L[1], z1], [...L[0], z1]];
     }
-    const DACHH = (k, f) => { const ng = (DACHF.find((x) => x[0] === f) || [, , 0])[2], kurz = Math.min(k.w, k.d); return f === 'pult' ? Math.tan(ng * Math.PI / 180) * kurz : f === 'flach' ? 0.35 : Math.tan(ng * Math.PI / 180) * kurz / 2; };
+    /* First (21.11.2026): die Richtung bleibt beim Ziehen fest (D.first „x“ = First parallel zur Länge, „y“ = zur Breite) – vorher kippte er,
+       sobald die Breite größer als die Länge wurde. Spannweite quer zum First; Pultdach fällt immer über die Breite. Wie bpcore/baukasten.dach_polygone. */
+    const firstX = (k, D) => (D && D.first ? D.first === 'x' : k.w >= k.d);
+    const DACHH = (k, f, D) => { const ng = (DACHF.find((x) => x[0] === f) || [, , 0])[2], sp = f === 'pult' ? k.d : firstX(k, D) ? k.d : k.w; return f === 'pult' ? Math.tan(ng * Math.PI / 180) * sp : f === 'flach' ? 0.35 : Math.tan(ng * Math.PI / 180) * sp / 2; };
     const flAuf = (kid, i) => { const D = M.dach[kid]; return (D && D.fl && D.fl[i]) || (D && D.aufbau); };
     function flSetzen(kid, i, v) { const D = M.dach[kid]; if (!D) return; D.fl = { ...(D.fl || {}) }; if (v === D.aufbau) delete D.fl[i]; else D.fl[i] = v; if (!Object.keys(D.fl).length) delete D.fl; }
     const flNr = (x) => (x && x.seite && x.seite[0] === 'f' ? +x.seite.slice(1) : null);
     function dachFlaechen(k) {   // Polygone des Dachs (Weltkoordinaten) – Reihenfolge wie bpcore/baukasten.dach_polygone (+ Attika beim Flachdach)
       const D = M.dach[k.id]; if (!D) return [];
-      const ue = D.form === 'pult' ? 0 : 0.4, x0 = k.x - ue, x1 = k.x + k.w + ue, y0 = k.y - ue, y1 = k.y + k.d + ue, z = k.z + k.h, H = DACHH(k, D.form), la = k.w >= k.d;
+      const ue = D.form === 'pult' ? 0 : 0.4, x0 = k.x - ue, x1 = k.x + k.w + ue, y0 = k.y - ue, y1 = k.y + k.d + ue, z = k.z + k.h, H = DACHH(k, D.form, D), la = firstX(k, D);
+      const X0 = k.x, X1 = k.x + k.w, Y0 = k.y, Y1 = k.y + k.d, hb = H * ue / ((la ? k.d : k.w) / 2 + ue);   // Giebel in der Wand: Höhe des Dachs über der Wand
       if (D.form === 'flach') return [{ n: 'Dach', p: [[x0, y0, z + H], [x1, y0, z + H], [x1, y1, z + H], [x0, y1, z + H]], seite: 'top' }];
       if (D.form === 'pult') return [{ n: 'Dachfläche', p: [[x0, y0, z + H], [x1, y0, z + H], [x1, y1, z], [x0, y1, z]], seite: 'yp' },
         { n: 'Ortgang', s: 'xp', p: [[x1, y1, z], [x1, y0, z], [x1, y0, z + H]] }, { n: 'Ortgang', s: 'xm', p: [[x0, y0, z], [x0, y1, z], [x0, y0, z + H]] }, { n: 'Rückwand', s: 'ym', p: [[x1, y0, z], [x0, y0, z], [x0, y0, z + H], [x1, y0, z + H]] }];
-      if (D.form === 'walm') { const e = Math.min(k.w, k.d) / 2;
+      if (D.form === 'walm') { const e = (la ? k.d : k.w) / 2;
         if (la) { const r0 = [x0 + e, (y0 + y1) / 2, z + H], r1 = [x1 - e, (y0 + y1) / 2, z + H];
           return [{ n: 'Dachfläche', seite: 'yp', p: [[x0, y1, z], [x1, y1, z], r1, r0] }, { n: 'Dachfläche', seite: 'ym', p: [[x1, y0, z], [x0, y0, z], r0, r1] }, { n: 'Walmfläche', seite: 'xp', p: [[x1, y1, z], [x1, y0, z], r1] }, { n: 'Walmfläche', seite: 'xm', p: [[x0, y0, z], [x0, y1, z], r0] }]; }
         const r0 = [(x0 + x1) / 2, y0 + e, z + H], r1 = [(x0 + x1) / 2, y1 - e, z + H];
         return [{ n: 'Dachfläche', seite: 'xp', p: [[x1, y1, z], [x1, y0, z], r0, r1] }, { n: 'Dachfläche', seite: 'xm', p: [[x0, y0, z], [x0, y1, z], r1, r0] }, { n: 'Walmfläche', seite: 'yp', p: [[x0, y1, z], [x1, y1, z], r1] }, { n: 'Walmfläche', seite: 'ym', p: [[x1, y0, z], [x0, y0, z], r0] }]; }
       if (la) { const r0 = [x0, (y0 + y1) / 2, z + H], r1 = [x1, (y0 + y1) / 2, z + H];
-        return [{ n: 'Dachfläche', seite: 'yp', p: [[x0, y1, z], [x1, y1, z], r1, r0] }, { n: 'Dachfläche', seite: 'ym', p: [[x1, y0, z], [x0, y0, z], r0, r1] }, { n: 'Giebel', s: 'xp', p: [[x1, y1, z], [x1, y0, z], r1] }, { n: 'Giebel', s: 'xm', p: [[x0, y0, z], [x0, y1, z], r0] }]; }
-      const r0 = [(x0 + x1) / 2, y0, z + H], r1 = [(x0 + x1) / 2, y1, z + H];
-      return [{ n: 'Dachfläche', seite: 'xp', p: [[x1, y1, z], [x1, y0, z], r0, r1] }, { n: 'Dachfläche', seite: 'xm', p: [[x0, y0, z], [x0, y1, z], r1, r0] }, { n: 'Giebel', s: 'yp', p: [[x0, y1, z], [x1, y1, z], r1] }, { n: 'Giebel', s: 'ym', p: [[x1, y0, z], [x0, y0, z], r0] }];
+        const ym = (y0 + y1) / 2;
+        return [{ n: 'Dachfläche', seite: 'yp', p: [[x0, y1, z], [x1, y1, z], r1, r0] }, { n: 'Dachfläche', seite: 'ym', p: [[x1, y0, z], [x0, y0, z], r0, r1] },
+          { n: 'Giebel', s: 'xp', p: [[X1, Y1, z], [X1, Y0, z], [X1, Y0, z + hb], [X1, ym, z + H], [X1, Y1, z + hb]] }, { n: 'Giebel', s: 'xm', p: [[X0, Y0, z], [X0, Y1, z], [X0, Y1, z + hb], [X0, ym, z + H], [X0, Y0, z + hb]] }]; }
+      const r0 = [(x0 + x1) / 2, y0, z + H], r1 = [(x0 + x1) / 2, y1, z + H], xm = (x0 + x1) / 2;
+      return [{ n: 'Dachfläche', seite: 'xp', p: [[x1, y1, z], [x1, y0, z], r0, r1] }, { n: 'Dachfläche', seite: 'xm', p: [[x0, y0, z], [x0, y1, z], r1, r0] },
+        { n: 'Giebel', s: 'yp', p: [[X0, Y1, z], [X1, Y1, z], [X1, Y1, z + hb], [xm, Y1, z + H], [X0, Y1, z + hb]] }, { n: 'Giebel', s: 'ym', p: [[X1, Y0, z], [X0, Y0, z], [X0, Y0, z + hb], [xm, Y0, z + H], [X1, Y0, z + hb]] }];
     }
     function gaubeGeo(g) {   // Front, Dach(e), Fenster einer Gaube auf ihrer Dachfläche
       const k = kz(g.k); if (!k || !M.dach[k.id]) return null; const fl = dachFlaechen(k)[g.fl]; if (!fl || fl.p.length < 4) return null;
@@ -224,6 +231,7 @@
       }
       if (r.art === 'dach' && M.dach[r.id]) { const D = M.dach[r.id];
         DACHF.forEach(([f, n]) => P.push({ text: n, aus: D.form === f, fn: tue(() => { if (D.form !== f) delete D.fl; D.form = f; SEL = { art: 'dach', id: r.id }; }) }));
+        if (D.form === 'sattel' || D.form === 'walm') P.push({ text: 'First drehen', fn: tue(() => { const k = kz(r.id); D.first = firstX(k, D) ? 'y' : 'x'; delete D.fl; M.gauben = M.gauben.filter((g) => g.k !== r.id); SEL = { art: 'dach', id: r.id }; }) });
         P.push({ text: 'Dach entfernen', gefahr: true, fn: tue(() => { delete M.dach[r.id]; M.gauben = M.gauben.filter((g) => g.k !== r.id); SEL = null; }) }); }
       if (r.art === 'gaube') P.push({ text: 'Gaube entfernen', gefahr: true, fn: tue(() => { M.gauben = M.gauben.filter((g) => g.id !== r.id); SEL = null; }) });
       if (r.art === 'oeff') P.push({ text: 'entfernen', gefahr: true, fn: tue(() => { M.oeff = M.oeff.filter((o) => o.id !== r.id); SEL = null; }) });
@@ -261,7 +269,7 @@
       if (ny < 0 && Math.abs(k.y - u.y) < RAST) { k.d = Math.round((k.d + k.y - u.y) * 100) / 100; k.y = u.y; }
     }
     function griffeListe() {
-      const L = []; if (!SEL) return L; const add = (p, ax, fn, tip) => L.push({ p, ax, fn, tip });
+      const L = []; if (!SEL) return L; const add = (p, ax, fn, tip, n) => L.push({ p, ax, fn, tip, n });   // n = Seite, an der der Griff sitzt (sichtbar nur zugewandt)
       const GS = [...new Map([SEL, ...MEHR].filter((x) => x.art === 'koerper' || x.art === 'wand').map((x) => [x.id, kz(x.id)])).values()].filter(Boolean);
       if (MEHR.length && GS.length > 1 && GS.every((k) => k.teil === GS[0].teil)) {   // mehrere Geschosse: ein Höhengriff, verteilt
         GS.sort((a, b) => a.z - b.z); const o = GS[GS.length - 1], h0 = GS.map((k) => k.h);
@@ -274,7 +282,7 @@
           add([k.x + k.w / 2 + nx * k.w / 2, k.y + k.d / 2 + ny * k.d / 2, zm], [nx, ny, 0], (A, d) => {
             if (nx) { const w = Math.max(2, rund(A.w + d)); M.koerper.forEach((q) => { if (q.teil === k.teil && Math.abs(q.x - A.x) < .01 && Math.abs(q.w - A.w) < .01) { if (nx < 0) q.x = rund(A.x + A.w - w); q.w = w; } }); }
             else { const dd = Math.max(2, rund(A.d + d)); M.koerper.forEach((q) => { if (q.teil === k.teil && Math.abs(q.y - A.y) < .01 && Math.abs(q.d - A.d) < .01) { if (ny < 0) q.y = rund(A.y + A.d - dd); q.d = dd; } }); }
-            einrasten(k, nx, ny); }, nx ? 'Länge ziehen' : 'Breite ziehen'); });
+            einrasten(k, nx, ny); }, nx ? 'Länge ziehen' : 'Breite ziehen', [nx, ny, 0]); });
         add([k.x + k.w / 2, k.y + k.d / 2, k.z + k.h], [0, 0, 1], (A, d) => { const h = Math.max(2.2, Math.min(6, Math.round((A.h + d) * 20) / 20)), dz = h - k.h; k.h = h; M.koerper.forEach((q) => { if (q.teil === k.teil && q.z > k.z) q.z = Math.round((q.z + dz) * 100) / 100; }); }, 'Geschosshöhe ziehen'); }
       if (SEL.art === 'oeff') { const o = M.oeff.find((x) => x.id === SEL.id), k = o && kz(o.k); if (!k) return L;
         const E = seiteEcken(k, o.seite), Ln = Math.hypot(E[1][0] - E[0][0], E[1][1] - E[0][1]), tx = [(E[1][0] - E[0][0]) / Ln, (E[1][1] - E[0][1]) / Ln, 0], z0 = o.art === 'fenster' ? 0.9 : 0;
@@ -290,11 +298,12 @@
     }
     function griffeSetzen() {   // nach jedem Bild (bp3d: gezeichnet) – beim Auseinanderziehen ohne Griffe
       if (!D3) return; if (!ZG) GR = griffeListe();
-      const zeig = GR.length && !D3.gespreizt();
+      const zeig = GR.length && !D3.gespreizt(), B = D3.blick();
       while (gr.children.length > (zeig ? GR.length : 0)) gr.lastChild.remove();
       if (!zeig) return;
       GR.forEach((g, i) => { let d = gr.children[i]; if (!d) { d = DOC.createElement('div'); d.className = 'griff'; gr.appendChild(d); } d.dataset.griff = i; d.title = g.tip;
-        const p = D3.proj(g.p); d.hidden = !p; if (p) { d.style.left = p[0] + 'px'; d.style.top = p[1] + 'px'; } });
+        const vorn = !g.n || g.n[0] * B[0] + g.n[1] * B[1] + g.n[2] * B[2] > 0.02;   // Griff einer abgewandten Seite: nicht durchs Gebäude zeigen
+        const p = vorn && D3.proj(g.p); d.hidden = !p; if (p) { d.style.left = p[0] + 'px'; d.style.top = p[1] + 'px'; } });
     }
     gr.addEventListener('pointerdown', (e) => { const g = e.target.closest('[data-griff]'); if (!g || !D3) return; e.preventDefault(); e.stopPropagation();
       const G = GR[+g.dataset.griff], a = D3.proj(G.p), b = D3.proj([G.p[0] + G.ax[0], G.p[1] + G.ax[1], G.p[2] + G.ax[2]]); if (!a || !b) return;
@@ -330,7 +339,7 @@
     }
     function ablegen(art, z, e) {
       M.n++;
-      if (['sattel', 'walm', 'pult', 'flach'].includes(art)) { const D = M.dach[z.k.id]; M.dach[z.k.id] = { form: art, aufbau: D && D.aufbau && art !== 'flach' && D.form !== 'flach' ? D.aufbau : korbHol('dach', art === 'flach' ? VOR.flach : VOR.dach) }; SEL = { art: 'dach', id: z.k.id }; }
+      if (['sattel', 'walm', 'pult', 'flach'].includes(art)) { const D = M.dach[z.k.id]; M.dach[z.k.id] = { form: art, first: D && D.first ? D.first : z.k.w >= z.k.d ? 'x' : 'y', aufbau: D && D.aufbau && art !== 'flach' && D.form !== 'flach' ? D.aufbau : korbHol('dach', art === 'flach' ? VOR.flach : VOR.dach) }; SEL = { art: 'dach', id: z.k.id }; }
       else if (art.startsWith('gaube')) { const [t] = aufFlaeche(dachFlaechen(z.k)[z.fl].p, e); const g = { id: 'g' + M.n, k: z.k.id, fl: z.fl, u: Math.max(0.15, Math.min(0.85, t)), b: 2.4, form: art.slice(6) || 'Schleppgaube', rahmen: 'Kunststoff', fach: 3 }; M.gauben.push(g); SEL = { art: 'gaube', id: g.id }; }
       else { const [t] = aufFlaeche(seiteEcken(z.k, z.seite), e), o = { id: 'o' + M.n, k: z.k.id, seite: z.seite, art: art === 'tuer' ? 'tuer' : art === 'fenstert' ? 'fenstertuer' : 'fenster', u: Math.max(0.08, Math.min(0.92, t)),
         b: art === 'fenster' ? 1.26 : art === 'tuer' ? 1.1 : 1.01, h: art === 'fenster' ? 1.38 : 2.13, rahmen: 'Kunststoff', fach: 3 }; M.oeff.push(o); SEL = { art: 'oeff', id: o.id }; }
@@ -472,7 +481,7 @@
     const tippe = (t) => { const x = $('#stand'); if (x) x.textContent = t; };
     function bib() {   // Vorlagen der Baudaten – mit Dicke aus den Schichten (Standard-Option je Schicht, E1)
       const dk = (v) => { let s = 0; (v.schichten || []).forEach((x) => { const o = (x.optionen || []).find((y) => y.std) || (x.optionen || [])[0]; if (o && +o.dicke) s += +o.dicke; }); return s >= 5 ? s / 100 : 0; };
-      return BIBOK || (BIBOK = Promise.all(['331', '36', '32', '35'].map((kg) => J(`${basis}/bauteile/vorlagen?kg=${kg}`).catch(() => []))).then(([w, d, b1, b2]) => {
+      return BIBOK || (BIBOK = Promise.all(['331', '36', '32', '35'].map((kg) => J(`${basis}/bauteile/vorlagen?kg=${kg}`))).then(([w, d, b1, b2]) => {
         const L = (A) => A.filter((v) => !v.bestand).map((v) => [v.id, v.name, null, dk(v)]);
         BIB.wand = L(w); BIB.dach = L(d); BIB.boden = L([...b1, ...b2]); }));
     }
@@ -512,7 +521,8 @@
         M.teile = bk.teile || { h: 'Hauptgebäude' }; RM = !!bk.raeume; PLAN = d.plan; RAEUME = d.raeume || [];
         M.koerper.forEach((k) => { if (!KORB[k.wand]) k.wand = korbHol('wand', VOR.wand);
           if (!KORB[k.boden]) k.boden = korbHol('boden', k.z <= Math.min(...M.koerper.filter((q) => q.teil === k.teil).map((q) => q.z)) + 0.01 ? VOR.boden : VOR.decke); });
-        Object.values(M.dach).forEach((D) => { if (!KORB[D.aufbau]) D.aufbau = korbHol('dach', D.form === 'flach' ? VOR.flach : VOR.dach); if (D.fl) { Object.keys(D.fl).forEach((i) => { if (!KORB[D.fl[i]]) delete D.fl[i]; }); if (!Object.keys(D.fl).length) delete D.fl; } });
+        Object.entries(M.dach).forEach(([kid, D]) => { const k = kz(kid); if (k && !D.first) D.first = k.w >= k.d ? 'x' : 'y';   // ältere Stände: First wie bisher gezeigt, ab jetzt fest
+          if (!KORB[D.aufbau]) D.aufbau = korbHol('dach', D.form === 'flach' ? VOR.flach : VOR.dach); if (D.fl) { Object.keys(D.fl).forEach((i) => { if (!KORB[D.fl[i]]) delete D.fl[i]; }); if (!Object.keys(D.fl).length) delete D.fl; } });
         M.n = 20 + Math.max(0, ...[...M.koerper, ...M.gauben, ...M.oeff].map((x) => +String(x.id).replace(/\D/g, '') || 0));
         SEL = null; MEHR = []; LADEN = false; STAND = NEU ? '' : JSON.stringify(daten()); bild(true); seitlich();
         tippe(PLAN === 'ifc' ? 'Es gilt ein Plan (IFC): Bauteile und 3D kommen aus dem Plan; was du hier änderst, bleibt im Baukasten.' : d.herkunft === 'baukasten' ? 'Änderungen speichern sich von selbst und führen den Planstand nach.' : 'Ein Vorschlag – mit der ersten Änderung entsteht der Planstand.');

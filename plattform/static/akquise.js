@@ -251,8 +251,7 @@ document.addEventListener('click', async (e) => {
 });
 
 (async () => {
-  const me = await api('api/me'); applyLook(me);
-  const PC = await api('api/platform');
+  const [me, PC] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(me);   // gleichzeitig
   await header('Akquise', me, PC);
   BPHead.appEinstellungen([{ key: 'ordner', label: 'Ordner im Projektpfad', render: (h) => aqEinst(h) }]);   // Verwaltung → Einstellungen → Apps → Akquise
   bpNav.breite(NAV, { key: 'akquise' });

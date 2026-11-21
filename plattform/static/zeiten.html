@@ -569,8 +569,7 @@ addEventListener('resize', () => { if (!G) return; const h = handy(); if (h !== 
 setInterval(() => { if (tab === 'tag' && tag === G.heute && document.visibilityState === 'visible' && !document.activeElement.closest('.zr,.k,.lauf,.fahrt-k')) laden(); }, 5 * 60000);   // heute: Vorschläge wachsen mit
 
 (async () => {
-  ME = await api('api/me'); applyLook(ME);
-  const PC = await api('api/platform');
+  let PC; [ME, PC] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(ME);   // gleichzeitig
   await header('Zeiten', ME, PC);
   if (window.BPHead && BPHead.appEinstellungen) BPHead.appEinstellungen([{ key: 'einst', label: 'Zeiten', text: 'Arbeitszeit, Pausen, Urlaub, Mitarbeiter:innen – in der App unter „Einstellungen“ (dort mit der Tabelle aller Personen).',
     open: () => { LS.set('tab', 'einst'); (window.top || window).location.href = location.href.replace(/[?#].*$/, ''); } }, { key: 'abwarten', label: 'Abwesenheitsarten', render: (h) => BPHead.abwArten(h) }]);   // Verwaltung → Einstellungen → Zeiten

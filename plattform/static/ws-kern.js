@@ -251,8 +251,7 @@ async function wsDruck() {
 }
 
 (async () => {
-  const ME = await api('api/me'); applyLook(ME);
-  const PC = await api('api/platform');
+  const [ME, PC] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(ME);   // gleichzeitig
   await header('Wärmeschutz', ME, PC);
   bpNav.breite(NAV, { key: 'waermeschutz' });
   BPHead.appEinstellungen([{ key: 'ablage', label: 'Ablage: Ordner des Nachweises', render: (h) => BPHead.ablageEinst(h, 'waermeschutz') }]);   // C1

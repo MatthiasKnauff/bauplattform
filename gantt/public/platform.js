@@ -153,9 +153,10 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
   /* ---- Start ---- */
   async function init() {
     mountBar();
-    try { BP.conf = await origFetch('api/platform').then((r) => r.json()); } catch { BP.conf = { apps: [] }; }
+    const H = window.BPHead && BPHead.ready ? await BPHead.ready.then(() => BPHead, () => null) : null;   // die Kopfleiste hat Plattform und Person schon geholt
+    if (H && H.conf && H.conf.apps) BP.conf = H.conf; else try { BP.conf = await origFetch('api/platform').then((r) => r.json()); } catch { BP.conf = { apps: [] }; }
     try {
-      const r = await origFetch('api/me');
+      const r = H && H.me ? { ok: true, json: async () => H.me } : await origFetch('api/me');
       if (r.ok) {
         BP.me = await r.json(); applyAccent(BP.me.accent || '#ff5fb3');   // ohne eigene Farbe: Standard des Bautagebuchs
         // Farbschema von der Startseite (Darstellung) – gilt für alle Apps; nur neu zeichnen, wenn es sich geändert hat

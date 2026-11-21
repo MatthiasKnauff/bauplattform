@@ -538,8 +538,7 @@ let qT = 0;
 for (const [id, k] of [['q', 'q'], ['kg', 'kg']]) $('#' + id).addEventListener('input', (e) => { clearTimeout(qT); qT = setTimeout(() => { F[k] = e.target.value.trim(); N = 100; laden(); }, 300); });
 
 (async () => {
-  const ME = await api('api/me'); applyLook(ME);
-  const PC = await api('api/platform');
+  const [ME, PC] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(ME);   // gleichzeitig
   await header('Baudaten', ME, PC);
   bdRechts();
   if (window.BPHead && BPHead.appEinstellungen) BPHead.appEinstellungen([   // vor dem Laden der Positionen: die Einstellungsseite wartet nicht darauf

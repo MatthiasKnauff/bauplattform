@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-first-2111",
+  "datum": "2026-11-21",
+  "app": "gebaeudemodell",
+  "titel": "Baukasten: First bleibt, Griffe nur vorn",
+  "text": "Ziehst du ein Gebäude breiter als lang, kippt das Satteldach nicht mehr – der First bleibt, wie er ist. Drehen kannst du ihn per Rechtsklick aufs Dach („First drehen“). Die Giebel stehen jetzt in der Wand, und die violetten Griffe zeigen sich nur an den Seiten, die du siehst.",
+  "ziel": "#view .gm-d3"
+ },
+ {
   "id": "gm-baukasten-3d",
   "datum": "2026-11-21",
   "app": "gebaeudemodell",

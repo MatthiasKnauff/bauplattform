@@ -3,7 +3,7 @@
    Drehen (ziehen), Zoomen (Rad, zwei Finger), Verschieben (Umschalt/rechte Taste, zwei Finger), Geschosse und Dach ein/aus,
    Färben nach Maßnahme (aus der Bauteil-Checkliste) oder nach den Farben des Modells, Bauteil antippen → Name, Nummer, Maßnahme.
 
-   bp3d.mount(el, { url | netz, zeilen, titel, hervor }) → { neu(zeilen), hervor(ids) } – url liefert das Netz (oder netz = das Netz selbst, Bauherrenportal), zeilen = bauteilliste.zeilen (für Farben und Antippen).
+   bp3d.mount(el, { url | netz, zeilen, titel }) → { neu(zeilen), hervor(ids) } – url liefert das Netz (oder netz = das Netz selbst, Bauherrenportal), zeilen = bauteilliste.zeilen (für Farben und Antippen).
    Wird erst beim Öffnen geladen (Gebäudemodell → „3D“, Bauherrenportal).
 
    20.11.2026 (Probe „3D-Ansicht“, A1 B1 C1): Geschosse auseinanderziehen (Schieber), eigene Färbungen einer App und Auswählen.
@@ -17,7 +17,7 @@
 
    21.11.2026 (Mock „Baukasten wie 3D“ A1 B3 C1 D2): derselbe Betrachter auch für den Gebäude-Baukasten (bp/gebaeudekasten.js) –
      kontext(e, punkte): Rechtsklick auf ein Bauteil → Punkte für das gemeinsame Kontextmenü (head.js, Ereignis bph:kontext) ·
-     gezeichnet(): nach jedem Bild (Griffe nachführen) · zurück dazu: setzen(netz) – neue Geometrie, Blick bleibt · bei(x, y) → Element unter dem
+     gezeichnet(): nach jedem Bild (Griffe nachführen) · zurück dazu: setzen(netz) – neue Geometrie, Blick bleibt · blick() → Richtung zum Auge · bei(x, y) → Element unter dem
      Zeiger · ziel(ids) – grün (Stelle zum Ablegen) · proj([x, y, z]) → [x, y] im Feld (Meter → Bildpunkte), null hinter dem Auge · feld (Element). */
 (function () {
   if (window.bp3d) return;
@@ -77,7 +77,7 @@
     const zu = {};   // IFC-Objekt → Zeile der Checkliste (Status, Name, Nummer)
     (o.zeilen || []).forEach((z) => (z.ids || []).forEach((i, k) => { zu[i] = { z, nr: (z.nummern || [])[k] || '' }; }));
 
-    let HV = o.hervor ? new Set(o.hervor.map(Number)) : null;   // hervorheben (z. B. die Objekte der markierten Zeile): alles andere blass
+    let HV = null;   // hervorheben (z. B. die Objekte der markierten Zeile): alles andere blass
     const modus = () => MODI.find((m) => m.key === S.farbe);
     function farbe(e) {
       if (ZIEL.has(e.i)) return [0.17, 0.62, 0.27, 1];   // Stelle zum Ablegen (Baukasten: Baustein hineinziehen)
@@ -323,6 +323,7 @@
       return [((M[0] * X + M[4] * Y + M[8] * Z + M[12]) / w * 0.5 + 0.5) * cv.clientWidth, (1 - ((M[1] * X + M[5] * Y + M[9] * Z + M[13]) / w * 0.5 + 0.5)) * cv.clientHeight];
     }
     return { feld: box, bei, proj, setzen: (N) => setzen(N, false), gespreizt: () => !!(S.zug || S.seit || S.teil),
+      blick: () => { const cp = Math.cos(S.pitch); return [cp * Math.cos(S.yaw), cp * Math.sin(S.yaw), Math.sin(S.pitch)]; },   // Richtung zum Auge (Griffe nur an zugewandten Seiten)
       ziel: (ids) => { const k = [...ZIEL].join(); ZIEL.clear(); (ids || []).forEach((i) => ZIEL.add(+i)); if (S.N && [...ZIEL].join() !== k) bauen(); },
       waehle: (ids) => { const vor = [...WAHL].join(); WAHL.clear(); (ids || []).forEach((i) => WAHL.add(+i));
         if (S.N && o.info && WAHL.size && [...WAHL].join() !== vor) { S.infoE = S.N.e.find((e) => WAHL.has(e.i)) || S.infoE; infoNeu(); }   // von außen gewählt: das Feld zeigt dieses Bauteil

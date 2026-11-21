@@ -1,8 +1,8 @@
 """Gebäudehülle im Projektmodell: welche Bauteile der Hülle ein Projekt hat – zusammengetragen aus den Quellen des Projekts.
 
-Quellen heute: Baukosten (IFC-Modell oder Raumbuch: Fläche, Kostengruppe, Schichten wo das Modell sie mitgibt) und der Planungsassistent
-(Bauweise, Dachform, Keller → Vorschläge für Bauteile, die noch niemand erfasst hat). Später: eingelesene Pläne (Etappe 5).
-Apps greifen nicht selbst in die Daten einer anderen App – sie fragen hier (Regel des Projektmodells) und bekommen Hinweise an ihrer Linie.
+Quelle ist das Gebäudemodell (Bauteilliste des gültigen Planstands mit dem dort gewählten Aufbau, 20.11.2026), dazu der Planungsassistent
+(Dachform, Keller, Neubau → Vorschläge für Bauteile, die noch niemand erfasst hat). Nur ältere Projekte ohne Bauteilliste nehmen die gültige
+Kostenermittlung (★). Apps greifen nicht selbst in die Daten einer anderen App – sie fragen hier und bekommen Hinweise an ihrer Linie.
 
 huelle(c, pid)                       → {"bauteile": [...], "quellen": [...]}   (schreibt nichts)
 abgleich(vorhanden, bauteile)        → Hinweise für eine App, die Hüllbauteile führt (rein): neu · flaeche · vorschlag
@@ -60,12 +60,11 @@ def aus_kosten(daten, bk_id, bk_name):
     return out
 
 
-def aus_liste(L, schon=()):
-    """Hüllbauteile direkt aus der Bauteilliste des Gebäudemodells (20.11.2026) – für Zeilen, die noch in keiner Kostenermittlung stehen. So bekommt der
-    Wärmeschutz die Hülle schon mit dem eingelesenen Plan, ohne den Umweg über die Kosten. ref „bk:0:<Zeile>“ (dieselbe Zeile wie später in den Kosten)."""
+def aus_liste(L):
+    """Hüllbauteile aus der Bauteilliste des Gebäudemodells (20.11.2026). ref „bk:0:<Zeile>“ – dieselbe Zeile wie in den Kosten."""
     Z = []
     for z in (L or {}).get("zeilen") or []:
-        if not isinstance(z, dict) or z.get("entfaellt") or str(z.get("id")) in schon or z.get("status") == "abbruch":
+        if not isinstance(z, dict) or z.get("entfaellt") or z.get("status") == "abbruch":
             continue
         Z.append({"id": z.get("id"), "kg": z.get("kg"), "name": z.get("name"), "mat": z.get("kurz") or z.get("material") or "", "menge": z.get("menge"), "einheit": z.get("einheit"),
                   "lagen": z.get("lagen") or [], "src": "Gebäudemodell" + (" (IFC)" if z.get("quelle") == "ifc" else ""), "uw": z.get("uw"),

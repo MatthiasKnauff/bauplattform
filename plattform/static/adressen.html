@@ -104,7 +104,7 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
 .mf{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem;align-items:center}
 .mf .fill{flex:1}
 @media (max-width:560px){
-  .kz{gap:.25rem .5rem}.cnt{flex:1 1 100%}.kb{flex:1 1 100%;flex-wrap:nowrap}.kb label{display:none}.kb select{flex:1 1 auto;min-width:0;max-width:none}.kb .btn{flex:none;white-space:nowrap}   /* Handy: Zahl, darunter Sortieren · Richtung · Filter in einer Zeile */
+  .kz{gap:.25rem .5rem}.cnt{flex:1 1 100%}.kb{flex:1 1 100%;min-width:0}.kb label{display:none}.kb select{flex:1 1 6rem;width:0;min-width:0;max-width:none}.kb .btn{flex:none;white-space:nowrap}   /* Handy: Zahl, darunter Sortieren · Richtung · Filter in einer Zeile – die Auswahl gibt Breite ab, reicht es trotzdem nicht (große Schrift), bricht der Filter um statt herauszuragen */
   .wrap{padding:1rem .75rem 3rem}
   .fm{grid-template-columns:1fr}
   .list{grid-template-columns:1fr}

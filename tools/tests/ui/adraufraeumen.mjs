@@ -16,7 +16,7 @@ export async function adrAufraeumenPruefen(browser, repo) {
     { art: 'aufteilen', schluessel: 'teil|heizungsanitaer', grund: 'mehrere Gewerke in einem Eintrag', werte: [{ w: 'Heizung Sanitär', n: 3 }], ziel: ['Heizung', 'Sanitär'] }] } };
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } }), p = await ctx.newPage();
   p.on('pageerror', (e) => fehler.push('Fehler im Skript – ' + e.message));
-  await p.route('http://portal.test/**', (r) => { const u = new URL(r.request().url()), pf = u.pathname.replace(/^\/adressen\//, '');
+  const leite = (r) => { const u = new URL(r.request().url()), pf = u.pathname.replace(/^\/adressen\//, '');
     if (pf === '') return r.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(STAT, 'adressen.html'), 'utf8') });
     if (pf === 'bp/baukasten.js') return r.fulfill({ contentType: 'text/javascript', body: baukasten });
     const f = pf.startsWith('bp/') ? path.join(KASTEN, pf.slice(3)) : pf.startsWith('static/') ? path.join(STAT, pf.slice(7)) : null;
@@ -28,7 +28,8 @@ export async function adrAufraeumenPruefen(browser, repo) {
     const m = /^api\/bp\/aufraeumen\/([\w.]+)(\/\w+)?$/.exec(pf);
     if (m && !m[2]) return r.fulfill(J(VOR[m[1]] || { titel: m[1], werte: [], vorschlaege: [] }));
     if (m) { post.push([m[2], JSON.parse(r.request().postData() || '{}')]); return r.fulfill(J(m[2] === '/anwenden' ? { n: 13, rueck: [{ id: 1, alt: 'Elektroarbeiten' }] } : { ok: true })); }
-    return r.fulfill(J(/liste|kontakte|neuigkeit/.test(pf) ? [] : {})); });
+    return r.fulfill(J(/liste|kontakte|neuigkeit/.test(pf) ? [] : {})); };
+  await p.route('http://portal.test/**', leite);
   try {
     await p.goto('http://portal.test/adressen/'); await p.waitForSelector('#dup', { timeout: 10000 }); await p.waitForTimeout(300);
     pruef(/Aufräumen/.test(await p.textContent('#dup')), 'Knopf heißt nicht „Aufräumen“');
@@ -39,9 +40,16 @@ export async function adrAufraeumenPruefen(browser, repo) {
       let m = await mess();
       pruef(m.h > 20 && m.zeilen === 1 && m.neu && !m.alt && /Tabelle|Karten/.test(m.an || ''), `Befehlsleiste am Rechner: ${JSON.stringify(m)}`);
       if (process.env.BILD) await p.screenshot({ path: process.env.BILD });
-      await p.setViewportSize({ width: 393, height: 852 }); await p.evaluate(() => setView('karten')); await p.waitForTimeout(400); m = await mess();
-      pruef(m.zeilen === 1 && m.h < 90 && m.kz < 90 && !m.quer, `Handy: Leiste in einer Zeile, Sortieren kompakt, kein Querrollen – ${JSON.stringify(m)}`);
-      if (process.env.BILD) await p.screenshot({ path: process.env.BILD.replace('.png', '-handy.png') });
+      // Handy wie in oberflaeche.mjs (Berührung, 390 px – dort sind Knöpfe und Auswahl größer): Leiste in einer Zeile, Sortieren · Richtung · Filter in einer Zeile, nichts ragt heraus
+      const c2 = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }), h = await c2.newPage();
+      await h.route('http://portal.test/**', leite); await h.goto('http://portal.test/adressen/'); await h.waitForSelector('#dup', { state: 'attached', timeout: 10000 });
+      await h.evaluate(() => { TV.sort = { k: 'contact_person', d: 1 }; TV.flt = { name: 'a', trade: 'b' }; setView('karten'); }); await h.waitForTimeout(400);
+      m = await h.evaluate(() => { const b = document.querySelector('#bfl .bf'), k = [...document.querySelectorAll('#bfl .bf-k')].filter((x) => x.offsetParent), z = document.querySelector('.kz'), kb = document.querySelector('#kb');
+        return { h: Math.round(b.getBoundingClientRect().height), zeilen: new Set(k.map((x) => Math.round(x.getBoundingClientRect().top))).size, kz: Math.round(z.getBoundingClientRect().height), kb: Math.round(kb.getBoundingClientRect().right), ih: innerWidth, quer: document.documentElement.scrollWidth - innerWidth }; });
+      if (process.env.ZEIG) console.log(JSON.stringify(m), await h.evaluate(() => [...document.querySelectorAll('#kb > *, .kz, #pane')].map((x) => x.id + ':' + Math.round(x.getBoundingClientRect().left) + '-' + Math.round(x.getBoundingClientRect().right))));
+      pruef(m.zeilen === 1 && m.h < 110 && m.kz < 120 && m.quer <= 1 && m.kb <= m.ih, `Handy: Leiste in einer Zeile, Sortieren kompakt, kein Querrollen – ${JSON.stringify(m)}`);
+      if (process.env.BILD) await h.screenshot({ path: process.env.BILD.replace('.png', '-handy.png') });
+      await c2.close();
       await p.setViewportSize({ width: 1400, height: 900 }); await p.waitForTimeout(300);
     }
     await p.click('#dup'); await p.waitForSelector('[data-afok="0"]', { timeout: 8000 });

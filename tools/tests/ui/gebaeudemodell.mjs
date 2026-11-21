@@ -230,8 +230,18 @@ export async function gebaeudemodellPruefen(browser, repo) {
       await p.click('.b3-l [data-b3dar]'); await p.waitForSelector('.b3-l [data-b3o]');
       { await p.evaluate(() => { const r = document.querySelector('.b3-l [data-b3o]'); r.value = 60; r.dispatchEvent(new Event('input', { bubbles: true })); }); await p.waitForTimeout(150); }
       { const d = await p.evaluate(() => { const l = document.querySelector('.b3-l').getBoundingClientRect(), b = document.querySelector('.b3-l [data-b3dar]').getBoundingClientRect(), x = document.querySelector('.b3-dar').getBoundingClientRect(), c = document.querySelector('.b3 canvas').getBoundingClientRect();
-          return { rechts: l.right - b.right < 4, unter: x.top >= b.bottom - 1, buendig: Math.abs(x.right - b.right) < 4, hoehe: c.bottom > document.querySelector('#view').getBoundingClientRect().bottom - 30 }; });
-        pruef(d.rechts && d.unter && d.buendig && d.hoehe, `„Darstellung ▾“ ganz rechts, klappt darunter auf; 3D bis unten: ${JSON.stringify(d)}`); }
+          const ab = document.querySelector('.b3-l [data-b3ab]').getBoundingClientRect();
+          return { rechts: l.right - ab.right < 4 && ab.left >= b.right, unter: x.top >= b.bottom - 1, buendig: Math.abs(x.right - l.right) < 4, hoehe: c.bottom > document.querySelector('#view').getBoundingClientRect().bottom - 30 }; });
+        pruef(d.rechts && d.unter && d.buendig && d.hoehe, `„Darstellung ▾“ rechts (daneben ⧉), klappt darunter auf; 3D bis unten: ${JSON.stringify(d)}`); }
+      await p.click('.b3-l [data-b3dar]');
+      {   // 3D abdocken (21.11.2026, A1 B3): eigenes Fenster, die Mitte zeigt, was zuletzt unter Tabelle/Grundriss gewählt war; Fenster zu → 3D wieder in der Mitte
+        const [w] = await Promise.all([p.waitForEvent('popup'), p.click('.b3-l [data-b3ab]')]);
+        await w.waitForSelector('.b3 canvas', { timeout: 8000 }).catch(() => {});
+        const r = await p.evaluate(() => ({ mitte: G3.mitte, d3: document.querySelector('#view .gm-d3').hidden, leer: !document.querySelector('#view .gm-d3 canvas') }));
+        const z = await w.evaluate(() => ({ canvas: !!document.querySelector('.b3 canvas'), zurueck: (document.querySelector('[data-b3ab]') || {}).textContent }));
+        pruef(r.mitte !== '3d' && r.d3 && r.leer && z.canvas && z.zurueck === '↙', `3D abgedockt: ${JSON.stringify([r, z])}`);
+        await w.close(); await p.waitForTimeout(400);
+        pruef(await p.evaluate(() => G3.mitte === '3d' && !!document.querySelector('#view .gm-d3 canvas')), 'Fenster zu: 3D wieder in der Mitte'); }
       await p.click('#navL [data-pl="gtab"]'); await p.waitForSelector('table.bt-baum', { timeout: 4000 });
       pruef(await p.evaluate(() => !!document.querySelector('#view .gm-d3[hidden]')), 'Umschalten auf die Tabelle'); }
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n').slice(0, 3).join(' ')); }

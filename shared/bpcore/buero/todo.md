@@ -247,6 +247,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Gebäudemodell: 3D ganz abdocken (eigenes Fenster, Mitte zeigt Tabelle/Grundriss)~~ (21.11.2026)
 - ~~Gebäudemodell: Navigation links Gebäude (3D, Tabelle) · Räume (Raumliste, Grundriss) · Verknüpfungen; Fragen & Anweisungen als Reiter rechts; Heftzwecke~~ (21.11.2026)
 - ~~Gebäudemodell: „Neuer Planstand – mit der Planung“ = ganzes Gebäude aus dem Assistenten im Baukasten (Teile, Aufstockung, Keller, Dach); Fenster Mengen/Preise entfällt~~ (21.11.2026)
 - ~~Kosten: Heftzwecke zum Zuklappen der Befehlsleiste; Ausschreibung: Navigation bis ganz unten, Ablegefeld springt nicht mehr~~ (21.11.2026)

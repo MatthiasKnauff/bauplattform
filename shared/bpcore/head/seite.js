@@ -203,6 +203,23 @@
     merk(key + '.frei', lies(key + '.frei', []).filter((id) => id !== rt.id));
     nochmal(key); if (rt.neu) setTimeout(() => { if (!w.closed) rt.neu(); }, 400);
   }
+  /* Beliebiger Inhalt in ein eigenes Browserfenster (21.11.2026, zuerst das 3D des Gebäudemodells) – dasselbe Fenster wie für einen Reiter:
+     Aussehen der Seite, Bedien-Ereignisse, gemerkte Größe/Lage. seiteFenster(id, titel, mount(el, w), zu?) → das Fenster (oder null, blockiert);
+     nachher(w) führt später geladene Stilblätter nach (seiteFenster.stil(w)). Schließt man es, ruft es zu(). */
+  function seiteFenster(id, titel, mount, zu) {
+    const q = lies(`frei.win.${id}`, null) || { w: Math.min(1400, screen.availWidth - 80), h: Math.min(1000, screen.availHeight - 80) };
+    const w = window.open('', 'bp_fr_' + id, `popup=yes,width=${q.w},height=${q.h}${q.x != null ? `,left=${q.x},top=${q.y}` : ''}`);
+    if (!w) { if (window.toast) window.toast('Das Fenster wurde vom Browser blockiert – bitte Pop-ups für diese Seite erlauben.', true); return null; }
+    const d = w.document; d.open(); d.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><base href="${esc(document.baseURI)}"><title>${esc(titel)}</title><style>html,body{height:100%;margin:0}.sr-fr{height:100%;display:flex;flex-direction:column}.sr-fr>*{flex:1;min-height:0}</style></head><body><div class="sr-fr"></div></body></html>`); d.close();
+    eigenStil(w); BP_FENSTER.add(w); BP_HORCHER.forEach(([t, f, o]) => d.addEventListener(t, f, o));
+    let t = 0; const merkLage = () => { try { merk(`frei.win.${id}`, { w: w.outerWidth, h: w.outerHeight, x: w.screenX, y: w.screenY }); } catch { /* egal */ } };
+    w.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { if (!w.closed) merkLage(); }, 350); });
+    w.addEventListener('pagehide', () => { merkLage(); BP_FENSTER.delete(w); if (zu) setTimeout(zu, 0); });
+    mount(d.querySelector('.sr-fr'), w); eigenBlaetter(w);
+    return w;
+  }
+  seiteFenster.stil = (w) => { if (w && !w.closed) eigenBlaetter(w); };
+  addEventListener('pagehide', () => BP_FENSTER.forEach((w) => { try { if (/^bp_fr_/.test(w.name)) w.close(); } catch { /* egal */ } }));
   function eigenZu(key, id) { const w = EIGEN.get(key + '|' + id); if (w && !w.closed) w.close(); else { EIGEN.delete(key + '|' + id); nochmal(key); } }
   function eigenFuellen(key) {   // nach jedem Neuzeichnen: Inhalt der eigenen Fenster dieses Bereichs nachführen
     for (const [k, w] of [...EIGEN.entries()]) { const [ke, id] = k.split('|'); if (ke !== key) continue;
@@ -249,5 +266,5 @@
   const seiteFinde = (sel) => { for (const d of docs()) { const n = d.querySelector(sel); if (n) return n; } return null; };
   const seiteAktiv = () => { for (const d of docs()) if (d.hasFocus()) return d.activeElement; return document.activeElement; };   // das Fenster, in dem gerade getippt wird
   seite.planung = planReiter;   // Reiter „Planung“ für Apps, die ihre Reiter selbst zusammenstellen (Gebäudemodell)
-  Object.assign(window, { seite, seiteAufraeumen, seiteDa, seiteOffen, seiteUmschalten, seiteReiter, seiteReiterVon, seiteZuVon, seiteFuellen, seiteFinde, seiteAktiv, bpFrei: frei });
+  Object.assign(window, { seite, seiteFenster, seiteAufraeumen, seiteDa, seiteOffen, seiteUmschalten, seiteReiter, seiteReiterVon, seiteZuVon, seiteFuellen, seiteFinde, seiteAktiv, bpFrei: frei });
 })();

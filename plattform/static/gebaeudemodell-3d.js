@@ -129,7 +129,7 @@ async function bauteile3d(zeige) {
 const g3Zeilen = (st) => (st.an ? (st.an.liste || {}).zeilen || [] : st.zeilen || []);
 function g3Neu(bk, an) {   // Planstand gewechselt (gilt jetzt, angesehen, zurück): Mitte neu – die Tabelle bleibt
   Object.assign(G3, { D3: null, BK: null, bkD: null, bkK: null, N: null, bk, an, rev: null });
-  const d = V.querySelector('.gm-d3'); if (d) d.innerHTML = '';
+  const d = g3Feld(); if (d) d.innerHTML = '';
   if (typeof GR !== 'undefined') GR.F = null;
   g3Seite(); if (G3.mitte) g3Mitte(G3.mitte, true);
 }
@@ -159,7 +159,7 @@ function g3Seite() {
 }
 function g3Rechts() {   // im Baukasten zeigt „Bauteil“ die Angaben des Körpers (3D), in Tabelle/Grundriss die Details der Zeile; Liste nur mit Plan
   const box = document.querySelector('.g3-bk'), det = document.querySelector('.g3-det'), li = document.querySelector('.g3-li'), tr = document.querySelector('.g3-tr');
-  const bk = !!G3.bk && G3.mitte === '3d';
+  const bk = !!G3.bk && (G3.mitte === '3d' || g3Ab());   // Angaben des Baukastens auch, wenn das 3D abgedockt ist
   if (box) box.hidden = !bk; if (det) det.hidden = bk; if (li) li.hidden = !!G3.bk; if (tr) tr.hidden = !!G3.bk;
   const t = document.querySelector('.g3-teil'); if (t) t.classList.toggle('ohne', !!G3.bk);
 }
@@ -174,7 +174,7 @@ document.addEventListener('pointerdown', (e) => {
 });
 function g3Laden(feld, st) {
   if (!feld.isConnected) return;
-  const F = (G3.E || {}).f || 'f1', D3O = { zeilen: g3Zeilen(st), modi: g3Modi(), start: G3.farbe, info: g3Info, spreizen: F === 'f2' ? 'aussen' : 'alle', spreizWahl: F !== 'f2', teil: (e) => { const z = g3Zeile(e); return z ? z.teil || '' : ''; } };
+  const F = (G3.E || {}).f || 'f1', D3O = { abdocken: { zurueck: g3Ab(), fn: g3Abdocken }, zeilen: g3Zeilen(st), modi: g3Modi(), start: G3.farbe, info: g3Info, spreizen: F === 'f2' ? 'aussen' : 'alle', spreizWahl: F !== 'f2', teil: (e) => { const z = g3Zeile(e); return z ? z.teil || '' : ''; } };
   g3Extras(st);
   if (G3.bk) {   // ohne Plan: das Gebäude im Baukasten bauen – dieselbe 3D-Ansicht (A1), Angaben und Korb rechts
     G3.BK = bpBaukasten.mount(feld, PID, { seite: ({ detail, korb }) => { G3.bkD = detail; G3.bkK = korb; const b = document.querySelector('.g3-bk'); if (b) b.appendChild(detail);
@@ -191,17 +191,31 @@ function g3Laden(feld, st) {
       if (!e) { G3.sel = null; g3Liste(G3.liste); return; } g3Waehle(e.i, true); } });
 }
 function g3Extras(st) {   // Färbung merken, U-Werte nachladen – für Plan und Baukasten gleich
-  const feld = V.querySelector('.gm-d3');
+  const feld = g3Feld();
   if (feld && !feld.dataset.f) { feld.dataset.f = '1'; feld.addEventListener('click', (ev) => { const b = ev.target.closest('[data-b3f]'); if (b) { G3.farbe = b.dataset.b3f; LS.set('farbe', G3.farbe); g3Liste(G3.liste); } }); }   // bp3d hat die Färbung schon umgestellt (Klick kommt von innen)
   baustein('uwert.js', 'bpUwert').then(() => bpUwert.holen(`api/bp/modell/${PID}`, st.rev)).then((U) => { G3.uw = U || {}; if (G3.D3) G3.D3.farben(g3Modi()); }).catch(() => {});
 }
-/* Mitte: 3D · Grundriss · Tabelle (Befehlsleiste „Ansicht“) – gemerkt je Person; erzwungen = vom Zustand gewählt, nicht gemerkt */
+/* 3D abdocken (21.11.2026, A1 B3): ⧉ in der Leiste des 3D legt es in ein eigenes Browserfenster (seiteFenster, auch zweiter Bildschirm) –
+   die Mitte zeigt dann, was zuletzt unter Tabelle/Grundriss gewählt war; ↙ bzw. Fenster schließen holt es zurück. */
+const g3Ab = () => !!G3.ab && !G3.ab.closed;
+const g3Feld = () => (g3Ab() ? G3.abF : V.querySelector('.gm-d3'));
+function g3Abdocken() {
+  if (g3Ab()) { G3.ab.close(); return; }   // ↙: pagehide → g3Zurueck
+  if (!window.seiteFenster) return;
+  const w = seiteFenster('gm3d', `3D – ${document.title}`, (el) => { G3.abF = el; }, g3Zurueck); if (!w) return;
+  const alt = V.querySelector('.gm-d3'); if (alt) alt.innerHTML = '';   // das 3D zieht ganz um – in der Mitte bleibt nichts stehen
+  G3.ab = w; const m = LS.get('mitte2') || 'tabelle';
+  g3Neu(G3.bk, G3.an); g3Mitte(m === '3d' ? 'tabelle' : m, true);
+}
+function g3Zurueck() { if (!G3.ab) return; G3.ab = null; G3.abF = null; if (!V.querySelector('.gm-d3')) return; g3Neu(G3.bk, G3.an); g3Mitte('3d'); }
+/* Mitte: 3D · Grundriss · Tabelle (links in der Navigation) – gemerkt je Person; erzwungen = vom Zustand gewählt, nicht gemerkt */
 async function g3Mitte(w, erzwungen) {
   const d = V.querySelector('.gm-d3'), g = V.querySelector('.gm-gr'), t = V.querySelector('.gm-tab'); if (!d || !t) return;
   if (!['3d', 'grundriss', 'tabelle'].includes(w)) w = '3d';
+  if (w === '3d' && g3Ab()) { try { G3.ab.focus(); } catch { /* egal */ } w = LS.get('mitte2') || 'tabelle'; }   // abgedockt: das Fenster nach vorn, die Mitte bleibt
   G3.mitte = w; d.hidden = w !== '3d'; g.hidden = w !== 'grundriss'; t.hidden = w !== 'tabelle';
-  if (!erzwungen) LS.set('mitte', w);
-  if (w === '3d' && !G3.D3 && !G3.BK && BT) { const st = BT.zustand(); if (G3.bk || g3Zeilen(st).length) { await Promise.all([baustein('ansicht3d.js', 'bp3d'), G3.bk ? baustein('gebaeudekasten.js', 'bpBaukasten') : null]); g3Laden(d, st); } }
+  if (!erzwungen) { LS.set('mitte', w); if (w !== '3d') LS.set('mitte2', w); }
+  if ((w === '3d' || g3Ab()) && !G3.D3 && !G3.BK && BT) { const st = BT.zustand(); if (G3.bk || g3Zeilen(st).length) { await Promise.all([baustein('ansicht3d.js', 'bp3d'), G3.bk ? baustein('gebaeudekasten.js', 'bpBaukasten') : null]); g3Laden(g3Feld(), st); if (g3Ab()) seiteFenster.stil(G3.ab); } }
   if (w === 'grundriss') gmGrundriss(g);   // gebaeudemodell-grundriss.js
   g3Rechts(); leiste(); nav();   // links den passenden Punkt markieren
 }

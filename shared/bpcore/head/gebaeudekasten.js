@@ -60,7 +60,7 @@
 
   function mount(el, pid, OPT = {}) {
     const DOC = el.ownerDocument || document;   // abgedocktes Fenster (seite.js) = eigenes Dokument
-    if (!DOC.getElementById('bkx-stil')) { const s = DOC.createElement('style'); s.id = 'bkx-stil'; s.textContent = STIL; DOC.head.appendChild(s); }
+    [DOC, document].forEach((D) => { if (!D.getElementById('bkx-stil')) { const s = D.createElement('style'); s.id = 'bkx-stil'; s.textContent = STIL; D.head.appendChild(s); } });   // auch in der Seite: Angaben und Korb stehen dort, wenn das 3D abgedockt ist
     el.innerHTML = `<div class="bkx"><div class="haupt"><div class="buehne" data-bk="buehne"><div data-bk="d3"></div></div>
       <aside class="bkx-seite">
         <section class="kasten palk" data-bk="palk" aria-label="Bausteine zum Hineinziehen"><button type="button" class="palk-k" data-bk="palzu">Hineinziehen</button><div class="pal" data-bk="pal"></div>

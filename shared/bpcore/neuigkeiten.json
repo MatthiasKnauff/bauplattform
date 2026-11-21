@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-3d-ab-2111",
+  "datum": "2026-11-21",
+  "app": "gebaeudemodell",
+  "titel": "3D abdocken",
+  "text": "⧉ rechts oben im 3D legt es in ein eigenes Fenster – z. B. auf den zweiten Bildschirm. In der Mitte steht dann die Tabelle bzw. der Grundriss; ↙ oder das Fenster schließen holt das 3D zurück.",
+  "ziel": ".b3-l [data-b3ab]"
+ },
+ {
   "id": "gm-nav-2111",
   "datum": "2026-11-21",
   "app": "gebaeudemodell",

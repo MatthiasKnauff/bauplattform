@@ -331,11 +331,6 @@ def test_baukasten_neuer_planstand(ctx):
     r = a.get(f"{B}/netz")
     n = json.loads(gzip.decompress(r.body) if (r.headers.get("Content-Encoding") or "") == "gzip" else r.body)
     gleich([e["i"] for e in n["e"]], [9600000], "Netz des Bausteins am Planstand")
-    # derselbe Klick „Neuer Planstand“ legt genau einen an, auch wenn zwei Anfragen kommen (21.11.2026: es entstanden zwei „Planung …“)
-    zahl = len(a.gj(f"{B}/planstaende")["planstaende"])
-    for _ in range(2):
-        a.put(f"{B}/baukasten", {**v, "netz": N, "neu": True, "neu_id": "klick-test-1"})
-    gleich(len(a.gj(f"{B}/planstaende")["planstaende"]), zahl + 1, "zweimal dieselbe Kennung: ein neuer Planstand")
     # Quelle „Bauteile“ der Ausschreibung (21.11.2026, Mock „Gebäudemodell in der Kopierquelle“ A1 B1 C2 D3): Positionen je Bauteil, im LV verknüpft
     w = next((z for z in L["zeilen"] if z.get("korb") and str(z.get("kg", "")).startswith("33")), None)
     pruefe(w or not vl, f"Zeile der Außenwand kennt ihren Korb-Eintrag: {[(z['id'], z.get('korb')) for z in L['zeilen'] if str(z.get('kg', '')).startswith('33')]}")

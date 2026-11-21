@@ -684,11 +684,6 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
             m["baukasten"], m["korb"] = bk, kb
             m["assistent"] = ins_assistent(m.get("assistent") or {}, bk)
             neu = bool(d.get("neu"))   # „Neuer Planstand – mit dem Baukasten“ (21.11.2026): eigener Planstand, gilt sofort – auch neben einem IFC
-            nid = str(d.get("neu_id") or "")[:40]   # Kennung des Klicks: kommt dieselbe noch einmal (zweite Anfrage, Wiederholung), entsteht kein zweiter Planstand
-            if neu and nid and m.get("baukasten_neu") == nid:
-                neu = False
-            elif neu and nid:
-                m["baukasten_neu"] = nid
             plan = _plan_art(m)
             if neu or plan != "ifc":   # ohne Plan: den Planstand aus dem Baukasten nachführen (Bauteile + 3D)
                 nachfuehren(c, pid, m, wer, schreiben_modell, netz_pruefen(d.get("netz")), neu, str(d.get("name") or "")[:60])

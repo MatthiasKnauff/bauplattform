@@ -130,7 +130,10 @@ export async function gebaeudemodellPruefen(browser, repo) {
       await p.click('.bt-anf [data-m="baukasten"]'); await p.waitForFunction(() => !!document.querySelector('#view .gm-d3 .b3 canvas'), null, { timeout: 8000 }).catch(() => {});
       for (let i = 0; i < 40 && !S.bkPut; i++) await p.waitForTimeout(100);
       await p.waitForTimeout(1500);   // ein zweiter Baukasten (zwei Aufrufe gleichzeitig) hätte jetzt auch gespeichert
-      pruef(S.bkNeuPut === 1 && S.bkPut.neu_id, `Neuer Planstand: genau eine Anfrage „neu“ mit Kennung (${S.bkNeuPut}× „neu“, Kennung ${S.bkPut && S.bkPut.neu_id}) – sonst entstehen zwei Planstände`);
+      pruef(S.bkNeuPut === 1, `Neuer Planstand: genau eine Anfrage „neu“ (${S.bkNeuPut}×) – sonst entstehen zwei Planstände`);
+      S.bkNeuPut = 0;   // gleichzeitig: „Neuer Planstand“ läuft, während die Bauteile fertig laden und die Mitte ebenfalls aufbauen wollen
+      await p.evaluate(() => { gmWeg('baukasten'); g3Mitte('3d', true); }); await p.waitForTimeout(2500);
+      pruef(S.bkNeuPut === 1, `Neuer Planstand, zwei Aufrufe gleichzeitig: ${S.bkNeuPut}× „neu“ – die Mitte darf nur einmal aufgebaut werden`);
       pruef(/neu=1/.test(S.bkGet || '') && S.bkPut && S.bkPut.neu === true && (S.bkPut.netz || {}).e && S.bkPut.netz.e.length > 4, `Neuer Planstand mit dem Baukasten: ${S.bkGet} ${JSON.stringify(S.bkPut && { neu: S.bkPut.neu, n: (S.bkPut.netz || {}).e && S.bkPut.netz.e.length })}`);
       await zu('bauteile');
     }

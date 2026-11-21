@@ -179,7 +179,7 @@ def _sichern(c, pid, L, wer):
         c.execute("UPDATE pm_planstand SET daten=? WHERE id=?", (json.dumps(L, ensure_ascii=False), sid))
         return sid
     Q = L.get("quelle") or {}
-    sid = _neu(c, pid, f"Planstand {(Q.get('gelesen') or _jetzt())[:10]}", Q.get("datei", ""), Q.get("pfad", ""), "", Q.get("art", "ifc"), wer, L, False)
+    sid = _neu(c, pid, Q.get("name") or f"Planstand {(Q.get('gelesen') or _jetzt())[:10]}", Q.get("datei", ""), Q.get("pfad", ""), "", Q.get("art", "ifc"), wer, L, False)
     L["quelle"] = dict(Q, planstand=sid)
     c.execute("UPDATE pm_planstand SET daten=? WHERE id=?", (json.dumps(L, ensure_ascii=False), sid))
     return sid

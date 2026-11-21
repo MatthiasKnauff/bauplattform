@@ -3185,7 +3185,7 @@
   document.addEventListener('contextmenu', (e) => {
     kmZu();
     if (e.defaultPrevented || e.shiftKey) return;   // App hat eigenes Menü / Browser-Menü gewünscht
-    const t = e.target.closest ? e.target : e.target.parentElement; if (!t || t.closest('.bph-km,canvas,iframe,embed,object,video')) return;
+    const t = e.target.closest ? e.target : e.target.parentElement; if (!t || t.closest('.bph-km,canvas:not([data-kontext]),iframe,embed,object,video')) return;   // 3D-Ansicht mit Punkten der App (data-kontext, Baukasten)
     const app = [], KD = { punkte: app, ziel: t, x: e.clientX, y: e.clientY, nur: false }; t.dispatchEvent(new CustomEvent('bph:kontext', { bubbles: true, detail: KD }));
     if (!KD.nur && matchMedia('(pointer: coarse)').matches) return;   // Touch: nur Menüs der App (detail.nur, z. B. Dateien – lange drücken)
     /* Was die App hier anbietet – sonst Eingabefeld bzw. die Knöpfe der Zeile (Löschen zuletzt), Kopieren, Link; die Befehle der ausgeblendeten

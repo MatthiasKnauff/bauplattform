@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-baukasten-3d",
+  "datum": "2026-11-21",
+  "app": "gebaeudemodell",
+  "titel": "Baukasten in derselben 3D-Ansicht",
+  "text": "Ohne Plan baust du das Gebäude jetzt in derselben 3D-Ansicht wie beim IFC-Modell: ziehen dreht, Klick wählt, Strg mehrere. Wände und Dächer haben ihre Dicke aus dem Aufbau. Befehle (Geschoss, Keller, Anbau, Dachform) stehen rechts und kommen per Rechtsklick auf die Stelle; Dach, Gaube, Fenster und Türen aus der Symbolreihe aufs Modell ziehen – die Stelle leuchtet grün. „Neuer Planstand …“ fragt: mit dem Baukasten, mit der Planung oder mit einer Datei. Im Editor findet die Suche oben auch Kürzel wie PP oder KS.",
+  "ziel": "#bfl"
+ },
+ {
   "id": "gm-ohneps-2111",
   "datum": "2026-11-21",
   "app": "gebaeudemodell",

@@ -19,6 +19,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
       ...((S.plus || {}).elemente || []).map((e, k) => ({ id: 9500001 + k, nr: e.nr || 'F 02', typ: e.art, art: 'Fenster', geschoss: e.geschoss, raeume: [e.raum], b: e.b, h: e.h, bruestung: e.bruestung, aussen: true, quelle: 'plus' }))],
     ...(S.plus ? { plus: { raeume: S.plus.raeume || [], elemente: (S.plus.elemente || []).map((e) => ({ ...e, nr: e.nr || 'F 02' })) } } : {}),
     zeilen: S.leer ? [] : [zeile('raum:boden:trocken', S.status ? { status: S.status, berechnen: true } : {}), { ...zeile('f'), bereich: 'oeffnung', art: 'Fenster', kg: '334', name: 'Fenster', menge: 1.74, mitglieder: ['11'], nummern: ['F 01'], ids: [11], erlaubt: ['bleibt', 'erneuern', 'neu'] },
+      ...(S.zwei ? [zeile('raum:boden:nass', { name: 'Böden Bad (0.02)', mitglieder: ['0.02'], menge: 6 })] : []),
       ...(S.mh ? [{ ...zeile('hand:1'), bereich: 'hand', art: 'von Hand', kg: '342', name: 'Trockenbauwand Flur', menge: 0, status: 'neu', berechnen: true, erlaubt: ['neu', 'erneuern', 'instandsetzen', 'abbruch'], mitglieder: [], quelle: 'hand' }] : []),
       ...(S.anw ? [{ ...zeile('raum:boden:trocken~ab'), abgeleitet: 'raum:boden:trocken', name: 'Böden – Estrich + Parkett, Mosaikparkett (0.01)', mitglieder: ['0.01'], menge: 30, status: 'erneuern', kurz: 'Estrich + Parkett, Mosaikparkett' }] : [])],
     anweisungen: S.anw ? [{ id: 'a1', text: S.anw, schritte: [{ material: 'Mosaikparkett', treffer: { name: 'Estrich + Parkett, Mosaikparkett' } }], wer: 'admin', wann: '2026-11-16T18:00' }] : [] });
@@ -36,7 +37,8 @@ export async function gebaeudemodellPruefen(browser, repo) {
     if (pf === 'api/me') return J({ ok: true, id: 1, name: 'admin', vorname: 'A', role: 'admin', admin: true, is_admin: true, look: {} });
     if (pf === 'api/platform') return J({ apps: [], user: { name: 'admin', role: 'admin' }, projekte: [] });
     if (pf === 'api/bp/projekt') return J({ id: 7, name: 'Testprojekt', nummer: 'A1' });
-    if (pf === 'api/bp/modell/7/planstaende') return J(S.keinPs ? { planstaende: [], gilt: null } : { planstaende: [{ id: 1, name: 'Werkplanung', erstellt: '2026-11-16' }], gilt: 1 });
+    if (pf === 'api/bp/modell/7/planstaende') return J(S.keinPs ? { planstaende: [], gilt: null } : { planstaende: [{ id: 1, name: 'Werkplanung', erstellt: '2026-11-16' }, { id: 2, name: 'Baukasten 21.11.2026', erstellt: '2026-11-21' }], gilt: 1 });
+    if (pf === 'api/bp/modell/7/planstand/2') return J({ planstand: { id: 2, name: 'Baukasten 21.11.2026', art: 'hand' }, liste: { quelle: { art: 'hand', planstand: 2 }, raeume: [{ nr: 'X.01', name: 'Altbau', flaeche: 20, hoehe: 2.5, geschoss: 'EG' }], elemente: [], zeilen: [zeile('raum:boden:alt', { name: 'Böden Altbau', mitglieder: ['X.01'] })] }, abgleich: { neu: [], geaendert: [], entfaellt: [] } });
     if (pf === 'api/bp/modell/7/rueckweg') return J({ vorschlaege: [], schalter: { kosten: true, termine: true }, phasen: [], termine: {}, extern: false });
     if (pf === 'api/bp/modell/7/bauteile/zeile') { const b = JSON.parse(q.postData() || '{}'); S.zeile.push(b); S.status = b.status || null; return J(M()); }
     if (pf === 'api/bp/modell/7/bauteile/vorlagen') return J([{ id: '353.02', kg: '353', name: 'Estrich + Parkett', einheit: 'm²', schichten: [] }]);
@@ -48,7 +50,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
     if (pf === 'api/bp/modell/7/hand' && q.method() === 'PUT') { S.handPut = JSON.parse(q.postData() || '{}'); return J(M()); }
     if (pf === 'api/bp/modell/7/hand/vorschlag') return J({ quelle: 'assistent', raeume: [{ nr: 'EG.01', name: 'Wohnen', geschoss: 'EG', flaeche: 30, hoehe: 2.5 }], elemente: [{ nr: 'F 01', art: 'Fenster', geschoss: 'EG', raum: 'EG.01', b: 1.26, h: 1.38, bruestung: 0.9 }] });
     if (pf === 'api/bp/modell/7/raum') { const b = JSON.parse(q.postData() || '{}'); S.rn = b.name; return J(M()); }
-    if (pf === 'api/bp/modell/7/netz') return J(NETZ);
+    if (pf === 'api/bp/modell/7/netz') { S.netzUrl = q.url(); return J(NETZ); }
     if (pf === 'api/bp/modell/7/aenderungen') return J({ aenderungen: [{ id: 3, zeile: 'f', ids: [11], art: 'bauteil', feld: 'status', text: 'Maßnahme: noch offen → erneuern', wann: new Date().toISOString().slice(0, 19), wer: 'anna', app: 'waermeschutz', zurueck: false, kann: true }], einst: { a: 'a1', b: 'b1', c: 'c2', d: 'd2', e: 'e1', f: 'f1' } });
     if (pf === 'api/bp/modell/7/aenderungen/3/zurueck') { S.zur = true; return J({ ...M(), aenderungen: [] }); }
     if (pf === 'api/bp/ki/stufen') return J({ buero: true, extern: false, grund: {} });
@@ -56,6 +58,8 @@ export async function gebaeudemodellPruefen(browser, repo) {
     if (pf === 'api/bp/modell/7/grundriss') return J({ art: 'ifc', geschosse: [{ n: 'EG', z: 0 }], flaechen: [{ g: 0, umriss: [[-4.8, 0.3], [-0.2, 0.3], [-0.2, 4], [-4.8, 4]], flaeche: 17, z: 0, hoehe: 2.5, mitte: [-2.5, 2], raum: { nr: '0.01', name: 'Wohnen' } },
       { g: 0, umriss: [[0.2, 0.3], [4.8, 0.3], [4.8, 1.3], [0.2, 1.3]], flaeche: 4.5, z: 0, hoehe: 2.5, mitte: [2.5, 0.8], raum: null }] });
     if (pf === 'api/bp/modell/einst') return J({ a: 'a1', b: 'b1', c: 'c2', d: 'd2', e: 'e1', f: 'f1' });
+    if (pf === 'api/bp/modell/7/baukasten' && q.method() === 'GET') { S.bkGet = q.url(); return J({ baukasten: { koerper: [{ id: 'k1', teil: 'h', x: 0, y: 0, z: 0, w: 12, d: 9, h: 2.9, seiten: {} }], dach: { k1: { form: 'sattel', aufbau: '' } }, gauben: [], oeff: [], teile: { h: 'Hauptgebäude' } }, korb: {}, plan: 'hand', herkunft: 'leer', raeume: [] }); }
+    if (pf === 'api/bp/modell/7/baukasten') { S.bkPut = JSON.parse(q.postData() || '{}'); return J({ ...M(), plan: 'hand' }); }
     if (pf === 'api/bp/modell/7') return J(M());
     return J(/liste|projekte|neuigkeit|kontakte/.test(pf) ? [] : {});
   });
@@ -94,6 +98,39 @@ export async function gebaeudemodellPruefen(browser, repo) {
       S.zeile = []; await p.keyboard.press('Control+z'); await p.waitForTimeout(500);
       pruef(S.zeile.length === 2 && S.zeile.every((b) => b.status === 'offen'), `ein Rückgängig für beide: ${JSON.stringify(S.zeile)}`);
       await p.click('.bt-mwl [data-btmwweg]'); await p.waitForTimeout(150); }
+    {   // 21.11.2026: mehrere gleicher Art – rechts derselbe Aufbau-Editor wie bei einem Bauteil, die Wahl gilt für alle
+      S.zwei = true; S.zeile = []; await zu('bauteile'); await p.waitForSelector('tr[data-btz="raum:boden:nass"]');
+      await p.click('tr[data-btz="raum:boden:trocken"] td.baumz'); await p.click('tr[data-btz="raum:boden:nass"] [data-btmw]');
+      await p.waitForSelector('.sr-r .bt-mwe [data-btvl="353.02"]', { timeout: 5000 });
+      await p.click('.sr-r .bt-mwe [data-btvl="353.02"]'); await p.waitForTimeout(500);
+      pruef(S.zeile.filter((b) => b.vorlage === '353.02').map((b) => b.id).sort().join() === 'raum:boden:nass,raum:boden:trocken', `Aufbau im Editor gilt für alle Gewählten: ${JSON.stringify(S.zeile)}`);
+      await p.click('.bt-mwl [data-btmwweg]').catch(() => {}); S.zwei = false; S.zeile = []; await zu('bauteile'); }
+    {   // 21.11.2026: Räume, Fenster & Türen sind Reiter derselben Seite – rechts bleibt alles stehen (kein „Planungsassistent wird geladen“)
+      await zu('bauteile'); await p.waitForSelector('#view [data-gmtr="raeume"]');
+      await p.evaluate(() => { window.RECHTS = document.querySelector('#work .sr-r'); });
+      await p.click('#view [data-gmtr="raeume"]'); await p.waitForSelector('#view .gm-li tr[data-gmz]');
+      pruef(await p.evaluate(() => document.querySelector('#view .gm-tabi').hidden && !document.querySelector('#view .gm-li').hidden && document.querySelector('#work .sr-r') === window.RECHTS
+        && [...document.querySelectorAll('.sr-tab')].map((x) => x.textContent.trim()).join('|') === 'Bauteil|Änderungen|Planung'), 'Reiter „Räume“: Liste in derselben Seite, rechts unverändert');
+      await p.click('#view [data-gmtr="fenster"]'); await p.waitForSelector('#view .gm-li tr[data-gmz]');
+      pruef(await p.evaluate(() => document.querySelector('#work .sr-r') === window.RECHTS && !/Planungsassistent wird geladen/.test(document.querySelector('#work').textContent)), 'Wechsel Räume → Fenster lädt rechts nicht neu');
+      // angesehener Planstand, der nicht gilt: Räume, 3D und Grundriss bleiben bei ihm, nur zum Ansehen
+      await p.evaluate(() => BT.ansehen(2)); await p.click('#view [data-gmtr="raeume"]'); await p.waitForSelector('#view .gm-li .gm-ansehen', { timeout: 6000 });
+      pruef(await p.evaluate(() => /Altbau/.test(document.querySelector('#view .gm-li').textContent) && !/Wohnen/.test(document.querySelector('#view .gm-li').textContent)
+        && [...document.querySelectorAll('#view .gm-li input')].every((x) => x.disabled)), 'angesehener Planstand: Räume aus ihm, nur zum Ansehen');
+      pruef(await p.evaluate(() => { const b = [...document.querySelectorAll('#bfl button')].find((x) => /3D$/.test(x.textContent.trim())); return b && !b.disabled; }), '3D beim Ansehen nicht gesperrt');
+      S.netzUrl = ''; await p.evaluate(() => mitteWahl('3d')); await p.waitForTimeout(600);
+      pruef(/planstand=2/.test(S.netzUrl || ''), `3D zeigt den angesehenen Planstand: ${S.netzUrl}`);
+      await p.evaluate(() => mitteWahl('tabelle')); await p.waitForSelector('#view [data-gman="zurueck"]');
+      await p.click('#view [data-gman="zurueck"]'); await p.waitForFunction(() => /Wohnen/.test((document.querySelector('#view .gm-li') || {}).textContent || ''), null, { timeout: 6000 }).catch(() => {});
+      pruef(await p.evaluate(() => /Wohnen/.test(document.querySelector('#view .gm-li').textContent) && !document.querySelector('#view .gm-ansehen')), '„Zurück zum gültigen“: wieder die Räume des gültigen Planstands');
+      await zu('bauteile');
+      // „Neuer Planstand …“ in der Befehlsleiste: Wie willst du beginnen? → Mit dem Baukasten = Erdgeschoss + Satteldach, eigener Planstand (gilt sofort)
+      await p.evaluate(() => [...document.querySelectorAll('#bfl button')].find((b) => /Neuer Planstand/.test(b.textContent)).click()); await p.waitForSelector('.bt-anf [data-m="baukasten"]');
+      await p.click('.bt-anf [data-m="baukasten"]'); await p.waitForFunction(() => !!document.querySelector('#view .gm-d3 .b3 canvas'), null, { timeout: 8000 }).catch(() => {});
+      for (let i = 0; i < 40 && !S.bkPut; i++) await p.waitForTimeout(100);
+      pruef(/neu=1/.test(S.bkGet || '') && S.bkPut && S.bkPut.neu === true && (S.bkPut.netz || {}).e && S.bkPut.netz.e.length > 4, `Neuer Planstand mit dem Baukasten: ${S.bkGet} ${JSON.stringify(S.bkPut && { neu: S.bkPut.neu, n: (S.bkPut.netz || {}).e && S.bkPut.netz.e.length })}`);
+      await zu('bauteile');
+    }
     // Fragen & Anweisungen: Anweisung mit Vorschau, Rückfrage (Katalog), anwenden – ausgeführt in der Liste darunter; Rückgängig nimmt sie zurück
     await p.click('#navL [data-pl="fragen"]'); await p.waitForSelector('#view [data-gmanw]', { timeout: 8000 });
     pruef(await p.evaluate(() => !!document.querySelector('#view [data-gmluecken]') && !document.querySelectorAll('#bfl .bf-gt').length || ![...document.querySelectorAll('#bfl .bf-gt')].some((x) => /KI/.test(x.textContent))), 'Fragen & Anweisungen: „KI: Lücken füllen“ auf der Seite, keine KI-Gruppe in der Leiste');
@@ -143,7 +180,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
       pruef(g.tab - g.leer < 60, `ohne Bauteile: Tabelle rutscht nach unten – ${JSON.stringify(g)}`);
       // 21.11.2026: einziger Planstand gelöscht – das Menü bleibt offen bar mit „noch keiner“ und „Neuen Planstand einlesen“
       S.keinPs = true; await zu('bauteile'); await p.waitForSelector('.gm-vm .bph-vm-b', { timeout: 8000 }); await p.waitForTimeout(300);
-      const vm = await p.evaluate(() => { const b = document.querySelector('.gm-vm .bph-vm-b'); b.click(); const m = document.querySelector('.bph-vm-m:not([hidden])'); return { aus: b.disabled, t: b.textContent, neu: !!(m && /Neuen Planstand einlesen/.test(m.textContent)) }; });
+      const vm = await p.evaluate(() => { const b = document.querySelector('.gm-vm .bph-vm-b'); b.click(); const m = document.querySelector('.bph-vm-m:not([hidden])'); return { aus: b.disabled, t: b.textContent, neu: !!(m && /Neuer Planstand/.test(m.textContent)) }; });
       pruef(!vm.aus && /noch keiner/.test(vm.t) && vm.neu, `ohne Planstand: Menü gesperrt oder ohne „Neu“ – ${JSON.stringify(vm)}`);
       await p.keyboard.press('Escape'); S.keinPs = false; S.leer = false; }
     {   // GO 20.11.2026 (Mock „Gebäudemodell ergänzen“ A1 C1; „schlank“: „＋ Fenster / Tür“ / „＋ Raum“ rechts über der Tabelle statt „Neu“ in der Leiste):

@@ -9,10 +9,6 @@ main.pl .gm-work{flex:1;min-height:0;display:flex}main.pl .gm-work.sr-split{disp
 #view{flex:1;min-height:0;overflow:auto;padding:.5rem .8rem 2rem}
 #view.gm-bt{overflow:hidden;display:flex;flex-direction:column;padding-bottom:.5rem}#view.gm-bt>div{flex:1;min-height:0}
 .pl-leer{padding:1.2rem 1.3rem;display:grid;gap:.7rem;justify-items:start}
-.pl-st{padding:.8rem .9rem 1.2rem;display:grid;gap:.7rem}
-.pl-st table{border-collapse:collapse;width:100%}
-.pl-st th,.pl-st td{text-align:left;padding:.4rem .6rem;border-bottom:1px solid var(--line)}
-.pl-st th{font-size:.78rem;color:var(--mute);font-weight:600}.pl-st td.nr{width:3rem;font-weight:600}.pl-st td.kl{white-space:nowrap;color:var(--mute)}
 .gm-vm{padding:0 .3rem .4rem}
 .gm-l{width:100%;border-collapse:collapse;font-size:.88rem}.gm-l th{position:sticky;top:0;background:var(--bg);text-align:left;font-size:.78rem;color:var(--mute);font-weight:600;padding:.3rem .45rem;z-index:1}
 .gm-l td{padding:.28rem .45rem;border-top:1px solid var(--line);vertical-align:middle}.gm-l td.r,.gm-l th.r{text-align:right;white-space:nowrap}.gm-l tr[data-gmz]{cursor:pointer}.gm-l tr[data-gmz]:hover{background:var(--hov)}
@@ -20,7 +16,6 @@ main.pl .gm-work{flex:1;min-height:0;display:flex}main.pl .gm-work.sr-split{disp
 .gm-hin{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.45rem .7rem;margin-bottom:.5rem;font-size:.86rem}
 .gm-l input.gm-rn{width:12rem;max-width:100%;padding:.12rem .35rem}
 .gm-mask input.gm-hi{width:auto;min-width:3rem;padding:.12rem .35rem}.gm-mask td{padding:.18rem .35rem}.gm-mask .gm-art{min-width:6.5rem}
-.gm-vor{max-height:55vh;overflow:auto}.gm-vor input[data-gvf]{padding:.1rem .3rem}
 /* Ergänzt neben dem Plan (20.11.2026, A1): gelb markierte Zeilen mit Eingabefeldern zwischen denen aus dem Plan */
 .gm-l tr.gm-plus td{background:#fff9e2;color:#1d2430}.gm-l tr.gm-plus input.gm-hi{width:auto;min-width:2.6rem;padding:.1rem .3rem;background:#fff;color:#1d2430;border:1px solid #e0c98a}.gm-l tr.gm-plus .gm-art{background:#fff;color:#1d2430;border-color:#e0c98a}.gm-l tr.gm-plus td:nth-child(3){white-space:nowrap}.gm-l tr.gm-plus .gm-art{min-width:6.5rem}
 .gm-chip{display:inline-block;font-size:.74rem;border-radius:1em;padding:0 .5em;border:1px solid #e7c27a;background:#fff4d6;color:#7a5d00}.gm-her{white-space:nowrap}.gm-her .mute{font-size:.8rem}.gm-leerz{margin:.5rem 0}
@@ -36,8 +31,7 @@ main.pl .gm-work{flex:1;min-height:0;display:flex}main.pl .gm-work.sr-split{disp
 .g3-aend{display:grid;gap:.5rem;align-content:start}.g3-zs{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:.5rem;align-items:center}.g3-zs input{width:100%}.g3-zs .mute,.g3-zt{font-size:.8rem;margin:0}
 .g3-al{display:grid;gap:2px}.g3-a{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.1rem .5rem;align-items:center;font-size:.86rem;padding:.3rem .4rem;border-radius:calc(6px*var(--rk,1));cursor:pointer;border-bottom:1px solid var(--line)}
 .g3-am{grid-column:1;display:flex;gap:.35rem;align-items:center;font-size:.76rem;color:var(--mute);min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.g3-at{grid-column:1;min-width:0;overflow-wrap:anywhere}.g3-a>button{grid-column:2;grid-row:1/3;white-space:nowrap}.g3-lb{display:grid;gap:2px}.g3-fl:empty{display:none}
-.g3-a:hover{background:var(--hov)}.g3-a.alt{opacity:.5}.g3-a.zur .g3-at{text-decoration:line-through}.g3-ap{display:inline-flex;gap:.35rem;align-items:center}.g3-af{flex:none;width:.7rem;height:.7rem;border-radius:2px;display:inline-block}
-.g3-ar{color:var(--mute);font-size:.8rem;white-space:nowrap}.g3-aw{color:var(--mute);white-space:nowrap}
+.g3-a:hover{background:var(--hov)}.g3-a.alt{opacity:.5}.g3-a.zur .g3-at{text-decoration:line-through}.g3-af{flex:none;width:.7rem;height:.7rem;border-radius:2px;display:inline-block}
 .g3-ef{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.4rem .7rem;margin:0 0 .6rem;display:grid;gap:.2rem}.g3-ef legend{font-weight:600;padding:0 .3rem}
 /* Gebäudemodell schlank (GO 20.11.2026): Reiter über der Tabelle, Grundriss, Fragen & Anweisungen */
 #view.gm-bt>.gm-tab{display:flex;flex-direction:column;gap:.4rem}#view.gm-bt .gm-tabi{flex:1;min-height:0}

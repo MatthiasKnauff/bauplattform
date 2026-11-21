@@ -25,31 +25,31 @@ function nav() {
   bpNav(NAV, { kopf: { titel: 'Gebäudemodell', klein: 'Projektmodell' }, attr: 'pl', lage: true, aktiv: navId(), davor: '<div class="gm-vm"></div>',
     nachher: (el) => { const b = el.querySelector('.gm-vm'); if (b && BT) BT.menue(b); },
     gruppen: NAVG.map(([t, P]) => ({ titel: t, punkte: P.map(([id, text]) => ({ id, text, icon: IC[id] || IC.gebaeude })) })),
-    wahl: (id) => { SICHT = id === 'gebaeude' ? (TABS.some((t) => t[0] === SICHT) ? SICHT : 'bauteile') : id; if (id === 'gebaeude' && G3.mitte !== 'tabelle') SICHT = 'bauteile'; LS.set('sicht', SICHT); zeichne(); } });
+    wahl: (id) => { SICHT = id === 'gebaeude' ? (TABS.some((t) => t[0] === SICHT) ? SICHT : 'bauteile') : id; LS.set('sicht', SICHT); zeichne(); } });
 }
 
 /* Befehlsleiste: Rückgängig (undo.js) · Planstand · Ansicht – was gerade nicht geht, bleibt grau an seinem Platz */
 function leiste() {
-  const st = BT ? BT.zustand() : {}, geb = TABS.some((t) => t[0] === SICHT), bt = !!BT && SICHT === 'bauteile', bh = window.BPHead && BPHead.bauherrAn && BPHead.bauherrAn();
-  const mitte = SICHT === 'bauteile' ? G3.mitte : geb ? 'tabelle' : '';
+  const st = BT ? BT.zustand() : {}, geb = TABS.some((t) => t[0] === SICHT), bh = window.BPHead && BPHead.bauherrAn && BPHead.bauherrAn();
+  const mitte = geb ? G3.mitte || 'tabelle' : '';
   const ausgeben = (e) => pickMenu(e.target.closest('button'), { items: [
     { value: 'ifc', title: 'IFC mit Maßnahmen ausgeben', sub: !st.ifc ? 'nur mit gültigem IFC-Planstand' : st.an ? 'erst den Entwurf gelten lassen oder verlassen' : 'Nummern, Status und Aufbau in den Bauteilen' },
     { value: 'bh', title: 'Im Bauherrenportal zeigen', sub: bh ? 'Räume, Flächen, Maßnahmen, Planstand und 3D – ohne Kosten' : 'Bauherrenportal ist nicht eingerichtet' }],
   onPick: (v) => { if (v === 'ifc') { if (!BT || !st.ifc || st.an || !(st.zeilen || []).length) return toast('IFC ausgeben geht nur mit einem gültigen IFC-Planstand.', true); return BT.ausgeben(); }
     if (v === 'bh') { if (!bh) return toast('Das Bauherrenportal ist nicht eingerichtet.', true); return bauherr(); } } });
   befehle(LEISTE, [
-    { titel: 'Planstand', knoepfe: [{ t: 'Einlesen …', ic: IC.lesen, fn: async () => { if (!bt) { SICHT = 'bauteile'; await zeichne(); } if (BT) BT.einlesen(); }, aus: !PID, tip: 'Neuen Planstand einlesen: IFC (Allplan u. a.), DXF oder PDF – mit Abgleich' },
+    { titel: 'Planstand', knoepfe: [{ t: 'Neuer Planstand …', ic: IC.lesen, fn: async () => { if (!BT) { SICHT = 'bauteile'; await zeichne(); } if (BT) BT.anfang(true); }, aus: !PID, tip: 'Wie willst du beginnen? Mit dem Baukasten, mit der Planung oder mit einer Datei (IFC, DXF, PDF)' },
       { t: 'Gelten lassen', ic: IC.gilt, fn: () => BT.gelten(), aus: !st.an, tip: 'Den angesehenen Planstand gelten lassen – die Apps arbeiten dann damit' },
       ...(st.weg && !st.an ? [{ t: `${st.weg} entfallene entfernen`, ic: IC.weg, fn: () => BT.aufraeumen(), tip: 'Zeilen entfernen, die im gültigen Planstand nicht mehr vorkommen' }] : []),   // nur, wenn es etwas gibt (Mock „schlank“)
       { t: 'Ausgeben ▾', ic: IC.aus, fn: ausgeben, aus: !PID, tip: 'IFC mit Maßnahmen ausgeben · im Bauherrenportal zeigen' }] },
     { titel: 'Ansicht', rechts: true, knoepfe: [
-      { t: '3D', ic: IC.d3, fn: () => mitteWahl('3d'), aus: !PID || !!st.an, an: mitte === '3d', tip: st.plan ? 'Das Modell aus dem Plan groß in der Mitte – Färbungen, Auswahl, Wände spreizen' : 'Das Gebäude in 3D – ohne Plan baust du es hier mit dem Baukasten' },
-      { t: 'Grundriss', ic: IC.gr, fn: () => mitteWahl('grundriss'), aus: !PID || !!st.an, an: mitte === 'grundriss', tip: 'Grundriss je Geschoss – Räume, Flächen ohne Raum per Klick als Raum annehmen' },
+      { t: '3D', ic: IC.d3, fn: () => mitteWahl('3d'), aus: !PID, an: mitte === '3d', tip: st.an ? 'Der angesehene Planstand in 3D – nur zum Ansehen' : st.plan ? 'Das Modell aus dem Plan groß in der Mitte – Färbungen, Auswahl, Wände spreizen' : 'Das Gebäude in 3D – ohne Plan baust du es hier mit dem Baukasten' },
+      { t: 'Grundriss', ic: IC.gr, fn: () => mitteWahl('grundriss'), aus: !PID, an: mitte === 'grundriss', tip: 'Grundriss je Geschoss – Räume, Flächen ohne Raum per Klick als Raum annehmen' },
       { t: 'Tabelle', ic: IC.zeile, fn: () => mitteWahl('tabelle'), aus: !PID, an: mitte === 'tabelle', tip: 'Bauteile, Räume, Fenster & Türen als Tabelle – direkt ändern, mit Haken mehrere gemeinsam' }] },
   ]);
 }
 async function mitteWahl(w) {
-  if (SICHT !== 'bauteile') { SICHT = 'bauteile'; LS.set('sicht', SICHT); LS.set('mitte', w); return zeichne(); }
+  if (!TABS.some((t) => t[0] === SICHT) || !V.querySelector('.gm-tabi')) { if (!TABS.some((t) => t[0] === SICHT)) { SICHT = 'bauteile'; LS.set('sicht', SICHT); } LS.set('mitte', w); return zeichne(); }
   g3Mitte(w);
 }
 
@@ -110,14 +110,13 @@ async function luecken(b) {
 async function zeichne(zeige) {
   nav();
   const geb = TABS.some((t) => t[0] === SICHT);
-  if (SICHT !== 'bauteile') { BT = null; G3.D3 = null; G3.BK = null; if (window.seite) seite(WORK, 'gmp', [seite.planung], { planung: false, zu: true }); }   // Assistent wie überall rechts (Reiter „Planung“)
+  if (!geb) { BT = null; G3.D3 = null; G3.BK = null; if (window.seite && WORK.dataset.sr !== 'gmp') seite(WORK, 'gmp', [seite.planung], { planung: false, zu: true }); }   // Fragen, Verknüpfungen: rechts nur „Planung“ – nicht bei jedem Wechsel neu laden
   leiste();
   if (!PID) {
     V.className = 'pl-leer'; V.innerHTML = '<p>Bitte oben ein Projekt wählen – das Gebäudemodell gehört immer zu einem Projekt.</p><button type="button" class="btn primary" data-plprojekt>Projekt wählen</button>'; return;
   }
   try {
-    if (SICHT === 'bauteile') return await bauteile3d(zeige);   // gebaeudemodell-3d.js
-    if (geb) { V.className = 'bp-voll'; await gmListe(SICHT); const h = document.createElement('div'); h.innerHTML = tabsHtml(); V.prepend(h.firstChild); return; }   // gebaeudemodell-listen.js
+    if (geb) return await bauteile3d(zeige);   // gebaeudemodell-3d.js – Bauteile, Räume, Fenster & Türen als Reiter derselben Seite
     if (SICHT === 'fragen') return await fragenSeite();
     V.className = 'bp-voll'; V.innerHTML = ''; const feld = document.createElement('div'); V.appendChild(feld);
     await baustein('karte.js', 'bpKarte'); bpKarte.mount(feld, PID);
@@ -129,12 +128,12 @@ document.addEventListener('bp:gmSicht', (e) => {   // Verknüpfungen: Weg I–V 
 });
 document.addEventListener('bp:verknuepfung', () => { SICHT = 'karte'; LS.set('sicht', SICHT); zeichne(); });   // Assistent, letzter Schritt: Zeile antippen → Verknüpfungen (bpKarteZiel)
 /* aus einer Liste (Fenster & Türen, Räume) in die Bauteile springen und die Zeile markieren */
-function zuBauteil(id) { SICHT = 'bauteile'; LS.set('sicht', SICHT); zeichne(id); }
+function zuBauteil(id) { if (BT && V.querySelector('.gm-tabi')) { gmTab('bauteile'); return BT.zeige(id, true); } SICHT = 'bauteile'; LS.set('sicht', SICHT); zeichne(id); }
 
 V.addEventListener('click', async (e) => {
   if (e.target.closest('[data-plprojekt]')) return BPHead.projektWahl();
   const tr = e.target.closest('[data-gmtr]');
-  if (tr) { const k = tr.dataset.gmtr; if (k === 'bauteile') { SICHT = 'bauteile'; LS.set('sicht', SICHT); LS.set('mitte', 'tabelle'); return zeichne(); } SICHT = k; LS.set('sicht', SICHT); return zeichne(); }
+  if (tr) { if (BT && V.querySelector('.gm-tabi')) return gmTab(tr.dataset.gmtr); SICHT = tr.dataset.gmtr; LS.set('sicht', SICHT); LS.set('mitte', 'tabelle'); return zeichne(); }
   const nn = e.target.closest('[data-gmneu]'); if (nn) return gmNeu(nn.dataset.gmneu);
   const lb = e.target.closest('[data-gmluecken]'); if (lb) return luecken(lb);
   if (e.target.closest('[data-gmvs]')) { LS.set('mitte', 'tabelle'); return zuBauteil('__rw'); }   // Vorschläge stehen rechts unter „Bauteil“
@@ -153,4 +152,4 @@ V.addEventListener('click', async (e) => {
   await zeichne();
 })().catch((e) => toast(e.message, true));
 // Änderung aus „Fragen und Antworten“ ausgeführt (bp/fragen.js): Bauteile neu laden, damit der neue Aufbau sofort dasteht
-addEventListener('bp:modellGeaendert', (e) => { if (+((e.detail || {}).pid) !== +PID) return; if (BT && SICHT === 'bauteile' && BT.laden && !G3.BK) BT.laden(); leiste(); });
+addEventListener('bp:modellGeaendert', (e) => { if (+((e.detail || {}).pid) !== +PID) return; if (BT && BT.laden && !G3.BK) BT.laden(); leiste(); });

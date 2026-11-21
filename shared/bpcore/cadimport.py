@@ -139,10 +139,6 @@ class _Store:
                 yield i, self.get(i)[1]
 
 
-def _entitaeten(text):
-    return _Store(text)
-
-
 def _wert(v):
     while isinstance(v, _Typ):
         v = v.wert

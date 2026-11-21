@@ -149,7 +149,8 @@ export async function bauteilePruefen(browser, repo) {
     pruef(kn.length === 1 && /Anfangen/.test(kn[0]), `leeres Modell: ein Knopf „Anfangen …“ – ${kn.join(' | ')}`);
     await q.click('[data-btanfang]'); await q.waitForSelector('.bt-anf');
     const wg = await q.evaluate(() => ({ t: [...document.querySelectorAll('.bt-anf .bt-weg4 b')].map((b) => b.textContent), s: [...document.querySelectorAll('.bt-anf .bt-weg4 small')].every((x) => x.textContent.trim().length > 20), satz: document.querySelector('.bt-anf').textContent }));
-    pruef(wg.t.join('|') === 'Aus der Planung|Räume und Fenster selbst eintragen|Nur einzelne Bauteile|Plan einlesen' && wg.s && /Es entsteht ein Planstand/.test(wg.satz), `vier Wege mit je einem Satz: ${wg.t.join(' | ')}`);
+    // 21.11.2026: „Wie willst du beginnen?“ – Baukasten · Planung · Datei, darunter klein Räume selbst / einzelne Bauteile
+    pruef(wg.t.join('|') === 'Mit dem Baukasten|Mit der Planung|Mit einer Datei' && wg.s && /Es entsteht ein Planstand/.test(wg.satz) && await q.evaluate(() => !!document.querySelector('.bt-anf [data-m="raeume"]') && !!document.querySelector('.bt-anf [data-m="zeilen"]')), `drei Wege mit je einem Satz: ${wg.t.join(' | ')}`);
     await q.click('.bt-anf [data-m="x"]'); await q.waitForTimeout(100);
     // B1: Name, Menge und Einheit gleich beim Anlegen
     await q.click('.bt-plus[data-kg="330"]'); await q.waitForSelector('.bt-hd [data-bthn]');

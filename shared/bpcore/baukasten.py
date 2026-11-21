@@ -10,7 +10,8 @@ Fenster (D2): Rahmen, Verglasung und Uw gelten als Vorgabe für die Fenster-Zeil
 Kommt später ein Plan (E1), bleiben Baukasten und Korb stehen; die Angaben gehen über den Abgleich als Vorschlag (folgt).
 
 Modell: m["baukasten"] = {koerper, dach, gauben, oeff, teile, raeume}, m["korb"] = {id: {art, vorlage, name, eigen}}.
-sauber(bk) · korb_sauber(k) · aus_assistent(m) · ins_assistent(a, bk) · rohbau(bk, korb, EL) · netz(bk) · routen()
+sauber(bk) · korb_sauber(k) · aus_assistent(m) · ins_assistent(a, bk) · rohbau(bk, korb, EL) · netz_pruefen(N) · routen()
+Das 3D-Netz rechnet der Baustein (bp/gebaeudekasten.js, mit Dicke aus dem Aufbau – E1) und gibt es beim Speichern mit; Nummern wie in rohbau().
 """
 import math
 
@@ -311,22 +312,8 @@ def fenster_vorgabe(bk):
     return {"rahmen": r, "uw": round(sum(uw(o) for o in F) / len(F), 2), "anzahl": len(F)}
 
 
-# ------------------------------------------------------------------ 3D-Netz (Format von netz.py)
-def _ecken(k, s):
-    x0, x1, y0, y1 = k["x"], k["x"] + k["w"], k["y"], k["y"] + k["d"]
-    return {"xp": [(x1, y1), (x1, y0)], "xm": [(x0, y0), (x0, y1)], "yp": [(x0, y1), (x1, y1)], "ym": [(x1, y0), (x0, y0)]}[s]
-
-
-def _dreieck(P):
-    """Polygon (3D, eben, konvex) → Dreiecke als flache Liste in cm."""
-    v = []
-    for i in range(1, len(P) - 1):
-        for p in (P[0], P[i], P[i + 1]):
-            v += [round(p[0] * 100), round(p[1] * 100), round(p[2] * 100)]
-    return v
-
-
 def dach_polygone(k, form):
+    """Dachflächen eines Körpers (Weltkoordinaten) – dieselbe Reihenfolge wie dachFlaechen() im Baustein (Nummern im Netz)."""
     ue = 0.0 if form == "pult" else 0.4
     x0, x1, y0, y1, z = k["x"] - ue, k["x"] + k["w"] + ue, k["y"] - ue, k["y"] + k["d"] + ue, k["z"] + k["h"]
     kurz = min(k["w"], k["d"])
@@ -345,44 +332,33 @@ def dach_polygone(k, form):
     return [[(x1, y1, z), (x1, y0, z), r0, r1], [(x0, y0, z), (x0, y1, z), r1, r0], [(x0, y1, z), (x1, y1, z), r1], [(x1, y0, z), (x0, y0, z), r0]]
 
 
-def netz(bk):
-    """Baukasten → Netz wie netz.netz_ifc: je Körper vier Wände, Decke/Boden, Dachflächen, dazu Fenster, Türen und Gauben."""
-    K = bk.get("koerper") or []
-    zs = sorted({round(k["z"], 2) for k in K})
-    g_von = {z: i for i, z in enumerate(zs)}
-    E = []
-    for b, k in enumerate(K):
-        g = g_von[round(k["z"], 2)]
-        for si, s in enumerate(SEITEN):
-            (ax, ay), (bx, by) = _ecken(k, s)
-            E.append({"i": ID0 + b * 20 + si, "t": "w", "g": g, "c": "", "a": 0, "v": _dreieck([(ax, ay, k["z"]), (bx, by, k["z"]), (bx, by, k["z"] + k["h"]), (ax, ay, k["z"] + k["h"])])})
-        E.append({"i": ID0 + b * 20 + 5, "t": "s", "g": g, "c": "", "a": 0, "v": _dreieck([(k["x"], k["y"], k["z"]), (k["x"] + k["w"], k["y"], k["z"]), (k["x"] + k["w"], k["y"] + k["d"], k["z"]), (k["x"], k["y"] + k["d"], k["z"])])})
-        D = (bk.get("dach") or {}).get(k["id"])
-        if D:
-            for i, P in enumerate(dach_polygone(k, D["form"])):
-                E.append({"i": ID0 + b * 20 + 6 + i, "t": "r", "g": g, "c": "", "a": 0, "v": _dreieck(P)})
-    for n, o in enumerate(bk.get("oeff") or []):
-        b = next((i for i, k in enumerate(K) if k["id"] == o["k"]), None)
-        if b is None:
-            continue
-        k = K[b]
-        (ax, ay), (bx, by) = _ecken(k, o["seite"])
-        L = math.hypot(bx - ax, by - ay) or 1
-        nx, ny = SEITEN[o["seite"]]
-        t0, t1 = o["u"] - o["b"] / 2 / L, o["u"] + o["b"] / 2 / L
-        z0 = k["z"] + (0.9 if o["art"] == "fenster" else 0.0)
-        at = lambda t, zz: (ax + (bx - ax) * t + nx * 0.03, ay + (by - ay) * t + ny * 0.03, zz)   # noqa: E731 – 3 cm vor der Wand
-        E.append({"i": ID0 + 900_000 + n, "t": "d" if o["art"] == "tuer" else "f", "g": g_von[round(k["z"], 2)], "c": "", "a": 0, "h": ID0 + b * 20 + list(SEITEN).index(o["seite"]),
-                  "v": _dreieck([at(t0, z0), at(t1, z0), at(t1, z0 + o["h"]), at(t0, z0 + o["h"])])})
-    return {"stand": 2, "e": E, "geschosse": [{"n": _gname(z, zs), "z": z} for z in zs] or [{"n": "Gebäude", "z": 0}], "dreiecke": sum(len(e["v"]) // 9 for e in E), "voll": True}
+# ------------------------------------------------------------------ 3D-Netz (Format von netz.py)
+TYPEN = {"w", "s", "r", "f", "d", "o", "x"}
 
 
-def _gname(z, zs):
-    pos = [x for x in zs if x >= 0]
-    if z < 0:
-        return "Kellergeschoss"
-    i = pos.index(z) if z in pos else 0
-    return "Erdgeschoss" if not i else f"{i}. Obergeschoss"
+def netz_pruefen(N):
+    """Netz aus dem Baustein (bp/gebaeudekasten.js rechnet die Geometrie – eine Stelle, 21.11.2026) → geprüft und begrenzt, sonst None."""
+    if not isinstance(N, dict) or not isinstance(N.get("e"), list) or len(N["e"]) > 3000:
+        return None
+    E, n = [], 0
+    for e in N["e"]:
+        if not isinstance(e, dict) or not isinstance(e.get("v"), list) or len(e["v"]) % 9 or e.get("t") not in TYPEN:
+            return None
+        try:
+            v = [int(x) for x in e["v"]]
+            x = {"i": int(e["i"]), "t": e["t"], "g": max(0, min(60, int(e.get("g") or 0))), "c": _s(e.get("c"), 9), "a": 0, "v": v}
+            if e.get("h") is not None:
+                x["h"] = int(e["h"])
+        except (TypeError, ValueError):
+            return None
+        if any(abs(c) > 100_000 for c in v):   # 1 km – mehr ist kein Gebäude
+            return None
+        n += len(v) // 9
+        if n > 60_000:
+            return None
+        E.append(x)
+    G = [{"n": _s(g.get("n"), 40), "z": _f(g.get("z"), -30, 200)} for g in (N.get("geschosse") or [])[:60] if isinstance(g, dict)]
+    return {"stand": 2, "e": E, "geschosse": G or [{"n": "Gebäude", "z": 0}], "dreiecke": n, "voll": True}
 
 
 # ------------------------------------------------------------------ Adressen (eingehängt in modell.routen)
@@ -393,10 +369,11 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
     def baukasten_lesen(pid):
         def tun(c, wer):
             m = lesen_modell(c, pid)["modell"]
-            gesp = (m.get("baukasten") or {}).get("koerper") and request.args.get("neu") != "1"
-            bk = sauber(m.get("baukasten")) if gesp else aus_assistent(m)
+            neu = request.args.get("neu") == "1"   # „Neuer Planstand – mit dem Baukasten“: ein Erdgeschoss mit Satteldach, nichts übernommen
+            gesp = (m.get("baukasten") or {}).get("koerper") and not neu
+            bk = sauber(m.get("baukasten")) if gesp else aus_assistent({} if neu else m)
             a = m.get("assistent") or {}
-            herkunft = "baukasten" if gesp else "assistent" if (m.get("teile") or a.get("area") or m.get("flaeche")) else "leer"   # „leer“ = nur ein Vorschlag (ein Erdgeschoss)
+            herkunft = "baukasten" if gesp else "assistent" if not neu and (m.get("teile") or a.get("area") or m.get("flaeche")) else "leer"   # „leer“ = nur ein Vorschlag
             return jsonify(baukasten=abgleich(bk, m), korb=korb_sauber(m.get("korb")), plan=_plan_art(m), herkunft=herkunft, raeume=(m.get("bauteilliste") or {}).get("raeume") or [])
         return mit(pid, tun)
 
@@ -412,9 +389,11 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                 return jsonify(error="Mindestens ein Geschoss braucht der Baukasten."), 400
             m["baukasten"], m["korb"] = bk, kb
             m["assistent"] = ins_assistent(m.get("assistent") or {}, bk)
+            neu = bool(d.get("neu"))   # „Neuer Planstand – mit dem Baukasten“ (21.11.2026): eigener Planstand, gilt sofort – auch neben einem IFC
             plan = _plan_art(m)
-            if plan != "ifc":   # ohne Plan: Planstand „Assistent“ aus dem Baukasten nachführen (Bauteile + 3D)
-                nachfuehren(c, pid, m, wer, schreiben_modell)
+            if neu or plan != "ifc":   # ohne Plan: den Planstand aus dem Baukasten nachführen (Bauteile + 3D)
+                nachfuehren(c, pid, m, wer, schreiben_modell, netz_pruefen(d.get("netz")), neu)
+                plan = "hand"
             else:
                 schreiben_modell(c, pid, m, wer)
             return jsonify(dict(lesen_modell(c, pid), plan=plan))
@@ -426,11 +405,12 @@ def _plan_art(m):
     return "ifc" if (m.get("bauteilliste") or {}).get("zeilen") and Q.get("art") not in ("hand", None, "") else "hand"
 
 
-def nachfuehren(c, pid, m, wer, schreiben_modell):
-    """Planstand „Assistent“ aus Baukasten + Räumen/Fenstern (von Hand oder Vorschlag des Assistenten) neu bilden, Netz dazu speichern."""
+def nachfuehren(c, pid, m, wer, schreiben_modell, N=None, neu=False):
+    """Planstand aus Baukasten + Räumen/Fenstern (von Hand oder Vorschlag des Assistenten) neu bilden, Netz (N, vom Baustein) dazu speichern.
+    neu: eigener neuer Planstand („Baukasten <Datum>“), der sofort gilt – nichts aus dem bisher gültigen übernommen."""
     from datetime import datetime
     from . import anweisung, bauteilliste as B, modell_hand as MH, netz as NZ, planstand as P
-    alt = m.get("bauteilliste") or B.leer()
+    alt = B.leer() if neu else (m.get("bauteilliste") or B.leer())
     if alt.get("raeume"):
         RA, EA = MH.sauber({"raeume": alt.get("raeume") or [], "elemente": MH._el_zurueck(alt)})
     else:
@@ -440,26 +420,27 @@ def nachfuehren(c, pid, m, wer, schreiben_modell):
     roh = rohbau(m["baukasten"], m.get("korb") or {}, R["elemente"], V)
     inn = [g for g in MH.rohbau(R["raeume"], R["elemente"], m.get("assistent"), m.get("teile")) if g["kg"] == "341"] if R["raeume"] else []   # Innenwände schätzt weiter der Assistent
     R["bauteile"] = roh + inn + R["bauteile"]
-    neu = B.zeilen_aus_ifc(c, R, alt, B.bauart(m))
+    L = B.zeilen_aus_ifc(c, R, alt, B.bauart(m))
     fv = fenster_vorgabe(m["baukasten"])
     vl = {g["name"]: g["vorlage"] for g in roh}
-    for z in neu["zeilen"]:
+    for z in L["zeilen"]:
         if z["name"] in vl and not z.get("vorlage") and vl[z["name"]]:   # fest verknüpft: Aufbau aus dem Korb, auch wenn die Zeile (noch) keine Antwort hat
             B.aufbau_setzen(c, z, vl[z["name"]])
         if fv and z.get("bereich") == "oeffnung" and z.get("art") == "Fenster" and not z.get("uw"):
             z["uw"] = fv["uw"]   # D2: Uw aus dem Baukasten als Vorgabe
-    neu["anweisungen"] = alt.get("anweisungen") or []
-    neu["raumbuch"] = alt.get("raumbuch") or {}
+    L["anweisungen"] = alt.get("anweisungen") or []
+    L["raumbuch"] = alt.get("raumbuch") or {}
     Q = alt.get("quelle") or {}
-    neu["quelle"] = dict(Q, art="hand", gelesen=P._jetzt(), name=Q.get("name") or f"Assistent {datetime.now().strftime('%d.%m.%Y')}", programm="Bauplattform (Baukasten)")
-    anweisung.ableiten(c, neu)
-    P._sichern(c, pid, neu, wer)
-    sid = neu["quelle"].get("planstand")
+    L["quelle"] = dict(Q, art="hand", gelesen=P._jetzt(), name=Q.get("name") or f"Baukasten {datetime.now().strftime('%d.%m.%Y')}", programm="Bauplattform (Baukasten)")
+    anweisung.ableiten(c, L)
+    P._sichern(c, pid, L, wer)
+    sid = L["quelle"].get("planstand")
     if sid:
         c.execute("UPDATE pm_planstand SET art='hand' WHERE id=?", (sid,))
-        c.execute("INSERT INTO pm_netz(planstand, daten, erstellt) VALUES(?,?,?) ON CONFLICT (planstand) DO UPDATE SET daten=EXCLUDED.daten, erstellt=EXCLUDED.erstellt",
-                  (sid, NZ.packen(netz(m["baukasten"])), P._jetzt()))
-    schreiben_modell(c, pid, P.anwenden(m, neu), wer)
+        if N:
+            c.execute("INSERT INTO pm_netz(planstand, daten, erstellt) VALUES(?,?,?) ON CONFLICT (planstand) DO UPDATE SET daten=EXCLUDED.daten, erstellt=EXCLUDED.erstellt",
+                      (sid, NZ.packen(N), P._jetzt()))
+    schreiben_modell(c, pid, P.anwenden(m, L), wer)
 
 
 def _hat(c, tabelle):

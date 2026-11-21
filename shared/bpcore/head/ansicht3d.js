@@ -13,7 +13,12 @@
             onWahl(ids, e) meldet die Nummern der Bauteile im Plan
      spreizen: 'alle' | 'aussen' (Vorgabe alle) · spreizWahl: false = ohne Umschalter · aussen(e) → Wand außen? (sonst Zeile.aussen) ·
      teil(e) → Schlüssel des Gebäudeteils (ab zwei Teilen Schieber „⇔ Gebäudeteile“) · geladen(netz) nach dem Laden (Gebäudemodell: Liste der Bauteile)
-   → { neu(zeilen), hervor(ids), waehle(ids), farben(modi), modus(key), spreizen(w) } – farben(): neu färben, wenn sich in der App etwas geändert hat. */
+   → { neu(zeilen), hervor(ids), waehle(ids), farben(modi), modus(key), spreizen(w) } – farben(): neu färben, wenn sich in der App etwas geändert hat.
+
+   21.11.2026 (Mock „Baukasten wie 3D“ A1 B3 C1 D2): derselbe Betrachter auch für den Gebäude-Baukasten (bp/gebaeudekasten.js) –
+     kontext(e, punkte): Rechtsklick auf ein Bauteil → Punkte für das gemeinsame Kontextmenü (head.js, Ereignis bph:kontext) ·
+     gezeichnet(): nach jedem Bild (Griffe nachführen) · zurück dazu: setzen(netz) – neue Geometrie, Blick bleibt · bei(x, y) → Element unter dem
+     Zeiger · ziel(ids) – grün (Stelle zum Ablegen) · proj([x, y, z]) → [x, y] im Feld (Meter → Bildpunkte), null hinter dem Auge · feld (Element). */
 (function () {
   if (window.bp3d) return;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -30,6 +35,7 @@
 .b3 canvas{width:100%;height:100%;display:block;cursor:grab}.b3 canvas:active{cursor:grabbing}
 .b3-l{position:absolute;left:.5rem;top:.5rem;display:flex;flex-wrap:wrap;align-items:center;gap:.3rem;max-width:calc(100% - 1rem)}
 .b3-l button{font:inherit;font-size:.78rem;border:1px solid var(--line,#c9ced4);background:rgba(255,255,255,.88);color:#23282b;border-radius:calc(99px*var(--rkp,1));padding:.12rem .6rem;cursor:pointer}
+.b3-seg{display:inline-flex;padding:2px;border:1px solid var(--line,#d6dce3);border-radius:calc(999px*var(--rkp,1))}.b3-l .b3-seg button{border:0;border-radius:calc(999px*var(--rkp,1));margin:0}
 .b3-dar{flex:1 0 100%;display:flex;flex-wrap:wrap;align-items:center;gap:.3rem}
 .b3-l button.on{border-color:var(--y,#2f6fb3);box-shadow:inset 0 0 0 1px var(--y,#2f6fb3);font-weight:600}
 .b3-k{position:absolute;left:.5rem;bottom:.5rem;display:flex;flex-wrap:wrap;gap:.2rem .6rem;font-size:.74rem;color:#23282b;background:rgba(255,255,255,.85);border-radius:6px;padding:.25rem .5rem}
@@ -66,7 +72,7 @@
     if (!gl) { meld('Dieser Browser kann keine 3D-Grafik (WebGL) anzeigen.'); return; }
     const prog = (fs) => { const p = gl.createProgram(); [[gl.VERTEX_SHADER, VS], [gl.FRAGMENT_SHADER, fs]].forEach(([t, q]) => { const s = gl.createShader(t); gl.shaderSource(s, q); gl.compileShader(s); gl.attachShader(p, s); }); gl.linkProgram(p); return p; };
     const P = prog(FS), PP = prog(PS), PL = (() => { const p = gl.createProgram(); [[gl.VERTEX_SHADER, LV], [gl.FRAGMENT_SHADER, LF]].forEach(([t, q]) => { const x = gl.createShader(t); gl.shaderSource(x, q); gl.compileShader(x); gl.attachShader(p, x); }); gl.linkProgram(p); return p; })();
-    const MODI = (o.modi || []).slice(), WAHL = new Set();
+    const MODI = (o.modi || []).slice(), WAHL = new Set(), ZIEL = new Set();
     const S = { N: null, zug: 0, seit: 0, teil: 0, spreiz: o.spreizen || 'alle', teile: 0, infoE: null, rahmen: false, durch: 0, farbe: o.start || 'massnahme', aus: new Set(), dach: true, yaw: -2.3, pitch: 0.5, dist: 30, ziel: [0, 0, 0], puf: null, mitte: [0, 0, 0] };
     const zu = {};   // IFC-Objekt → Zeile der Checkliste (Status, Name, Nummer)
     (o.zeilen || []).forEach((z) => (z.ids || []).forEach((i, k) => { zu[i] = { z, nr: (z.nummern || [])[k] || '' }; }));
@@ -74,6 +80,7 @@
     let HV = o.hervor ? new Set(o.hervor.map(Number)) : null;   // hervorheben (z. B. die Objekte der markierten Zeile): alles andere blass
     const modus = () => MODI.find((m) => m.key === S.farbe);
     function farbe(e) {
+      if (ZIEL.has(e.i)) return [0.17, 0.62, 0.27, 1];   // Stelle zum Ablegen (Baukasten: Baustein hineinziehen)
       if (WAHL.has(e.i)) return [0.48, 0.18, 0.97, 1];   // angewählt: violett (hebt sich von Rot/Grün/Gelb der Färbungen ab)
       const f0 = farbe0(e), f = S.durch ? [f0[0], f0[1], f0[2], f0[3] * (1 - S.durch)] : f0;   // Durchsicht (20.11.2026): alles außer dem Angewählten durchscheinend
       return HV && HV.size && !HV.has(e.i) ? [f[0] * 0.35 + 0.62, f[1] * 0.35 + 0.62, f[2] * 0.35 + 0.62, Math.min(f[3], 0.35)] : f;
@@ -190,13 +197,18 @@
           gl.enable(gl.DEPTH_TEST); }
       }
       gl.depthMask(true); gl.disable(gl.BLEND);
+      if (!pick && o.gezeichnet) o.gezeichnet();
     }
-    function antippen(x, y, dazu) {
+    function bei(x, y) {   // Element unter dem Zeiger (Bild mit Pick-Farben, ein Punkt gelesen)
+      if (!S.puf) return null;
       zeichne(true);
       const r = window.devicePixelRatio || 1, px = new Uint8Array(4), rc = cv.getBoundingClientRect();
       gl.readPixels(Math.round((x - rc.left) * r), Math.round(cv.height - (y - rc.top) * r), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
       zeichne();
-      const id = px[0] + (px[1] << 8) + (px[2] << 16), e = id && S.sicht[id - 1], I = box.querySelector('.b3-i');
+      const id = px[0] + (px[1] << 8) + (px[2] << 16); return (id && S.sicht[id - 1]) || null;
+    }
+    function antippen(x, y, dazu) {
+      const e = bei(x, y), I = box.querySelector('.b3-i');
       if (o.wahl) {
         if (!e) { if (!dazu) { WAHL.clear(); HV = null; } } else if (dazu) { if (WAHL.has(e.i)) WAHL.delete(e.i); else WAHL.add(e.i); } else { const nur = WAHL.size === 1 && WAHL.has(e.i); WAHL.clear(); if (!nur) WAHL.add(e.i); }
         bauen(); if (o.onWahl) o.onWahl([...WAHL], e || null);
@@ -227,7 +239,7 @@
         + (G.length > 1 ? `<label class="b3-z">↕ auseinander <input type="range" min="0" max="100" value="${Math.round(S.zug / ZUG * 100)}" data-b3z aria-label="Geschosse auseinanderziehen" title="Geschosse auseinanderziehen"></label>` : '')
         + `<label class="b3-z">◐ Durchsicht <input type="range" min="0" max="90" value="${Math.round(S.durch * 100)}" data-b3o aria-label="Durchsicht" title="Bauteile durchscheinend machen – Angewähltes bleibt kräftig"></label>`
         + `<label class="b3-z">↔ Wände <input type="range" min="0" max="100" value="${Math.round(S.seit / SEIT * 100)}" data-b3s aria-label="Wände auseinanderspreizen" title="Wände senkrecht zu ihrer Fläche nach außen rücken – Fenster und Türen gehen mit"></label>`
-        + (o.spreizWahl !== false ? `<button type="button" data-b3sp title="Welche Wände spreizen">${S.spreiz === 'alle' ? 'alle Wände' : 'nur Außenwände'}</button>` : '')
+        + (o.spreizWahl !== false ? `<span class="b3-seg" role="group" aria-label="Welche Wände spreizen"><button type="button" data-b3sp="alle" class="${S.spreiz === 'alle' ? 'on' : ''}" aria-pressed="${S.spreiz === 'alle'}">alle Wände</button><button type="button" data-b3sp="aussen" class="${S.spreiz !== 'alle' ? 'on' : ''}" aria-pressed="${S.spreiz !== 'alle'}">nur außen</button></span>` : '')   // geteilter Schalter wie Basic/Profi (21.11.2026)
         + (S.teile > 1 ? `<label class="b3-z">⇔ Gebäudeteile <input type="range" min="0" max="100" value="${Math.round(S.teil / TEIL * 100)}" data-b3t aria-label="Gebäudeteile auseinanderziehen"></label>` : '');
       box.querySelector('.b3-l').innerHTML = haupt + (S.dar ? `<div class="b3-dar">${dar}</div>` : '');
       const k = box.querySelector('.b3-k'); k.replaceChildren();   // Farben per CSSOM (kein style-Attribut – CSP im Bauherrenportal)
@@ -250,7 +262,7 @@
       if ('b3d' in b.dataset) S.dach = !S.dach;
       if ('b3w' in b.dataset) { S.rahmen = !S.rahmen; return leiste(); }
       if ('b3dar' in b.dataset) { S.dar = !S.dar; return leiste(); }
-      if ('b3sp' in b.dataset) { S.spreiz = S.spreiz === 'alle' ? 'aussen' : 'alle'; leiste(); return bauen(); }
+      if ('b3sp' in b.dataset) { const w = b.dataset.b3sp === 'aussen' ? 'aussen' : 'alle'; if (w === S.spreiz) return; S.spreiz = w; leiste(); return bauen(); }
       if ('b3x' in b.dataset) return wahlWeg();
       if ('b3r' in b.dataset) { start(); return zeichne(); }
       leiste(); bauen();
@@ -291,7 +303,8 @@
     });
     const los = (e) => { const z = RZ; RZ = null; rahmenBild(); if (z && weg >= 6 && e.type === 'pointerup') rahmenWahl(z, e.ctrlKey || e.metaKey); else if (P_.size === 1 && weg < 6 && e.type === 'pointerup') antippen(e.clientX, e.clientY, e.ctrlKey || e.metaKey); P_.delete(e.pointerId); if (P_.size < 2) abst = 0; };
     cv.addEventListener('pointerup', los); cv.addEventListener('pointercancel', los);
-    cv.addEventListener('contextmenu', (e) => e.preventDefault());
+    cv.addEventListener('contextmenu', (e) => { if (!o.kontext || weg >= 6) e.preventDefault(); });   // nach Verschieben mit der rechten Taste kein Menü
+    if (o.kontext) { cv.dataset.kontext = ''; box.addEventListener('bph:kontext', (ev) => { const d = ev.detail; o.kontext(bei(d.x, d.y), d.punkte); }); }
     cv.addEventListener('wheel', (e) => { e.preventDefault(); S.dist = Math.max(1, Math.min(2000, S.dist * Math.exp(e.deltaY * 0.0012))); zeichne(); }, { passive: false });
     function schieben(dx, dy) {
       const s = S.dist / Math.max(200, cv.clientHeight) * 1.2, r = [-Math.sin(S.yaw), Math.cos(S.yaw), 0];
@@ -299,9 +312,19 @@
     }
     if (window.ResizeObserver) new ResizeObserver(() => zeichne()).observe(box);
     (o.netz ? Promise.resolve(o.netz) : fetch(o.url, { credentials: 'same-origin' }).then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Die 3D-Ansicht konnte nicht geladen werden.'); return j; }))
-      .then((N) => { S.N = N; if (!N.e.length) return meld('Dieser Planstand hat keine Geometrie – die 3D-Ansicht gibt es nur mit einem eingelesenen IFC-Plan.'); meld(''); start(); richtungen(); leiste(); bauen(); if (o.geladen) o.geladen(N); })
+      .then((N) => setzen(N, true))
       .catch((e) => meld(e.message));
-    return { waehle: (ids) => { const vor = [...WAHL].join(); WAHL.clear(); (ids || []).forEach((i) => WAHL.add(+i));
+    function setzen(N, neu) {   // neue Geometrie – beim ersten Mal den Blick einpassen, danach bleibt er (Baukasten: jede Änderung)
+      S.N = N; if (!N.e.length) return meld(o.leer || 'Dieser Planstand hat keine Geometrie – die 3D-Ansicht gibt es nur mit einem eingelesenen IFC-Plan.');
+      meld(''); if (neu || !S.gesehen) { start(); S.gesehen = true; } richtungen(); leiste(); bauen(); if (o.geladen) o.geladen(N);
+    }
+    function proj(p) {   // Weltpunkt (m) → Punkt im Feld (px) – ohne Auseinanderziehen
+      const M = mvp(), X = p[0] - S.mitte[0], Y = p[1] - S.mitte[1], Z = p[2] - S.mitte[2], w = M[3] * X + M[7] * Y + M[11] * Z + M[15]; if (w <= 0) return null;
+      return [((M[0] * X + M[4] * Y + M[8] * Z + M[12]) / w * 0.5 + 0.5) * cv.clientWidth, (1 - ((M[1] * X + M[5] * Y + M[9] * Z + M[13]) / w * 0.5 + 0.5)) * cv.clientHeight];
+    }
+    return { feld: box, bei, proj, setzen: (N) => setzen(N, false), gespreizt: () => !!(S.zug || S.seit || S.teil),
+      ziel: (ids) => { const k = [...ZIEL].join(); ZIEL.clear(); (ids || []).forEach((i) => ZIEL.add(+i)); if (S.N && [...ZIEL].join() !== k) bauen(); },
+      waehle: (ids) => { const vor = [...WAHL].join(); WAHL.clear(); (ids || []).forEach((i) => WAHL.add(+i));
         if (S.N && o.info && WAHL.size && [...WAHL].join() !== vor) { S.infoE = S.N.e.find((e) => WAHL.has(e.i)) || S.infoE; infoNeu(); }   // von außen gewählt: das Feld zeigt dieses Bauteil
         if (S.N) bauen(); },
       modus: (k) => { S.farbe = k; if (S.N && S.N.e.length) { leiste(); bauen(); infoNeu(); } },

@@ -247,6 +247,10 @@
     function teilListeHtml(c) {
       if (!c) return '<p class="pa-h" style="margin:0">Erst das Gebäude wählen – dann die Teile.</p>';
       const L = K().teilListe(c), LA = K().LAGE;
+      /* ein Gebäude (21.11.2026): keine Zeile mit Namen – nur ob es neu gebaut oder ein Bestand ist; weitere Teile über „＋ Gebäudeteil“ */
+      if (L.length < 2) { const x = L[0] || { k: 'haupt', lage: 'neu' };
+        return `<div class="pa-tll"><div class="pa-tlz"><select data-patl="${esc(x.k)}" data-f="lage" aria-label="Neubau oder Bestand"><option value="neu"${x.lage !== 'bestand' ? ' selected' : ''}>wird neu gebaut</option><option value="bestand"${x.lage === 'bestand' ? ' selected' : ''}>Bestand – wird umgebaut / saniert</option></select>
+          <button type="button" class="btn sm" data-patlneu>＋ Gebäudeteil</button></div><span class="pa-h" style="margin:0">Weitere Teile nur, wenn das Gebäude aus mehreren besteht – z. B. Bestand und Anbau oder eine Aufstockung.</span></div>`; }
       return `<div class="pa-tll">${L.map((x) => `<div class="pa-tlz"><input data-patl="${esc(x.k)}" data-f="n" value="${esc(x.n)}" aria-label="Name des Gebäudeteils">
         <select data-patl="${esc(x.k)}" data-f="lage"><option value="bestand"${x.lage === 'bestand' ? ' selected' : ''}>${esc(LA.bestand)}</option><option value="neu"${x.lage === 'neu' ? ' selected' : ''}>${L.length > 1 ? esc(LA.neu) : 'neu'}</option>
         ${L.filter((y) => y.k !== x.k && y.lage !== 'auf').map((y) => `<option value="auf:${esc(y.k)}"${x.lage === 'auf' && x.auf === y.k ? ' selected' : ''}>${esc(LA.auf)} „${esc(y.n)}“</option>`).join('')}</select>
@@ -351,8 +355,11 @@
         Z.lern = Z.lern.filter((x) => x !== v); sag('Übernommen – aus ' + herkunft(v).replace(/<[^>]+>/g, '') + '.'); return zeig();
       }
       if (b.dataset.palx) { const k = b.dataset.palx; setz((c) => { c.abgelehnt = [...(c.abgelehnt || []), k]; }); Z.lern = (Z.lern || []).filter((x) => x.schluessel !== k); return zeig(); }
-      if (b.dataset.patlneu != null) { tlSetzen((L) => { L.push({ k: 't' + Date.now().toString(36), n: 'Gebäudeteil ' + (L.length + 1), lage: 'neu', auf: '' }); }); return zeig(); }
-      if (b.dataset.patlweg) { const k = b.dataset.patlweg; tlSetzen((L, c) => { const x = L.findIndex((y) => y.k === k); if (x >= 0) L.splice(x, 1); L.forEach((y) => { if (y.auf === k) { y.lage = 'neu'; y.auf = ''; } }); if (c.teile) { c.teile = { ...c.teile }; delete c.teile[k]; } }); return zeig(); }
+      /* Namen nach der Lage, solange der Teil keinen eigenen hat (21.11.2026: ein einzelnes Gebäude hieß sonst z. B. noch „Aufstockung“) */
+      const stdName = (x) => (x.lage === 'bestand' ? K().TEIL_ART.bestand : x.lage === 'auf' ? K().TEIL_ART.aufstock : K().TEIL_ART.haupt);
+      const istStd = (x) => !x.n || Object.values(K().TEIL_ART).includes(x.n) || /^Gebäudeteil \d+$/.test(x.n);
+      if (b.dataset.patlneu != null) { tlSetzen((L) => { L.forEach((y) => { if (istStd(y)) y.n = stdName(y); }); L.push({ k: 't' + Date.now().toString(36), n: 'Gebäudeteil ' + (L.length + 1), lage: 'neu', auf: '' }); }); return zeig(); }
+      if (b.dataset.patlweg) { const k = b.dataset.patlweg; tlSetzen((L, c) => { const x = L.findIndex((y) => y.k === k); if (x >= 0) L.splice(x, 1); L.forEach((y) => { if (y.auf === k) { y.lage = 'neu'; y.auf = ''; } }); if (L.length === 1 && L[0].lage === 'auf') L[0].lage = 'neu'; if (L.length === 1 && istStd(L[0])) L[0].n = stdName(L[0]); if (c.teile) { c.teile = { ...c.teile }; delete c.teile[k]; } }); return zeig(); }
       if (b.dataset.pajt) { const g = b.dataset.pajt, c = cfg(), T = K().teile(K().clone(c)), abw = T.some((t) => ((c.teile || {})[t.k] || {}).a && c.teile[t.k].a[g]);
         if (abw) setz((c2) => { c2.teile = { ...(c2.teile || {}) }; Object.keys(c2.teile).forEach((k) => { const o = { ...c2.teile[k] }; if (o.a) { delete o.a[g]; if (!Object.keys(o.a).length) delete o.a; } c2.teile[k] = o; }); });
         if (abw || Z.jt.has(g)) Z.jt.delete(g); else Z.jt.add(g); return zeig(); }

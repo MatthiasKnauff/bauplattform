@@ -4,7 +4,7 @@ ermittelter Raum), sonst „frei“: eine Fläche ohne Raum, die man im Grundris
 modell_plus). Gerechnet einmal je Planstand und gemerkt in bp_store („gm:grundriss:<Planstand>“) – nur Umrisse, nie die Datei.
 
 berechnen(raw) → {"geschosse": [{"n", "z"}], "flaechen": [{"g", "umriss": [[x, y] m], "flaeche", "z", "hoehe", "raum": {"nr", "name"} | None}]}
-GET /api/bp/modell/<pid>/grundriss → {"art": "ifc", …berechnen} | {"art": "", "flaechen": []} (ohne IFC: nur die 3D-Ansicht zeichnet)
+GET /api/bp/modell/<pid>/grundriss[?planstand=<id> – angesehener Planstand] → {"art": "ifc", …berechnen} | {"art": "", "flaechen": []} (ohne IFC: nur die 3D-Ansicht zeichnet)
 """
 import json
 
@@ -49,7 +49,7 @@ def berechnen(raw):
 
 
 def routen(bp, mit, lesen_modell):
-    from flask import jsonify
+    from flask import jsonify, request
 
     from . import planstand as P
 
@@ -57,9 +57,13 @@ def routen(bp, mit, lesen_modell):
     def modell_grundriss(pid):
         def tun(c, wer):
             Q = ((lesen_modell(c, pid)["modell"].get("bauteilliste") or {}).get("quelle")) or {}
-            sid = Q.get("planstand")
-            if not sid or (Q.get("art") or "ifc") != "ifc":
-                return jsonify(art=Q.get("art") or "", geschosse=[], flaechen=[])
+            sid, art = Q.get("planstand"), Q.get("art") or "ifc"
+            an = request.args.get("planstand", type=int)   # angesehener Planstand (gilt nicht) – nur zum Ansehen
+            if an:
+                r = c.execute("SELECT art FROM pm_planstand WHERE id=? AND project_id=?", (an, pid)).fetchone()
+                sid, art = (an, r["art"] or "ifc") if r else (None, "")
+            if not sid or art != "ifc":
+                return jsonify(art=art if sid else "", geschosse=[], flaechen=[])
             key = f"gm:grundriss:{int(sid)}"
             r = c.execute("SELECT data FROM bp_store WHERE key=?", (key,)).fetchone()
             if r:

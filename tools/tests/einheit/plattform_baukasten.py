@@ -55,11 +55,14 @@ def test_rohbau_und_netz():
     pruefe(D["menge"] > 12.8 * 9.8 and D["vorlage"] == "363.04", f"Satteldach geneigt größer als der Grundriss, Aufbau aus dem Korb: {D['menge']}")
     fv = BK.fenster_vorgabe(bk)
     gleich((fv["rahmen"], fv["uw"], fv["anzahl"]), ("Holz-Alu", 0.85, 2), "Fenster-Vorgabe D2 (Fenster + Gaube)")
-    N = BK.netz(bk)
-    gleich(len(N["geschosse"]), 2, "Geschosse im Netz")
-    ids = {e["i"] for e in N["e"]}
-    pruefe(all(i in ids for g in R for i in g["ids"]), "Zeilen zeigen auf Flächen im Netz")
-    pruefe(any(e["t"] == "f" and e.get("h") for e in N["e"]) and any(e["t"] == "r" for e in N["e"]), "Fenster mit Wand, Dachflächen")
+    # Netz rechnet der Baustein (21.11.2026) – der Kern prüft nur: gültig durch, Unsinn nicht
+    N = BK.netz_pruefen({"e": [{"i": BK.ID0, "t": "w", "g": 0, "c": "#e8dfd2", "v": [0, 0, 0, 100, 0, 0, 100, 0, 290]}, {"i": BK.ID0 + 900000, "t": "f", "g": 0, "h": BK.ID0, "v": [0] * 9}],
+                         "geschosse": [{"n": "Erdgeschoss", "z": 0}]})
+    gleich((len(N["e"]), N["e"][1]["h"], N["dreiecke"]), (2, BK.ID0, 2), "Netz aus dem Baustein: Elemente, Fenster an der Wand")
+    pruefe(BK.netz_pruefen({"e": [{"i": 1, "t": "w", "v": [1, 2]}]}) is None, "Netz mit kaputtem Dreieck abgelehnt")
+    pruefe(BK.netz_pruefen({"e": [{"i": 1, "t": "<b>", "v": [0] * 9}]}) is None, "Netz mit fremder Art abgelehnt")
+    pruefe(BK.netz_pruefen({"e": [{"i": 1, "t": "w", "v": [10 ** 7] * 9}]}) is None, "Netz außerhalb eines Gebäudes abgelehnt")
+    pruefe(BK.netz_pruefen("x") is None and BK.netz_pruefen(None) is None, "kein Netz")
 
 
 def test_zeilen_aus_baukasten():

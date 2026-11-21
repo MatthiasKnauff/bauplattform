@@ -53,6 +53,7 @@ export async function assistentPruefen(browser, repo) {
     await p.click('#work [data-bpa-geb="mf"]'); pruef(await schritt(p) === 'type', 'die Wahl des Gebäudes springt schon weiter – Maßnahmen und Bereiche gehören in denselben Schritt');
     await p.click('#work [data-bpa-ber="ke"]'); await p.click('#work [data-bpa-ber="ke"]');   // Bereich an und wieder aus
     pruef(await p.evaluate(() => { const l = document.querySelectorAll('#work [data-patl][data-f="lage"]'); return l.length === 1 && l[0].value === 'neu' && !document.querySelector('#work [data-bpa-mass="nb"]'); }), 'Neubau: ein Gebäudeteil „neu“, keine Chips Neubau/Anbau/… mehr (GG-D1)');
+    pruef(await p.evaluate(() => !document.querySelector('#work [data-patl][data-f="n"]') && !document.querySelector('#work [data-patlweg]') && !!document.querySelector('#work [data-patlneu]')), 'ein Gebäude: keine Namenszeile, kein „entfernen“ – nur „＋ Gebäudeteil“ (21.11.2026)');
     await p.click('#work .pa-nav .btn.primary'); pruef(await schritt(p) === 'eck', 'nach der Bauart folgt nicht „Größe“');
     await p.fill('#work [data-pac="floors"]', '3'); await p.dispatchEvent('#work [data-pac="floors"]', 'change');
     await p.fill('#work [data-pac="area"]', '640'); await p.dispatchEvent('#work [data-pac="area"]', 'change');

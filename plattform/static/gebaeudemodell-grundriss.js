@@ -9,12 +9,12 @@ const grZ = (v) => bpZahl(v, 0, 2);
 
 async function gmGrundriss(box, neu) {
   if (!box) return;
-  const st = BT ? BT.zustand() : {};
-  if (neu || GR.rev !== st.rev) { GR.F = null; GR.rev = st.rev; }
+  const st = BT ? BT.zustand() : {}, an = st.an ? st.an.id : null, q = an ? `?planstand=${an}` : '';   // angesehener Planstand: sein Grundriss, nur zum Ansehen
+  if (neu || GR.rev !== `${st.rev}|${an}`) { GR.F = null; GR.rev = `${st.rev}|${an}`; }
   if (!GR.F) {
     box.innerHTML = '<p class="mute">Grundriss wird gerechnet …</p>';
     try {
-      const [N, F] = await Promise.all([G3.N ? Promise.resolve(G3.N) : api(`api/bp/modell/${PID}/netz`).catch(() => null), api(`api/bp/modell/${PID}/grundriss`)]);
+      const [N, F] = await Promise.all([G3.N ? Promise.resolve(G3.N) : api(`api/bp/modell/${PID}/netz${q}`).catch(() => null), api(`api/bp/modell/${PID}/grundriss${q}`)]);
       GR.N = N; GR.F = F;
     } catch (e) { box.innerHTML = `<p class="mute">${esc(e.message)}</p>`; return; }
   }
@@ -45,7 +45,7 @@ async function gmGrundriss(box, neu) {
   }
   FL.forEach((f) => f.umriss.forEach(([x, y]) => { if (x < x0) x0 = x; if (x > x1) x1 = x; if (-y < y0) y0 = -y; if (-y > y1) y1 = -y; }));
   if (!isFinite(x0)) { x0 = 0; y0 = 0; x1 = 10; y1 = 10; }
-  const R = (((st.modell || {}).bauteilliste || {}).raeume) || [], innen = (x, y, P) => { let d = false; for (let k = 0, j = P.length - 1; k < P.length; j = k++) { const [xi, yi] = P[k], [xj, yj] = P[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) d = !d; } return d; };
+  const R = (st.an ? (st.an.liste || {}).raeume : ((st.modell || {}).bauteilliste || {}).raeume) || [], innen = (x, y, P) => { let d = false; for (let k = 0, j = P.length - 1; k < P.length; j = k++) { const [xi, yi] = P[k], [xj, yj] = P[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) d = !d; } return d; };
   const raumVon = (f) => {   // welcher Raum des Modells liegt auf der Fläche?
     const [cx, cy] = f.mitte || f.umriss[0];
     const r = R.find((x) => x.umriss && x.umriss.length > 2 && innen(cx, cy, x.umriss));
@@ -59,10 +59,10 @@ async function gmGrundriss(box, neu) {
     return `<g class="gr-f${r ? '' : ' frei'}" data-grf="${k}"><title>${esc(r ? t : 'Fläche ohne Raum – klicken nimmt sie als Raum an')} · ${grZ(f.flaeche)} m²</title><polygon points="${pts}"/><text x="${cx.toFixed(2)}" y="${(-cy).toFixed(2)}" font-size="${s2.toFixed(2)}">${esc(t)}</text><text class="gr-m" x="${cx.toFixed(2)}" y="${(-cy + s2 * 1.25).toFixed(2)}" font-size="${(s2 * 0.85).toFixed(2)}">${grZ(f.flaeche)} m²</text></g>`; }).join('');
   const nFrei = FL.filter((f) => !raumVon(f)).length;
   box.innerHTML = `<div class="gr-k"><span class="gr-gs" role="tablist">${G.map((g, k) => `<button type="button" role="tab" aria-selected="${k === gi}" class="${k === gi ? 'on' : ''}" data-grg="${k}">${esc(g.n)}</button>`).join('')}</span>
-      <span class="mute">${F.art === 'ifc' ? `${FL.length} Flächen zwischen den Wänden${nFrei ? ` · <b>${nFrei} ohne Raum</b> – anklicken nimmt sie als Raum an` : ''}` : esc(F.hinweis || 'Flächen gibt es mit einem IFC-Plan.')}</span></div>
+      <span class="mute">${F.art === 'ifc' ? `${FL.length} Flächen zwischen den Wänden${nFrei && !an ? ` · <b>${nFrei} ohne Raum</b> – anklicken nimmt sie als Raum an` : ''}` : esc(F.hinweis || 'Flächen gibt es mit einem IFC-Plan.')}</span></div>
     <div class="gr-b"><svg viewBox="${(x0 - pad).toFixed(2)} ${(y0 - pad).toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)}" preserveAspectRatio="xMidYMid meet" aria-label="Grundriss ${esc(gn)}">
       ${fl}<path class="gr-w" d="${pfad.w}${pfad.x}"/><path class="gr-fe" d="${pfad.f}"/><path class="gr-tu" d="${pfad.d}"/></svg></div>`;
-  GR.fl = FL; GR.raumVon = raumVon; GR.gn = gn;
+  GR.fl = FL; GR.raumVon = raumVon; GR.gn = gn; GR.an = an;
 }
 
 document.addEventListener('click', async (e) => {
@@ -70,8 +70,9 @@ document.addEventListener('click', async (e) => {
   if (gb) { GR.g = +gb.dataset.grg; LS.set('grg', GR.g); return gmGrundriss(gb.closest('.gm-gr')); }
   const f = e.target.closest && e.target.closest('[data-grf]'); if (!f || !GR.fl) return;
   const x = GR.fl[+f.dataset.grf], r = GR.raumVon(x);
+  if (!r && GR.an) return toast('Nur zum Ansehen – dieser Planstand gilt nicht.');
   if (r) {   // Raum gewählt: rechts die Zeile „Boden“ des Raums mit dem Raumbuch
-    const Z = (BT.zustand().zeilen || []).find((z) => z.id.startsWith('raum:boden:') && (z.mitglieder || []).includes(r.nr));
+    const Z = g3Zeilen(BT.zustand()).find((z) => z.id.startsWith('raum:boden:') && (z.mitglieder || []).includes(r.nr));
     if (Z) { BT.zeige(Z.id, false); if (window.seiteReiter) seiteReiter('gm', 'details'); } else toast(`${[r.nr, r.name].filter(Boolean).join(' ')} – ${grZ(x.flaeche)} m²`);
     return;
   }

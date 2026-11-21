@@ -311,3 +311,26 @@ def test_modell_von_hand(ctx):
     Q = (a.gj(B)["modell"].get("bauteilliste") or {}).get("quelle") or {}
     if Q.get("art") not in ("hand", None, ""):
         a.put(f"{B}/hand", {"raeume": []}, expect=409)
+
+
+def test_baukasten_neuer_planstand(ctx):
+    """„Neuer Planstand – mit dem Baukasten“ (21.11.2026): Vorschlag Erdgeschoss + Satteldach (?neu=1), gespeichert mit dem Netz des Bausteins
+    als eigener Planstand „Baukasten …“, der sofort gilt; sein 3D-Netz kommt zurück, kaputte Netze lehnt der Kern ab (dann ohne 3D)."""
+    import gzip, json
+    a, B = ctx.admin, f"{GM}/api/bp/modell/{ctx.pid}"
+    vor = a.gj(f"{B}/planstaende")
+    v = a.gj(f"{B}/baukasten?neu=1")
+    gleich(([k["z"] for k in v["baukasten"]["koerper"]], [d["form"] for d in v["baukasten"]["dach"].values()], v["herkunft"]), ([0.0], ["sattel"], "leer"), "Vorschlag: Erdgeschoss mit Satteldach")
+    N = {"e": [{"i": 9600000, "t": "w", "g": 0, "c": "#e8dfd2", "v": [0, 0, 0, 1200, 0, 0, 1200, 0, 290]}], "geschosse": [{"n": "Erdgeschoss", "z": 0}]}
+    d = a.put(f"{B}/baukasten", {**v, "netz": N, "neu": True}).json
+    L = d["modell"]["bauteilliste"]
+    pruefe((L["quelle"] or {}).get("art") == "hand" and L["quelle"]["name"].startswith("Baukasten ") and L["quelle"]["planstand"] not in [p["id"] for p in vor["planstaende"]],
+           f"eigener Planstand „Baukasten …“, gilt sofort: {L.get('quelle')}")
+    r = a.get(f"{B}/netz")
+    n = json.loads(gzip.decompress(r.body) if (r.headers.get("Content-Encoding") or "") == "gzip" else r.body)
+    gleich([e["i"] for e in n["e"]], [9600000], "Netz des Bausteins am Planstand")
+    a.put(f"{B}/baukasten", {**v, "netz": {"e": [{"i": 1, "t": "<x>", "v": [1]}]}})
+    sid = L["quelle"]["planstand"]
+    a.post(f"{B}/planstand/{sid}", {"loeschen": True, **({"nachfolger": vor["gilt"]} if vor.get("gilt") else {})})
+    if vor.get("gilt"):
+        a.pj(f"{B}/planstand/{vor['gilt']}", {"gilt": True})

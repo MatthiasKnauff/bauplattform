@@ -29,12 +29,13 @@ function gmMaske(art, L, fokus) {
   GMH = gmHandDaten(L);
   const r = art === 'raeume', X = r ? GMH.raeume : GMH.elemente, S = GM_SP[art];
   const zelle = (x, k, s) => gmZelle(x, k, s);
-  V.innerHTML = `<div class="gm-hin"><span>${r ? 'Räume' : 'Fenster und Türen'} von Hand – es gilt noch kein Plan${(L.quelle || {}).art === 'hand' ? ` („${esc((L.quelle || {}).name || 'von Hand')}“)` : ''}. Daraus entstehen die Bauteile wie aus einem IFC (Böden, Wände, Decken, Fenster …, Rohbau grob geschätzt). Enter in der letzten Zeile = neue Zeile.</span>
+  const C = gmLi();
+  C.innerHTML = `<div class="gm-hin"><span>${r ? 'Räume' : 'Fenster und Türen'} von Hand – es gilt noch kein Plan${(L.quelle || {}).art === 'hand' ? ` („${esc((L.quelle || {}).name || 'von Hand')}“)` : ''}. Daraus entstehen die Bauteile wie aus einem IFC (Böden, Wände, Decken, Fenster …, Rohbau grob geschätzt). Enter in der letzten Zeile = neue Zeile.</span>
       ${(L.zeilen || []).length ? '<button type="button" class="btn" data-gmhvor>Vorschlag des Assistenten …</button>' : '<button type="button" class="btn primary" data-gmanfang>Anfangen …</button>'}${r ? '' : '<button type="button" class="btn" data-gmtl>Aus der Türliste übernehmen</button>'}</div>
     <table class="gm-l gm-mask"><thead><tr>${S.map(([, t, , z]) => `<th${z ? ' class="r"' : ''}>${esc(t)}</th>`).join('')}<th></th></tr></thead><tbody>
     ${X.map((x, k) => `<tr data-gmk="${k}">${S.map((s) => zelle(x, k, s)).join('')}<td><button type="button" class="ib" data-gmhweg="${k}" title="Zeile entfernen" aria-label="Zeile ${k + 1} entfernen">✕</button></td></tr>`).join('')}</tbody></table>
     ${X.length ? '' : `<p class="mute gm-leerz">Noch ${r ? 'kein Raum' : 'kein Fenster und keine Tür'} – rechts oben „＋ ${r ? 'Raum' : 'Fenster / Tür'}“.</p>`}`;
-  if (fokus != null) { const i = V.querySelector(`[data-gmk="${fokus}"] input`); if (i) i.focus(); }
+  if (fokus != null) { const i = C.querySelector(`[data-gmk="${fokus}"] input`); if (i) i.focus(); }
 }
 function gmNeueZeile(art) {
   const r = art === 'raeume', X = r ? GMH.raeume : GMH.elemente, P = GMH.plan || {}, letzt = X[X.length - 1] || {}, g = letzt.geschoss || P.geschoss || 'EG';
@@ -101,6 +102,11 @@ async function gmVorschlag() {
 
 /* Ein Einstieg ohne Plan (D1, 20.11.2026): dasselbe Fenster „Wie willst du anfangen?“ wie in den Bauteilen (bpBauteile.anfangen) */
 async function gmWeg(w) {
+  if (w === 'baukasten') {   // neuer Planstand mit dem Baukasten: Erdgeschoss + Satteldach, gilt mit dem ersten Speichern (Kern: baukasten.nachfuehren(neu))
+    G3.bkNeu = true; LS.set('mitte', '3d');
+    if (BT && V.querySelector('.gm-tabi')) { if (BT.zustand().an) BT.ansehen(null); await gmTab('bauteile'); g3Neu(true, null); return g3Mitte('3d'); }
+    SICHT = 'bauteile'; LS.set('sicht', SICHT); return zeichne();
+  }
   if (w === 'planung') { if (!gmPlanDa) { if (window.seiteReiter) seiteReiter(SICHT === 'bauteile' ? 'gm' : 'gmp', 'planung'); return; } return gmVorschlag(); }
   if (w === 'raeume') { SICHT = 'raeume'; LS.set('sicht', SICHT); return zeichne(); }
   if (w === 'zeilen' || w === 'lesen') { SICHT = 'bauteile'; LS.set('sicht', SICHT); await zeichne(); if (BT) return w === 'zeilen' ? BT.hand() : BT.einlesen(); }

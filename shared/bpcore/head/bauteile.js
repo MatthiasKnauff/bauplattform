@@ -47,6 +47,9 @@
 .bt-h{grid-column:2;font-size:.78rem;opacity:.7}.bt-vlw{border-style:dashed!important;opacity:.85}.bt-weitere>summary{opacity:.75}.bt-weitere>.bt-blk{margin-left:.8rem}.bt-art{grid-column:2;font-size:.82rem;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
 .bt-e{grid-column:1/-1;border-top:1px dashed var(--line,#d5d9de);margin-top:.3rem;padding-top:.4rem;display:flex;flex-direction:column;gap:.35rem}
 .bt-nm{font:inherit;font-weight:700;color:inherit;background:transparent;border:1px solid transparent;border-radius:calc(6px*var(--rk,1));padding:.05rem .3rem;margin-left:-.3rem;min-width:0;flex:1 1 9rem}.bt-nm:hover,.bt-nm:focus{border-color:var(--line)}
+.bt-such{position:relative}.bt-such input{width:100%;box-sizing:border-box;font:inherit;padding:.3rem .5rem;border:1px solid var(--line,#c9ced4);border-radius:calc(6px*var(--rk,1))}
+.bt-vs{position:absolute;left:0;right:0;top:100%;z-index:20;background:var(--card,#fff);border:1px solid var(--line,#c9ced4);border-radius:calc(6px*var(--rk,1));box-shadow:0 6px 18px rgba(0,0,0,.14);display:grid;max-height:16rem;overflow:auto}
+.bt-vs:empty{display:none}.bt-vs button{all:unset;padding:.3rem .55rem;cursor:pointer;font-size:.85rem}.bt-vs button:hover,.bt-vs button.on{background:color-mix(in srgb,var(--y,#2f6fb3) 10%,transparent)}.bt-vs small{display:block;opacity:.7;font-size:.76rem}
 .bt-vbl{display:flex;gap:.25rem}.bt-vbl>.bt-bln{font-size:.78rem;opacity:.7;min-width:7rem;padding-top:.15rem}.bt-vbl>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:.2rem}   /* Vorlagen-Blöcke – nicht .bt-bl (Rahmen der Baumtabelle), sonst rutscht die Tabelle nach unten (19.11.2026) */
 .bt-blk>summary{cursor:pointer;font-size:.76rem;text-transform:uppercase;letter-spacing:.04em;opacity:.75;padding:.1rem 0}.bt-blk>summary small{opacity:.7;text-transform:none}.bt-blk>.bt-o{padding:.1rem 0 .3rem}
 .bt-o{display:flex;flex-wrap:wrap;gap:.25rem;align-items:baseline}.bt-dkh{font-size:.72rem;opacity:.7;align-self:center}.bt-o .bph-pa{width:8rem}.bt-o>span{font-size:.78rem;opacity:.7;min-width:7rem}
@@ -128,18 +131,19 @@
     });
   }
 
-  /* Ein Einstieg ohne Plan (GO 20.11.2026, Mock „Gebäudemodell ergänzen“ D1): ein Fenster „Wie willst du anfangen?“ mit vier Wegen und je
-     einem Satz – statt verstreuter Knöpfe. → Promise<'planung' | 'raeume' | 'zeilen' | 'lesen' | null>; der Aufrufer führt den Weg aus. */
-  const WEGE = [['planung', 'Aus der Planung', 'Der Assistent legt Räume, Fenster und Bauteile mit Vorschlagsmengen an. Am schnellsten.'],
-    ['raeume', 'Räume und Fenster selbst eintragen', 'Du tippst Räume, Fenster und Türen ein – die Bauteile entstehen daraus.'],
-    ['zeilen', 'Nur einzelne Bauteile', 'Du legst Zeile für Zeile an, ohne Räume. Für kleine Maßnahmen.'],
-    ['lesen', 'Plan einlesen', 'IFC, DXF oder PDF – Bauteile, Räume, Fenster und Türen kommen aus dem Plan.']];
+  /* Ein Fenster für jeden Anfang (GO 20.11.2026 D1; 21.11.2026: auch „＋ Neuer Planstand …“ im Menü) – „Wie willst du beginnen?“ mit drei Wegen:
+     Baukasten · Planung · Datei; darunter klein, was ohne Gebäude geht. → Promise<'baukasten' | 'planung' | 'lesen' | 'raeume' | 'zeilen' | null>;
+     der Aufrufer führt den Weg aus. o.neu = es gibt schon einen Planstand (Titel „Neuer Planstand“), o.plan = der Assistent kennt das Gebäude. */
+  const WEGE = [['baukasten', 'Mit dem Baukasten', 'Das Gebäude in 3D zusammenbauen – Geschosse, Dach, Fenster und Türen. Beginnt mit einem Erdgeschoss und Satteldach.'],
+    ['planung', 'Mit der Planung', 'Der Assistent fragt Schritt für Schritt; daraus entstehen Räume, Fenster und Bauteile mit Vorschlagsmengen.'],
+    ['lesen', 'Mit einer Datei', 'IFC, DXF oder PDF – aus „Pläne & Dateien“ oder vom Gerät. Bauteile, Räume, Fenster und Türen kommen aus dem Plan.']];
   function anfangen(o = {}) {
     stil();
     return new Promise((fertig) => {
-      modalBox(`<div class="bt-ab bt-anf"><h3>Wie willst du anfangen?</h3>
+      modalBox(`<div class="bt-ab bt-anf"><h3>${o.neu ? 'Neuer Planstand – wie willst du beginnen?' : 'Wie willst du beginnen?'}</h3>
         ${WEGE.map(([k, t, u]) => `<button type="button" class="bt-ap bt-weg4" data-m="${k}"><span><b>${t}</b><small>${k === 'planung' && o.plan === false ? 'Dafür erst im Reiter „Planung“ sagen, was gebaut wird und wie groß – der Reiter geht auf.' : u}</small></span></button>`).join('')}
-        <div class="mute">Es entsteht ein Planstand – ein späterer Plan ersetzt ihn mit Abgleich, deine Antworten bleiben.</div>
+        <div class="mute">Ohne Gebäude: <button type="button" class="bt-lk" data-m="raeume">Räume selbst eintragen</button> · <button type="button" class="bt-lk" data-m="zeilen">nur einzelne Bauteile</button></div>
+        <div class="mute">${o.neu ? 'Mit dem Baukasten gilt der neue Planstand sofort; aus der Planung oder einer Datei kommt er mit Abgleich. Der bisherige bleibt im Menü.' : 'Es entsteht ein Planstand – ein späterer Plan ersetzt ihn mit Abgleich, deine Antworten bleiben.'}</div>
         <div class="bt-ft"><button type="button" class="btn" data-m="x">Abbrechen</button></div></div>`, (m, bg, close) => { close(); fertig(m === 'x' ? null : m); });
     });
   }
@@ -192,10 +196,10 @@
       const g = gilt(), akt = Z.an ? Z.an.id : g;
       H.versionsMenue({ in: box, wort: 'Planstand', liste: Z.ps.map((x) => ({ id: x.id, name: x.name, datum: tag(x.erstellt), archiviert: x.archiviert })), aktuell: akt, gueltig: g,
         wahlHinweis: 'Kosten, Ausschreibung, Termine und die anderen Apps arbeiten mit dem gültigen Planstand.',
-        neuText: '＋ Neuen Planstand einlesen …', giltText: '★ Dieser Planstand gilt ab jetzt …',
+        neuText: '＋ Neuer Planstand …', giltText: '★ Dieser Planstand gilt ab jetzt …',
         onWahl: (id, wird) => (wird ? null : ansehen(id)),
         onGueltig: (id) => aendern(id, { gilt: true }, 'Der Planstand gilt jetzt – die Apps arbeiten damit.'),
-        onNeu: () => einlesen(),
+        onNeu: () => anfang(true),
         onUmbenennen: async () => { const x = Z.ps.find((y) => String(y.id) === String(akt)); const n = await bpEingabe('Name des Planstands:', x ? x.name : ''); if (n && n.trim()) aendern(akt, { name: n.trim() }); },
         onVerwalten: async () => {   // jeder Planstand lässt sich löschen – auch der gültige (16.11.2026), immer über den Papierkorb mit Rückgängig
           const x = Z.ps.find((y) => String(y.id) === String(akt)); if (!x) return;
@@ -283,6 +287,10 @@
       });
     }
     async function zeile(id, neu, still) {   // eine Antwort ändern – mit Rückgängig (undo.js) für Antwort, berechnen, Aufbau, Menge
+      if (!still && Z.mw.length > 1 && id === Z.mw[0] && !neu.loeschen && !('name' in neu) && !('menge' in neu)) {   // Editor bei mehreren: gilt für alle
+        const r0 = L().zeilen.find((x) => x.id === id) || {};   // Option/Dicke/Ausführung gehören zur Vorlage: alle bekommen denselben Aufbau wie die gezeigte Zeile
+        return mwAendern(['wahl', 'dicken', 'ausf'].some((k) => k in neu) && !('vorlage' in neu) ? { vorlage: r0.vorlage, wahl: [...(r0.wahl || [])], dicken: r0.dicken || {}, ausf: r0.ausf || {}, ...neu } : neu);
+      }
       const z0 = L().zeilen.find((x) => x.id === id), alt = z0 && !neu.loeschen ? Object.fromEntries(Object.keys(neu).map((k) => [k, k === 'wahl' ? [...(z0.wahl || [])] : z0[k]])) : null;
       if (alt && 'status' in neu) Object.assign(alt, { vorlage: z0.vorlage, wahl: [...(z0.wahl || [])], berechnen: z0.berechnen });
       const oben = () => { const r = el.querySelector(`[data-btz="${CSS.escape(id)}"]`); return r ? r.getBoundingClientRect().top : null; }, o0 = oben();
@@ -533,10 +541,37 @@
       try { V = await vorlagen(kg); } catch (e) { box.innerHTML = `<div class="bt-w">${esc(e.message)}</div>`; return; }
       box.innerHTML = editorHtml(z, kg, V);
     }
+    /* Suche nach dem Aufbau (GO 21.11.2026, Mock „Baukasten wie 3D“ F1): ganz oben im Editor – findet Vorlagen, Optionen in den Schichten
+       (Material, Kurzname, Text) und Kürzel aus dem Plan (PP, KS, HLz, WDVS … – Liste des Kerns, bpcore/kuerzel.py). Ein Treffer setzt Vorlage
+       und Option zusammen; bei mehreren gewählten Zeilen gilt er für alle (zeile() → mwAendern). */
+    const falt = (t) => String(t || '').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');
+    let KZL = null;
+    const kzl = () => KZL || (KZL = J('api/bp/modell/kuerzel').then((r) => r.json()).then((d) => { const M = {}; (d.kern || []).concat(d.lage || []).forEach(([k, n]) => { M[falt(k)] = falt(n).replace(/\s*\(.*$/, ''); }); return M; }).catch(() => ({})));
+    function suchTreffer(z, V, q, K) {
+      const w = falt(q).trim(); if (w.length < 2) return [];
+      const W = [...new Set([w, K[w]].filter(Boolean))], hat = (t) => { const f = falt(t); return W.some((x) => f.includes(x)); }, st = z.status || '', T = [];
+      for (const v of V) {
+        if ((v.bestand && st === 'neu') || !passt(z, v)) continue;
+        if (hat(v.name)) T.push({ v, t: kurzName(v.name), u: 'Vorlage' });
+        (v.schichten || []).forEach((s, si) => s.optionen.forEach((o, oi) => { if (hat(`${o.k} ${o.mat || ''} ${o.t || ''}`)) T.push({ v, si, oi, t: `${kurzName(v.name)} · ${s.name}: ${optName(o)}`, u: K[w] ? `Kürzel ${q.trim().toUpperCase()}` : 'Option in der Schicht' }); }));
+      }
+      return T.slice(0, 10);
+    }
+    async function suchen(e) {
+      const i = e.target.closest && e.target.closest('[data-btsuch]'); if (!i) return;
+      const r = i.closest('[data-btz]'), z = r && L().zeilen.find((x) => x.id === r.dataset.btz), box = i.parentElement.querySelector('.bt-vs'); if (!z || !box) return;
+      const V = Z.vorlD[String(Z.kg[z.id] || z.kg || '').slice(0, 2)] || [], K = await kzl();
+      const T = suchTreffer(z, V, i.value, K); Z.tr = T;
+      box.innerHTML = T.map((x, k) => `<button type="button" data-btvs="${k}"${k ? '' : ' class="on"'}>${esc(x.t)}<small>${esc(x.u)}</small></button>`).join('') || (i.value.trim().length > 1 ? '<span class="mute" style="padding:.3rem .55rem">nichts gefunden</span>' : '');
+    }
+    function suchWahl(id, x) {   // Vorlage und Option zusammen – die übrigen Schichten in der Regelausführung
+      const wahl = (x.v.schichten || []).map((s, i) => (i === x.si ? x.oi : Math.max(0, s.optionen.findIndex((o) => o.std))));
+      Z.vlAuf = null; return zeile(id, { vorlage: x.v.id, wahl, dicken: {}, ausf: {} });
+    }
     function editorHtml(z, kg, V) {
       const v = V.find((x) => x.id === z.vorlage);
       Z.vl = v;
-      return `${HAND.includes(z.bereich) ? `<div class="bt-o"><span>Kostengruppe</span>${KG2.map(([k, t]) => `<button type="button" data-btkg="${k}" class="${String(kg).startsWith(k) ? 'on' : ''}">${k}0 ${esc(t)}</button>`).join('')}</div>` : ''}${bloeckeHtml(z, V)}
+      return `<div class="bt-such"><input data-btsuch placeholder="Aufbau suchen: Vorlage, Material oder Kürzel (PP, KS, WDVS …)" aria-label="Aufbau suchen" autocomplete="off"><div class="bt-vs"></div></div>${HAND.includes(z.bereich) ? `<div class="bt-o"><span>Kostengruppe</span>${KG2.map(([k, t]) => `<button type="button" data-btkg="${k}" class="${String(kg).startsWith(k) ? 'on' : ''}">${k}0 ${esc(t)}</button>`).join('')}</div>` : ''}${bloeckeHtml(z, V)}
         ${v ? v.schichten.map((s, i) => `<div class="bt-o"><span>${esc(s.name)}</span>${s.gl ? schichtHtml(z, s, i) : s.optionen.map((o, j) => `<button type="button" data-btop="${i}.${j}" class="${(z.wahl || [])[i] === j ? 'on' : ''}" title="${esc(o.t)}">${esc(optName(o))}</button>`).join('')}</div>`).join('') : ''}`;
     }
 
@@ -591,6 +626,7 @@
         if (!A.length) return sag('Keine andere Zeile mit Aufbau in dieser Gruppe.');
         return pickMenu(t.closest('[data-btwie]'), { items: A.map((x) => ({ value: x.id, title: `${x.kuerzel ? '„' + x.kuerzel + '“' : x.name} – ${x.kurz}` })), onPick: (v) => zeile(id, { wie: v }) });
       }
+      if (t.closest('[data-btvs]') && Z.tr) { const x = Z.tr[+t.closest('[data-btvs]').dataset.btvs]; if (x) return suchWahl(id, x); }
       if (t.closest('[data-btvlauf]')) { Z.vlAuf = Z.vlAuf === id ? null : id; return editor(true); }
       if (t.closest('[data-btkg]')) { Z.kg[id] = t.closest('[data-btkg]').dataset.btkg + '0'; return editor(true); }
       if (t.closest('[data-btweg]')) return handWeg(id);
@@ -647,6 +683,8 @@
       lesen(fd);
     };
     el.onchange = wechsel;
+    const suchTaste = (e) => { const i = e.target.closest && e.target.closest('[data-btsuch]'); if (!i || e.key !== 'Enter') return; e.preventDefault(); const b = i.parentElement.querySelector('[data-btvs]'); if (b) b.click(); };
+    el.addEventListener('input', suchen); el.addEventListener('keydown', suchTaste);
     function ifcDa(Q) { return !!Q.planstand && (Q.art || 'ifc') === 'ifc'; }   // IFC ausgeben nur mit gültigem IFC-Planstand (sonst gibt es keine Datei)
     async function ausgeben(was) {
       if (Z.laeuft) return; Z.laeuft = true;
@@ -725,7 +763,13 @@
     const uFuellen = (w) => { if (w && Z.d && !Z.an) ladeJs('uwert.js', () => window.bpUwert).then(() => window.bpUwert && bpUwert.fuellen(w, basis, Z.d.rev, { name: (id) => ((G().zeilen || []).find((x) => x.id === id) || {}).name || id, setzen: (id, v) => zeile(id, v) })); };   // U-Werte (bp/uwert.js, UW-A1)
     function detailsZeichnen() {
       const box = Z.det; if (!box || !box.isConnected) return;
-      if (Z.mw.length > 1) { box.innerHTML = `<div class="bt-l bt-mwd">${mwHtml(false)}</div>`; return; }
+      if (Z.mw.length > 1) {   // mehrere: oben das Gemeinsame; gleiche Bauteilart → darunter derselbe Aufbau-Editor wie bei einem Bauteil, jede Wahl gilt für alle (21.11.2026)
+        const R = mwZ(), k2 = String((R[0] || {}).kg || '').slice(0, 2), ein = k2 && R.every((z) => String(z.kg || '').slice(0, 2) === k2);
+        if (!ein) { box.innerHTML = `<div class="bt-l bt-mwd">${mwHtml(false)}</div>`; return; }
+        Z.auf = R[0].id;
+        box.innerHTML = `<div class="bt-l bt-mwd">${mwHtml(false, true)}</div><div class="bt-l bt-mwe"><div class="bt-h">Aufbau für alle ${R.length} – gezeigt wie bei „${esc(R[0].name)}“; jede Wahl hier gilt für alle.</div>${zeileHtml(R[0])}</div>`;
+        uFuellen(box); editor(); return;
+      }
       if (Z.sel === '__rw') { box.innerHTML = `<div class="bt-l">${rueckwegHtml() || '<p class="bt-leer">Keine offenen Vorschläge.</p>'}</div>`; return; }
       const z = L().zeilen.find((x) => x.id === Z.sel);
       if (!z) { box.innerHTML = '<div class="bt-l"><p class="bt-leer">Links eine Zeile antippen – hier stehen Antwort, Aufbau mit Optionen, „wird berechnet“ und die Fenster, Türen oder Räume der Zeile.</p></div>'; return; }
@@ -748,7 +792,7 @@
     const mwZ = () => Z.mw.map((id) => L().zeilen.find((x) => x.id === id)).filter(Boolean);
     function mwSetzen(ids) { Z.mw = [...new Set(ids)].filter((id) => L().zeilen.some((x) => x.id === id)); if (Z.mw.length === 1) { Z.sel = Z.auf = Z.mw[0]; Z.mw = []; } zeichne(); if (opt.mehr) opt.mehr(Z.mw.length ? Z.mw : Z.sel ? [Z.sel] : []); }
     function mwUm(id, mitSel) { const A = Z.mw.length ? [...Z.mw] : mitSel && Z.sel && Z.sel !== '__rw' ? [Z.sel] : []; const i = A.indexOf(id); if (i >= 0) A.splice(i, 1); else A.push(id); if (!A.length) { Z.sel = null; } mwSetzen(A); }
-    function mwHtml(kompakt) {
+    function mwHtml(kompakt, ohneAufbau) {
       const R = mwZ(); if (R.length < 2) return '';
       const gl = (f) => (R.every((z) => z[f] === R[0][f]) ? R[0][f] : undefined), versch = '<span class="bt-mwv">verschieden</span>';
       const erl = (R[0].erlaubt || []).filter((s) => R.every((z) => (z.erlaubt || []).includes(s))), st = gl('status'), ber = gl('berechnen'), vl = gl('vorlage');
@@ -759,7 +803,7 @@
       const be = `<label class="bt-mwb"><input type="checkbox" data-btmwber${ber ? ' checked' : ''}${ber === undefined ? ' data-mix' : ''}> wird berechnet${ber === undefined ? ' ' + versch : ''}</label>`;
       if (kompakt) return `<b>${R.length} gewählt:</b><span class="bt-mwg"><span class="mute">Antwort</span>${ant}</span><span class="bt-mwg"><span class="mute">Aufbau</span>${auf}</span>${be}<button type="button" class="btn sm" data-btmwweg>Auswahl aufheben</button>`;
       return `<h3 class="bt-mwt">${R.length} Bauteile gewählt</h3><p class="bt-nr">${R.slice(0, 8).map((z) => esc(z.name)).join(' · ')}${R.length > 8 ? ` · … ${R.length - 8} weitere` : ''}</p>
-        <div class="bt-o"><span>Antwort</span>${ant}</div><div class="bt-o"><span>Aufbau</span>${auf}</div><div class="bt-o"><span></span>${be}</div>
+        <div class="bt-o"><span>Antwort</span>${ant}</div>${ohneAufbau ? `<div class="bt-o"><span>Aufbau</span>${vl === undefined ? versch : esc(R[0].kurz || '–')}</div>` : `<div class="bt-o"><span>Aufbau</span>${auf}</div>`}<div class="bt-o"><span></span>${be}</div>
         <p class="bt-h">Jede Änderung hier gilt für alle ${R.length}. „verschieden“ = die Gewählten haben verschiedene Werte; wählst du einen, gilt er für alle. Mit Strg + Klick weitere dazu oder weg.</p>
         <button type="button" class="btn sm" data-btmwweg>Auswahl aufheben</button>`;
     }
@@ -779,9 +823,10 @@
         neu(await (await J(`${basis}/bauteile/hand`, 'POST', { name: alt.name, kg: alt.kg || '', ...(alt.einheit_hand ? { einheit: alt.einheit } : {}) })).json()); const n = L().zeilen[L().zeilen.length - 1]; if (!n) return;
         await zeile(n.id, { menge: alt.menge || 0, status: alt.status, berechnen: !!alt.berechnen, ...(alt.vorlage ? { vorlage: alt.vorlage, wahl: alt.wahl, ...(alt.dicken ? { dicken: alt.dicken } : {}), ...(alt.ausf ? { ausf: alt.ausf } : {}) } : {}) }, true); }); }
     async function handName(id) { const z = handZ(id); if (!z || !window.bpEingabe) return; const n = await bpEingabe('Name des Bauteils', z.name); if (n && String(n).trim() && String(n).trim() !== z.name) return zeile(id, { name: String(n).trim() }); }
-    async function anfang() {   // D1: ein Fenster, vier Wege
-      const plan = !!(((Z.d && Z.d.modell) || {}).assistent || {}).type, gm = ((H.conf || {}).apps || []).find((a) => a.key === 'gebaeudemodell'), w = await anfangen({ plan });
+    async function anfang(neu) {   // ein Fenster für jeden Anfang (D1, 21.11.2026: Baukasten · Planung · Datei)
+      const plan = !!(((Z.d && Z.d.modell) || {}).assistent || {}).type, gm = ((H.conf || {}).apps || []).find((a) => a.key === 'gebaeudemodell'), w = await anfangen({ plan, neu: neu === true || !!Z.ps.length });
       const hin = (h) => { if (gm) location.href = `${H.appUrl(gm)}/#${h}`; };
+      if (w === 'baukasten') return opt.baukasten ? opt.baukasten() : hin('baukasten');
       if (w === 'planung') return tue(plan ? 'data-btplan' : 'data-btplanung');
       if (w === 'raeume') return opt.raeume ? opt.raeume() : hin('raeume');
       if (w === 'zeilen') return tue('data-bthand');
@@ -789,10 +834,10 @@
     }
     const tue = (attr) => { const b = document.createElement('button'); b.setAttribute(attr, ''); return klick({ target: b }); };
     const api = {
-      laden, menue, verfeinern, einlesen, anfang,
+      laden, menue, verfeinern, einlesen, anfang, ansehen,
       hand: () => tue('data-bthand'), aufraeumen: () => tue('data-btweg-alle'), ausgeben: () => tue('data-btaus'),
       gelten: () => (Z.an ? aendern(Z.an.id, { gilt: true }, 'Der Planstand gilt jetzt – die Apps arbeiten damit.') : null),
-      details(box) { Z.det = box; box.onclick = klick; box.onchange = wechsel; box.addEventListener('toggle', blkMerk, true); detailsZeichnen(); },
+      details(box) { Z.det = box; box.onclick = klick; box.onchange = wechsel; box.oninput = suchen; box.onkeydown = suchTaste; box.addEventListener('toggle', blkMerk, true); detailsZeichnen(); },
       zustand: () => ({ an: Z.an, planstaende: Z.ps.length, ifc: ifcDa(G().quelle || {}), plan: !!(G().quelle || {}).planstand && ((G().quelle || {}).art || 'ifc') !== 'hand', planart: (G().quelle || {}).art || '', zeilen: L().zeilen, weg: G().zeilen.filter((z) => z.entfaellt).length, extern: !!(Z.rw && Z.rw.extern), sel: Z.sel, modell: Z.d && Z.d.modell, rev: Z.d && Z.d.rev }),
       mehr(ids) { mwSetzen(ids || []); },   // im 3D mehrere gewählt (Zeilen-Kennungen)
       mehrfach: () => [...Z.mw],

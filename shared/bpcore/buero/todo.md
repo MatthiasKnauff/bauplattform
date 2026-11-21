@@ -247,7 +247,11 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
-- ~~Gebäudemodell ohne Planstand: was der Baukasten aus den Angaben zeigt, wird gleich der Planstand „Assistent“ (kein Bild ohne Stand im Menü)~~ (21.11.2026)
+- ~~Baukasten in derselben 3D-Ansicht wie das IFC-Modell (Mock „Baukasten wie 3D“ A1 B3 C1 D2 E1): Maus und Auswahl gleich, Dicke aus dem Aufbau, Befehle rechts und per Rechtsklick, Bausteine als Symbolreihe aufs Modell ziehen (Stelle grün), Maße als Zahlen und an Griffen; Netz rechnet der Baustein~~ (21.11.2026)
+- ~~„Neuer Planstand …“: Fenster „Wie willst du beginnen?“ – Baukasten (Erdgeschoss + Satteldach, eigener Planstand, gilt sofort) · Planung · Datei; ohne Planstand legt der Baukasten erst mit der ersten Änderung einen an~~ (21.11.2026)
+- ~~Gebäudemodell: angesehener Planstand gilt für die ganze Seite (Räume, Fenster & Türen, 3D, Grundriss) und ist nur zum Ansehen; Räume/Fenster als Reiter derselben Seite (rechts lädt nichts neu)~~ (21.11.2026)
+- ~~Aufbau-Editor: Suche ganz oben (Vorlagen, Schicht-Optionen, Kürzel PP/KS/HLz …), voller Editor auch bei mehreren Bauteilen; Wände spreizen „alle Wände | nur außen“ als geteilter Schalter~~ (21.11.2026)
+- ~~Planungsassistent: ein Gebäude ohne Namenszeile, weitere Teile nur über „＋ Gebäudeteil“~~ (21.11.2026)
 - ~~Gebäudemodell: kein zweiter Baukasten im Reiter „Planung“; Planstand-Menü ohne Planstand („noch keiner“) lässt sich öffnen und bietet „Neuen Planstand einlesen“~~ (21.11.2026)
 - ~~Startseite: neue Apps kommen zu den Kacheln statt ganz nach unten unter die Widgets~~ (21.11.2026)
 - ~~Startseite: „n Tage Zeiten bestätigen“ steht nicht mehr in „Zu tun“~~ (21.11.2026)

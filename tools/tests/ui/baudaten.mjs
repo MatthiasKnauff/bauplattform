@@ -1,6 +1,7 @@
 // Baudaten: Bereich rechts (seite.js) mit den Reitern „Position“ und „Korb“ – Ablauftest im echten Browser mit nachgebildeten Server-Antworten.
 // Geprüft: Steht „Korb“ vorn oder ist der Bereich zugeklappt, liegen die Details (#det) nicht lose im Raster (sie nahmen dem Bereich
 // rechts die Spalte weg: Liste schmal, rechts leer); Liste und Bereich stehen nebeneinander und füllen die Breite; „Position“ holt die Details zurück.
+// Am Handy: Leistungsbereiche links springen beim Anklicken nicht, „oft geöffnet“ sortiert sich nicht um (21.11.2026).
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await baudatenPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/baudaten.mjs
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
@@ -10,15 +11,17 @@ export async function baudatenPruefen(browser, repo) {
   const BK = /BAUKASTEN = \(([^)]*)\)/.exec(fs.readFileSync(path.join(repo, 'shared/bpcore/head.py'), 'utf8'))[1].match(/"[^"]+"/g).map((s) => s.slice(1, -1));
   const baukasten = 'void 0;\n' + BK.map((f) => fs.readFileSync(path.join(KASTEN, f), 'utf8')).join('\n;\n');
   const fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
+  const LBS = [310, 320, 330, 340, 350, 360, 370, 380, 390, 410, 420, 430, 440, 450, 460, 470, 480].map((n) => ({ nr: String(n), name: 'Leistungsbereich ' + n, n }));
   const antwort = (pf) => {
     if (pf === 'api/me') return { ok: true, id: 1, name: 'admin', vorname: 'A', role: 'admin', admin: true, look: {} };
     if (pf === 'api/platform') return { apps: [], user: { name: 'admin', role: 'admin' }, projekte: [] };
-    if (pf === 'api/start') return { kataloge: [{ key: 'gk3', name: 'Positionsdatenbank', n: 0 }], einheiten: [], lbs: [], gruppen: [], loehne: [] };
+    if (pf === 'api/start') return { kataloge: [{ key: 'gk3', name: 'Positionsdatenbank', n: 0 }], einheiten: [], lbs: LBS, gruppen: [], loehne: [], einstellungen: { index_aktuell: 141.7, index_basis: 141.7, faktor_name: 'Bundesdurchschnitt', faktor: 1 } };
+    if (pf === 'api/gruppen') return [1, 2, 3, 4, 5, 6].map((i) => ({ nr: 'g' + i, name: 'Gruppe ' + i, n: i }));
     if (pf === 'api/suche') return { positionen: [], gesamt: 0 };
     return /korb|liste|kontakte|neuigkeit|projekte|verlauf|fehler|gruppen|lvs|firmen/.test(pf) ? [] : {};
   };
-  async function lauf(name, merker, pruefen) {
-    const ctx = await browser.newContext({ viewport: { width: 1900, height: 1000 } }), p = await ctx.newPage();
+  async function lauf(name, merker, pruefen, vp = { width: 1900, height: 1000 }) {
+    const ctx = await browser.newContext({ viewport: vp }), p = await ctx.newPage();
     await p.addInitScript((m) => { try { for (const k in m) localStorage.setItem(k, m[k]); } catch { /* ohne Speicher */ } }, merker);
     await p.route('http://portal.test/**', (r) => {
       const u = new URL(r.request().url()), pf = u.pathname.replace(/^\//, '');
@@ -31,10 +34,10 @@ export async function baudatenPruefen(browser, repo) {
     });
     try {
       await p.goto('http://portal.test/baudaten');
-      await p.waitForSelector('.grid.sr-split > .sr-r', { timeout: 20000 }); await p.waitForTimeout(300);
+      await p.waitForSelector(vp.width < 700 ? '#side button.si' : '.grid.sr-split > .sr-r', { timeout: 20000 }); await p.waitForTimeout(300);
       const lage = () => p.evaluate(() => { const g = document.querySelector('.grid'), q = (s) => { const e = g.querySelector(':scope > ' + s); if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, w: b.width }; };
         const b = g.getBoundingClientRect(); return { lose: !!g.querySelector(':scope > #det'), det: DET.isConnected, im: !!DET.closest('.sr-r'), li: q('section'), re: q('.sr-r'), g: { l: b.left, r: b.right } }; });
-      await pruefen(await lage(), p, lage);
+      await pruefen(vp.width < 700 ? null : await lage(), p, lage);
     } catch (e) { fehler.push(`${name}: bricht ab – ` + String(e.message).split('\n')[0]); }
     await ctx.close();
   }
@@ -62,6 +65,20 @@ export async function baudatenPruefen(browser, repo) {
     pruef(!r.length, 'Grundhilfen: ' + r.join(' · '));
   });
   await lauf('zugeklappt', { 'bp.sr.bd.zu': 'true' }, async (b) => neben(b, 'zugeklappt', 20));
+  // Leistungsbereiche links (Handy): ein Klick auf einen Bereich – in der Liste oder bei „oft geöffnet“ – lässt ihn an seiner Stelle stehen,
+  // und die Knöpfe „oft geöffnet“ tauschen nicht die Plätze (21.11.2026: sie sortierten sich bei jedem Klick um, die Seite sprang nach oben)
+  await lauf('Leistungsbereiche ohne Springen', { 'bd.lbHaeufig': JSON.stringify({ gk3: { 310: 9, 390: 8, 320: 7, 330: 6, 350: 5, 360: 4 } }) }, async (b, p) => {
+    const reihe = () => p.evaluate(() => [...document.querySelectorAll('#side .lbfav button')].map((x) => x.dataset.lb).join(','));
+    const r0 = await reihe();
+    for (const [nr, wo] of [['450', 'button.si'], ['320', 'button.si'], ['430', 'button.si'], ['390', '.lbfav button']]) {
+      const sel = `#side ${wo}[data-lb="${nr}"]`;
+      const y0 = await p.evaluate((s) => { const e = document.querySelector(s); e.scrollIntoView({ block: 'center' }); return e.getBoundingClientRect().top; }, sel);
+      await p.click(sel); await p.waitForTimeout(250);
+      const y1 = await p.evaluate((s) => document.querySelector(s).getBoundingClientRect().top, sel);
+      pruef(Math.abs(y1 - y0) < 3, `Leistungsbereich ${nr} (${wo}): springt um ${Math.round(y1 - y0)} px`);
+    }
+    pruef(await reihe() === r0, `„oft geöffnet“ sortiert sich beim Klicken um: ${r0} → ${await reihe()}`);
+  }, { width: 516, height: 994 });
   return fehler;
 }
 

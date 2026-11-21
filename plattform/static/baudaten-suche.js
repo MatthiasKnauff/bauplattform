@@ -60,8 +60,12 @@ function bdZuletztZeigen(an) {
 /* Leistungsbereiche: Suchfeld und „★ oft geöffnet“ über der Liste (seiteLinks() ruft das) */
 const bdHaeufig = () => (LS.get('lbHaeufig', {})[F.katalog] || {});
 function bdLbZaehlen(nr) { if (!nr) return; const A = LS.get('lbHaeufig', {}), H = A[F.katalog] || (A[F.katalog] = {}); H[nr] = (H[nr] || 0) + 1; LS.set('lbHaeufig', A); }
+/* Die Reihenfolge der Knöpfe steht für den Besuch fest (je Katalog): gezählt wird weiter, umsortiert erst beim nächsten Öffnen –
+   sonst tauschten die Knöpfe bei jedem Klick die Plätze und die Liste darunter sprang (21.11.2026) */
+const BDTOP = {};
 function bdSeiteKopf() {
-  const H = bdHaeufig(), top = Object.entries(H).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([nr]) => S.lbs.find((l) => l.nr === nr)).filter(Boolean);
+  const H = bdHaeufig(), reihe = BDTOP[F.katalog] || (BDTOP[F.katalog] = Object.entries(H).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([nr]) => nr));
+  const top = reihe.map((nr) => S.lbs.find((l) => l.nr === nr)).filter(Boolean);
   return `<div class="lbq"><input type="search" id="lbQ" placeholder="Leistungsbereich suchen … z. B. Dach" value="${esc(BDLB)}" autocomplete="off" aria-label="Leistungsbereich suchen"></div>`
     + (top.length && !BDLB ? `<div class="lbfav"><span>★ oft geöffnet</span>${top.map((l) => `<button type="button" data-lb="${esc(l.nr)}" title="${esc(l.nr + ' ' + (l.name || ''))}">${esc(l.nr)} ${esc((l.name || '').length > 16 ? l.name.slice(0, 15) + '…' : l.name || '')}</button>`).join('')}</div>` : '');
 }

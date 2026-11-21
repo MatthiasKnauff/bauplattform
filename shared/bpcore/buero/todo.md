@@ -249,6 +249,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Baudaten: Leistungsbereiche links springen beim Anklicken nicht mehr (Handy), „oft geöffnet“ tauscht nicht mehr bei jedem Klick die Plätze~~ (21.11.2026)
 - ~~Ausschreibung: Fenster „Eigenschaften: Position“ ist in jedem Reiter gleich groß (sprang zwischen Allgemein, Weiteres, Menge, Grafik)~~ (21.11.2026)
 - ~~Gemeinsamer Dateispeicher im Kern (Etappe 1): Laufwerk in allen Containern, Datenbank hält nur den Verweis; Rechnungs-PDFs, Pläne der Markierung, IFC; Umzug der vorhandenen Dateien durch die Dienste, Kopie auf den Dateiserver mit der Datensicherung~~ (21.11.2026)
 - ~~Baukasten: Dächer verschneiden, Schritt 1 (Dach läuft in die Traufseite des Nachbardachs – Pult, Sattel mit Kehlen); Antwort löscht den Aufbau nicht mehr~~ (21.11.2026)

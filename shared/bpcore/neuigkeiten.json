@@ -1,5 +1,13 @@
 [
  {
+  "id": "bd-ohne-springen-2111",
+  "datum": "2026-11-21",
+  "app": "baudaten",
+  "titel": "Leistungsbereiche bleiben stehen",
+  "text": "Ein Klick auf einen Leistungsbereich lässt ihn an seiner Stelle – die Liste springt nicht mehr nach oben. Die Knöpfe „oft geöffnet“ behalten ihre Reihenfolge, bis du die Baudaten wieder öffnest.",
+  "ziel": "#side"
+ },
+ {
   "id": "gm-daecher-verschneiden-2111",
   "datum": "2026-11-21",
   "app": "gebaeudemodell",

@@ -175,7 +175,7 @@ async function vorbemerkung(k) {
   bg.querySelector('.modal').style.width = 'min(760px,100%)';
 }
 /* Beim Auf-/Zuklappen bleibt die angeklickte Zeile unter der Maus stehen (sonst springt die Liste, wenn oben ein anderer Bereich zuklappt) */
-function festhalten(sel, y0) {
+function festhalten(sel, y0) {   // das angeklickte Element bleibt nach dem Neuzeichnen an seiner Stelle (sel muss genau dieses treffen)
   const el = $('#side').querySelector(sel); if (!el) return;
   const d = el.getBoundingClientRect().top - y0; if (!d) return;
   const sd = $('#navL'), vor = sd.scrollTop; sd.scrollTop += d;   // die Leistungsbereiche rollen mit der Navigation links
@@ -489,7 +489,9 @@ async function importieren() {
 document.addEventListener('click', async (e) => {
   const t = e.target;
   const vb = t.closest('[data-vb]'); if (vb) { vorbemerkung(vb.dataset.vb); return; }
-  const lb = t.closest('[data-lb]'); if (lb) { F.lb = lb.dataset.lb; F.gruppe = ''; N = 100; const y0 = lb.getBoundingClientRect().top; if (F.lb && !GR[F.lb]) { try { GR[F.lb] = await api(`api/gruppen?katalog=${encodeURIComponent(F.katalog)}&lb=${encodeURIComponent(F.lb)}`); } catch { GR[F.lb] = []; } } seiteLinks(); festhalten(`[data-lb="${CSS.escape(F.lb)}"]`, y0); laden(); return; }
+  const lb = t.closest('[data-lb]'); if (lb) { F.lb = lb.dataset.lb; F.gruppe = ''; N = 100; const y0 = lb.getBoundingClientRect().top, imKopf = !!lb.closest('.lbfav');   // Knopf „oft geöffnet“ oder Zeile der Liste – genau dieses Element bleibt stehen
+    if (F.lb && !GR[F.lb]) { try { GR[F.lb] = await api(`api/gruppen?katalog=${encodeURIComponent(F.katalog)}&lb=${encodeURIComponent(F.lb)}`); } catch { GR[F.lb] = []; } }
+    seiteLinks(); festhalten(`${imKopf ? '.lbfav button' : 'button.si'}[data-lb="${CSS.escape(F.lb)}"]`, y0); laden(); return; }
   const gr = t.closest('[data-gr]'); if (gr) { F.gruppe = F.gruppe === gr.dataset.gr ? '' : gr.dataset.gr; N = 100; seiteLinks(); laden(); return; }
   const kb = t.closest('[data-korb]'); if (kb) { const id = +kb.dataset.korb; korbAendern(KORB.has(id) ? { weg: [id] } : { dazu: [id] }); return; }
   if (t.closest('[data-korbd]') && SEL) { korbAendern(KORB.has(SEL.id) ? { weg: [SEL.id] } : { dazu: [SEL.id] }); return; }

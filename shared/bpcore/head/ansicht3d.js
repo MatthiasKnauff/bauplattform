@@ -190,7 +190,8 @@
       if (!pick && S.lin) {
         gl.useProgram(PL); gl.uniformMatrix4fv(gl.getUniformLocation(PL, 'm'), false, M); gl.uniform1f(gl.getUniformLocation(PL, 'zug'), S.zug); gl.uniform1f(gl.getUniformLocation(PL, 'seit'), S.seit); gl.uniform1f(gl.getUniformLocation(PL, 'teil'), S.teil); gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
         for (let i = 0; i < 8; i++) gl.disableVertexAttribArray(i);   // n, c der Flächen aus – die Linien haben nur p
-        S.lin.forEach((B, k) => { if (!B.n) return; gl.uniform4fv(gl.getUniformLocation(PL, 'f'), k === 2 ? [0.2, 0.0, 0.5, 1] : k ? [0.2, 0.22, 0.25, 0.18] : [0.05, 0.06, 0.08, 0.9]); attr(PL, 'p', B.b, 3); attr(PL, 'g', B.g, 1); attr(PL, 'q', B.q, 4); gl.drawArrays(gl.LINES, 0, B.n); });
+        /* Durchsicht (21.11.2026): Kanten mit dem Schieber deutlich blasser – feiner als ein Bildpunkt zeichnet WebGL keine Linie */
+        S.lin.forEach((B, k) => { if (!B.n) return; gl.uniform4fv(gl.getUniformLocation(PL, 'f'), k === 2 ? [0.2, 0.0, 0.5, 1] : k ? [0.2, 0.22, 0.25, 0.18 * (1 - S.durch * 0.7)] : [0.05 + 0.3 * S.durch, 0.06 + 0.3 * S.durch, 0.08 + 0.3 * S.durch, 0.9 * (1 - S.durch * 0.85)]); attr(PL, 'p', B.b, 3); attr(PL, 'g', B.g, 1); attr(PL, 'q', B.q, 4); gl.drawArrays(gl.LINES, 0, B.n); });
         /* Angewähltes scheint durch alles hindurch (20.11.2026: kleine oder verdeckte Bauteile wie eine Wand im Innenhof sah man sonst nicht leuchten) */
         if (S.wf) { gl.disable(gl.DEPTH_TEST); gl.uniform4fv(gl.getUniformLocation(PL, 'f'), [0.48, 0.18, 0.97, 0.22]); attr(PL, 'p', S.wf.b, 3); attr(PL, 'g', S.wf.g, 1); attr(PL, 'q', S.wf.q, 4); gl.drawArrays(gl.TRIANGLES, 0, S.wf.n);
           const B = S.lin[2]; if (B.n) { gl.uniform4fv(gl.getUniformLocation(PL, 'f'), [0.36, 0.1, 0.8, 0.75]); attr(PL, 'p', B.b, 3); attr(PL, 'g', B.g, 1); attr(PL, 'q', B.q, 4); gl.drawArrays(gl.LINES, 0, B.n); }

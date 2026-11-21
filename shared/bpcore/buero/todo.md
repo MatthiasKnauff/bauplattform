@@ -251,6 +251,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~3D: bei „Durchsicht“ Kanten deutlich blasser~~ (21.11.2026)
 - ~~Baukasten → Planung: Anbau und Aufstockung aus dem Baukasten stehen in der Planung, entfernte Teile gehen heraus~~ (21.11.2026)
 - ~~Gebäudemodell: Mitte nur 3D/Grundriss, Bauteil-Baum und Räume rechts, Schalter „Gebäude bearbeiten“, Gruppe „Material“ (Schritt 1)~~ (21.11.2026)
 - ~~Baukasten: Wand angeklickt → rechts nur die Wand (vorher stand der Boden des Geschosses mit da)~~ (21.11.2026)

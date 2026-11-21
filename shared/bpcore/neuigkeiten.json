@@ -1,5 +1,13 @@
 [
  {
+  "id": "adr-leiste-2111",
+  "datum": "2026-11-21",
+  "app": "adressen",
+  "titel": "Adressen: Befehlsleiste",
+  "text": "Neu, Ansicht (Karten/Tabelle), Aufräumen, Drucken, Excel und Verlauf stehen jetzt in der Befehlsleiste wie in den anderen Apps – am Handy in einer Zeile, was nicht passt, liegt unter „»“. Sortieren und „Filter je Feld“ stehen in einer Zeile unter der Zahl der Kontakte.",
+  "ziel": "#bfl"
+ },
+ {
   "id": "ava-bauteile-2111",
   "datum": "2026-11-21",
   "app": "ava",

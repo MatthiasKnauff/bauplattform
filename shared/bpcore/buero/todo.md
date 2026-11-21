@@ -247,6 +247,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Adressen: Befehlsleiste wie in allen Apps statt eigener Knopfreihe (Handy: eine Zeile), Zahl · Sortieren · Filter kompakt~~ (21.11.2026)
 - ~~Ausschreibung: Kopierquelle heißt „Baudaten“ (Baum wie das LV); neue Quelle „Bauteile“ aus dem Gebäudemodell mit Kette 🔗 verknüpft/gelöst, Abgleich Menge · Text · Preis (D3), „Alle Bauteile ablegen“~~ (21.11.2026)
 - ~~Gebäudemodell: Bauteile wie der LV-Baum – Gruppieren-Leiste (bp/gruppen.js), Dreieck = schnelle Aufbau-Wahl, Doppelklick (Tabelle und 3D) = Eigenschaften-Fenster mit „angewählte · gleiche Bauteile“; Baukasten: Reiter „Baukörper“, kein Korb, Aufbau folgt im 3D~~ (21.11.2026)
 - ~~Gebäudemodell: 3D ganz abdocken (eigenes Fenster, Mitte zeigt Tabelle/Grundriss)~~ (21.11.2026)

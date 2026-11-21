@@ -32,6 +32,18 @@ export async function adrAufraeumenPruefen(browser, repo) {
   try {
     await p.goto('http://portal.test/adressen/'); await p.waitForSelector('#dup', { timeout: 10000 }); await p.waitForTimeout(300);
     pruef(/Aufräumen/.test(await p.textContent('#dup')), 'Knopf heißt nicht „Aufräumen“');
+    {   // 21.11.2026: Befehlsleiste wie in allen Apps statt eigener Knopfreihe – am Handy EINE Zeile (vorher fünf), Zahl und Sortieren in einer Zeile
+      const mess = () => p.evaluate(() => { const b = document.querySelector('#bfl .bf'), k = [...document.querySelectorAll('#bfl .bf-k')].filter((x) => x.offsetParent), z = document.querySelector('.kz'), li = document.querySelector('#list');
+        return { h: b ? Math.round(b.getBoundingClientRect().height) : 0, zeilen: new Set(k.map((x) => Math.round(x.getBoundingClientRect().top))).size, neu: !!document.querySelector('#bfl .bf-neu #neu'), an: (document.querySelector('#bfl [aria-pressed="true"]') || {}).textContent,
+          oben: Math.round((li.hidden ? document.querySelector('#tw') : li).getBoundingClientRect().top), kz: Math.round(z.getBoundingClientRect().height), quer: document.documentElement.scrollWidth > innerWidth + 1, alt: !!document.querySelector('.bar') }; });
+      let m = await mess();
+      pruef(m.h > 20 && m.zeilen === 1 && m.neu && !m.alt && /Tabelle|Karten/.test(m.an || ''), `Befehlsleiste am Rechner: ${JSON.stringify(m)}`);
+      if (process.env.BILD) await p.screenshot({ path: process.env.BILD });
+      await p.setViewportSize({ width: 393, height: 852 }); await p.evaluate(() => setView('karten')); await p.waitForTimeout(400); m = await mess();
+      pruef(m.zeilen === 1 && m.h < 90 && m.kz < 90 && !m.quer, `Handy: Leiste in einer Zeile, Sortieren kompakt, kein Querrollen – ${JSON.stringify(m)}`);
+      if (process.env.BILD) await p.screenshot({ path: process.env.BILD.replace('.png', '-handy.png') });
+      await p.setViewportSize({ width: 1400, height: 900 }); await p.waitForTimeout(300);
+    }
     await p.click('#dup'); await p.waitForSelector('[data-afok="0"]', { timeout: 8000 });
     const s = await p.evaluate(() => ({ reiter: [...document.querySelectorAll('[data-afr]')].map((x) => x.textContent), gr: document.querySelectorAll('.af-g').length, gelb: document.querySelectorAll('.af-g.zerl').length, knopf: document.querySelector('[data-afok="0"]').textContent }));
     pruef(s.reiter.length === 5 && /Doppelte Adressen · 2/.test(s.reiter[0]) && /Gewerk · 2/.test(s.reiter[1]) && s.gr === 2 && s.gelb === 1 && /Zusammenführen \(13\)/.test(s.knopf), 'Fenster: ' + JSON.stringify(s));

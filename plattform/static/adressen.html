@@ -67,16 +67,18 @@
 .tt tbody tr:hover td{background:var(--hov)}
 .tt tbody tr.cur td{background:color-mix(in srgb,var(--y) 8%,transparent)}
 .empty{color:var(--mute);padding:2rem 0;text-align:center}
-.cnt{color:var(--mute);font-size:.88rem;margin:-.4rem 0 .8rem}
+.bfl{margin:0 0 .6rem}
+.kz{display:flex;flex-wrap:wrap;gap:.3rem .8rem;align-items:center;margin:0 0 .7rem;min-height:2.1rem}   /* Zahl der Kontakte und Sortieren in EINER Zeile */
+.cnt{color:var(--mute);font-size:.88rem;flex:1 1 9rem;min-width:0}
 .af{display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin:-.4rem 0 .8rem}
 .af[hidden]{display:none}
 .af .fc{display:inline-flex;align-items:center;gap:.35rem;border:1px solid var(--y);color:var(--ink);border-radius:calc(999px*var(--rkp,1));padding:.2rem .35rem .2rem .7rem;font-size:.85rem;background:var(--hov)}
 .af .fc b{font-weight:600;color:var(--mute)}
 .af .fc span{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:.75rem;background:var(--line)}
 .af .fc:hover span{background:var(--red);color:#fff}
-.kb{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin:-.3rem 0 .8rem}
+.kb{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;font-size:.88rem}
 .kb[hidden]{display:none}
-.kb select{width:auto}
+.kb select{width:auto;max-width:11rem;padding-top:.3rem;padding-bottom:.3rem}
 .kf{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.5rem .8rem;background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));padding:.8rem 1rem;margin:-.2rem 0 1rem}
 .kf[hidden]{display:none}
 .kf label{display:flex;flex-direction:column;gap:.2rem;font-size:.82rem;color:var(--mute)}
@@ -102,6 +104,7 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
 .mf{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem;align-items:center}
 .mf .fill{flex:1}
 @media (max-width:560px){
+  .kz{gap:.25rem .5rem}.cnt{flex:1 1 100%}.kb{flex:1 1 100%;flex-wrap:nowrap}.kb label{display:none}.kb select{flex:1 1 auto;min-width:0;max-width:none}.kb .btn{flex:none;white-space:nowrap}   /* Handy: Zahl, darunter Sortieren · Richtung · Filter in einer Zeile */
   .wrap{padding:1rem .75rem 3rem}
   .fm{grid-template-columns:1fr}
   .list{grid-template-columns:1fr}
@@ -114,15 +117,10 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
 <main class="bp-app">
   <aside class="bp-nav" id="navL" aria-label="Adressen"></aside>
   <section class="pane wrap" id="pane">
-  <div class="bar"><span class="fill"></span>
-    <div class="seg" id="view" role="group" aria-label="Ansicht"><button data-v="karten">Karten</button><button data-v="tabelle">Tabelle</button></div>
-    <button class="btn sm" id="pdf" title="Gefilterte Liste drucken oder als PDF">🖨 Drucken / PDF</button>
-    <button class="btn sm" id="xlsx" title="Gefilterte Liste als Excel-Datei speichern">⤓ Speichern unter …</button>
-    <button class="btn sm" id="dup" title="Aufräumen: doppelte Adressen zusammenführen, ähnliche Gewerke und Arten vereinheitlichen">🧹 Aufräumen</button>
-    <button class="btn sm" id="verl" title="Geänderte und gelöschte Adressen ansehen und wiederherstellen">🕘 Verlauf</button>
-    <button class="btn pri" id="neu">+ Neu</button></div>
-  <div class="cnt" id="cnt"></div>
-  <div class="kb" id="kb" hidden><label for="ksort" class="mute" style="font-size:.88rem">Sortieren</label><select id="ksort"></select><button class="btn sm" id="kdir" title="Reihenfolge umkehren"></button><button class="btn sm" id="kflt" aria-expanded="false"><i class="bp-kl" aria-hidden="true"></i>Filter je Feld</button></div>
+  <!-- Befehlsleiste wie in allen Apps (befehle.js, 21.11.2026 – vorher eine eigene Knopfreihe, die am Handy über fünf Zeilen umbrach): Rückgängig · Neu · Ansicht · Liste · Datei · Verlauf -->
+  <div class="bfl" id="bfl"></div>
+  <div class="kz"><span class="cnt" id="cnt"></span>
+    <div class="kb" id="kb" hidden><label for="ksort" class="mute">Sortieren</label><select id="ksort"></select><button class="btn sm" id="kdir" title="Reihenfolge umkehren"></button><button class="btn sm" id="kflt" aria-expanded="false"><i class="bp-kl" aria-hidden="true"></i>Filter je Feld</button></div></div>
   <div class="kf" id="kf" hidden></div>
   <div class="list" id="list"></div>
   <div class="tw" id="tw" hidden></div>
@@ -201,7 +199,7 @@ function render() {
   ableiten(); adrNav();
   if (typeof TV !== 'undefined' && TV.view === 'tabelle') { renderTable(); return; }
   const rows = tableRows();
-  $('#cnt').textContent = rows.length === ALL.length ? `${ALL.length} Kontakte` : `${rows.length} von ${ALL.length} Kontakten`;
+  $('#cnt').textContent = rows.length === ALL.length ? (ALL.length === 1 ? '1 Kontakt' : `${ALL.length} Kontakte`) : `${rows.length} von ${ALL.length} Kontakten`;
   renderKbar();
   $('#list').innerHTML = rows.map((c) => `<div class="ct" tabindex="0" data-id="${c.id}">
       <div class="hd"><b>${esc(c.name)}</b>${c.kind !== 'firma' ? `<span class="pill">${esc(KINDN[c.kind] || c.kind)}</span>` : ''}</div>
@@ -318,12 +316,11 @@ $('#kf').addEventListener('input', (e) => { const f = e.target.dataset.flt; if (
 $('#kf').addEventListener('change', (e) => { if (e.target.dataset.flt === 'kind') { TV.flt.kind = e.target.value; render(); renderKf(); } });
 function setView(v) {
   TV.view = v; tvSave();
-  document.querySelectorAll('#view button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
+  adrLeiste();
   $('#list').hidden = v === 'tabelle'; $('#tw').hidden = v !== 'tabelle'; $('#kb').hidden = v === 'tabelle'; if (v === 'tabelle') $('#kf').hidden = true;
   document.querySelector('#pane').classList.toggle('wide', v === 'tabelle');
   if (v === 'tabelle') renderTable(); else render();
 }
-$('#view').addEventListener('click', (e) => { const b = e.target.closest('[data-v]'); if (b) setView(b.dataset.v); });
 $('#tw').addEventListener('click', (e) => {
   if (e.target.closest('[data-rz]') || Date.now() - (TV.rzT || 0) < 300) return;   // Ziehen an der Spaltenbreite ist kein Sortierklick
   const th = e.target.closest('[data-sort]');
@@ -355,7 +352,6 @@ $('#tw').addEventListener('keydown', (e) => {
 document.addEventListener('bp-spalten', (e) => { if (e.detail.key === 'adressen') renderTable(); });   // Tabellenbreite neu rechnen
 $('#list').addEventListener('click', (e) => { if (e.target.closest('a')) return; const el = e.target.closest('.ct'); if (el) edit(ALL.find((c) => c.id === +el.dataset.id)); });
 $('#list').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.classList.contains('ct')) edit(ALL.find((c) => c.id === +e.target.dataset.id)); });
-$('#neu').onclick = () => edit(null);
 // Export wie in der Liste gefiltert; die Beschreibung des Filters steht im Ausdruck oben
 function exportQS() {
   const r = tableRows(), p = new URLSearchParams();
@@ -364,7 +360,7 @@ function exportQS() {
   if (f) p.set('filter', f);
   const s = p.toString(); return s ? '?' + s : '';
 }
-$('#pdf').onclick = () => { if (!tableRows().length) return toast('Keine Kontakte in der Liste.', true); openPdf('api/contacts/export.pdf' + exportQS()); };
+const adrPdf = () => { if (!tableRows().length) return toast('Keine Kontakte in der Liste.', true); openPdf('api/contacts/export.pdf' + exportQS()); };
 
 /* ---------- PDF ansehen: gemeinsame Ansicht der Plattform (BPHead.ansehen) – Zoom, Drucken, Teilen/Speichern, auch am Handy ---------- */
 async function openPdf(url) {
@@ -375,7 +371,7 @@ async function openPdf(url) {
   const m = /filename\*?=(?:UTF-8'')?"?([^";]+)/i.exec(r.headers.get('Content-Disposition') || '');
   BPHead.ansehen([{ url: URL.createObjectURL(await r.blob()), name: m ? decodeURIComponent(m[1]) : 'Adressen.pdf', typ: 'pdf' }]);
 }
-$('#xlsx').onclick = () => { if (!tableRows().length) return toast('Keine Kontakte in der Liste.', true); location.assign('api/contacts/export.xlsx' + exportQS()); toast('Excel-Datei wird geladen …'); };
+const adrXlsx = () => { if (!tableRows().length) return toast('Keine Kontakte in der Liste.', true); location.assign('api/contacts/export.xlsx' + exportQS()); toast('Excel-Datei wird geladen …'); };
 
 (async () => {
   const [me, conf] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(me);   // gleichzeitig
@@ -443,8 +439,20 @@ async function duplikate() {
   bg.addEventListener('change', (e) => { if (e.target.name === 'dupZ') { ziel = +e.target.value; zeichne(); } });
   zeichne(true);
 }
-$('#dup').onclick = () => aufraeumen();   // 19.11.2026: Duplikate, Gewerk, Art, Stichwörter, Tags in einem Fenster (adressen-aufraeumen.js)
-$('#verl').onclick = () => { if (window.BPHead && BPHead.verlaufAlle) BPHead.verlaufAlle({ teil: 'kontakt', titel: 'Verlauf der Adressen' }); };
+/* ---------- Befehlsleiste (befehle.js): dieselbe Leiste wie in allen Apps – wird es eng, erst kleinere Texte, dann nur Symbole, dann „»“ ---------- */
+const AIC = { neu: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-6.5 7-6.5s7 2.6 7 6.5"/>', karten: '<rect x="3" y="4" width="8" height="7" rx="1.5"/><rect x="13" y="4" width="8" height="7" rx="1.5"/><rect x="3" y="13" width="8" height="7" rx="1.5"/><rect x="13" y="13" width="8" height="7" rx="1.5"/>',
+  tabelle: '<rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 9h18M3 14h18M9 4v16"/>', besen: '<path d="M14 4l6 6M12 6l6 6-5 2-3-3z"/><path d="M10 11l-6 7 2 2 7-6"/>', druck: '<path d="M7 8V4h10v4"/><rect x="4" y="8" width="16" height="8" rx="1.5"/><path d="M7 14h10v6H7z"/>',
+  excel: '<path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/>', verlauf: '<circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/>' };
+function adrLeiste() {
+  const K = (t, ic, fn, o = {}) => ({ t, ic, fn, tip: o.tip || t, an: o.an, attrs: o.attrs });
+  befehle($('#bfl'), [
+    { titel: 'Neu', knoepfe: [K('Kontakt', AIC.neu, () => edit(null), { tip: 'Neuen Kontakt anlegen', attrs: 'id="neu"' })] },
+    { titel: 'Ansicht', knoepfe: [K('Karten', AIC.karten, () => setView('karten'), { an: TV.view !== 'tabelle', attrs: 'data-v="karten"' }), K('Tabelle', AIC.tabelle, () => setView('tabelle'), { an: TV.view === 'tabelle', attrs: 'data-v="tabelle"', tip: 'Tabelle – Zellen direkt ändern, Spalten wählen' })] },
+    { titel: 'Liste', knoepfe: [K('Aufräumen', AIC.besen, () => aufraeumen(), { tip: 'Aufräumen: doppelte Adressen zusammenführen, ähnliche Gewerke und Arten vereinheitlichen', attrs: 'id="dup"' })] },   // adressen-aufraeumen.js
+    { titel: 'Datei', rechts: true, knoepfe: [K('Drucken', AIC.druck, adrPdf, { tip: 'Gefilterte Liste drucken oder als PDF', attrs: 'id="pdf"' }), K('Excel', AIC.excel, adrXlsx, { tip: 'Gefilterte Liste als Excel-Datei speichern', attrs: 'id="xlsx"' })] },
+    { titel: 'Verlauf', rechts: true, knoepfe: [K('Verlauf', AIC.verlauf, () => { if (window.BPHead && BPHead.verlaufAlle) BPHead.verlaufAlle({ teil: 'kontakt', titel: 'Verlauf der Adressen' }); }, { tip: 'Geänderte und gelöschte Adressen ansehen und wiederherstellen', attrs: 'id="verl"' })] },
+  ]);
+}
 window.bpNachVerlauf = () => load();
 </script>
 <script src="static/adressen-aufraeumen.js"></script>

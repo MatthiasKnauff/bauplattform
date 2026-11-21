@@ -186,8 +186,10 @@ async function anlegen() {   // erster Stand im Projekt: Startdaten aus dem GebÃ
 }
 async function uebernehmen() { try { B = await api(`api/bk/${B.id}/uebernehmen`, 'POST'); FLOW = null; zeichne(); toast('Bauteile aus dem Projektmodell Ã¼bernommen.'); } catch (er) { toast(er.message, true); } }
 
+let HEFT = false;
 async function zeichne() {
   nav(); leiste();
+  if (!HEFT && window.befehle && befehle.heft) { HEFT = true; befehle.heft({ key: 'kosten', vor: WORK, einstufig: true, leiste: LEISTE, nach: () => dispatchEvent(new Event('resize')) }); }   // Heftzwecke wie Ausschreibung und Bauzeitenplan (21.11.2026)
   const pid = BPHead.projektId();
   if (!B) {
     V.className = pid ? '' : 'bk-leer';

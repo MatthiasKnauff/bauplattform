@@ -1,5 +1,13 @@
 [
  {
+  "id": "kosten-heft-2111",
+  "datum": "2026-11-21",
+  "app": "baukosten",
+  "titel": "Kosten: Befehlsleiste zuklappen",
+  "text": "Wie in Ausschreibung und Bauzeitenplan: die Heftzwecke oben rechts blendet Kopf und Befehlsleiste aus – mehr Platz; mit der Maus an die Oberkante holt sie kurz zurück.",
+  "ziel": ".bf-heftz .bf-heft"
+ },
+ {
   "id": "vk-arten-2111",
   "datum": "2026-11-21",
   "app": "gebaeudemodell",

@@ -44,6 +44,9 @@ export async function kostenPruefen(browser, repo) {
     pruef(a.nav.join('|') === 'Übersicht|Bauteile|DIN 276|Mittelabfluss', `Navigation: ${a.nav.join('|')}`);
     pruef(a.hw && a.band, `Übersicht: Hinweis Projektmodell und Band – ${JSON.stringify(a)}`);
     pruef(a.tabs.includes('Bauteile'), `Reiter „Bauteile“ rechts fehlt: ${a.tabs.join('|')}`);
+    {   // Heftzwecke wie in Ausschreibung und Bauzeitenplan (21.11.2026): ein Klick blendet die Befehlsleiste aus, der nächste holt sie zurück
+      const h = await p.evaluate(() => { const b = document.querySelector('.bf-heftz .bf-heft'); if (!b) return null; b.click(); const zu = document.getElementById('bfl').classList.contains('bf-zu'); b.click(); return { zu, wieder: !document.getElementById('bfl').classList.contains('bf-zu') }; });
+      pruef(h && h.zu && h.wieder, `Heftzwecke über den Kosten: ${JSON.stringify(h)}`); }
     pruef(!a.quer, 'waagerechter Scrollbalken');
     const bf = await p.evaluate(() => [...document.querySelectorAll('#bfl .bf-gt')].map((x) => x.textContent.trim()).join('|'));   // Befehlsleiste wie in allen Apps
     pruef(/^Rückgängig\|Neu\|Modell\|Ausgabe/.test(bf) && /Ansicht$/.test(bf), `Befehlsleiste: ${bf}`);

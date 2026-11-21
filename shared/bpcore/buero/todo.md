@@ -247,6 +247,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Kosten: Heftzwecke zum Zuklappen der Befehlsleiste; Ausschreibung: Navigation bis ganz unten, Ablegefeld springt nicht mehr~~ (21.11.2026)
 - ~~Gebäudemodell: letzten Planstand gelöscht → Mitte wirklich leer (Baukasten geht mit in den Planstand, 3D neu bei anderem gültigen Planstand)~~ (21.11.2026)
 - ~~Verknüpfungen: Art der Verknüpfung (automatisch · mit Übernahme · fest · getrennt) an jeder Kiste und am Pfeil sichtbar, mit Legende~~ (21.11.2026)
 - ~~Baukasten: keine durchdringenden Körper, Flachdach auf der Wand, Giebel/Gaubenwände = Außenwand, 3D bis unten, „Darstellung“ rechts; Reiter „Änderungen“ gestrichen, Rückgängig mit Beschriftung~~ (21.11.2026)

@@ -37,7 +37,7 @@ main.ava>.rib{display:none}   /* Variante B: keine Werkzeugleiste – Befehle im
 main.ava{overflow-x:clip}   /* die Seite selbst rollt nie seitlich – breite Tabellen rollen in ihrem Feld */
 main.ava-nurseite :is(#stp,#navL,#utb,.ph,#bfl,.rand-griff){display:none}   /* Seiten als Rechte: nur „Nachverfolgen“ */
 main.ava-nurseite .body{grid-template-columns:minmax(0,1fr)}main.ava-nurseite .body>*{grid-column:1!important}   /* ohne Navigation keine leere Spalte links */
-.body{flex:1;display:grid;grid-template-columns:var(--navw,272px) minmax(0,1fr);min-height:calc(100vh - 140px)}
+.body{flex:1;display:grid;grid-template-columns:var(--navw,272px) minmax(0,1fr);min-height:calc(100vh - 52px)}   /* bis unten: unter der Kopfleiste (52 px wie .nav top) – vorher 140 px, da endete die Navigation in kurzen Seiten zu früh (21.11.2026) */
 .nav{position:sticky;top:52px;align-self:stretch;max-height:calc(100vh - 52px)}   /* Aussehen der Navigation: Baukasten (.bp-nav in bp.css); hier nur die Lage in der AVA */
 .pane{display:flex;flex-direction:column;min-width:0;padding:0 .8rem 3rem}.pane.feld{padding-bottom:0}   /* Felder rollen in sich: unten nur der schmale Rand */
 .ph{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;padding:.45rem 0 .35rem;position:sticky;top:0;background:var(--bg);z-index:3}
@@ -520,7 +520,8 @@ tr.am-lf td input{color:#c0621f}
 #navL .nfuss{background:color-mix(in srgb,var(--tabs) 55%,var(--card))}
 .nav .nfuss .ava-drop{margin:0;flex-direction:row;align-items:center;justify-content:flex-start;gap:.6rem;padding:.55rem .7rem;text-align:left;border:2px dashed var(--line);border-radius:calc(10px*var(--rk,1));background:transparent}
 .nav .nfuss .ava-drop .ad-i{font-size:1.35rem;line-height:1}.nav .nfuss .ava-drop .ad-t{display:flex;flex-direction:column;min-width:0}
-.nav .nfuss .ava-drop b{color:var(--ink);font-size:var(--fs)}.nav .nfuss .ava-drop small{display:block;color:var(--mute);font-size:var(--fs-s);line-height:1.25}
+.nav .nfuss .ava-drop b{color:var(--ink);font-size:var(--fs)}.nav .nfuss .ava-drop small{display:block;color:var(--mute);font-size:var(--fs-s);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav .nfuss .ava-drop{min-height:3.4rem;box-sizing:border-box;overflow:hidden}.nav .nfuss>*{min-width:0}   /* gleich hoch, ob die Navigation nur Symbole zeigt oder aufgeklappt ist – das Feld sprang sonst beim Darüberfahren (21.11.2026); der ganze Text steht im title */
 .nav .nfuss .ava-drop:hover{border-color:var(--y)}
 .nav .nfuss .ava-ein{display:flex;align-items:center;justify-content:center;gap:.35rem;margin:0;padding:.3rem;border:0;border-radius:calc(8px*var(--rk,1));background:transparent;color:var(--mute);font:inherit;font-size:var(--fs-s2);cursor:pointer}
 .nav .nfuss .ava-ein:hover{background:var(--hov);color:var(--ink)}.nav .nfuss .ava-ein .nz{font-size:var(--fs-s);padding:0 .45rem;border-radius:calc(999px*var(--rkp,1));background:var(--y);color:#fff}

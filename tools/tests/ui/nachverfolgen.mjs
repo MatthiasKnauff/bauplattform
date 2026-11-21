@@ -48,6 +48,12 @@ export async function nachverfolgenPruefen(browser, repo) {
     pruef(v.lvs.join() === '2' && v.bieter === 3, `Vorgabe „laufend“: nur LV 02 mit 3 Bieter:innen – ${JSON.stringify(v)}`);
     pruef(/2 Anrufe fällig/.test(v.z) && /1 Abgabe in ≤ 3 Tagen/.test(v.z) && /2 LVs unterwegs/.test(v.z) && /1 \/ 5 Angebote da/.test(v.z), `Kennzahlen: ${v.z}`);
     pruef(/Nachverfolgen/.test(v.titel), `Titel: ${v.titel}`);
+    {   // 21.11.2026: Navigation bis ganz unten, das Ablegefeld springt beim Aufklappen der Navigation nicht
+      const h = () => pg.evaluate(() => ({ unten: Math.round(document.querySelector('#navL').getBoundingClientRect().bottom), ih: innerHeight, feld: Math.round(document.querySelector('.nfuss .ava-drop').getBoundingClientRect().height) }));
+      const a = await h(); if (process.env.BILD) await pg.screenshot({ path: process.env.BILD });
+      await pg.mouse.move(20, 300); await pg.waitForTimeout(500); const b = await h(); if (process.env.BILD) await pg.screenshot({ path: process.env.BILD.replace('.png', '-2.png') });
+      await pg.mouse.move(900, 600); await pg.waitForTimeout(400);
+      pruef(a.ih - a.unten < 4 && Math.abs(a.feld - b.feld) < 3, `Navigation bis unten, Ablegefeld gleich hoch (zu/auf): ${JSON.stringify([a, b])}`); }
     // Einstieg über die Kachel (19.11.2026): Navigation gelöst (nur Symbole), die gemerkte Wahl bleibt
     const nl = await pg.evaluate(() => ({ jetzt: window.bpNav && bpNav.lage(), gemerkt: localStorage.getItem('bp.navlage') }));
     pruef(nl.jetzt === 'frei' && nl.gemerkt !== 'frei', `Navigation beim Einstieg nicht gelöst oder Wahl überschrieben: ${JSON.stringify(nl)}`);

@@ -374,7 +374,7 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
             bk = sauber(m.get("baukasten")) if gesp else aus_assistent({} if neu else m)
             a = m.get("assistent") or {}
             herkunft = "baukasten" if gesp else "assistent" if not neu and (m.get("teile") or a.get("area") or m.get("flaeche")) else "leer"   # „leer“ = nur ein Vorschlag
-            return jsonify(baukasten=abgleich(bk, m), korb=korb_sauber(m.get("korb")), plan=_plan_art(m), herkunft=herkunft, raeume=(m.get("bauteilliste") or {}).get("raeume") or [])
+            return jsonify(baukasten=bk if neu else abgleich(bk, m), korb=korb_sauber(m.get("korb")), plan=_plan_art(m), herkunft=herkunft, raeume=(m.get("bauteilliste") or {}).get("raeume") or [])
         return mit(pid, tun)
 
     @bp.put("/api/bp/modell/<int:pid>/baukasten")

@@ -283,6 +283,10 @@
       });
     }
     async function zeile(id, neu, still) {   // eine Antwort ändern – mit Rückgängig (undo.js) für Antwort, berechnen, Aufbau, Menge
+      if (!still && Z.mw.length > 1 && id === Z.mw[0] && !neu.loeschen && !('name' in neu) && !('menge' in neu)) {   // Editor bei mehreren: gilt für alle
+        const r0 = L().zeilen.find((x) => x.id === id) || {};   // Option/Dicke/Ausführung gehören zur Vorlage: alle bekommen denselben Aufbau wie die gezeigte Zeile
+        return mwAendern(['wahl', 'dicken', 'ausf'].some((k) => k in neu) && !('vorlage' in neu) ? { vorlage: r0.vorlage, wahl: [...(r0.wahl || [])], dicken: r0.dicken || {}, ausf: r0.ausf || {}, ...neu } : neu);
+      }
       const z0 = L().zeilen.find((x) => x.id === id), alt = z0 && !neu.loeschen ? Object.fromEntries(Object.keys(neu).map((k) => [k, k === 'wahl' ? [...(z0.wahl || [])] : z0[k]])) : null;
       if (alt && 'status' in neu) Object.assign(alt, { vorlage: z0.vorlage, wahl: [...(z0.wahl || [])], berechnen: z0.berechnen });
       const oben = () => { const r = el.querySelector(`[data-btz="${CSS.escape(id)}"]`); return r ? r.getBoundingClientRect().top : null; }, o0 = oben();
@@ -725,7 +729,13 @@
     const uFuellen = (w) => { if (w && Z.d && !Z.an) ladeJs('uwert.js', () => window.bpUwert).then(() => window.bpUwert && bpUwert.fuellen(w, basis, Z.d.rev, { name: (id) => ((G().zeilen || []).find((x) => x.id === id) || {}).name || id, setzen: (id, v) => zeile(id, v) })); };   // U-Werte (bp/uwert.js, UW-A1)
     function detailsZeichnen() {
       const box = Z.det; if (!box || !box.isConnected) return;
-      if (Z.mw.length > 1) { box.innerHTML = `<div class="bt-l bt-mwd">${mwHtml(false)}</div>`; return; }
+      if (Z.mw.length > 1) {   // mehrere: oben das Gemeinsame; gleiche Bauteilart → darunter derselbe Aufbau-Editor wie bei einem Bauteil, jede Wahl gilt für alle (21.11.2026)
+        const R = mwZ(), k2 = String((R[0] || {}).kg || '').slice(0, 2), ein = k2 && R.every((z) => String(z.kg || '').slice(0, 2) === k2);
+        if (!ein) { box.innerHTML = `<div class="bt-l bt-mwd">${mwHtml(false)}</div>`; return; }
+        Z.auf = R[0].id;
+        box.innerHTML = `<div class="bt-l bt-mwd">${mwHtml(false, true)}</div><div class="bt-l bt-mwe"><div class="bt-h">Aufbau für alle ${R.length} – gezeigt wie bei „${esc(R[0].name)}“; jede Wahl hier gilt für alle.</div>${zeileHtml(R[0])}</div>`;
+        uFuellen(box); editor(); return;
+      }
       if (Z.sel === '__rw') { box.innerHTML = `<div class="bt-l">${rueckwegHtml() || '<p class="bt-leer">Keine offenen Vorschläge.</p>'}</div>`; return; }
       const z = L().zeilen.find((x) => x.id === Z.sel);
       if (!z) { box.innerHTML = '<div class="bt-l"><p class="bt-leer">Links eine Zeile antippen – hier stehen Antwort, Aufbau mit Optionen, „wird berechnet“ und die Fenster, Türen oder Räume der Zeile.</p></div>'; return; }
@@ -748,7 +758,7 @@
     const mwZ = () => Z.mw.map((id) => L().zeilen.find((x) => x.id === id)).filter(Boolean);
     function mwSetzen(ids) { Z.mw = [...new Set(ids)].filter((id) => L().zeilen.some((x) => x.id === id)); if (Z.mw.length === 1) { Z.sel = Z.auf = Z.mw[0]; Z.mw = []; } zeichne(); if (opt.mehr) opt.mehr(Z.mw.length ? Z.mw : Z.sel ? [Z.sel] : []); }
     function mwUm(id, mitSel) { const A = Z.mw.length ? [...Z.mw] : mitSel && Z.sel && Z.sel !== '__rw' ? [Z.sel] : []; const i = A.indexOf(id); if (i >= 0) A.splice(i, 1); else A.push(id); if (!A.length) { Z.sel = null; } mwSetzen(A); }
-    function mwHtml(kompakt) {
+    function mwHtml(kompakt, ohneAufbau) {
       const R = mwZ(); if (R.length < 2) return '';
       const gl = (f) => (R.every((z) => z[f] === R[0][f]) ? R[0][f] : undefined), versch = '<span class="bt-mwv">verschieden</span>';
       const erl = (R[0].erlaubt || []).filter((s) => R.every((z) => (z.erlaubt || []).includes(s))), st = gl('status'), ber = gl('berechnen'), vl = gl('vorlage');
@@ -759,7 +769,7 @@
       const be = `<label class="bt-mwb"><input type="checkbox" data-btmwber${ber ? ' checked' : ''}${ber === undefined ? ' data-mix' : ''}> wird berechnet${ber === undefined ? ' ' + versch : ''}</label>`;
       if (kompakt) return `<b>${R.length} gewählt:</b><span class="bt-mwg"><span class="mute">Antwort</span>${ant}</span><span class="bt-mwg"><span class="mute">Aufbau</span>${auf}</span>${be}<button type="button" class="btn sm" data-btmwweg>Auswahl aufheben</button>`;
       return `<h3 class="bt-mwt">${R.length} Bauteile gewählt</h3><p class="bt-nr">${R.slice(0, 8).map((z) => esc(z.name)).join(' · ')}${R.length > 8 ? ` · … ${R.length - 8} weitere` : ''}</p>
-        <div class="bt-o"><span>Antwort</span>${ant}</div><div class="bt-o"><span>Aufbau</span>${auf}</div><div class="bt-o"><span></span>${be}</div>
+        <div class="bt-o"><span>Antwort</span>${ant}</div>${ohneAufbau ? `<div class="bt-o"><span>Aufbau</span>${vl === undefined ? versch : esc(R[0].kurz || '–')}</div>` : `<div class="bt-o"><span>Aufbau</span>${auf}</div>`}<div class="bt-o"><span></span>${be}</div>
         <p class="bt-h">Jede Änderung hier gilt für alle ${R.length}. „verschieden“ = die Gewählten haben verschiedene Werte; wählst du einen, gilt er für alle. Mit Strg + Klick weitere dazu oder weg.</p>
         <button type="button" class="btn sm" data-btmwweg>Auswahl aufheben</button>`;
     }

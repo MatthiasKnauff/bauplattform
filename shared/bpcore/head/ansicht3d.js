@@ -30,6 +30,7 @@
 .b3 canvas{width:100%;height:100%;display:block;cursor:grab}.b3 canvas:active{cursor:grabbing}
 .b3-l{position:absolute;left:.5rem;top:.5rem;display:flex;flex-wrap:wrap;align-items:center;gap:.3rem;max-width:calc(100% - 1rem)}
 .b3-l button{font:inherit;font-size:.78rem;border:1px solid var(--line,#c9ced4);background:rgba(255,255,255,.88);color:#23282b;border-radius:calc(99px*var(--rkp,1));padding:.12rem .6rem;cursor:pointer}
+.b3-seg{display:inline-flex;padding:2px;border:1px solid var(--line,#d6dce3);border-radius:calc(999px*var(--rkp,1))}.b3-l .b3-seg button{border:0;border-radius:calc(999px*var(--rkp,1));margin:0}
 .b3-dar{flex:1 0 100%;display:flex;flex-wrap:wrap;align-items:center;gap:.3rem}
 .b3-l button.on{border-color:var(--y,#2f6fb3);box-shadow:inset 0 0 0 1px var(--y,#2f6fb3);font-weight:600}
 .b3-k{position:absolute;left:.5rem;bottom:.5rem;display:flex;flex-wrap:wrap;gap:.2rem .6rem;font-size:.74rem;color:#23282b;background:rgba(255,255,255,.85);border-radius:6px;padding:.25rem .5rem}
@@ -227,7 +228,7 @@
         + (G.length > 1 ? `<label class="b3-z">↕ auseinander <input type="range" min="0" max="100" value="${Math.round(S.zug / ZUG * 100)}" data-b3z aria-label="Geschosse auseinanderziehen" title="Geschosse auseinanderziehen"></label>` : '')
         + `<label class="b3-z">◐ Durchsicht <input type="range" min="0" max="90" value="${Math.round(S.durch * 100)}" data-b3o aria-label="Durchsicht" title="Bauteile durchscheinend machen – Angewähltes bleibt kräftig"></label>`
         + `<label class="b3-z">↔ Wände <input type="range" min="0" max="100" value="${Math.round(S.seit / SEIT * 100)}" data-b3s aria-label="Wände auseinanderspreizen" title="Wände senkrecht zu ihrer Fläche nach außen rücken – Fenster und Türen gehen mit"></label>`
-        + (o.spreizWahl !== false ? `<button type="button" data-b3sp title="Welche Wände spreizen">${S.spreiz === 'alle' ? 'alle Wände' : 'nur Außenwände'}</button>` : '')
+        + (o.spreizWahl !== false ? `<span class="b3-seg" role="group" aria-label="Welche Wände spreizen"><button type="button" data-b3sp="alle" class="${S.spreiz === 'alle' ? 'on' : ''}" aria-pressed="${S.spreiz === 'alle'}">alle Wände</button><button type="button" data-b3sp="aussen" class="${S.spreiz !== 'alle' ? 'on' : ''}" aria-pressed="${S.spreiz !== 'alle'}">nur außen</button></span>` : '')   // geteilter Schalter wie Basic/Profi (21.11.2026)
         + (S.teile > 1 ? `<label class="b3-z">⇔ Gebäudeteile <input type="range" min="0" max="100" value="${Math.round(S.teil / TEIL * 100)}" data-b3t aria-label="Gebäudeteile auseinanderziehen"></label>` : '');
       box.querySelector('.b3-l').innerHTML = haupt + (S.dar ? `<div class="b3-dar">${dar}</div>` : '');
       const k = box.querySelector('.b3-k'); k.replaceChildren();   // Farben per CSSOM (kein style-Attribut – CSP im Bauherrenportal)
@@ -250,7 +251,7 @@
       if ('b3d' in b.dataset) S.dach = !S.dach;
       if ('b3w' in b.dataset) { S.rahmen = !S.rahmen; return leiste(); }
       if ('b3dar' in b.dataset) { S.dar = !S.dar; return leiste(); }
-      if ('b3sp' in b.dataset) { S.spreiz = S.spreiz === 'alle' ? 'aussen' : 'alle'; leiste(); return bauen(); }
+      if ('b3sp' in b.dataset) { const w = b.dataset.b3sp === 'aussen' ? 'aussen' : 'alle'; if (w === S.spreiz) return; S.spreiz = w; leiste(); return bauen(); }
       if ('b3x' in b.dataset) return wahlWeg();
       if ('b3r' in b.dataset) { start(); return zeichne(); }
       leiste(); bauen();

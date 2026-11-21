@@ -19,6 +19,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
       ...((S.plus || {}).elemente || []).map((e, k) => ({ id: 9500001 + k, nr: e.nr || 'F 02', typ: e.art, art: 'Fenster', geschoss: e.geschoss, raeume: [e.raum], b: e.b, h: e.h, bruestung: e.bruestung, aussen: true, quelle: 'plus' }))],
     ...(S.plus ? { plus: { raeume: S.plus.raeume || [], elemente: (S.plus.elemente || []).map((e) => ({ ...e, nr: e.nr || 'F 02' })) } } : {}),
     zeilen: S.leer ? [] : [zeile('raum:boden:trocken', S.status ? { status: S.status, berechnen: true } : {}), { ...zeile('f'), bereich: 'oeffnung', art: 'Fenster', kg: '334', name: 'Fenster', menge: 1.74, mitglieder: ['11'], nummern: ['F 01'], ids: [11], erlaubt: ['bleibt', 'erneuern', 'neu'] },
+      ...(S.zwei ? [zeile('raum:boden:nass', { name: 'Böden Bad (0.02)', mitglieder: ['0.02'], menge: 6 })] : []),
       ...(S.mh ? [{ ...zeile('hand:1'), bereich: 'hand', art: 'von Hand', kg: '342', name: 'Trockenbauwand Flur', menge: 0, status: 'neu', berechnen: true, erlaubt: ['neu', 'erneuern', 'instandsetzen', 'abbruch'], mitglieder: [], quelle: 'hand' }] : []),
       ...(S.anw ? [{ ...zeile('raum:boden:trocken~ab'), abgeleitet: 'raum:boden:trocken', name: 'Böden – Estrich + Parkett, Mosaikparkett (0.01)', mitglieder: ['0.01'], menge: 30, status: 'erneuern', kurz: 'Estrich + Parkett, Mosaikparkett' }] : [])],
     anweisungen: S.anw ? [{ id: 'a1', text: S.anw, schritte: [{ material: 'Mosaikparkett', treffer: { name: 'Estrich + Parkett, Mosaikparkett' } }], wer: 'admin', wann: '2026-11-16T18:00' }] : [] });
@@ -94,6 +95,13 @@ export async function gebaeudemodellPruefen(browser, repo) {
       S.zeile = []; await p.keyboard.press('Control+z'); await p.waitForTimeout(500);
       pruef(S.zeile.length === 2 && S.zeile.every((b) => b.status === 'offen'), `ein Rückgängig für beide: ${JSON.stringify(S.zeile)}`);
       await p.click('.bt-mwl [data-btmwweg]'); await p.waitForTimeout(150); }
+    {   // 21.11.2026: mehrere gleicher Art – rechts derselbe Aufbau-Editor wie bei einem Bauteil, die Wahl gilt für alle
+      S.zwei = true; S.zeile = []; await zu('bauteile'); await p.waitForSelector('tr[data-btz="raum:boden:nass"]');
+      await p.click('tr[data-btz="raum:boden:trocken"] td.baumz'); await p.click('tr[data-btz="raum:boden:nass"] [data-btmw]');
+      await p.waitForSelector('.sr-r .bt-mwe [data-btvl="353.02"]', { timeout: 5000 });
+      await p.click('.sr-r .bt-mwe [data-btvl="353.02"]'); await p.waitForTimeout(500);
+      pruef(S.zeile.filter((b) => b.vorlage === '353.02').map((b) => b.id).sort().join() === 'raum:boden:nass,raum:boden:trocken', `Aufbau im Editor gilt für alle Gewählten: ${JSON.stringify(S.zeile)}`);
+      await p.click('.bt-mwl [data-btmwweg]').catch(() => {}); S.zwei = false; S.zeile = []; await zu('bauteile'); }
     // Fragen & Anweisungen: Anweisung mit Vorschau, Rückfrage (Katalog), anwenden – ausgeführt in der Liste darunter; Rückgängig nimmt sie zurück
     await p.click('#navL [data-pl="fragen"]'); await p.waitForSelector('#view [data-gmanw]', { timeout: 8000 });
     pruef(await p.evaluate(() => !!document.querySelector('#view [data-gmluecken]') && !document.querySelectorAll('#bfl .bf-gt').length || ![...document.querySelectorAll('#bfl .bf-gt')].some((x) => /KI/.test(x.textContent))), 'Fragen & Anweisungen: „KI: Lücken füllen“ auf der Seite, keine KI-Gruppe in der Leiste');

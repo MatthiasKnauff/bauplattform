@@ -254,12 +254,21 @@ function rLayout() {
   for (const i of rIds()) if (!hat.has(i) && !weg.has(i) && !kbDeckt(i, L)) {   // Hinweise, die schon in „Erinnerungen & Fristen“ stehen, bekommen kein zweites Widget
     const [w, h] = RSTD[i] || (wxTyp(i) && WX[wxTyp(i)].d) || RGR[rArt(i)].d;
     const p = i === 'w:post' ? (L.some((r) => rKoll(r, { x: 0, y: rUnten(L, 'a'), w, h })) ? rFrei(L, w, h) : { x: 0, y: rUnten(L, 'a'), w, h })
-      : rArt(i) === 'w' ? rFreiRechts(L, w, h) : rFrei(L, w, h);
+      : rArt(i) === 'w' ? rFreiRechts(L, w, h) : rKachelPlatz(L, w, h);
     L.push({ i, ...p, w, h }); RNEU = true;
   }
   return rVerdichten(L);
 }
 const rUnten = (L, art) => L.filter((r) => !art || rArt(r.i) === art).reduce((m, r) => Math.max(m, r.y + r.h), 0);
+/* neue App zu den anderen Kacheln, nicht unter die Widgets (21.11.2026: Gebäudemodell, Personal, LV-Nachverfolgung landeten ganz unten):
+   freier Platz zwischen den Kacheln, sonst eine Zeile unter der letzten Kachel – was dort steht, rückt nach unten */
+function rKachelPlatz(L, w, h) {
+  const u = rUnten(L, 'a');
+  for (let y = 0; y + h <= u; y++) for (let x = 0; x + w <= SP; x++) { const t = { x, y, w, h }; if (!L.some((r) => rKoll(r, t))) return t; }
+  const t = { x: 0, y: u, w, h };
+  if (L.some((r) => rKoll(r, t))) L.forEach((r) => { if (r.y >= u) r.y += h; });
+  return t;
+}
 function rFreiRechts(L, w, h) {   // Widgets standardmäßig rechts neben der Post untereinander
   const x = SP - w; for (let y = rUnten(L, 'a'); ; y++) { const t = { x, y, w, h }; if (!L.some((r) => rKoll(r, t))) return t; }
 }

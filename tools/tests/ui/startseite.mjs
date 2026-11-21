@@ -63,7 +63,7 @@ export async function startseitePruefen(browser, repo) {
         const s = document.querySelector('section.ue-b[data-blk="todos"]'), z = document.querySelector('#todo.zt');
         return { widgets: [...document.querySelectorAll('section.ue-b[data-blk]')].map((x) => x.dataset.blk), titel: s && s.querySelector('h3').textContent, link: !!(s && s.querySelector('h3 a[href]')),
           liste: [...z.querySelectorAll('.tr')].map((x) => x.textContent).join(' | '), neu: (z.querySelector('.zt-neu') || {}).textContent || '', heute: (z.querySelector('.zt-heute') || {}).textContent || '',
-          chips: [...z.querySelectorAll('[data-ztf]')].map((x) => x.textContent.replace(/\s+/g, ' ').trim()), zahlen: [...s.querySelectorAll('h3 .ue-n, h3 .ue-n2')].map((x) => +x.textContent) };
+          chips: [...z.querySelectorAll('[data-ztf]')].map((x) => x.textContent.replace(/\s+/g, ' ').trim()), lay: rLayout().map((it) => [it.i, it.y, it.h]), zahlen: [...s.querySelectorAll('h3 .ue-n, h3 .ue-n2')].map((x) => +x.textContent) };
       });
       await p.evaluate(() => document.querySelector('[data-ztf="warte"]').click()); await p.waitForTimeout(100);
       bild.warte = await p.evaluate(() => [...document.querySelectorAll('#todo.zt .tr')].map((x) => x.textContent).join(' | '));
@@ -91,6 +91,11 @@ export async function startseitePruefen(browser, repo) {
     pruef(mal(b.liste, 'Angebot Rohbau prüfen') === 1 && /Mail/.test(b.liste), 'Mail als To-do erwartet (mit Kennzeichen „Mail“)');
     pruef(b.chips.some((c) => /^Warte auf 1/.test(c)) && b.chips.some((c) => /^Alle/.test(c)), 'Filter fehlen: ' + b.chips.join(' · '));
     pruef(JSON.stringify(b.zahlen) === '[5,5]', `zwei Zahlen erwartet – fällig 5 und offen 5 (ohne Zeiten, 21.11.2026), gezeigt ${JSON.stringify(b.zahlen)}`);
+  });
+  // 21.11.2026: neue Apps kommen zu den Kacheln, nicht unter die Widgets (Testserver: Gebäudemodell, Personal, LV-Nachverfolgung ganz unten)
+  await lauf({ items: [{ i: 'a:aufgaben', x: 0, y: 0, w: 12, h: 1 }, { i: 'w:post', x: 0, y: 1, w: 6, h: 7 }, { i: 'w:todos', x: 6, y: 1, w: 6, h: 9 }], weg: ['w:erin'] }, 'neue App', (b) => {
+    const y = (k) => (b.lay.find((x) => x[0] === k) || [0, 99])[1];
+    pruef(y('a:zeiten') < y('w:post') && y('a:papierkorb') < y('w:post'), 'neue App-Kachel steht unter den Widgets statt bei den Kacheln: ' + JSON.stringify(b.lay));
   });
   await lauf({ items: [], weg: ['w:erin'] }, 'Post', (b) => {   // eine Mail – eine Sache: Mail mit To-do steht in „Zu tun“, nicht noch einmal in der Post
     pruef(b.post && b.post.vor === 1 && /Eine Mail steht als To-do/.test(b.post.text) && /Rückfrage Entwässerung/.test(b.post.text), `Post: nur die Mail ohne To-do erwartet und der Hinweis auf das To-do – gezeigt ${b.post ? b.post.vor : 'nichts'} Mail(s)`);

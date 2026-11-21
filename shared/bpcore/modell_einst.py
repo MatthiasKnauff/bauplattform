@@ -3,7 +3,7 @@
 E  Liste rechts: e1 gegliedert wie die gewählte Färbung · e2 immer Gebäudeteil › Geschoss › Bauteilart
 F  Wände spreizen: f1 alle, mit Umschalter „nur außen“ · f2 nur Außenwände, ohne Umschalter
 A–C gehörten zum Reiter „Änderungen“ mit Zeitschieber; der entfiel am 21.11.2026 samt dem Merken je Bauteil (bpcore/modell_aenderung.py,
-Tabelle pm_aenderung bleibt nur, weil Migrationen nicht zurückgenommen werden) – zurück und wieder geht über Rückgängig.
+Tabelle pm_aenderung ist mit der Migration 0103 gelöscht) – zurück und wieder geht über Rückgängig.
 """
 import json
 from datetime import datetime

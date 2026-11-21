@@ -3,7 +3,7 @@
 Stand: 14.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = wie lange Claude bis zum Push braucht (Bauen und eigener Test), ohne Abstimmungsrunden, euer Testen auf dem Testserver und die Pipeline (ca. 10 Minuten). Seit 11.11.2026 so gerechnet – vorher standen hier Arbeitszeiten eines Entwicklers, etwa zehn- bis zwanzigmal so lang.
 
 ## Wartet auf dich
-- **Aufräumen 21.11.2026 – deine Entscheidung:** (1) drei tote Tabellen löschen? `gantt_links` (geteilte Links des Bauzeitenplans – mit der Migration 0082 in die gemeinsame Tabelle umgezogen), `pm_stand` (Modell-Stände, seit 17.11. durch Planstände ersetzt), `pm_aenderung` (Reiter „Änderungen“ gestrichen) – braucht eine Migration mit DROP, also dein OK. (2) Dokumente in der Datenbank: `ava_lvdok`, `ava_beleg`, `ava_buergschaft`, `ava_nt_datei` halten ganze PDFs als BYTEA – widerspricht „keine ganzen Dokumente in die Datenbank“; Umzug in die Ablage ist ein größerer Umbau (ca. 4–6 Stunden, mit Übernahme der vorhandenen Dateien). (3) `esc()` gibt es in 36 Dateien als Kopie (Bausteine, die allein lauffähig sein sollen) – vereinheitlichen ca. 1 Stunde. (4) LV neu zeichnen (2.000 Zeilen) liegt bei ~70 ms statt 50: gut die Hälfte ist die erste Anordnung der neu gebauten Tabelle; schneller nur, wenn `render()` die Tabelle stehen lässt und nur tauscht (ca. 3 Stunden).
+- **Aufräumen 21.11.2026:** ✓ (1) drei tote Tabellen gelöscht (Migration 0103). ✓ (2) Dokumente aus der Datenbank in die Ablage (`ava_lvdok`, `ava_beleg`, `ava_buergschaft`, `ava_nt_datei`) – entschieden 21.11., Plan folgt vor dem Umbau, **ca. 4–6 h**. Offen: (3) `esc()` in 36 Dateien vereinheitlichen **ca. 1 h** · (4) LV neu zeichnen 70 → 50 ms **ca. 3 h** (Empfehlung: später) · (5) Bauteil-Checkliste zusätzlich im LV? (Empfehlung: nein) · (6) Türliste mit Kette statt ⇄ **ca. 15 min**
 Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Seite „Ablauf“ auch für Einheiten** (Kisten „Gebäude / Allgemein“, „Einheit 1“, „Einheit 2“ mit Takt-Pfeilen) – Fragen offen, Mock folgt **ca. 30 min**
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
@@ -248,6 +248,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Tote Tabellen gelöscht: pm_aenderung, pm_stand, gantt_links (Migration 0103)~~ (21.11.2026)
 - ~~Baukasten: kein Spalt mehr zwischen Traufwand und Sattel-/Walmdach (Dach mit voller Neigung durch die Wandoberkante)~~ (21.11.2026)
 - ~~Baukasten: Dach und Wände überlappen nicht mehr (Pultdach, Satteldach, Gauben auf der Oberseite)~~ (21.11.2026)
 - ~~Aufräumen: toter Code entfernt (kalender365.py, 10 Funktionen, 14 Namen, 3 JS-Funktionen, 183 tote Stilregeln), Tabellen aus dem Code in die Migration 0102, Suchläufe `tools/tot/code.py` und `tools/tot/css.py` im Repo~~ (21.11.2026)

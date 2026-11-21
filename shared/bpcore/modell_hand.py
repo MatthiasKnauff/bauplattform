@@ -273,40 +273,6 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
     from flask import jsonify, request
     from . import bauteilliste as B, planstand as P
 
-    @bp.get("/api/bp/modell/<int:pid>/hand/vorschlag")
-    def hand_vorschlag(pid):
-        def tun(c, wer):
-            m = lesen_modell(c, pid)["modell"]
-            return jsonify(vorschlag(m, m.get("bauteilliste")))
-        return mit(pid, tun)
-
-    @bp.post("/api/bp/modell/<int:pid>/hand/entwurf")
-    def hand_entwurf(pid):
-        """Assistent: Räume, Fenster, Türen → neuer Planstand „Assistent“ als Entwurf mit Abgleich (wie Einlesen eines Plans)."""
-        d = request.get_json(silent=True) or {}
-        RA, EA = sauber(d)
-        if not RA:
-            return jsonify(error="Bitte mindestens einen Raum angeben."), 400
-
-        def tun(c, wer):
-            m = lesen_modell(c, pid)["modell"]
-            alt = m.get("bauteilliste") or B.leer()
-            R = R_aus(RA, EA, assistent=m.get("assistent"), teile=m.get("teile"))
-            neu = B.zeilen_aus_ifc(c, R, alt, B.bauart(m))
-            for z in neu["zeilen"]:   # „Aus der Planung anlegen“ (Y1, 17.11.2026): wahlweise ohne Vorschlagsmengen bzw. ohne Preisspanne (Aufbau)
-                if d.get("mengen") is False and z.get("bereich") != "frage":
-                    z.update(menge=0, hinweis="Menge eintragen – ohne Vorschlagsmenge angelegt")
-                if d.get("preise") is False and z.get("quelle") == "schaetzung":
-                    B.aufbau_setzen(c, z, None)
-            name = _s(d.get("name"), 100) or f"Assistent {datetime.now().strftime('%d.%m.%Y')}"
-            neu["quelle"] = {"datei": "", "gelesen": P._jetzt(), "programm": "Bauplattform", "objekte": len(RA) + len(EA), "art": "hand", "pfad": "", "name": name}
-            c.execute("DELETE FROM pm_netz WHERE planstand IN (SELECT id FROM pm_planstand WHERE project_id=? AND entwurf=1)", (pid,))
-            c.execute("DELETE FROM pm_planstand_datei WHERE planstand IN (SELECT id FROM pm_planstand WHERE project_id=? AND entwurf=1)", (pid,))
-            c.execute("DELETE FROM pm_planstand WHERE project_id=? AND entwurf=1", (pid,))
-            sid = P._neu(c, pid, name, "", "", "hand", "hand", wer, {"liste": neu, "hinweise": []}, True)
-            return jsonify(entwurf=sid, name=name, art="hand", erster=not alt.get("zeilen"), abgleich=P.abgleich(alt, neu), hinweise=[], zeilen=len(neu["zeilen"]))
-        return mit(pid, tun)
-
     @bp.put("/api/bp/modell/<int:pid>/hand")
     def hand_setzen(pid):
         """Arbeitsmaske: Räume bzw. Fenster und Türen von Hand – nur ohne Plan oder wenn der gültige Planstand von Hand ist. Führt ihn direkt nach."""

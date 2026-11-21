@@ -143,12 +143,13 @@ V.addEventListener('click', async (e) => {
   const [me, PC] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(me);   // gleichzeitig
   await header('Gebäudemodell', me, PC);
   bpNav.breite(NAV, { key: 'gebaeudemodell' });
-  g3EinstMelden();   // Verwaltung → Einstellungen → Gebäudemodell (A–F, Gelerntes)
+  g3EinstMelden();   // Verwaltung → Einstellungen → Gebäudemodell (E, F, Gelerntes)
   PID = BPHead.projektId();
   if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(() => { PID = BPHead.projektId(); zeichne(); });
-  const h = /^#(\w+)$/.exec(location.hash);
-  if (h) { if (h[1] === 'baukasten') LS.set('mitte', '3d'); SICHT = sichtVon(h[1]); }
+  const h = /^#([\w-]+)$/.exec(location.hash), planung = !!h && h[1] === 'neu-planung';   // aus einer App: „Neuer Planstand aus der Planung“ (bpBauteile.planungNeu)
+  if (h) { if (h[1] === 'baukasten') LS.set('mitte', '3d'); SICHT = sichtVon(planung ? 'bauteile' : h[1]); }
   await zeichne();
+  if (planung) { history.replaceState(null, '', location.pathname + location.search); if (PID) { try { gmPlanDa = !!(((await api(`api/bp/modell/${PID}`)).modell || {}).assistent || {}).type; } catch { /* dann mit */ } } gmWeg('planung'); }
 })().catch((e) => toast(e.message, true));
 // Änderung aus „Fragen und Antworten“ ausgeführt (bp/fragen.js): Bauteile neu laden, damit der neue Aufbau sofort dasteht
 addEventListener('bp:modellGeaendert', (e) => { if (+((e.detail || {}).pid) !== +PID) return; if (BT && BT.laden && !G3.BK) BT.laden(); leiste(); });

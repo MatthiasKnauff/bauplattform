@@ -161,7 +161,7 @@
             <td class="r"><span class="pa-z${n ? ' rot' : ''}" title="${n ? n + ' Änderung' + (n === 1 ? '' : 'en') + ' warten auf Übernahme – Klick führt hin' : weg ? 'nicht verbunden' : 'alles übernommen'}">${n || (weg ? '–' : '✓')}</span></td></tr>`; }).join('')}</tbody></table>
         <p class="pa-h">„wartet auf dich“: Änderungen aus dem Modell, die eine App noch übernehmen soll. Rot = so viele warten, ✓ = alles übernommen, – = nicht verbunden. Ein Klick auf eine Zeile öffnet die <b>Verknüpfungen</b> – dort änderst du Richtung und Übernahme.</p>
         ${(window.bpAssistentAktionen ? window.bpAssistentAktionen(m) : []).map((a, i) => `<div class="pa-nav"><button type="button" class="btn${i ? '' : ' primary'}" data-paakt="${i}">${esc(a.text)}</button></div>`).join('')}
-        <div class="pa-nav"><button type="button" class="btn" data-pabt>${((m.bauteilliste || {}).zeilen || []).length ? 'Neuen Planstand aus der Planung …' : 'Bauteile aus der Planung anlegen …'}</button><span class="pa-h" style="margin:0">wahlweise mit Vorschlagsmengen und Preisspanne – Grundlage für Kosten und Ausschreibung</span></div>`;
+        <div class="pa-nav"><button type="button" class="btn" data-pabt>Neuer Planstand aus der Planung …</button><span class="pa-h" style="margin:0">das ganze Gebäude im Baukasten des Gebäudemodells – Grundlage für Kosten und Ausschreibung</span></div>`;
     }
     /* Leistungen an- und abwählen (wie die Liste im Bauzeitenplan): gewählt = c.sel, sonst die Empfehlung des Katalogs für diese Angaben */
     const gewaehlt = (c) => new Set(K().baseSel(c.sel && c.sel.length ? c.sel : [...K().recFor(K().clone(c))]));
@@ -367,7 +367,7 @@
         if (g && g.val === 'misch') { const L = K().levelsOf(K().clone(c)).L, F = K().floorTw(K().clone(c), L); wahl('tragwerk', F[0] || 'massiv'); } else wahl('tragwerk', 'misch'); return zeig(); }
       if (b.dataset.patgs) { const k = b.dataset.patgs; setz((c) => { c.teile = { ...(c.teile || {}) }; const o = { ...(c.teile[k] || {}) }; if (o.flTw) delete o.flTw; else { const T = K().teile(K().clone(c)), t = T.find((x) => x.k === k); o.flTw = Object.fromEntries(K().teilGeschosse(t, T).map((g) => [g, t.tw])); } c.teile[k] = o; }); return zeig(); }
       if (b.dataset.pafertig != null) return fertigMachen();
-      if (b.dataset.pabt != null) { await bauteileLaden(); const e = await bpBauteile.ausPlanung(pid); if (e && !e.erster && window.toast) toast('Es gibt schon einen Planstand – den Abgleich zeigt das Gebäudemodell unter „Bauteile“.'); if (e) { Z.m = (await J('api/bp/modell/' + pid)).modell; Z.d.modell = Z.m; zeig(); } return; }
+      if (b.dataset.pabt != null) { await bauteileLaden(); return bpBauteile.planungNeu(); }   // „Neuer Planstand – mit der Planung“: das ganze Gebäude im Baukasten (21.11.2026)
       if (b.dataset.paakt != null) { const a = (window.bpAssistentAktionen ? window.bpAssistentAktionen(Z.m) : [])[+b.dataset.paakt]; if (a) a.fn(); return; }
       if (b.dataset.pavs != null) return vorlageSpeichern();
       if (b.dataset.pavw != null) return vorlageLaden();

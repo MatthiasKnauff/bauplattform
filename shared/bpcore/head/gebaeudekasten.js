@@ -568,7 +568,7 @@
     async function speichern(s) {
       const vor = STAND, neu = NEU; STAND = s; NEU = false; tippe('wird gespeichert …');
       try {
-        const r = await J(`${basis}/baukasten`, 'PUT', { ...JSON.parse(s), netz: netzBauen(), ...(neu ? { neu: true } : {}) }); PLAN = r.plan;
+        const r = await J(`${basis}/baukasten`, 'PUT', { ...JSON.parse(s), netz: netzBauen(), ...(neu ? { neu: true, ...(OPT.planung ? { name: 'Planung' } : {}) } : {}) }); PLAN = r.plan;
         tippe(PLAN === 'ifc' ? 'Gespeichert – es gilt ein Plan: Bauteile und 3D kommen aus dem Plan.' : 'Gespeichert – der Planstand ist nachgeführt.');
         uWerte(r);
         if (window.rueckgaengig && vor) rueckgaengig(wasText(JSON.parse(vor), JSON.parse(s)), async () => { await J(`${basis}/baukasten`, 'PUT', { ...JSON.parse(vor), netz: null }); await laden();
@@ -589,7 +589,7 @@
     async function laden() {
       LADEN = true;
       try {
-        const [d] = await Promise.all([J(`${basis}/baukasten${NEU ? '?neu=1' : ''}`), bib(), skript('ansicht3d.js', 'bp3d')]), bk = d.baukasten || {};
+        const [d] = await Promise.all([J(`${basis}/baukasten${NEU ? '?neu=1' + (OPT.planung ? '&planung=1' : '') : ''}`), bib(), skript('ansicht3d.js', 'bp3d')]), bk = d.baukasten || {};
         Object.keys(KORB).forEach((k) => delete KORB[k]); KN = 0;
         Object.entries(d.korb || {}).forEach(([id, e]) => { const b = BIB[e.art].find((y) => y[0] === e.vorlage); KORB[id] = { id, art: e.art, von: e.vorlage, name: e.name || (b && b[1]) || e.vorlage, u: null, eigen: e.eigen }; KN = Math.max(KN, +id.slice(1) || 0); });
         M.koerper = (bk.koerper || []).map((k) => ({ ...k, seiten: { ...(k.seiten || {}) } })); M.dach = bk.dach || {}; M.gauben = bk.gauben || []; M.oeff = bk.oeff || [];

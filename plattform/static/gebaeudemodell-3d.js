@@ -179,7 +179,7 @@ function g3Laden(feld, st) {
   if (G3.bk) {   // ohne Plan: das Gebäude im Baukasten bauen – dieselbe 3D-Ansicht (A1), Angaben und Korb rechts
     G3.BK = bpBaukasten.mount(feld, PID, { seite: ({ detail, korb }) => { G3.bkD = detail; G3.bkK = korb; const b = document.querySelector('.g3-bk'); if (b) b.appendChild(detail);
       if (window.seiteFuellen) seiteFuellen('gm', 'korb'); },
-    d3: { ...D3O, geladen: (N) => { G3.N = N; if (G3.BK) G3.D3 = G3.BK.d3; }, onWahl: (ids) => { if (ids && ids.length && window.seiteReiter) seiteReiter('gm', 'details'); } }, neu: !!G3.bkNeu,   // Gewähltes rechts unter „Bauteil“ zeigen
+    d3: { ...D3O, geladen: (N) => { G3.N = N; if (G3.BK) G3.D3 = G3.BK.d3; }, onWahl: (ids) => { if (ids && ids.length && window.seiteReiter) seiteReiter('gm', 'details'); } }, neu: !!G3.bkNeu, planung: G3.bkNeu === 'planung',   // Gewähltes rechts unter „Bauteil“ zeigen
     nachher: () => { G3.bkNeu = false; if (BT && BT.laden) BT.laden(); } });
     return;
   }

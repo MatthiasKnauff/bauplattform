@@ -88,54 +88,27 @@
 .bt-weg4{width:100%;text-align:left;font:inherit;color:inherit;background:var(--card,transparent)}.bt-weg4:hover,.bt-weg4:focus-visible{border-color:var(--y,#3b5a8f);box-shadow:inset 0 0 0 1px var(--y,#3b5a8f)}.bt-anf{width:min(520px,100%)}
 .bt-hd{width:min(480px,100%)}.bt-hdl{display:flex;flex-direction:column;gap:.2rem;font-size:.86rem}.bt-hdl>span{opacity:.75}.bt-hdl input{font:inherit;padding:.3rem .5rem}.bt-hdz{display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end}.bt-hdz .bt-m{width:7rem}
 .bt-ehb{font:inherit;font-size:.85rem;border:1px solid var(--line,#d5d9de);background:none;color:inherit;border-radius:calc(6px*var(--rk,1));padding:0 .4rem;cursor:pointer}.bt-baum tr.bt-erg td:first-child{box-shadow:inset 3px 0 0 #e0b100}
-.bt-ap small{display:block;opacity:.7}.bt-lk{border:0;background:none;color:var(--y,#3b5a8f);font:inherit;cursor:pointer;padding:.2rem 0}.bt-vor{max-height:40vh;overflow:auto}.bt-vor input{max-width:100%}`;
+.bt-ap small{display:block;opacity:.7}.bt-lk{border:0;background:none;color:var(--y,#3b5a8f);font:inherit;cursor:pointer;padding:.2rem 0}`;
   const stil = () => { if (document.getElementById('bt-stil')) return; const s = document.createElement('style'); s.id = 'bt-stil'; s.textContent = STIL; document.head.appendChild(s); };
 
   const tag = (s) => (window.bpTag ? bpTag(String(s || '').slice(0, 10)) : String(s || '').slice(0, 10));
 
-  /* Bauteile aus der Planung (GO 17.11.2026 Y1/Z1): Räume, Fenster und Türen aus Fläche, Geschossen und Einheiten des Assistenten (Kern
-     modell_hand.vorschlag) → Planstand „Assistent“ mit Bauteilen – wahlweise mit Vorschlagsmengen und Preisspanne aus den Baudaten (Aufbau
-     nach der Bauweise). Derselbe Dialog im Reiter „Bauteile“, im Gebäudemodell (Standardbaum, Räume) und im letzten Schritt des Assistenten.
-     → Promise<{ entwurf, erster, … } | null>; gilt schon ein Planstand, gibt der Aufrufer den Entwurf in den Abgleich (api.entwurf). */
-  async function ausPlanung(pid, o = {}) {
-    const B = (o.basis || '') + `api/bp/modell/${pid}`, gz = (v) => String(v ?? '').replace('.', ','), gn = (v) => parseFloat(String(v).replace(',', '.')) || 0;
-    let v; try { v = await (await J(`${B}/hand/vorschlag`)).json(); } catch (e) { sag(e.message, true); return null; }
-    const R = v.raeume.map((x) => ({ ...x, an: true })), E = v.elemente, W = { m: true, p: true, raeume: false };
-    const anz = (nr) => { const L = E.filter((e) => e.raum === nr), f = L.filter((e) => /Fenster/.test(e.art)).length; return [f ? f + ' Fenster' : '', L.length > f ? (L.length - f) + (L.length - f > 1 ? ' Türen' : ' Tür') : ''].filter(Boolean).join(' · '); };
-    const opt = (k, w, t, u) => `<label class="bt-ap${W[k] === w ? ' on' : ''}"><input type="radio" name="bta${k}" data-bta="${k}" data-w="${w ? 1 : 0}"${W[k] === w ? ' checked' : ''}><span><b>${t}</b><small>${u}</small></span></label>`;
-    const html = () => `<div class="bt-ab"><h3>Bauteile aus der Planung anlegen</h3>
-      <div class="mute">${v.quelle === 'planstand' ? 'Räume, Fenster und Türen aus dem gültigen Planstand' : 'Räume, Fenster und Türen aus Fläche, Geschossen und Einheiten des Assistenten'} – daraus wird der Planstand „Assistent“, wie ein eingelesener Plan; ein echter Plan ersetzt ihn später mit Abgleich.</div>
-      <h4>Mengen</h4>${opt('m', true, 'Vorschlagsmengen', 'aus Fläche und Geschossen geschätzt – je Zeile überschreibbar')}${opt('m', false, 'ohne Mengen', 'nur die Bauteile – Mengen trägst du ein')}
-      <h4>Preise</h4>${opt('p', true, 'Preisspanne aus den Baudaten', 'Aufbau nach der Bauweise aus dem Assistenten – eigene Datenbank, keine Suche im Netz')}${opt('p', false, 'ohne Preise', 'Aufbau wählst du später')}
-      <div><button type="button" class="bt-lk" data-m="raeume">${bpKlapp(W.raeume)}Räume vorher ansehen (${R.filter((x) => x.an).length} von ${R.length})</button></div>
-      ${W.raeume ? `<div class="bt-vor"><table class="bt-el"><thead><tr><th></th><th>Nr.</th><th>Raum</th><th>Geschoss</th><th class="r">Fläche m²</th><th>Fenster / Türen</th></tr></thead><tbody>${R.map((x, k) => `<tr><td><input type="checkbox" data-btan="${k}"${x.an ? ' checked' : ''} aria-label="${esc(x.nr)} übernehmen"></td><td>${esc(x.nr)}</td><td><input data-btrf="${k}:name" value="${esc(x.name)}" size="12"></td><td>${esc(x.geschoss)}</td><td class="r"><input data-btrf="${k}:flaeche" value="${gz(x.flaeche)}" size="5" inputmode="decimal"></td><td class="mute">${esc(anz(x.nr))}</td></tr>`).join('')}</tbody></table></div>` : ''}
-      <div class="bt-ft"><span data-btam class="mute"></span><button type="button" class="btn" data-m="x">Abbrechen</button><button type="button" class="btn primary" data-m="ok">Anlegen</button></div></div>`;
-    const lies = (bg) => { bg.querySelectorAll('[data-btan]').forEach((c) => { R[+c.dataset.btan].an = c.checked; });
-      bg.querySelectorAll('[data-btrf]').forEach((i) => { const [k, f] = i.dataset.btrf.split(':'); R[+k][f] = f === 'flaeche' ? gn(i.value) : i.value.trim() || R[+k][f]; }); };
-    return new Promise((fertig) => {
-      modalBox(html(), async (m, bg, close) => {
-        if (m === 'x') { close(); return fertig(null); }
-        if (m === 'raeume') { lies(bg); W.raeume = !W.raeume; bg.querySelector('.modal').innerHTML = html(); return; }
-        if (m !== 'ok') return;
-        lies(bg); const RR = R.filter((x) => x.an), nrs = new Set(RR.map((x) => x.nr));
-        if (!RR.length) return sag('Bitte mindestens einen Raum wählen.', true);
-        bg.querySelector('[data-btam]').textContent = 'Wird angelegt …'; bg.querySelectorAll('[data-m]').forEach((b) => { b.disabled = true; });
-        try {
-          const e = await (await J(`${B}/hand/entwurf`, 'POST', { raeume: RR, elemente: E.filter((x) => !x.raum || nrs.has(x.raum)), mengen: W.m, preise: W.p })).json();
-          if (e.erster) await J(`${B}/planstand/${e.entwurf}/uebernehmen`, 'POST', { zuordnung: {}, name: e.name });
-          close(); sag(e.erster ? `${e.zeilen} Bauteile aus ${RR.length} Räumen angelegt – „${e.name}“ gilt.` : 'Neuer Planstand aus der Planung – bitte abgleichen.'); fertig(e);
-        } catch (er) { bg.querySelectorAll('[data-m]').forEach((b) => { b.disabled = false; }); bg.querySelector('[data-btam]').textContent = er.message; }
-      });
-      [...document.querySelectorAll('.modal-bg')].pop()?.addEventListener('change', (e) => { const t = e.target.closest('[data-bta]'); if (!t) return; W[t.dataset.bta] = t.dataset.w === '1';
-        t.closest('.bt-ab').querySelectorAll(`[data-bta="${t.dataset.bta}"]`).forEach((x) => x.closest('label').classList.toggle('on', x.checked)); });
-    });
+  /* „Neuer Planstand – mit der Planung“ (21.11.2026): das ganze Gebäude aus dem Assistenten – alle Teile, Geschosse, Keller, Dach – als
+     Baukasten im Gebäudemodell; Mengen kommen aus der Geometrie (kein Fenster „Mengen/Preise“ mehr, Preise gibt es erst in Kosten und LV).
+     Im Gebäudemodell direkt (gmWeg), sonst dorthin springen (#neu-planung) – mit „Zurück“. */
+  function planungNeu() {
+    if (typeof window.gmWeg === 'function') return window.gmWeg('planung');
+    const H = window.BPHead || {}, gm = H.conf && (H.conf.apps || []).find((x) => x.key === 'gebaeudemodell');
+    if (!gm || !H.appUrl) { if (window.toast) toast('Das Gebäudemodell ist nicht freigeschaltet.', true); return; }
+    if (window.bpZurueckMerken) bpZurueckMerken({ titel: document.title });
+    location.href = `${H.appUrl(gm)}/#neu-planung`;
   }
 
   /* Ein Fenster für jeden Anfang (GO 20.11.2026 D1; 21.11.2026: auch „＋ Neuer Planstand …“ im Menü) – „Wie willst du beginnen?“ mit drei Wegen:
      Baukasten · Planung · Datei; darunter klein, was ohne Gebäude geht. → Promise<'baukasten' | 'planung' | 'lesen' | 'raeume' | 'zeilen' | null>;
      der Aufrufer führt den Weg aus. o.neu = es gibt schon einen Planstand (Titel „Neuer Planstand“), o.plan = der Assistent kennt das Gebäude. */
   const WEGE = [['baukasten', 'Mit dem Baukasten', 'Das Gebäude in 3D zusammenbauen – Geschosse, Dach, Fenster und Türen. Beginnt mit einem Erdgeschoss und Satteldach.'],
-    ['planung', 'Mit der Planung', 'Der Assistent fragt Schritt für Schritt; daraus entstehen Räume, Fenster und Bauteile mit Vorschlagsmengen.'],
+    ['planung', 'Mit der Planung', 'Das ganze Gebäude aus dem Planungsassistenten – alle Gebäudeteile, Geschosse, Keller und Dach – im Baukasten, mit Räumen, Fenstern und Türen.'],
     ['lesen', 'Mit einer Datei', 'IFC, DXF oder PDF – aus „Pläne & Dateien“ oder vom Gerät. Bauteile, Räume, Fenster und Türen kommen aus dem Plan.']];
   function anfangen(o = {}) {
     stil();
@@ -587,7 +560,7 @@
       if (opt.baum && r && r.tagName === 'TR' && !t.closest('[data-zu],input,button')) { if (Z.mw.length) { Z.mw = []; if (opt.mehr) opt.mehr([]); } Z.sel = id; Z.auf = id; zeichne(); if (opt.auswahl) opt.auswahl(L().zeilen.find((x) => x.id === id)); return; }
       if (t.closest('[data-btlesen]')) return einlesen();
       if (t.closest('[data-btanfang]')) return anfang();
-      if (t.closest('[data-btplan]')) { const e = await ausPlanung(pid); if (!e) return; return e.erster ? laden() : abgleich(e); }   // gilt schon ein Planstand: Abgleich wie beim Einlesen
+      if (t.closest('[data-btplan]')) return planungNeu();
       if (t.closest('[data-btplanung]')) { if (window.seiteReiterVon && seiteReiterVon(el, 'planung')) return; sag('Die Planung steht im Reiter „Planung“ rechts.'); return; }
       if (t.closest('[data-btki]')) return verfeinern();
       if (t.closest('[data-btzurueck]')) return ansehen(null);
@@ -852,5 +825,5 @@
     laden().catch((e) => { el.innerHTML = `<div class="bt-l"><p class="bt-leer">${esc(e.message)}</p></div>`; });
     return api;
   }
-  window.bpBauteile = { mount, ausPlanung, anfangen };
+  window.bpBauteile = { mount, planungNeu, anfangen };
 }());

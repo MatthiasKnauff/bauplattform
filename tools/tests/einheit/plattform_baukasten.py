@@ -125,3 +125,21 @@ def test_baukasten_geht_mit_dem_letzten_planstand():
     D = json.loads(c.execute("SELECT daten FROM pm_planstand WHERE id=5").fetchone()["daten"])
     pruefe("baukasten" not in m and "korb" not in m, "Baukasten und Korb sind aus dem Modell")
     gleich((len(D["_baukasten"]["koerper"]), sorted(D["_korb"])), (3, sorted(KORB)), "und stecken im gelöschten Planstand")
+
+
+def test_planung_ganzes_gebaeude():
+    """„Neuer Planstand – mit der Planung“ (21.11.2026): alle Teile aus dem Assistenten – Anbau daneben, Aufstockung oben drauf (Dach wandert mit),
+    Geschosse lückenlos übereinander."""
+    m = {"teile": [{"k": "b", "n": "Bestand", "flaeche": 160, "geschosse": 2, "keller": True, "dach": "sattel", "lage": "bestand"},
+                   {"k": "a", "n": "Anbau", "flaeche": 40, "geschosse": 1, "dach": "flach", "lage": "neu"},
+                   {"k": "s", "n": "Aufstockung", "flaeche": 80, "geschosse": 1, "dach": "pult", "lage": "auf", "auf": "b"}]}
+    bk = BK.aus_assistent(m)
+    K = {t: [k for k in bk["koerper"] if k["teil"] == t] for t in "bas"}
+    gleich((len(K["b"]), len(K["a"]), len(K["s"])), (3, 1, 1), "Bestand mit Keller und 2 Geschossen, Anbau, Aufstockung")
+    ob = max(K["b"], key=lambda k: k["z"])
+    gleich((K["s"][0]["z"], K["s"][0]["x"], K["s"][0]["w"]), (round(ob["z"] + ob["h"], 2), ob["x"], ob["w"]), "Aufstockung steht auf dem Bestand")
+    pruefe(ob["id"] not in bk["dach"] and bk["dach"][K["s"][0]["id"]]["form"] == "pult", "das Dach sitzt auf der Aufstockung")
+    pruefe(K["a"][0]["x"] >= ob["x"] + ob["w"] - 0.01, "Anbau steht daneben")
+    eg, og = sorted([k for k in K["b"] if k["z"] >= 0], key=lambda k: k["z"])
+    gleich(og["z"], round(eg["z"] + eg["h"], 2), "Geschosse ohne Lücke")
+    gleich(bk["teile"], {"b": "Bestand", "a": "Anbau", "s": "Aufstockung"}, "Namen der Teile")

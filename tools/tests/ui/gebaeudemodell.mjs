@@ -154,12 +154,11 @@ export async function gebaeudemodellPruefen(browser, repo) {
     await p.waitForSelector('#view .gm-mask [data-gmh="0:flaeche"]');
     await p.fill('#view [data-gmh="0:flaeche"]', '31,5'); await p.press('#view [data-gmh="0:flaeche"]', 'Tab'); await p.waitForTimeout(300);
     pruef(S.handPut && S.handPut.raeume && S.handPut.raeume[0].flaeche === 31.5, `Arbeitsmaske speichert: ${JSON.stringify(S.handPut)}`);
-    // derselbe Dialog wie im Reiter „Bauteile“ (bpBauteile.ausPlanung, Y1/Z1 17.11.2026): Mengen und Preise wählbar, Räume aufklappbar
-    await p.click('#view [data-gmhvor]'); await p.waitForSelector('.modal [data-bta="m"]', { timeout: 8000 });
-    pruef(await p.evaluate(() => document.querySelectorAll('.modal [data-bta]').length === 4), 'Mengen/Preise nicht wählbar');
-    await p.click('.modal [data-m="raeume"]'); await p.waitForSelector('.modal [data-btan]');
-    pruef(await p.evaluate(() => /1 Fenster/.test(document.querySelector('.modal').textContent)), 'Vorschlag des Assistenten zeigt Räume mit Fenstern');
-    await p.click('.modal [data-m="x"]');
+    // „aus der Planung“ (21.11.2026): kein Fenster „Mengen/Preise“ mehr – das ganze Gebäude aus dem Assistenten im Baukasten, eigener Planstand „Planung …“
+    S.bkPut = null; S.bkGet = '';
+    await p.click('#view [data-gmhvor]'); for (let i = 0; i < 60 && !S.bkPut; i++) await p.waitForTimeout(100);
+    pruef(await p.evaluate(() => !document.querySelector('.modal [data-bta]')) && /neu=1&planung=1/.test(S.bkGet || '') && S.bkPut && S.bkPut.neu === true && S.bkPut.name === 'Planung',
+      `aus der Planung: ohne Mengen/Preise-Fenster, ganzes Gebäude als Planstand „Planung“: ${S.bkGet} ${JSON.stringify(S.bkPut && { neu: S.bkPut.neu, name: S.bkPut.name })}`);
     {   // 20.11.2026: Zeilen von Hand lassen sich ändern und entfernen – Name rechts in den Details, im Baum Kontextmenü/F2/Entf; ein Klick auf die Zeile holt „Bauteil“ nach vorn
       S.mh = true; S.hand = false; S.zeile = []; await zu('bauteile'); await p.waitForSelector('table.bt-baum tr[data-btz="hand:1"]');
       await p.evaluate(() => seiteReiter('gm', 'planung')); await p.waitForTimeout(200);

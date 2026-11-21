@@ -116,15 +116,25 @@ def aus_assistent(m):
         w = _r(max(4.0, math.sqrt(bgf * 1.33))) if not i else _r(max(3.0, math.sqrt(bgf)))
         d = _r(max(3.0, bgf / w))
         Tn[t["k"]] = t.get("n") or ("Hauptgebäude" if not i else f"Anbau {i}")
-        if t.get("keller"):
+        unter = [k for k in K if k["teil"] == t.get("auf")] if t.get("lage") == "auf" else []   # Aufstockung (21.11.2026): auf dem Teil, nicht daneben
+        if unter:
+            o = max(unter, key=lambda k: k["z"])
+            bx, by, w, d, z0 = o["x"], o["y"], o["w"], o["d"], round(o["z"] + o["h"], 2)
+            if o["id"] in D:   # das Dach des Teils darunter wandert auf die Aufstockung
+                D.pop(o["id"])
+        else:
+            bx, by, z0 = x0, 0.0, 0.0
+        if t.get("keller") and not unter:
             n += 1
-            K.append({"id": f"k{n}", "teil": t["k"], "x": x0, "y": 0.0, "z": -2.6, "w": w, "d": d, "h": 2.6, "seiten": {}})
+            K.append({"id": f"k{n}", "teil": t["k"], "x": bx, "y": by, "z": -2.6, "w": w, "d": d, "h": 2.6, "seiten": {}})
         for g in range(ge):
             n += 1
-            K.append({"id": f"k{n}", "teil": t["k"], "x": x0, "y": 0.0, "z": round(g * 2.9, 2), "w": w, "d": d, "h": 2.9 if not g else 2.8, "seiten": {}})
+            K.append({"id": f"k{n}", "teil": t["k"], "x": bx, "y": by, "z": round(z0 + sum(2.9 if not j and not unter else 2.8 for j in range(g)), 2),   # Geschosse lückenlos übereinander
+                      "w": w, "d": d, "h": 2.9 if not g and not unter else 2.8, "seiten": {}})
         f = t.get("dach") if t.get("dach") in FORMEN else ("flach" if i else "sattel")
         D[K[-1]["id"]] = {"form": f, "aufbau": ""}
-        x0 = _r(x0 + w)
+        if not unter:
+            x0 = _r(x0 + w)
     return {"koerper": K, "dach": D, "gauben": [], "oeff": [], "teile": Tn, "raeume": False}
 
 
@@ -477,8 +487,9 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
         def tun(c, wer):
             m = lesen_modell(c, pid)["modell"]
             neu = request.args.get("neu") == "1"   # „Neuer Planstand – mit dem Baukasten“: ein Erdgeschoss mit Satteldach, nichts übernommen
+            planung = neu and request.args.get("planung") == "1"   # „… – mit der Planung“ (21.11.2026): das ganze Gebäude aus dem Assistenten
             gesp = (m.get("baukasten") or {}).get("koerper") and not neu
-            bk = sauber(m.get("baukasten")) if gesp else aus_assistent({} if neu else m)
+            bk = sauber(m.get("baukasten")) if gesp else aus_assistent(m if planung or not neu else {})
             a = m.get("assistent") or {}
             herkunft = "baukasten" if gesp else "assistent" if not neu and (m.get("teile") or a.get("area") or m.get("flaeche")) else "leer"   # „leer“ = nur ein Vorschlag
             return jsonify(baukasten=bk if neu else abgleich(bk, m), korb=korb_sauber(m.get("korb")), plan=_plan_art(m), herkunft=herkunft, raeume=(m.get("bauteilliste") or {}).get("raeume") or [])
@@ -499,7 +510,7 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
             neu = bool(d.get("neu"))   # „Neuer Planstand – mit dem Baukasten“ (21.11.2026): eigener Planstand, gilt sofort – auch neben einem IFC
             plan = _plan_art(m)
             if neu or plan != "ifc":   # ohne Plan: den Planstand aus dem Baukasten nachführen (Bauteile + 3D)
-                nachfuehren(c, pid, m, wer, schreiben_modell, netz_pruefen(d.get("netz")), neu)
+                nachfuehren(c, pid, m, wer, schreiben_modell, netz_pruefen(d.get("netz")), neu, str(d.get("name") or "")[:60])
                 plan = "hand"
             else:
                 schreiben_modell(c, pid, m, wer)
@@ -512,7 +523,7 @@ def _plan_art(m):
     return "ifc" if (m.get("bauteilliste") or {}).get("zeilen") and Q.get("art") not in ("hand", None, "") else "hand"
 
 
-def nachfuehren(c, pid, m, wer, schreiben_modell, N=None, neu=False):
+def nachfuehren(c, pid, m, wer, schreiben_modell, N=None, neu=False, name=""):
     """Planstand aus Baukasten + Räumen/Fenstern (von Hand oder Vorschlag des Assistenten) neu bilden, Netz (N, vom Baustein) dazu speichern.
     neu: eigener neuer Planstand („Baukasten <Datum>“), der sofort gilt – nichts aus dem bisher gültigen übernommen."""
     from datetime import datetime
@@ -538,7 +549,7 @@ def nachfuehren(c, pid, m, wer, schreiben_modell, N=None, neu=False):
     L["anweisungen"] = alt.get("anweisungen") or []
     L["raumbuch"] = alt.get("raumbuch") or {}
     Q = alt.get("quelle") or {}
-    L["quelle"] = dict(Q, art="hand", gelesen=P._jetzt(), name=Q.get("name") or f"Baukasten {datetime.now().strftime('%d.%m.%Y')}", programm="Bauplattform (Baukasten)")
+    L["quelle"] = dict(Q, art="hand", gelesen=P._jetzt(), name=Q.get("name") or f"{name or 'Baukasten'} {datetime.now().strftime('%d.%m.%Y')}", programm="Bauplattform (Baukasten)")
     anweisung.ableiten(c, L)
     P._sichern(c, pid, L, wer)
     sid = L["quelle"].get("planstand")

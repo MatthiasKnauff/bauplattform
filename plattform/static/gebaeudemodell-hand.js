@@ -87,27 +87,18 @@ V.addEventListener('click', (e) => {
       Object.assign(x, { art: n }, n === 'Fenstertür' ? { bruestung: 0, h: Math.max(x.h || 0, 2.135) } : n === 'Fenster' ? { bruestung: x.bruestung || 0.9 } : { bruestung: null });
       gmSpeichern(art, X, `Art: ${n}`); } });
   }
-  if (t.closest('[data-gmhvor]')) return gmVorschlag();
+  if (t.closest('[data-gmhvor]')) return gmWeg('planung');
 });
-
-/* Vorschlag des Assistenten → Planstand „Assistent“ – derselbe Dialog wie im Reiter „Bauteile“ und im Assistenten (bpBauteile.ausPlanung:
-   Räume ansehen, mit/ohne Vorschlagsmengen und Preise); gilt schon ein Plan, kommt der Abgleich */
-async function gmVorschlag() {
-  if (!PID) return;
-  await baustein('bauteile.js', 'bpBauteile');
-  const e = await bpBauteile.ausPlanung(PID); if (!e) return;
-  SICHT = 'bauteile'; LS.set('sicht', SICHT); await zeichne();
-  if (!e.erster && BT && BT.entwurf) BT.entwurf(e);   // Abgleich mit dem gültigen Planstand (wie beim Einlesen eines Plans)
-}
 
 /* Ein Einstieg ohne Plan (D1, 20.11.2026): dasselbe Fenster „Wie willst du anfangen?“ wie in den Bauteilen (bpBauteile.anfangen) */
 async function gmWeg(w) {
-  if (w === 'baukasten') {   // neuer Planstand mit dem Baukasten: Erdgeschoss + Satteldach, gilt mit dem ersten Speichern (Kern: baukasten.nachfuehren(neu))
-    G3.bkNeu = true; LS.set('mitte', '3d');
+  if (w === 'planung' && !gmPlanDa) { if (window.seiteReiter) seiteReiter(SICHT === 'bauteile' ? 'gm' : 'gmp', 'planung'); return; }   // noch keine Planung: erst den Assistenten
+  if (w === 'baukasten' || w === 'planung') {   // neuer Planstand mit dem Baukasten (Erdgeschoss + Satteldach) bzw. mit der Planung (das ganze Gebäude aus dem
+    // Assistenten: alle Teile, Geschosse, Keller, Dach – 21.11.2026, ohne Fenster „Mengen/Preise“: Mengen aus der Geometrie); gilt mit dem ersten Speichern
+    G3.bkNeu = w; LS.set('mitte', '3d');
     if (BT && V.querySelector('.gm-tabi')) { if (BT.zustand().an) BT.ansehen(null); await gmTab('bauteile'); g3Neu(true, null); return g3Mitte('3d'); }
     SICHT = 'bauteile'; LS.set('sicht', SICHT); return zeichne();
   }
-  if (w === 'planung') { if (!gmPlanDa) { if (window.seiteReiter) seiteReiter(SICHT === 'bauteile' ? 'gm' : 'gmp', 'planung'); return; } return gmVorschlag(); }
   if (w === 'raeume') { SICHT = 'raeume'; LS.set('sicht', SICHT); return zeichne(); }
   if (w === 'zeilen' || w === 'lesen') { SICHT = 'bauteile'; LS.set('sicht', SICHT); await zeichne(); if (BT) return w === 'zeilen' ? BT.hand() : BT.einlesen(); }
 }

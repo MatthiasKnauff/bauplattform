@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-planung-2111",
+  "datum": "2026-11-21",
+  "app": "gebaeudemodell",
+  "titel": "Neuer Planstand aus der Planung: das ganze Gebäude",
+  "text": "„Mit der Planung“ baut jetzt das ganze Gebäude aus dem Planungsassistenten im Baukasten – alle Gebäudeteile (Anbau daneben, Aufstockung oben drauf), Geschosse, Keller und Dach. Das Fenster mit Vorschlagsmengen und Preisspanne entfällt: Mengen kommen aus der Geometrie, Preise erst in Kosten und LV.",
+  "ziel": ".gm-vm"
+ },
+ {
   "id": "kosten-heft-2111",
   "datum": "2026-11-21",
   "app": "baukosten",

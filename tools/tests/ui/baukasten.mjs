@@ -137,6 +137,28 @@ export async function baukastenPruefen(browser, repo) {
       const ids = await p.evaluate(() => window.__eig);
       pruef(ids.length === 1 && ids[0].length >= 1 && ids[0].every((i) => i >= 9600000), `„Aufbau …“ meldet die Nummern der Wand: ${JSON.stringify(ids)}`);
     }
+    {   // keine überlappenden Bauteile am Dach (21.11.2026): Giebel, Ortgang und Rückwand enden an der Unterseite des Dachs, die Dachplatte liegt darüber –
+        // geprüft am Netz: Pultdach (Anbau k2) und Satteldach (k1, First längs x, Überstand 40 cm)
+      S.bk = { ...BK, koerper: [BK.koerper[0], { id: 'k2', teil: 't2', x: 12, y: 1, z: 0, w: 5, d: 6, h: 2.9, wand: 'A1', boden: 'A2', seiten: {} }],
+        dach: { k1: { form: 'sattel', aufbau: 'A3', first: 'x' }, k2: { form: 'pult', aufbau: 'A3' } }, teile: { h: 'Hauptgebäude', t2: 'Anbau 1' } };
+      await p.evaluate(() => { window.BKH = bpBaukasten.mount(document.getElementById('h'), 1); });
+      await p.waitForFunction(() => window.BKH.d3 && document.querySelector('#h .b3 canvas'), null, { timeout: 8000 }); await p.waitForTimeout(200);
+      const w = await punkt([14.5, 1, 1.45]); await p.mouse.click(w[0], w[1]); await p.waitForSelector('[data-bk="detail"] [data-mass="h"]');
+      const n = S.puts.length; await p.fill('[data-bk="detail"] [data-mass="h"]', '3'); await warte(n + 1);
+      const c = S.puts[n], K1 = c && c.baukasten.koerper.find((k) => k.id === 'k1'), K2 = c && c.baukasten.koerper.find((k) => k.id === 'k2');
+      const tan = (g) => Math.tan(g * Math.PI / 180), E = (c && c.netz.e) || [], pkt = (e) => { const P = []; for (let i = 0; i < e.v.length; i += 3) P.push([e.v[i] / 100, e.v[i + 1] / 100, e.v[i + 2] / 100]); return P; };
+      const unter = { 0: (q) => K1.z + K1.h + tan(38) * K1.d / 2 * (1 - Math.abs(q[1] - (K1.y + K1.d / 2)) / (K1.d / 2 + 0.4)),   // Unterseite des Satteldachs über k1
+        1: (q) => K2.z + K2.h + tan(15) * K2.d * (1 - (q[1] - K2.y) / K2.d) };   // … des Pultdachs über k2 (hoch an der Seite y0)
+      const schlecht = [];
+      [0, 1].forEach((b) => E.filter((e) => e.i >= 9600000 + b * 20 && e.i < 9600000 + b * 20 + 19).forEach((e) => pkt(e).forEach((q) => {
+        const u = unter[b](q), wand = e.t === 'w';
+        if (wand && q[2] > u + 0.011) schlecht.push(`Wand ${e.i} ragt ${Math.round((q[2] - u) * 100)} cm ins Dach`);
+        if (e.t === 'r' && q[2] < u - 0.011) schlecht.push(`Dach ${e.i} liegt ${Math.round((u - q[2]) * 100)} cm unter seiner Unterseite (in der Wand)`); })));
+      pruef(K2 && K2.h === 3 && E.some((e) => e.t === 'r' && e.i === 9600026) && !schlecht.length, `Dach und Wände überlappen nicht: ${[...new Set(schlecht)].slice(0, 6).join(' · ') || 'Netz fehlt'}`);
+      const ort = E.find((e) => e.i === 9600027), rw = E.find((e) => e.i === 9600029), tw = rw ? Math.max(...pkt(rw).map((q) => q[1])) : 0;
+      pruef(ort && rw && Math.min(...pkt(ort).map((q) => q[1])) >= tw - 0.011, `Pultdach: Ortgang endet an der Rückwand (ab ${ort && Math.min(...pkt(ort).map((q) => q[1]))} m, Rückwand bis ${tw} m)`);
+      if (process.env.BILD) await p.screenshot({ path: process.env.BILD.replace('.png', '-pult.png') });
+    }
     {   // „Neuer Planstand – mit dem Baukasten“: Vorschlag (Erdgeschoss + Satteldach), sofort gespeichert als eigener Planstand
       const n = S.puts.length;
       await p.evaluate(() => { window.BKH = bpBaukasten.mount(document.getElementById('h'), 1, { neu: true }); }); await warte(n + 1);

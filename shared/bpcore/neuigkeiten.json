@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-dach-ohne-ueberlappung-2111",
+  "datum": "2026-11-21",
+  "app": "gebaeudemodell",
+  "titel": "Dach liegt auf den Wänden",
+  "text": "Im Baukasten überlappen Dach und Wände nicht mehr: Giebel, Ortgang und die hohe Wand des Pultdachs enden unter dem Dach, die Dachplatte liegt darüber – keine Wandlinien mehr in der Dachfläche.",
+  "ziel": ".b3"
+ },
+ {
   "id": "adr-leiste-2111",
   "datum": "2026-11-21",
   "app": "adressen",

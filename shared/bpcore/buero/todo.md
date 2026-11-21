@@ -248,6 +248,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Baukasten: Dach und Wände überlappen nicht mehr (Pultdach, Satteldach, Gauben auf der Oberseite)~~ (21.11.2026)
 - ~~Aufräumen: toter Code entfernt (kalender365.py, 10 Funktionen, 14 Namen, 3 JS-Funktionen, 183 tote Stilregeln), Tabellen aus dem Code in die Migration 0102, Suchläufe `tools/tot/code.py` und `tools/tot/css.py` im Repo~~ (21.11.2026)
 - ~~Adressen: Befehlsleiste wie in allen Apps statt eigener Knopfreihe (Handy: eine Zeile), Zahl · Sortieren · Filter kompakt~~ (21.11.2026)
 - ~~Ausschreibung: Kopierquelle heißt „Baudaten“ (Baum wie das LV); neue Quelle „Bauteile“ aus dem Gebäudemodell mit Kette 🔗 verknüpft/gelöst, Abgleich Menge · Text · Preis (D3), „Alle Bauteile ablegen“~~ (21.11.2026)

@@ -165,8 +165,12 @@
       return [{ n: 'Dachfläche', seite: 'xp', p: [[x1, y1, z], [x1, y0, z], r0, r1] }, { n: 'Dachfläche', seite: 'xm', p: [[x0, y0, z], [x0, y1, z], r1, r0] },
         { n: 'Giebel', s: 'yp', p: [[X0, Y1, z], [X1, Y1, z], [X1, Y1, z + hb], [xm, Y1, z + H], [X0, Y1, z + hb]] }, { n: 'Giebel', s: 'ym', p: [[X1, Y0, z], [X0, Y0, z], [X0, Y0, z + hb], [xm, Y0, z + H], [X1, Y0, z + hb]] }];
     }
-    function gaubeGeo(g) {   // Front, Dach(e), Fenster einer Gaube auf ihrer Dachfläche
-      const k = kz(g.k); if (!k || !M.dach[k.id]) return null; const fl = dachFlaechen(k)[g.fl]; if (!fl || fl.p.length < 4) return null;
+    /* Dicke einer geneigten Dachfläche, senkrecht gemessen (Aufbau der Fläche ÷ cos Neigung) – um so viel liegt die Oberseite über der Fläche aus dachFlaechen */
+    function dachTv(k, fi) { const D = M.dach[k.id]; if (!D || D.form === 'flach') return 0;
+      return dicke(flAuf(k.id, fi), DICKE.dach) / Math.cos(((DACHF.find((f) => f[0] === D.form) || [, , 0])[2]) * Math.PI / 180); }
+    function gaubeGeo(g) {   // Front, Dach(e), Fenster einer Gaube auf ihrer Dachfläche (auf der Oberseite – nicht in der Dachplatte)
+      const k = kz(g.k); if (!k || !M.dach[k.id]) return null; const f0 = dachFlaechen(k)[g.fl]; if (!f0 || f0.p.length < 4) return null;
+      const tv = dachTv(k, g.fl), fl = { ...f0, p: f0.p.map((q) => [q[0], q[1], q[2] + tv]) };
       const [a, b, , d] = fl.p, br = g.b / Math.hypot(b[0] - a[0], b[1] - a[1]), at = (t, s) => [a[0] + (b[0] - a[0]) * t + (d[0] - a[0]) * s, a[1] + (b[1] - a[1]) * t + (d[1] - a[1]) * s, a[2] + (b[2] - a[2]) * t + (d[2] - a[2]) * s];
       const p0 = at(g.u - br / 2, 0.2), p1 = at(g.u + br / 2, 0.2), q0 = at(g.u - br / 2, 0.75), q1 = at(g.u + br / 2, 0.75), hz = Math.max(q0[2], q1[2]);
       const mid = (A, B) => [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2, (A[2] + B[2]) / 2], first = hz + 0.9;
@@ -192,8 +196,8 @@
       P.forEach((p, i) => { const j = (i + 1) % P.length; flaeche([p, P[j], U[j], U[i]], v); });
       return v;
     }
-    function wandDick(P, nx, ny, t, v = []) {   // senkrechtes Polygon (Giebel) um t nach innen
-      const I = P.map((p) => [p[0] - nx * t, p[1] - ny * t, p[2]]); flaeche(P, v); flaeche(I, v);
+    function wandDick(P, nx, ny, t, v = [], ab = 0, zu = 0) {   // senkrechtes Polygon (Giebel) um t nach innen; ab = so viel tiefer liegt die Innenkante oberhalb zu (Rückwand unter dem geneigten Pultdach)
+      const I = P.map((p) => [p[0] - nx * t, p[1] - ny * t, p[2] > zu + 1e-6 ? p[2] - ab : p[2]]); flaeche(P, v); flaeche(I, v);
       P.forEach((p, i) => { const j = (i + 1) % P.length; flaeche([p, P[j], I[j], I[i]], v); });
       return v;
     }
@@ -214,7 +218,13 @@
         REF.set(ib, { art: 'koerper', id: k.id });
         const D = M.dach[k.id];
         if (D) dachFlaechen(k).forEach((x, fi) => { if (x.p.length < 3) return; const i = ID0 + b * 20 + 6 + fi, td = dicke(flAuf(k.id, fi), D.form === 'flach' ? DICKE.flach : DICKE.dach);
-          const v = x.s ? wandDick(x.p, ...SEITEN[x.s], tw) : platte(x.p, x.n === 'Dach' ? td : td / Math.cos(((DACHF.find((f) => f[0] === D.form) || [, , 0])[2]) * Math.PI / 180));
+          /* Keine überlappenden Bauteile (21.11.2026): die Flächen aus dachFlaechen sind die UNTERSEITE des geneigten Dachs – die Platte liegt darüber
+             (senkrecht gemessen tv), Giebel, Ortgang und Rückwand enden genau an der Unterseite, die Traufwand an ihrer Oberkante. Das Flachdach
+             liegt wie bisher mit seiner Dicke auf der Wand (Fläche = Oberseite). */
+          const tv = x.n === 'Dach' ? td : dachTv(k, fi);
+          const wp = x.s && D.form === 'pult' && x.s !== 'ym' ? kappen(x.p, 1, k.y + tw, false) : x.p;   // Pultdach: die Ortgänge enden an der Rückwand (hohe Seite), nicht in ihr
+          if (wp.length < 3) return;
+          const v = x.s ? wandDick(wp, ...SEITEN[x.s], tw, [], ...(D.form === 'pult' && x.s === 'ym' ? [DACHH(k, D.form, D) * tw / k.d, k.z + k.h] : [])) : platte(x.n === 'Dach' ? x.p : x.p.map((q) => [q[0], q[1], q[2] + tv]), tv);
           E.push({ i, t: x.s ? 'w' : 'r', g, c: x.s ? c : D.form === 'flach' ? '#9aa3ad' : '#b56a4f', a: 0, v });
           REF.set(i, x.s ? { art: 'wand', id: k.id, seite: x.s } : { art: 'dach', id: k.id, ...(DFL[D.form].includes(fi) ? { seite: 'f' + fi } : {}) }); });   // Giebel/Ortgang gehören zur Wand ihrer Seite (21.11.2026)
         else if (oben(k) || M.koerper.some((q) => q.teil === k.teil && q.staffel && Math.abs(q.z - k.z - k.h) < ZU)) { const i = ID0 + b * 20 + 19;   // oben offen bzw. Terrasse um ein Staffelgeschoss: Decke als Abschluss

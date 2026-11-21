@@ -15,7 +15,7 @@
    Dreieck an der Zeile = schnelle Aufbau-Wahl (schnellHtml), Doppelklick auf die Zeile oder im 3D = Eigenschaften-Fenster (eigenschaften):
    oben derselbe Editor wie in den Details (detailsIn), unten „angewählte“ · „gleiche Bauteile“. Von außen: api.eigenschaften(id), api.mehr(ids). */
 (function () {
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   const sag = (t, f) => { if (window.toast) window.toast(t, f); };
   const zahl = (v) => (window.bpZahl ? bpZahl(v, 0, 2) : String(v).replace('.', ','));
   async function J(u, m, b) {

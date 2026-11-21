@@ -40,7 +40,7 @@
    unter ⋯ → „Per Mail senden“ und auf der Druckseite (bpDruck({ …, mail: { … } })) über „✉ Senden“ – beide über BPHead.mailVorgabe. */
 (() => {
   if (window.bpVersand) return;
-  const H = window.BPHead, esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const H = window.BPHead, esc = window.bpEsc;
   const MAIL = /^[^@\s<>,;]+@[^@\s<>,;]+\.[A-Za-z]{2,}$/;
   const css = document.createElement('style');
   css.textContent = `.bpv-bg{position:fixed;inset:0;z-index:3000;background:rgba(15,15,20,.45);display:grid;place-items:center;padding:16px}

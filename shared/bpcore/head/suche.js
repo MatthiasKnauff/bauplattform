@@ -9,7 +9,7 @@
    Geheimnisse kommen hier nicht vor: Projekte und Adressen kommen über die vorhandenen Abfragen mit denselben Rechten. */
 (function () {
   const H = new Proxy({}, { get: (_, k) => (window.BPHead || {})[k] });   // die Verwaltung lädt den Baustein schon mit der Seite (Stichwortverzeichnis)
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   const fq = (v) => String(v || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss');
   const EINST = [   // Seite der Verwaltung (Einstellungen), Ort, Titel, Stichwörter, Abschnitt zum Hervorheben
     ['ich:konto', 'Persönlich', 'Unterschrift', 'Unterschrift unterschreiben Bild PDF Rüge zeichnen', 'Unterschrift'],

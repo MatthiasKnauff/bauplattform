@@ -11,7 +11,7 @@
 (function los() {
   if (!window.BPHead || !BPHead.ready) { setTimeout(los, 200); return; }
   const H = window.BPHead;
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   const tag = (d) => (d ? d.slice(8, 10) + '.' + d.slice(5, 7) + '.' : '');
   const zr = (a) => tag(a.von) + (a.bis !== a.von ? ' – ' + tag(a.bis) + a.bis.slice(0, 4) : a.von.slice(0, 4));
   const zahl = (n) => String(n).replace('.', ',');

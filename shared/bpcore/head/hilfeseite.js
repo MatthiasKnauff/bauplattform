@@ -6,7 +6,7 @@
    bpHilfeSeite({ reiter: 'hilfe' | 'aenderungen' }) */
 (() => {
   if (window.bpHilfeSeite) return;
-  const H = window.BPHead || {}, esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const H = window.BPHead || {}, esc = window.bpEsc;
   const css = document.createElement('style');
   css.textContent = `.bph-hs-bg{background:none!important;pointer-events:none}.bph-hs-bg .bph-dr{pointer-events:auto;width:min(440px,100vw)}
 .bph-hs-bg .bph-drb{font-size:.95em;line-height:1.5}.bph-hs-bg .bph-drb p{margin:.25rem 0 .55rem}.bph-hs-bg .bph-drb ul,.bph-hs-bg .bph-drb ol{margin:.2rem 0 .6rem;padding-left:1.2rem}

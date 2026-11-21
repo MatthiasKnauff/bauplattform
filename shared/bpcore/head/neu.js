@@ -5,7 +5,7 @@
 (() => {
   if (window.bpNeu) return;
   const NUR_TEST_AUS = false;   // true: Rundgang und Überblick auch in der Produktion von selbst
-  const H = window.BPHead, esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const H = window.BPHead, esc = window.bpEsc;
   const css = document.createElement('style');
   css.textContent = `.bpn-dim{position:fixed;inset:0;z-index:2400;background:rgba(20,20,25,.45)}
 .bpn-spot{position:fixed;z-index:2401;border-radius:calc(10px*var(--rk,1));box-shadow:0 0 0 9999px rgba(20,20,25,.5);outline:2px solid var(--y,#ff5fb3);outline-offset:3px;pointer-events:none;transition:all .25s}

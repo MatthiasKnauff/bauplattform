@@ -13,7 +13,7 @@
    bpKarte.mount(el, pid) → { neu() }. Prüft tools/tests/ui/karte.mjs. */
 (function () {
   if (window.bpKarte) return;
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   const J = (u, m, b) => fetch(u, { method: m || 'GET', credentials: 'same-origin', headers: b ? { 'Content-Type': 'application/json' } : {}, body: b ? JSON.stringify(b) : undefined })
     .then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Der Server ist gerade nicht erreichbar.'); return j; });
   const sag = (t, f) => { if (window.toast) window.toast(t, f); };

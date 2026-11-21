@@ -21,7 +21,7 @@
    Teile, die beim letzten Merken noch nicht da waren (z. B. eine weitere PDF), starten mit ihrer Vorgabe.
    Die Auswahl wird je „merk“ im Browser gemerkt. Die Seiten zeichnet BPHead.pdfIn – derselbe Weg wie im Bereich rechts und im Ansehen-Fenster. */
 (function () {
-  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   const lesen = (k) => { try { return JSON.parse(localStorage.getItem('bpd.' + k) || 'null'); } catch { return null; } };
   const merken = (k, v) => { try { localStorage.setItem('bpd.' + k, JSON.stringify(v)); } catch { /* egal */ } };
   const meldung = (t) => { if (window.toast) toast(t, true); };

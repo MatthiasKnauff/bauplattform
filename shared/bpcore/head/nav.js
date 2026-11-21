@@ -24,7 +24,7 @@
      gemerkt je Browser (bp.navw.<key>). Der Anfasser steht als eigenes Element direkt hinter el (übersteht das Neuzeichnen). */
 (() => {
   if (window.bpNav) return;
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   /* Lage der Navigation (o.lage = true): „links“ angeheftet, „frei“ gelöst (nur Symbole, Darüberfahren klappt auf), „oben“ als Bereichszeile.
      Gemerkt je Browser für alle Apps (bp.navlage); ältere Werte: schmal → frei, auto → links. */
   const LAGEN = ['links', 'frei', 'oben'];

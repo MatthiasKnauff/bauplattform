@@ -4,6 +4,7 @@
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await dateiwahlPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/dateiwahl.mjs
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
+import { ESC } from './esc.mjs';
 
 export async function dateiwahlPruefen(browser, repo) {
   const js = fs.readFileSync(path.join(repo, 'shared/bpcore/head/bp.js'), 'utf8'), fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
@@ -30,7 +31,7 @@ export async function dateiwahlPruefen(browser, repo) {
     p.on('pageerror', (e) => fehler.push('Dateiwahl: Fehler im Skript – ' + e.message));
     await p.route('http://datei.test/**', (r) => (r.request().url().includes('/api/')
       ? r.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'Die Ablage auf dem Server ist nicht eingerichtet (Verwaltung → Einstellungen → Ablage).' }) })
-      : r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><body><script>${dw}</script>` })));
+      : r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><body>${ESC}<script>${dw}</script>` })));
     try {
       await p.goto('http://datei.test/');
       await p.evaluate(() => { window.G = 0; window.E = 'offen'; window.bpDateiWahl({ project_id: 7, start: 'server', geraet: () => { window.G++; } }).then((v) => { window.E = v; }); });

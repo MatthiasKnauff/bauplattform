@@ -18,7 +18,7 @@
    ===================================================================== */
 (() => {
   if (window.bpTeilen) return;
-  const H = window.BPHead || {}, esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const H = window.BPHead || {}, esc = window.bpEsc;
   const meld = (t, f) => (window.toast ? toast(t, f) : window.bpHinweis && bpHinweis(t));
   const de = (s) => (s ? new Date(s).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '');
   const plus = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };

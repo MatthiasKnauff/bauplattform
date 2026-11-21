@@ -12,7 +12,7 @@
     buero: '**KI im Büro**: die KI auf eurem eigenen Server liest mit – nichts verlässt das Büro. Versteht freie Sätze; Vorschläge übernimmst du selbst.',
     extern: '**Externe KI**: die Anfrage geht anonymisiert (ohne Namen, Adressen, Preise) an eine KI im Netz – das kostet je Anfrage, steht im Datenschutz-Protokoll, die Antwort ist ungeprüft.',
   };
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   const K = (s) => 'bp.ki.' + s, lies = (s) => { try { return localStorage.getItem(K(s)); } catch { return null; } };
   const CACHE = new Map();
   const erlaubt = (pid) => { const k = String(pid || ''); if (!CACHE.has(k)) CACHE.set(k, fetch('api/bp/ki/stufen' + (pid ? '?pid=' + pid : ''), { credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : { buero: false, extern: false, grund: {} })).catch(() => ({ buero: false, extern: false, grund: {} }))); return CACHE.get(k); };

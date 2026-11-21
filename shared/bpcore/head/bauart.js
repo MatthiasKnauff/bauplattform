@@ -13,7 +13,7 @@
    · Bereiche: keiner = alles, sonst nur diese · Denkmal: Haken.
    ===================================================================== */
 window.bpBauart = (() => {
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const esc = window.bpEsc;
   const K = () => window.PlanKern, KB = () => (K() && K().C.kombi) || { geb: [], mass: [], ber: [] };
   function css() {
     if (document.getElementById('bpa-css')) return;

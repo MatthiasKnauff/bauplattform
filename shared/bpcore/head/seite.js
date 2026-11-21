@@ -22,7 +22,7 @@
 (function () {
   const lies = (k, d) => { try { const v = localStorage.getItem('bp.sr.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } };
   const merk = (k, v) => { try { localStorage.setItem('bp.sr.' + k, JSON.stringify(v)); } catch { /* ohne Speicher: nur für diese Sitzung */ } };
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   const AKTIV = new Map();   // key → { sp, reiter, opt }
   const EIGEN = new Map();   // 'key|id' → eigenes Browserfenster des Reiters
   const grenz = (v, a, b) => Math.max(a, Math.min(b, v));

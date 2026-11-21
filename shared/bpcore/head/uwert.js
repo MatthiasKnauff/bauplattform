@@ -5,7 +5,7 @@
    Fenster/Türen: Uw aus der Position, je Zeile überschreibbar (Zeile.uw, D1).
    bpUwert.fuellen(wurzel, basis, rev, { name(id), setzen(id, {uw}) }) füllt [data-btu="<id>"] (Wert) und [data-btuw="<id>"] (Details). */
 (function () {
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   const z2 = (v) => (v == null ? '–' : (Math.round(v * 100) / 100).toFixed(2).replace('.', ','));
   const zk = (v, n) => (v == null ? '' : String(Math.round(v * 10 ** n) / 10 ** n).replace('.', ','));
   const lade = (n) => new Promise((ok) => { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], s = document.createElement('script'); s.src = b + n + v; s.onload = ok; s.onerror = ok; document.head.appendChild(s); });

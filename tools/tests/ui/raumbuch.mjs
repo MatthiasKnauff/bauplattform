@@ -4,6 +4,7 @@
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await raumbuchPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/raumbuch.mjs
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
+import { ESC } from './esc.mjs';
 
 export async function raumbuchPruefen(browser, repo) {
   const K = path.join(repo, 'shared/bpcore/head'), fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
@@ -17,7 +18,7 @@ export async function raumbuchPruefen(browser, repo) {
   await p.route('http://rb.test/**', async (r) => {
     const u = new URL(r.request().url()), pf = u.pathname, J = (o) => r.fulfill({ contentType: 'application/json', body: JSON.stringify(o) });
     if (pf === '/seite') return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><body><div id="h"></div>
-      <script>window.UNDO = []; window.rueckgaengig = (t, f) => UNDO.push([t, f]); window.toast = () => {};</script><script src="/bp/raumbuch.js"></script>` });
+      <script>window.UNDO = []; window.rueckgaengig = (t, f) => UNDO.push([t, f]); window.toast = () => {};</script>${ESC}<script src="/bp/raumbuch.js"></script>` });
     if (pf.startsWith('/bp/')) return r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(path.join(K, pf.slice(4))) });
     if (pf === '/m/raumbuch' && r.request().method() === 'GET') return J(RB);
     if (pf.startsWith('/m/raumbuch')) {

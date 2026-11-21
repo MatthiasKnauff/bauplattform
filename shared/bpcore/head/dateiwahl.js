@@ -7,7 +7,7 @@
    Server: /api/bp/dateiwahl/plaene, /api/bp/dateiwahl/ordner (bpcore/dateiwahl.py) */
 (() => {
   if (window.bpDateiWahl) return;
-  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   const fold = (s) => String(s ?? '').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');
   const mb = (n) => (n >= 1048576 ? (n / 1048576).toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' MB' : Math.max(1, Math.round((n || 0) / 1024)) + ' KB');
   const css = document.createElement('style');

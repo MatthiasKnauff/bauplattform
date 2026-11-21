@@ -18,7 +18,7 @@
      Maustaste auf el; die App zeichnet selbst nach stand() und hört auf „bp-spalten“ an el */
 (() => {
   if (window.bpSpalten) return;
-  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const esc = window.bpEsc;
   const roh = (k) => { try { return localStorage.getItem('bp.sp.' + k) || ''; } catch { return ''; } };
   const lies = (k) => { try { return JSON.parse(roh(k) || '{}') || {}; } catch { return {}; } };
   const merk = (k, v) => { try { localStorage.setItem('bp.sp.' + k, JSON.stringify(v)); } catch { /* egal */ } if (k.startsWith(AUTO)) autoDa = true; };

@@ -3,7 +3,7 @@
 Stand: 14.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = wie lange Claude bis zum Push braucht (Bauen und eigener Test), ohne Abstimmungsrunden, euer Testen auf dem Testserver und die Pipeline (ca. 10 Minuten). Seit 11.11.2026 so gerechnet – vorher standen hier Arbeitszeiten eines Entwicklers, etwa zehn- bis zwanzigmal so lang.
 
 ## Wartet auf dich
-- **Aufräumen 21.11.2026:** ✓ (1) drei tote Tabellen gelöscht (Migration 0103). ✓ (2) Dokumente aus der Datenbank in die Ablage (`ava_lvdok`, `ava_beleg`, `ava_buergschaft`, `ava_nt_datei`) – entschieden 21.11., Plan folgt vor dem Umbau, **ca. 4–6 h**. Offen: (3) `esc()` in 36 Dateien vereinheitlichen **ca. 1 h** · (4) LV neu zeichnen 70 → 50 ms **ca. 3 h** (Empfehlung: später) · (5) Bauteil-Checkliste zusätzlich im LV? (Empfehlung: nein) · (6) Türliste mit Kette statt ⇄ **ca. 15 min**
+- **Aufräumen 21.11.2026:** ✓ (1) tote Tabellen gelöscht (0103) · ✓ (3) `esc()` nur noch einmal · ✓ (5) keine Checkliste im LV · ✓ (6) Türliste mit Kette. Offen: **(2) Dokumente aus der Datenbank** – es sind nicht 4, sondern rund 20 Tabellen (auch Pläne der PDF-Markierung, Anhänge, Verträge, Bauantrags-Pakete, IFC der Planstände); die Container haben keinen gemeinsamen Dateispeicher, nur die Datenbank – braucht eine Grundsatzentscheidung (Plan liegt im Chat vom 21.11.) · (4) LV neu zeichnen 70 → 50 ms **ca. 3 h** (zurückgestellt)
 Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Seite „Ablauf“ auch für Einheiten** (Kisten „Gebäude / Allgemein“, „Einheit 1“, „Einheit 2“ mit Takt-Pfeilen) – Fragen offen, Mock folgt **ca. 30 min**
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
@@ -248,6 +248,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~`esc()` vereinheitlicht (37 Bausteine nehmen `window.bpEsc`), Türliste mit Kette statt ⇄, Dach im Baukasten 2 cm über den Wänden~~ (21.11.2026)
 - ~~Tote Tabellen gelöscht: pm_aenderung, pm_stand, gantt_links (Migration 0103)~~ (21.11.2026)
 - ~~Baukasten: kein Spalt mehr zwischen Traufwand und Sattel-/Walmdach (Dach mit voller Neigung durch die Wandoberkante)~~ (21.11.2026)
 - ~~Baukasten: Dach und Wände überlappen nicht mehr (Pultdach, Satteldach, Gauben auf der Oberseite)~~ (21.11.2026)

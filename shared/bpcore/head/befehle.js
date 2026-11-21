@@ -11,7 +11,7 @@
      knopf:   { t: Text, ic?: SVG-Pfade oder Zeichen, attrs?: 'data-act="pos"' (die Aktion übernehmen die vorhandenen
                 Klick-Handler), fn?: Funktion, aus?, an?, tip?, rot?, datei?: { accept, attrs } (Knopf öffnet eine Dateiauswahl) } */
 (function () {
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   const FN = [];
   const icon = (ic) => !ic ? '' : /^</.test(ic) ? `<svg viewBox="0 0 24 24" aria-hidden="true">${ic}</svg>` : `<span class="bf-z" aria-hidden="true">${esc(ic)}</span>`;
   function knopf(k) {

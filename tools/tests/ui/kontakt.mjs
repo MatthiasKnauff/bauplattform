@@ -4,6 +4,7 @@
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await kontaktPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/kontakt.mjs
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
+import { ESC } from './esc.mjs';
 
 export async function kontaktPruefen(browser, repo) {
   const R = path.join(repo, 'shared/bpcore/head/'), fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
@@ -13,7 +14,7 @@ export async function kontaktPruefen(browser, repo) {
     const js = /\/bp\/([\w-]+\.js)$/.exec(new URL(u).pathname); if (js) return r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(R + js[1], 'utf8') });   // nachgeladene Bausteine (begriffe.js)
     if (u.includes('suggest')) { const o = new URL(u).searchParams.get('ort') || ''; return r.fulfill({ contentType: 'application/json', body: JSON.stringify({ items: [{ name: 'Bauordnungsamt' + (o ? ' ' + o : ''), trade: 'Amt', city: o || 'Bremerhaven' }] }) }); }
     if (u.includes('begriffe')) return r.fulfill({ contentType: 'application/json', body: JSON.stringify({ trade: [['Gerüstbau', 14], ['Dachdecker', 9]], stichworte: [['Container', 6]], tags: [['Stammfirma', 21]] }) });
-    if (u.endsWith('/seite')) return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><body><script>${fs.readFileSync(R + 'kontakt.js', 'utf8')}</script><style>${fs.readFileSync(R + 'bp.css', 'utf8')}${fs.readFileSync(R + 'head.css', 'utf8')}</style>` });
+    if (u.endsWith('/seite')) return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><body>${ESC}<script>${fs.readFileSync(R + 'kontakt.js', 'utf8')}</script><style>${fs.readFileSync(R + 'bp.css', 'utf8')}${fs.readFileSync(R + 'head.css', 'utf8')}</style>` });
     return r.fulfill({ contentType: 'application/json', body: '{}' }); });
   try {
     await p.goto('http://kontakt.test/seite');

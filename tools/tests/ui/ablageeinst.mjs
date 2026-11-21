@@ -3,6 +3,7 @@
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await ablageEinstPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/ablageeinst.mjs
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
+import { ESC } from './esc.mjs';
 
 export async function ablageEinstPruefen(browser, repo) {
   const KASTEN = path.join(repo, 'shared/bpcore/head'), fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
@@ -11,7 +12,7 @@ export async function ablageEinstPruefen(browser, repo) {
     { key: 'modus', label: 'Modus', art: 'auswahl', vorgabe: 'a', opt: [['a', 'A'], ['b', 'B']], ordner: false, wert: 'a' }] };
   const html = `<!doctype html><html lang="de"><head><meta charset="utf-8"></head><body><div id="h"></div>
     <script>window.PUTS = []; window.FR = []; window.bpFrage = async (t, o) => { FR.push(t); return window.ANTWORT; }; window.toast = () => {};</script>
-    <script src="bp/ablageeinst.js"></script></body></html>`;
+    ${ESC}<script src="bp/ablageeinst.js"></script></body></html>`;
   const ctx = await browser.newContext({ viewport: { width: 1200, height: 800 } }), p = await ctx.newPage();
   p.on('pageerror', (e) => fehler.push('JavaScript-Fehler: ' + String(e.message || e).split('\n')[0]));
   await p.route('http://ae.test/**', async (r) => { const pf = new URL(r.request().url()).pathname;

@@ -5,7 +5,7 @@
 
    bpAnweisung.dialog(pid, { nachher(d) })   d = Antwort des Kerns mit dem Modell ({modell, rev}) */
 (function () {
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   const sag = (t, f) => { if (window.toast) window.toast(t, f); };
   async function J(u, m, b) {
     const r = await fetch(u, { method: m || 'GET', credentials: 'same-origin', headers: b ? { 'Content-Type': 'application/json' } : {}, body: b ? JSON.stringify(b) : undefined });

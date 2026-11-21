@@ -7,7 +7,7 @@
    – Rückgängig oben links (undo.js) */
 (function () {
   if (window.bpRaumbuch) return;
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   const zahl = (v) => (window.bpZahl ? bpZahl(v, 0, 1) : String(v).replace('.', ','));
   const sag = (t, f) => { if (window.toast) window.toast(t, f); };
   const TEILE = [['boden', 'Boden'], ['wand', 'Wand'], ['decke', 'Decke']];

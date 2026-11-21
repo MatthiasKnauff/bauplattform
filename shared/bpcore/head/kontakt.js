@@ -12,7 +12,7 @@
    Anschriften und Ansprechpartner; neu: Vorschläge aus dem Netz zum Namen. */
 (() => {
   if (window.bpKontakt) return;
-  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const esc = window.bpEsc;
   const KX = (u, o = {}) => fetch(u, { credentials: 'same-origin', ...o }).then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok || j.error) { const e = new Error(j.error || 'Fehler ' + r.status); e.data = j; throw e; } return j; });
   const css = document.createElement('style');
   css.textContent = `.bph-kmk .bph-kap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem}.bph-kmk .bph-km-q{display:flex;flex-wrap:wrap;gap:.3rem;margin:0 0 .6rem}.bph-kmk .bph-km-q .bph-btn{font-size:.85em;padding:.25rem .65rem;text-decoration:none}

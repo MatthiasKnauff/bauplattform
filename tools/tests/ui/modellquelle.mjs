@@ -15,7 +15,7 @@ export async function modellquellePruefen(browser, repo) {
     bauteile: [{ id: '331|w|k:A1|h', name: 'Außenwand – KS + WDVS 16', teil: 'Hauptgebäude', kg: '331', kgname: '330 Außenwände', menge: 85.7, einheit: 'm²', aufbau: 'KS + WDVS 16', pos: [P(0, 'Kalksandstein-Mauerwerk 17,5 cm', 92), P(1, 'WDVS EPS 035, 16 cm', 118)] }] };
   const calc = { schaetzung: 1, ohne_schaetzung: 0, angebote: [], auftrag: 0, nachtraege: { beauftragt: 0, angemeldet: 0, abgelehnt: 0 }, aufmass: {}, leistung: 0, rechnungen: [], nicht_gezahlt: 0, abgerechnet: 0, sicherheit: { einbehalten: 0, freigegeben: 0, offen: 0 } };
   const LV = { id: 1, project_id: 1, projekt: 'Test', bk_id: null, nr: '01', name: 'Rohbau', gewerk: 'Rohbauarbeiten', status: 'entwurf', archived: false, rev: 1, updated: '', updated_by: '', lv_weg: null,
-    data: { items: [{ ...P(0, 'Kalksandstein-Mauerwerk 17,5 cm', 92), id: 'a', oz: '01.0010' }, { id: 'b', typ: 'pos', art: 'N', oz: '01.0020', kurz: 'Sturz Stahlbeton', lang: '', menge: 6, einheit: 'St', ep_s: 80 }], meta: {} },
+    data: { items: [{ ...P(0, 'Kalksandstein-Mauerwerk 17,5 cm', 92), id: 'a', oz: '01.0010' }, { id: 'b', typ: 'pos', art: 'N', oz: '01.0020', kurz: 'Sturz Stahlbeton', lang: '', menge: 6, einheit: 'St', ep_s: 80 }, { id: 'c', typ: 'pos', art: 'N', oz: '01.0030', kurz: 'Innentür T1', lang: '', menge: 4, einheit: 'St', ep_s: 400, tl: 'T1|innen|88,5x201', quelle: 'Türliste: T1' }], meta: {} },
     vergabe: {}, angebote: [], aufmass: [], rechnungen: [], calc, bilder: {}, dokumente: [], buergschaften: [], mod: { linie: 'lebendig', alt: true } };
   const S = { puts: [], los: [], abgleich: 0, quelle: 0 };
   const antwort = (u, m, body) => {
@@ -53,7 +53,8 @@ export async function modellquellePruefen(browser, repo) {
     const R = await pg.evaluate(() => [...document.querySelectorAll('.sr-r [role="tab"], .sr-r .sr-t button')].map((b) => b.textContent.trim()).filter(Boolean));
     const iB = R.indexOf('Baudaten'), iT = R.indexOf('Bauteile'), iP = R.indexOf('Planung');
     pruef(iB >= 0 && iT === iB + 1 && iP === iT + 1 && R.filter((t) => t === 'Bauteile').length === 1 && !R.includes('Kopierquelle'), `Reiter Baudaten · Bauteile · Planung, „Bauteile“ nur einmal: ${R.join(' | ')}`);
-    pruef(await pg.evaluate(() => document.querySelectorAll('table.lv i.lv-mod').length === 1 && !document.querySelector('table.lv i.lv-mod.los')), 'Kette an der Position aus dem Modell (C2), nicht an der freien');
+    pruef(await pg.evaluate(() => document.querySelectorAll('table.lv i.lv-mod[data-modkette]').length === 1 && !document.querySelector('table.lv i.lv-mod.los[data-modkette]')), 'Kette an der Position aus dem Modell (C2), nicht an der freien');
+    pruef(await pg.evaluate(() => { const k = document.querySelectorAll('table.lv i.lv-mod[data-tlkette]'); return k.length === 1 && k[0].textContent === '🔗' && !document.querySelector('table.lv .lv-tl'); }), 'Türliste: dieselbe Kette statt ⇄ (21.11.2026)');
     await pg.evaluate(() => seiteReiter('lv', 'bauteile')); await pg.waitForSelector('.mq tr[data-mq]', { timeout: 8000 });
     const b = await pg.evaluate(() => ({ g: [...document.querySelectorAll('.mq tr.ti b')].map((x) => x.textContent), bt: [...document.querySelectorAll('.mq tr.mq-b')].map((x) => x.textContent.replace(/\s+/g, ' ').trim()),
       p: [...document.querySelectorAll('.mq tr.mq-p')].map((x) => x.textContent.replace(/\s+/g, ' ').trim()), kopf: document.querySelector('.mq .qu-h').textContent }));
@@ -61,12 +62,12 @@ export async function modellquellePruefen(browser, repo) {
     if (process.env.BILD) await pg.screenshot({ path: process.env.BILD });
     // B1: ganzes Bauteil wählen und übernehmen – nur die Position, die noch nicht hier liegt, mit Schlüssel und Fingerabdruck
     await pg.click('.mq tr.mq-b td:nth-child(2)'); await pg.click('.mq [data-mqa="ein"]');
-    await pg.waitForFunction(() => document.querySelectorAll('table.lv i.lv-mod').length === 2, null, { timeout: 5000 });
+    await pg.waitForFunction(() => document.querySelectorAll('table.lv i.lv-mod[data-modkette]').length === 2, null, { timeout: 5000 });
     await pg.evaluate(() => flush()); await pg.waitForTimeout(200);
     const put = S.puts[S.puts.length - 1], neu = put && put.data.items.filter((x) => x.mod);
     pruef(neu && neu.length === 2 && neu.some((x) => x.mod.endsWith('#1') && x.mod_h === 'h1' && x.kurz === 'WDVS EPS 035, 16 cm' && x.ep_s === 118), `Übernehmen speichert die neue Position mit mod/mod_h: ${JSON.stringify(neu)}`);
     // C2: Klick auf die Kette löst
-    await pg.evaluate(() => document.querySelector('table.lv tr[data-i="0"] i.lv-mod').click()); await pg.waitForFunction(() => !!document.querySelector('table.lv i.lv-mod.los'), null, { timeout: 5000 });
+    await pg.evaluate(() => document.querySelector('table.lv tr[data-i="0"] i.lv-mod[data-modkette]').click()); await pg.waitForFunction(() => !!document.querySelector('table.lv i.lv-mod.los[data-modkette]'), null, { timeout: 5000 });
     pruef(S.los.length === 1 && S.los[0].pos === 'a' && S.los[0].los === true, `Kette: lösen über den Server – ${JSON.stringify(S.los)}`);
     pruef(S.abgleich === 1, `kein weiterer Abgleich ohne Änderung im Modell – ${S.abgleich}`);
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n').slice(0, 2).join(' / ')); }

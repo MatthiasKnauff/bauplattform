@@ -6,7 +6,7 @@
    Zuerst benutzt: Bauteile im Gebäudemodell (bp/bauteile.js). */
 (() => {
   if (window.bpGruppen) return;
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   const STIL = `.bp-grp{display:flex;flex-wrap:wrap;align-items:center;gap:.3rem .35rem;padding:.3rem .5rem;font-size:var(--fs-s,.84rem);border-bottom:1px solid var(--line,#d6dce3)}
 .bp-grp-t{font-weight:600}.bp-grp-s{opacity:.55}.bp-grp-r{margin-left:auto;opacity:.7;font-size:.8rem}
 .bp-grp-c{display:inline-flex;align-items:center;gap:.25rem;border:1px solid color-mix(in srgb,var(--y,#2f6fb3) 45%,transparent);background:color-mix(in srgb,var(--y,#2f6fb3) 10%,transparent);color:var(--y,#2f6fb3);border-radius:calc(999px*var(--rkp,1));padding:.05rem .25rem .05rem .55rem;font-weight:600;cursor:grab;user-select:none}

@@ -18,7 +18,7 @@
    F.satz() → Text der ganzen Bedingung */
 (() => {
   if (window.bpFilter) return;
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   const klein = (s) => String(s == null ? '' : s).toLocaleLowerCase('de');
   const css = document.createElement('style');
   css.textContent = `.bpf{position:relative;display:flex;flex-direction:column;gap:.3rem;margin:.1rem 0 .5rem}

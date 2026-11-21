@@ -122,7 +122,7 @@
   }
   const listeners = [];
   const hatBT = () => !H.conf || !(H.conf.apps || []).length || (H.conf.apps || []).some((a) => a.key === 'bautagebuch');   // Bautagebuch im Büro vorhanden (Standort-Funktionen)
-  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const esc = window.bpEsc || (window.bpEsc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));   // dieselbe Fassung wie in bp.js – nur für Seiten, auf denen head.js vor dem Bündel oder ohne es läuft
   const getJ = (u) => fetch(u, { credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.status))));
   const SV = (p) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
   const IC = {

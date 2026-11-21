@@ -6,7 +6,7 @@
    Wo es das 🗑 gibt: Kontaktmaske (Gewerk / Rolle, Stichwörter, Tags), Vorschlagslisten mit .quelle (vorschlag.js). */
 (() => {
   if (window.bpBegriff) return;
-  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const esc = window.bpEsc;
   const KX = (u, o = {}) => fetch(u, { credentials: 'same-origin', ...o }).then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok || j.error) throw new Error(j.error || 'Fehler ' + r.status); return j; });
   const POST = (u, b) => KX(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
   const css = document.createElement('style');

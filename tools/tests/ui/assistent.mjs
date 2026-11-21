@@ -6,13 +6,14 @@
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await assistentPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/assistent.mjs
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
+import { ESC } from './esc.mjs';
 
 export async function assistentPruefen(browser, repo) {
   const KASTEN = path.join(repo, 'shared/bpcore/head');
   const fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
   const SEITE = (pid) => `<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/bp/bp.css"><link rel="stylesheet" href="/bp/head.css"><body>
     <div id="work" style="display:grid;margin-bottom:40px"><section>Tabelle</section></div><div id="ohne" style="display:grid"><section>ohne Projektbezug</section></div>
-    <script>window.BP_HEAD_BASIS = ['/bp/', '']; window.BPHead = { projektId: () => ${pid} };</script><script src="/bp/seite.js"></script>
+    <script>window.BP_HEAD_BASIS = ['/bp/', '']; window.BPHead = { projektId: () => ${pid} };</script>${ESC}<script src="/bp/seite.js"></script>
     <script>seite(document.getElementById('work'), 'ba', [{ id: 'pdf', titel: 'PDF', mount: (el) => { el.textContent = 'PDF'; } }], { start: 'pdf' });
       seite(document.getElementById('ohne'), 'bt', [{ id: 'kal', titel: 'Kalender', mount: (el) => { el.textContent = 'K'; } }]);</script>`;
   const LINKS = [{ app: 'termine', name: 'Termine', richtung: 'beide', uebernahme: 'uebernahme', zustand: 'lebendig' }, { app: 'kosten', name: 'Kosten', richtung: 'zur_app', uebernahme: 'auto', zustand: 'lebendig' }];

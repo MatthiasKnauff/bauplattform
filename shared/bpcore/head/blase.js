@@ -12,7 +12,7 @@
   const SCHON = new Set(), K = (k) => 'bp.blase.' + k;
   const lies = (k) => { try { return +localStorage.getItem(K(k)) || 0; } catch { return 0; } };
   const merk = (k, n) => { try { localStorage.setItem(K(k), n); } catch { /* ohne Speicher: nur für diese Sitzung */ } };
-  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   function bpBlase(ziel, text, o = {}) {
     const key = o.key || text.slice(0, 40), mal = o.mal || 3, hol = typeof ziel === 'function' ? ziel : () => ziel;
     let el = hol();

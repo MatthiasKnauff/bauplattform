@@ -8,7 +8,7 @@
    fremd: Unterschrift einer anderen Person am Gerät (z. B. 'Bieter:in') – immer selbst zeichnen, rechts daneben gesetzt */
 (() => {
   if (window.bpUnterschrift) return;
-  const H = window.BPHead, esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const H = window.BPHead, esc = window.bpEsc;
   const css = document.createElement('style');
   css.textContent = `.bpu-sig{position:absolute;z-index:6;border:2px dashed var(--y,#d4357f);border-radius:6px;cursor:move;touch-action:none;background:rgba(255,95,179,.06);box-sizing:border-box}
 .bpu-sig img{width:100%;height:100%;object-fit:contain;pointer-events:none;display:block}

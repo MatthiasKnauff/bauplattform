@@ -8,6 +8,7 @@
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await baukastenPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/baukasten.mjs
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
+import { ESC } from './esc.mjs';
 
 export async function baukastenPruefen(browser, repo) {
   const K = path.join(repo, 'shared/bpcore/head'), fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
@@ -23,7 +24,7 @@ export async function baukastenPruefen(browser, repo) {
   await p.route('http://bk.test/**', async (r) => {
     const u = new URL(r.request().url()), pf = u.pathname, J = (o) => r.fulfill({ contentType: 'application/json', body: JSON.stringify(o) });
     if (pf === '/seite') return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><body style="margin:0"><div id="h" style="width:1300px;height:820px"></div>
-      <script>window.UNDO = []; window.rueckgaengig = (t, f) => UNDO.push([t, f]); window.toast = () => {};</script><script src="/bp/gebaeudekasten.js"></script>` });
+      <script>window.UNDO = []; window.rueckgaengig = (t, f) => UNDO.push([t, f]); window.toast = () => {};</script>${ESC}<script src="/bp/gebaeudekasten.js"></script>` });
     if (pf === '/bp/gebaeudekasten.js' || pf === '/bp/ansicht3d.js') return r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(path.join(K, pf.slice(4))) });
     if (pf === '/api/bp/modell/1/bauteile/vorlagen') return J(VL[u.searchParams.get('kg')] || []);
     if (pf === '/api/bp/modell/1/baukasten' && r.request().method() === 'GET') { S.gets.push(u.search);
@@ -152,11 +153,11 @@ export async function baukastenPruefen(browser, repo) {
       const schlecht = [];
       [0, 1].forEach((b) => E.filter((e) => e.i >= 9600000 + b * 20 && e.i < 9600000 + b * 20 + 19).forEach((e) => pkt(e).forEach((q) => {
         const u = unter[b](q), wand = e.t === 'w';
-        if (wand && q[2] > u + 0.011) schlecht.push(`Wand ${e.i} ragt ${Math.round((q[2] - u) * 100)} cm ins Dach`);
-        if (e.t === 'r' && q[2] < u - 0.011) schlecht.push(`Dach ${e.i} liegt ${Math.round((u - q[2]) * 100)} cm unter seiner Unterseite (in der Wand)`); })));
+        if (wand && q[2] > u + 0.006) schlecht.push(`Wand ${e.i} ragt ${Math.round((q[2] - u) * 1000) / 10} cm über die Dachunterseite`);
+        if (e.t === 'r' && q[2] < u + 0.014) schlecht.push(`Dach ${e.i} liegt nicht über den Wänden (${Math.round((q[2] - u) * 1000) / 10} cm, mindestens 1 cm)`); })));
       pruef(K2 && K2.h === 3 && E.some((e) => e.t === 'r' && e.i === 9600026) && !schlecht.length, `Dach und Wände überlappen nicht: ${[...new Set(schlecht)].slice(0, 6).join(' · ') || 'Netz fehlt'}`);
       const tr = E.find((e) => e.i === 9600006), zmin = tr ? Math.min(...pkt(tr).map((q) => q[2])) : 0;
-      pruef(tr && Math.abs(zmin - (K1.z + K1.h - tan(38) * 0.4)) < 0.02, `Satteldach: Traufe am Ende des Überstands ${Math.round(tan(38) * 40)} cm unter der Wandoberkante – ${zmin} m`);
+      pruef(tr && Math.abs(zmin - (K1.z + K1.h - tan(38) * 0.4)) < 0.03, `Satteldach: Traufe am Ende des Überstands ${Math.round(tan(38) * 40)} cm unter der Wandoberkante – ${zmin} m`);
       const ort = E.find((e) => e.i === 9600027), rw = E.find((e) => e.i === 9600029), tw = rw ? Math.max(...pkt(rw).map((q) => q[1])) : 0;
       pruef(ort && rw && Math.min(...pkt(ort).map((q) => q[1])) >= tw - 0.011, `Pultdach: Ortgang endet an der Rückwand (ab ${ort && Math.min(...pkt(ort).map((q) => q[1]))} m, Rückwand bis ${tw} m)`);
       if (process.env.BILD) await p.screenshot({ path: process.env.BILD.replace('.png', '-pult.png') });

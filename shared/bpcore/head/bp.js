@@ -13,7 +13,11 @@ const $ = (s, el = document) => el.querySelector(s);
 const fold = (s) => String(s ?? '').normalize('NFC').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
   .normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
 const passt = (text, q) => { const t = fold(text); return fold(q).split(/\s+/).filter(Boolean).every((w) => t.includes(w)); };
+/* esc – Text für HTML entschärfen. Die EINE Stelle (21.11.2026): alle Bausteine nehmen `window.bpEsc` (früher eine Kopie je Datei). Eigene Fassung nur, wo ein
+   Baustein ohne bp.js und head.js laufen muss: ansicht3d.js und zeitplan.js (Bauherrenportal, Link-Ansicht), gantt/public/ansicht.js; head.js bringt sie mit,
+   falls es vor dem Bündel geladen wird (Bautagebuch, Gast-Ansicht der PDF-Markierung). */
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+window.bpEsc = esc;
 /* Zahlen, Datum, Merken im Browser – einmal für alle Apps.
    bpZahl(v, min, max) – deutsche Zahl mit min bis max Nachkommastellen (ohne Angabe: 0 bis 3). Das Zahlenformat wird je Stellenpaar einmal
      angelegt und wiederverwendet – toLocaleString legt es bei jedem Aufruf neu an (in großen Tabellen der größte Zeitfresser).

@@ -5,6 +5,7 @@
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await rueckgaengigPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/rueckgaengig.mjs
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
+import { ESC } from './esc.mjs';
 
 export async function rueckgaengigPruefen(browser, repo) {
   const KASTEN = path.join(repo, 'shared/bpcore/head');
@@ -12,7 +13,7 @@ export async function rueckgaengigPruefen(browser, repo) {
   const fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
   const SEITE = (mit) => `<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/bp/head.css"><body>
     <div class="bph" style="height:48px">Kopfleiste <button class="bph-hlp">?</button></div><div id="bfl"></div><div class="modal"><div id="dlg"></div></div><p id="inhalt">Inhalt</p>
-    <script src="/bp/undo.js"></script><script src="/bp/befehle.js"></script>
+    ${ESC}<script src="/bp/undo.js"></script><script src="/bp/befehle.js"></script>
     <script>window.LOG = []; ${mit ? `befehle(document.getElementById('bfl'), [{ titel: 'Position', knoepfe: [{ t: 'Neu', fn: () => {} }] }, { titel: 'Neu', knoepfe: [{ t: 'LV', ic: '<path d="M6 3h8"/>', fn: () => {} }] }]); befehle(document.getElementById('dlg'), [{ titel: 'Im Dialog', knoepfe: [{ t: 'X', fn: () => {} }] }]);` : ''}</script>`;
   async function lauf(name, mit, tun) {
     const ctx = await browser.newContext({ viewport: { width: 1300, height: 800 } }), p = await ctx.newPage();

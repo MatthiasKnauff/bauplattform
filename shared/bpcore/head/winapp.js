@@ -5,7 +5,7 @@
    bpWinApp.oeffnen() → Fenster „Windows-App“ mit Installieren (aus dem Menü) */
 (function () {
   if (window.bpWinApp) return;
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   const J = async (u, b) => { const r = await fetch(u, { method: b ? 'POST' : 'GET', credentials: 'same-origin', headers: b ? { 'Content-Type': 'application/json' } : {}, body: b ? JSON.stringify(b) : undefined });
     const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || 'Fehler ' + r.status); return d; };
   const D = window.bpDesktop, windows = /Windows/i.test(navigator.userAgent) && !/Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);

@@ -54,7 +54,7 @@
     pult: '<path d="M3 20h24M5 20V8l20 4v8" fill="#e7d6c5" stroke="#5d6b7a"/>', flach: '<path d="M3 20h24M5 20V9h20v11" fill="#e7d6c5" stroke="#5d6b7a"/>', fenster: '<rect x="8" y="4" width="14" height="16" fill="#cfe3f2" stroke="#5d6b7a"/><path d="M15 4v16M8 12h14" stroke="#5d6b7a"/>',
     fenstert: '<rect x="9" y="2" width="12" height="20" fill="#cfe3f2" stroke="#5d6b7a"/><path d="M15 2v20" stroke="#5d6b7a"/>', tuer: '<rect x="9" y="3" width="12" height="19" fill="#9d7c5c" stroke="#5d6b7a"/><circle cx="18" cy="13" r="1" fill="#fff"/>' };
   const TEILF = ['#e8dfd2', '#dfe7d6', '#dde3ee', '#eedfe4'];
-  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   const de = (n, st = 2) => Number(n).toLocaleString('de-DE', { minimumFractionDigits: st, maximumFractionDigits: st });
   const rund = (v) => Math.round(v * 2) / 2;   // B2: 0,5-m-Raster
 
@@ -172,7 +172,7 @@
       return dicke(flAuf(k.id, fi), DICKE.dach) / Math.cos(((DACHF.find((f) => f[0] === D.form) || [, , 0])[2]) * Math.PI / 180); }
     function gaubeGeo(g) {   // Front, Dach(e), Fenster einer Gaube auf ihrer Dachfläche (auf der Oberseite – nicht in der Dachplatte)
       const k = kz(g.k); if (!k || !M.dach[k.id]) return null; const f0 = dachFlaechen(k)[g.fl]; if (!f0 || f0.p.length < 4) return null;
-      const tv = dachTv(k, g.fl), fl = { ...f0, p: f0.p.map((q) => [q[0], q[1], q[2] + tv]) };
+      const tv = dachTv(k, g.fl) + 0.02, fl = { ...f0, p: f0.p.map((q) => [q[0], q[1], q[2] + tv]) };   // knapp über der Oberseite des Dachs
       const [a, b, , d] = fl.p, br = g.b / Math.hypot(b[0] - a[0], b[1] - a[1]), at = (t, s) => [a[0] + (b[0] - a[0]) * t + (d[0] - a[0]) * s, a[1] + (b[1] - a[1]) * t + (d[1] - a[1]) * s, a[2] + (b[2] - a[2]) * t + (d[2] - a[2]) * s];
       const p0 = at(g.u - br / 2, 0.2), p1 = at(g.u + br / 2, 0.2), q0 = at(g.u - br / 2, 0.75), q1 = at(g.u + br / 2, 0.75), hz = Math.max(q0[2], q1[2]);
       const mid = (A, B) => [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2, (A[2] + B[2]) / 2], first = hz + 0.9;
@@ -203,6 +203,7 @@
       P.forEach((p, i) => { const j = (i + 1) % P.length; flaeche([p, P[j], I[j], I[i]], v); });
       return v;
     }
+    const FUGE = 0.02;   // m (das Netz rechnet in ganzen cm) – Abstand zwischen Wandoberkante und Dachunterseite im Netz
     const REF = new Map();   // Nummer im Netz → Auswahl ({ art, id, seite })
     function netzBauen() {
       REF.clear();
@@ -226,7 +227,7 @@
           const tv = x.n === 'Dach' ? td : dachTv(k, fi);
           const wp = x.s && D.form === 'pult' && x.s !== 'ym' ? kappen(x.p, 1, k.y + tw, false) : x.p;   // Pultdach: die Ortgänge enden an der Rückwand (hohe Seite), nicht in ihr
           if (wp.length < 3) return;
-          const v = x.s ? wandDick(wp, ...SEITEN[x.s], tw, [], ...(D.form === 'pult' && x.s === 'ym' ? [DACHH(k, D.form, D) * tw / k.d, k.z + k.h] : [])) : platte(x.n === 'Dach' ? x.p : x.p.map((q) => [q[0], q[1], q[2] + tv]), tv);
+          const v = x.s ? wandDick(wp, ...SEITEN[x.s], tw, [], ...(D.form === 'pult' && x.s === 'ym' ? [DACHH(k, D.form, D) * tw / k.d, k.z + k.h] : [])) : platte(x.p.map((q) => [q[0], q[1], q[2] + (x.n === 'Dach' ? 0 : tv) + FUGE]), tv);   // FUGE: das Dach liegt 2 cm über den Wänden – nie in derselben Ebene (sonst zeichnen sich die Wandkanten in der Dachfläche ab)
           E.push({ i, t: x.s ? 'w' : 'r', g, c: x.s ? c : D.form === 'flach' ? '#9aa3ad' : '#b56a4f', a: 0, v });
           REF.set(i, x.s ? { art: 'wand', id: k.id, seite: x.s } : { art: 'dach', id: k.id, ...(DFL[D.form].includes(fi) ? { seite: 'f' + fi } : {}) }); });   // Giebel/Ortgang gehören zur Wand ihrer Seite (21.11.2026)
         else if (oben(k) || M.koerper.some((q) => q.teil === k.teil && q.staffel && Math.abs(q.z - k.z - k.h) < ZU)) { const i = ID0 + b * 20 + 19;   // oben offen bzw. Terrasse um ein Staffelgeschoss: Decke als Abschluss

@@ -6,7 +6,7 @@
    <input data-vs="kammer" data-vs-kern> → Liste aus dem Kern (stammdaten.LISTEN: fest + was im Büro steht), geladen erst beim ersten Zeigen. */
 (() => {
   if (window.bpVorschlag) return;
-  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const esc = window.bpEsc;
   /* GAEB-Mengeneinheiten (DA XML, Element QU, höchstens 4 Zeichen) – so wie STLB-Bau/ORCA sie schreiben */
   const GAEB = [
     ['m', 'Meter'], ['m2', 'Quadratmeter'], ['m3', 'Kubikmeter'], ['St', 'Stück'], ['psch', 'pauschal'],

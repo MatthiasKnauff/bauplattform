@@ -8,7 +8,7 @@
    Gemerkt wird nur die Lage (Teil, Seite im Teil, Anteile der Seite) – das PDF wird beim Herunterladen, Drucken, Ablegen gestempelt. */
 (() => {
   if (window.bpStempelLage) return;
-  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   const NAME = { buero: 'Bürostempel', pruef: 'Prüfstempel', zahlbetrag: 'Zahlbetrag siehe Anlage', sig: 'Unterschrift' };
   const TEIL = (t) => (t === 'doc' ? 'Ausdruck' : t === 'freigabe' ? 'Rechnungsfreigabe' : t === 'pruef' ? 'Prüfblatt' : t === 'aufmass' ? 'Massenermittlung' : t.startsWith('rechnung') ? 'Rechnung der Firma' : t);
   const BILD = (art) => (art === 'sig' ? 'api/bp/signatur' : 'api/bp/stempel/' + art);

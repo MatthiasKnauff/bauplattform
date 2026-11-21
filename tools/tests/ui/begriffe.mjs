@@ -4,6 +4,7 @@
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await begriffePruefen(browser, repoWurzel)   – allein: node tools/tests/ui/begriffe.mjs
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
+import { ESC } from './esc.mjs';
 
 export async function begriffePruefen(browser, repo) {
   const K = path.join(repo, 'shared/bpcore/head'), fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
@@ -14,7 +15,7 @@ export async function begriffePruefen(browser, repo) {
     const u = new URL(r.request().url()), pf = u.pathname, J = (o) => r.fulfill({ contentType: 'application/json', body: JSON.stringify(o) });
     if (pf === '/seite') return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><body><input id="f" data-vs="t" value="Bauherr*in" autocomplete="off">
       <script>window.BP_HEAD_BASIS = ['/bp/', '']; window.UNDO = []; window.rueckgaengig = (t, f) => UNDO.push([t, f]); window.toast = () => {}; window.AENDER = 0;</script>
-      <script src="/bp/vorschlag.js"></script><script>bpVorschlag.listen.t = [{ w: 'Bauherr' , quelle: 'kontakt.trade' }, { w: 'Bauherr*in', quelle: 'kontakt.trade' }, { w: 'm2' }];
+      ${ESC}<script src="/bp/vorschlag.js"></script><script>bpVorschlag.listen.t = [{ w: 'Bauherr' , quelle: 'kontakt.trade' }, { w: 'Bauherr*in', quelle: 'kontakt.trade' }, { w: 'm2' }];
       document.getElementById('f').addEventListener('change', () => AENDER++);</script>` });
     if (pf.startsWith('/bp/')) return r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(path.join(K, pf.slice(4))) });
     if (pf === '/api/bp/begriffe/kontakt.trade') return J({ titel: 'Gewerk / Rolle', wert: u.searchParams.get('wert'), vorschlag: 'Bauherr', werte: ['Bauherr', 'Maler'],

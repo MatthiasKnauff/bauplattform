@@ -618,18 +618,28 @@ function tlHerkunft(x) {
   if (!tlPos(x)) return '';
   const nr = String(x.quelle || '').replace(/^Türliste:\s*/, ''), los = !!x.tl_los, NR = nr.split(',').map((y) => y.trim());
   const T0 = TL && TL.pid === (L.project_id || pid) ? (TL.tueren || []).find((t) => NR.includes(t.nr)) : null;   // aktuelle Ausführung, wenn die Liste schon geladen ist
-  return `<div class="card tl-hk"><b>Herkunft</b> <span class="bph-q-z"><span class="bph-q${los ? ' e' : ''}">${los ? 'gelöst – eigene Position' : '⇄ Fenster- & Türliste'}</span></span>
+  return `<div class="card tl-hk"><b>Herkunft</b> <span class="bph-q-z"><span class="bph-q${los ? ' e' : ''}">${los ? 'gelöst – eigene Position' : '🔗 Fenster- & Türliste'}</span></span>
     <div class="hint" style="margin:.2rem 0">${esc(nr || '–')}</div>
     <span class="seg sm"><button type="button" data-tllos="0" class="${los ? '' : 'on'}">verbunden</button><button type="button" data-tllos="1" class="${los ? 'on' : ''}">gelöst</button></span>
     ${los ? '<p class="hint" style="margin:.3rem 0 0">Gelöst: diese Position wird nicht mehr abgeglichen – Menge und Text gehören dem LV.</p>' : `<p class="hint" style="margin:.3rem 0">Menge kommt aus der Liste. Ausführung hier ändern → gilt für alle Türen dieser Position.</p>
     <div class="tl-hkf">${TL_AUSF.map(([k, l]) => `<label><span>${l}</span><button type="button" class="btn sm" data-tlausf="${k}" title="für alle Türen dieser Position">${esc((T0 && T0[k]) || (T0 ? '–' : 'ändern …'))} ▾</button></label>`).join('')}</div>
     <button type="button" class="btn sm" data-tlzu title="Türliste mit diesen Türen">→ Türen in der Liste</button>`}</div>`;
 }
+/* Kette in der LV-Zeile (21.11.2026): EIN Zeichen für „verknüpft / gelöst“ – dasselbe wie an Positionen aus dem Gebäudemodell (modKette, ava-modellquelle.js);
+   das frühere ⇄ hinter der Menge gibt es nicht mehr. Klick löst bzw. verbindet wieder. */
+const tlKette = (x) => `<i class="lv-mod${x.tl_los ? ' los' : ''}" data-tlkette title="${x.tl_los ? 'aus der Fenster- & Türliste, gelöst – Klick: wieder verbinden' : 'verknüpft mit der Fenster- & Türliste: Menge und Ausführung folgen – Klick: lösen'}">🔗</i>`;
+async function tlLosSetzen(x, los) {
+  if (!L || !!x.tl_los === los) return;
+  const tun = async (l) => { await flush(); L = await api(`api/lv/${L.id}/tueren/los`, 'POST', { pos: x.id, los: l }); render(); };
+  try { await tun(los); rueckgaengig(los ? 'Position gelöst' : 'Wieder mit der Türliste verbunden', () => tun(!los), 10000, () => tun(los)); } catch (er) { toast(er.message, true); }
+}
 document.addEventListener('click', async (e) => {
-  const t = e.target; if (!t.closest || !t.closest('.tl-hk, .lv-tl') || !L) return;
+  const t = e.target; if (!t.closest || !L) return;
+  const ke = t.closest('[data-tlkette]'); if (ke) { const tr = ke.closest('tr[data-i]'), y = tr && items()[+tr.dataset.i]; if (tlPos(y)) tlLosSetzen(y, !y.tl_los); return; }
+  if (!t.closest('.tl-hk')) return;
   const x = items().find((y) => y.id === LVAKT); if (!tlPos(x)) return;
   const lo = t.closest('[data-tllos]');
-  if (lo) { const los = lo.dataset.tllos === '1'; if (!!x.tl_los === los) return; try { await flush(); L = await api(`api/lv/${L.id}/tueren/los`, 'POST', { pos: x.id, los }); render(); rueckgaengig(los ? 'Position gelöst' : 'Wieder mit der Türliste verbunden', async () => { L = await api(`api/lv/${L.id}/tueren/los`, 'POST', { pos: x.id, los: !los }); render(); }, 10000, async () => { L = await api(`api/lv/${L.id}/tueren/los`, 'POST', { pos: x.id, los }); render(); }); } catch (er) { toast(er.message, true); } return; }
+  if (lo) return tlLosSetzen(x, lo.dataset.tllos === '1');
   if (t.closest('[data-tlzu]')) { tab = 'tueren'; LS.set('tab', tab); TLq = String(x.quelle || '').replace(/^Türliste:\s*/, '').split(',')[0].trim(); render(); return; }
   const af = t.closest('[data-tlausf]'); if (!af) return;
   const k = af.dataset.tlausf, opt = TA[k] || [];

@@ -4,7 +4,7 @@
    <select> und meldet „input“ und „change“ – die Apps merken keinen Unterschied. Ausnehmen: <select data-nativ>. */
 (() => {
   if (window.bpWahl) return;
-  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const esc = window.bpEsc;
   const lang = (o) => { const t = (o.title || '').trim(); return t && t !== o.textContent.trim() ? t : ''; };   // Kürzel im Feld, ganze Bezeichnung in der Liste: <option title="Normal">N</option>
   const fold = (s) => String(s ?? '').normalize('NFC').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');
   const geht = (s) => s && s.tagName === 'SELECT' && s.ownerDocument === document && !s.multiple && !(s.size > 1) && !s.disabled && !s.hasAttribute('data-nativ');

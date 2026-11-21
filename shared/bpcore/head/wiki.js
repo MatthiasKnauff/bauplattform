@@ -9,7 +9,7 @@
 (() => {
   if (window.bpWiki) return;
   const H = new Proxy({}, { get: (_, k) => (window.BPHead || {})[k] });   // BPHead erst beim Aufruf lesen (die App „Wiki“ lädt diesen Baustein vor head.js)
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   const J = async (u, m, b) => { const r = await fetch(u, { method: m || 'GET', credentials: 'same-origin', headers: b ? { 'Content-Type': 'application/json' } : {}, body: b ? JSON.stringify(b) : undefined });
     const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || 'Fehler ' + r.status); return d; };
   const meld = (t, f) => (window.toast ? toast(t, f) : console.log(t));

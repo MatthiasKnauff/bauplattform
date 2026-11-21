@@ -80,7 +80,8 @@ def module(T):
 def schema(T):
     mig = "\n".join(open(p).read() for p in sorted(glob.glob("shared/bpcore/migrationen/*.sql")))
     code = "\n".join(t for p, t in T.items() if p.endswith(".py") and not p.startswith("tools/"))
-    for t in sorted(set(re.findall(r"CREATE TABLE(?: IF NOT EXISTS)? (\w+)", mig, re.I))):
+    weg = set(re.findall(r"DROP TABLE(?: IF EXISTS)? (\w+)", mig, re.I))   # später gelöscht (0103)
+    for t in sorted(set(re.findall(r"CREATE TABLE(?: IF NOT EXISTS)? (\w+)", mig, re.I)) - weg):
         if not re.search(r"\b" + t + r"\b", code):
             print(f"  Tabelle   {t} (steht nur noch in den Migrationen)")
 

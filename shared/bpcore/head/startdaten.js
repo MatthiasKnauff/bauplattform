@@ -10,7 +10,7 @@
      → Promise<null (abgebrochen) | { modus: 'uebernahme'|'auto'|'getrennt'|'leer', baubeginn: 'JJJJ-MM-TT', modell }> */
 (function () {
   if (window.bpStartdaten) return;
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   const J = (u, m, b) => fetch(u, { method: m || 'GET', credentials: 'same-origin', headers: b ? { 'Content-Type': 'application/json' } : {}, body: b ? JSON.stringify(b) : undefined })
     .then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Der Server ist gerade nicht erreichbar.'); return j; });
   const montag = () => { const d = new Date(); d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7)); return d.toISOString().slice(0, 10); };

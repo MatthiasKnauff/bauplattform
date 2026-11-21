@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-kette-tuerliste-2111",
+  "datum": "2026-11-21",
+  "app": "ava",
+  "titel": "Türliste: Kette statt ⇄",
+  "text": "Positionen aus der Fenster- & Türliste tragen im LV jetzt dieselbe Kette 🔗 wie Positionen aus dem Gebäudemodell – vor dem Kurztext. Ein Klick löst die Position oder verbindet sie wieder.",
+  "ziel": "i.lv-mod"
+ },
+ {
   "id": "gm-dach-ohne-ueberlappung-2111",
   "datum": "2026-11-21",
   "app": "gebaeudemodell",

@@ -8,7 +8,7 @@
    head.js lädt den Baustein nur, wenn eine der beiden Angaben im sessionStorage steht. */
 (function () {
   if (window.bpZurueck) return;
-  const H = window.BPHead || {}, esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const H = window.BPHead || {}, esc = window.bpEsc;
   const lies = (k) => { try { return JSON.parse(sessionStorage.getItem(k) || 'null'); } catch { return null; } };
   const setz = (k, v) => { try { if (v) sessionStorage.setItem(k, JSON.stringify(v)); else sessionStorage.removeItem(k); } catch { /* egal */ } };
   const ohneHash = (u) => String(u || '').replace(/#.*$/, '');

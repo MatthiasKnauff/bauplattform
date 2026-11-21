@@ -3,7 +3,7 @@
    Wird ein Ordnername geändert, fragt der Baustein, ob die vorhandenen Ordner mitwandern; umbenannt wird im Container „dienste“.
    Der Zugang zum Dateiserver selbst steht in der Verwaltung → Ablage & Server. Geladen über BPHead.ablageEinst (erst bei Bedarf). */
 (function () {
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const esc = window.bpEsc;
   const K = (u, o = {}) => fetch(u, { credentials: 'same-origin', ...o, headers: o.body ? { 'Content-Type': 'application/json' } : {} })
     .then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok || j.error) throw new Error(j.error || 'Fehler ' + r.status); return j; });
   const meld = (t, f) => (window.toast ? toast(t, f) : window.bpHinweis && bpHinweis(t));

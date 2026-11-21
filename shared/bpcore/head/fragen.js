@@ -7,7 +7,7 @@
    nach „Ausführen“ aus (Kern bpcore/fragen_aenderung.py, Protokoll im audit_log). */
 (function () {
   if (window.bpFragen) return;
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   const sag = (t, f) => { if (window.toast) window.toast(t, f); };
   const KSN = { aus: 'ohne KI', buero: 'KI im Büro', extern: 'externe KI' };
   const AENDERN = /(?:^|\s)(tausch|ersetz|änder|aender|hinzu|ergänz|füg|entfern|lösch|setz)|\bin allen\b|^alle\b|\bstatt\b/i;   // wie bpcore/fragen_aenderung.py

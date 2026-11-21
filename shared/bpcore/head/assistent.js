@@ -8,7 +8,7 @@
    bpAssistent.reiter()        – Reiter für seite(): hängt seite.js von selbst an (Reiter „Planung“)
    Wird erst bei Bedarf geladen (seite.js), kostet beim Öffnen einer App nichts. */
 (function () {
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = window.bpEsc;
   const J = (u, m, b) => fetch(u, { method: m || 'GET', credentials: 'same-origin', headers: b ? { 'Content-Type': 'application/json' } : {}, body: b ? JSON.stringify(b) : undefined })
     .then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok && r.status !== 409) throw new Error(j.error || 'Der Server ist gerade nicht erreichbar.'); j.konflikt = r.status === 409; return j; });
   const sag = (t, f) => { if (window.toast) window.toast(t, f); };

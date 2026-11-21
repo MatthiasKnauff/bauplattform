@@ -1,16 +1,16 @@
 """Sicherung außerhalb des Servers und Wiederherstellung nach einem Ausfall.
 
 1. Kopie der Datenbanksicherung auf den Dateiserver (Einstellung „backup_remote“, z. B. \\\\server\\Projekte\\Bauportal):
-   Datenbank/bau-….dump (die letzten 30), Logo/, LIESMICH.txt. Zugangsdaten wie bei der Ablage (store_user/-pass/-domain).
+   Datenbank/bau-….dump (die letzten 30), Dateien/ (gemeinsamer Dateispeicher, bpcore/dateien.py – nur neue), Logo/, LIESMICH.txt. Zugangsdaten wie bei der Ablage (store_user/-pass/-domain).
    Nach jeder täglichen und jeder manuellen Sicherung automatisch.
 2. Fotos: Jedes Foto liegt nach der Übertragung auch im Projektordner auf dem Server (images.sent_remote). Fehlt die Datei
    im Datenordner (neuer Server, Volume verloren), holt die App sie von dort zurück – beim Start automatisch und per Knopf.
 """
-import json, os, re, threading, time
+import hashlib, json, os, re, threading, time
 from datetime import datetime
 
 from . import backups, db, remote, settings, storage
-from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
+from bpcore import dateien, fehler   # stille Fehler für die Verwaltung festhalten
 
 KEEP = 30
 _foto = {"laeuft": False, "geholt": 0, "fehler": 0, "offen": 0, "meldung": "", "zeit": ""}
@@ -20,6 +20,7 @@ LIESMICH = """Bauplattform – Sicherung außerhalb des Servers
 ==============================================
 
 Datenbank/   tägliche Sicherungen der Datenbank (alle Apps), die letzten {keep}
+Dateien/     Dateien der Apps, die nicht in der Datenbank liegen (Rechnungs-PDFs, Pläne mit Markierungen, IFC) – Name = Prüfsumme
 Logo/        Büro-Logo
 
 Nach einem Ausfall des Servers:
@@ -27,7 +28,8 @@ Nach einem Ausfall des Servers:
 2. Verwaltung → Einstellungen → Ablage: Zugang zum Dateiserver eintragen.
 3. Verwaltung → Einstellungen → Datensicherung: bei „Sicherung auf dem Dateiserver“ den Pfad eintragen,
    die neueste Sicherung „Zurückholen“ und dann „Wiederherstellen“.
-4. Die Fotos holt die App danach selbst aus den Projektordnern zurück (Fortschritt unter Datensicherung).
+4. Die Fotos holt die App danach selbst aus den Projektordnern zurück (Fortschritt unter Datensicherung),
+   die Dateien aus „Dateien/“ ebenso (beim nächsten Start der Dienste).
 
 Stand dieser Datei: {stand}
 """
@@ -93,14 +95,64 @@ def kopieren(name=None):
             except Exception as e:
                 fehler.still("bautagebuch", "Dateiserver: alte Datenbanksicherung löschen", e)
                 pass
+        n = dateien_kopieren(t)
         with db.tx() as c:
             _status(c, ok=True, zeit=datetime.now().isoformat(timespec="seconds"), datei=x["name"], fehler="")
-        return True, f"{x['name']} auf den Dateiserver kopiert."
+        return True, f"{x['name']} auf den Dateiserver kopiert." + (f" Dazu {n} neue Datei(en)." if n else "")
     except Exception as e:
         msg = _msg(e)
         with db.tx() as c:
             _status(c, ok=False, zeit=datetime.now().isoformat(timespec="seconds"), fehler=msg)
         return False, msg
+
+
+def _dateiziel(sha):
+    return f"Dateien/{sha[:2]}/{sha}"
+
+
+def dateien_kopieren(t, limit_s=1800):
+    """Dateispeicher (bpcore/dateien.py): was noch nicht auf dem Dateiserver liegt, dorthin. → Zahl der kopierten Dateien."""
+    with db.tx() as c:
+        if not dateien.sieht(c) or remote.NUR_LESEN:   # Testserver: schreibt nichts auf den Dateiserver – also auch nichts als kopiert merken
+            return 0
+        offen = [r["sha"] for r in c.execute("SELECT sha FROM bp_datei WHERE extern=0 ORDER BY erstellt").fetchall()]
+    n, ende = 0, time.time() + limit_s
+    for sha in offen:
+        if time.time() > ende:   # der Rest folgt mit der nächsten Sicherung
+            break
+        p = dateien.pfad(sha)
+        if not os.path.isfile(p):
+            continue
+        t.put(p, _dateiziel(sha))
+        with db.tx() as c:
+            c.execute("UPDATE bp_datei SET extern=1 WHERE sha=?", (sha,))
+        n += 1
+    return n
+
+
+def dateien_holen():
+    """Nach einem Ausfall: Dateien, die die Datenbank kennt und die im Speicher fehlen, vom Dateiserver holen.
+    Sind danach alle da, bekommt der Speicher seine Kennung zurück (dateien.einrichten). → (geholt, fehlen)"""
+    with db.tx() as c:
+        conf = settings.all(c)
+        alle = [r["sha"] for r in c.execute("SELECT sha FROM bp_datei").fetchall()]
+    fehlt = [s for s in alle if not os.path.isfile(dateien.pfad(s))]
+    geholt = 0
+    t = ziel(conf) if fehlt else None
+    for sha in fehlt if t else []:
+        try:
+            data = t.read(_dateiziel(sha))
+        except Exception as e:   # noqa: BLE001 – diese Datei liegt nicht auf dem Dateiserver
+            fehler.still("dienste", f"Dateispeicher: Datei {sha[:12]} vom Dateiserver holen", e)
+            continue
+        if hashlib.sha256(data).hexdigest() != sha:
+            continue
+        dateien._schreiben(sha, data)
+        geholt += 1
+    if alle and geholt == len(fehlt):
+        with db.tx() as c:
+            dateien.einrichten(c, zurueck=True)
+    return geholt, len(fehlt) - geholt
 
 
 def kopieren_bald(name=None):
@@ -220,7 +272,8 @@ def logo_holen():
 def status():
     with db.tx() as c:
         conf = settings.all(c)
-    return {"pfad": conf.get("backup_remote", ""), "letzte": _j(conf.get("backup_remote_status"), {}),
+        ds = dateien.stand(c)   # gemeinsamer Dateispeicher: an/aus, Zahl und Größe, was noch in der Datenbank liegt, Meldungen der Apps
+    return {"pfad": conf.get("backup_remote", ""), "letzte": _j(conf.get("backup_remote_status"), {}), "dateien": ds,
             "fotos": fotos_zaehlen(), "holen": dict(_foto), "ablage": conf.get("store_mode", "off") != "off"}
 
 
@@ -233,6 +286,10 @@ def start():
         except Exception as e:
             fehler.still("bautagebuch", "Logo vom Dateiserver holen (beim Start)", e)
             pass
+        try:
+            dateien_holen()
+        except Exception as e:
+            fehler.still("dienste", "Dateien vom Dateiserver holen (beim Start)", e)
         try:
             if fotos_zaehlen()["holbar"]:
                 fotos_holen()

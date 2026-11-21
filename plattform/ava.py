@@ -15,7 +15,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import ai, baudaten, db, din276, fehler, gaeb, layout, nurlesen, papierkorb, platform, rechte, schrift, sso, stammdaten, versionen, vorgang
+from bpcore import ai, baudaten, dateien, db, din276, fehler, gaeb, layout, nurlesen, papierkorb, platform, rechte, schrift, sso, stammdaten, versionen, vorgang
 import common as C
 import ava_abzuege as AB, ava_erechnung as AE, ava_lvnr   # E-Rechnung lesen (15.11.2026); Abzüge als Rechenleiter: netto – Umsatzsteuer – brutto (14.11.2026); LV-Nummern eindeutig
 
@@ -4245,10 +4245,10 @@ def _lv_aus_beleg(c, bid, rid, lv, A, wer="Texterkennung", als_nt=False):
 
 def _auslese_anwenden(c, bid, rid, lv, A=None):
     """PDF lesen (oder fertiges Ergebnis A), am Beleg merken und leere Felder der Rechnung (Nr., Datum, gefordert) füllen."""
-    x = c.execute("SELECT data, name FROM ava_beleg WHERE id=?", (bid,)).fetchone()
+    x = c.execute("SELECT data, datei_ref, name FROM ava_beleg WHERE id=?", (bid,)).fetchone()
     if A is None:
         try:
-            A = _auslesen(bytes(x["data"]), (_j(lv["data"], {}) or {}).get("items") or [])
+            A = _auslesen(dateien.inhalt(c, x), (_j(lv["data"], {}) or {}).get("items") or [])
         except Exception as e:
             A = {"pos": {}, "kopf": {}, "text": False, "fehler": str(e)[:200]}
     A["stand"] = 2   # mit dem heutigen Leseverfahren gelesen – die Seite stößt dafür kein erneutes Lesen mehr an
@@ -4594,8 +4594,8 @@ def beleg_auslesen(b):
         lv = _lv(c, x["lv_id"]) if x else None
         if not lv:
             return jsonify(error="Nicht gefunden"), 404
-        alt = c.execute("SELECT data, auslese FROM ava_beleg WHERE id=?", (b,)).fetchone()
-        roh, A0 = bytes(alt["data"]), _j(alt["auslese"], {}) or {}
+        alt = c.execute("SELECT data, datei_ref, auslese FROM ava_beleg WHERE id=?", (b,)).fetchone()
+        roh, A0 = dateien.inhalt(c, alt), _j(alt["auslese"], {}) or {}
         if A0.get("laeuft") and str(A0.get("seit") or "") > (datetime.now() - timedelta(minutes=15)).isoformat(timespec="seconds"):
             return _antwort(c, x["lv_id"])   # läuft schon (z. B. Seite neu geladen): nicht noch eine Texterkennung daneben starten
         if _ist_scan(roh):   # Scan: Texterkennung (noch einmal) im Hintergrund – die Seite fragt nach
@@ -4666,8 +4666,8 @@ def beleg_neu(k):
         if not r:
             return jsonify(error="Nicht gefunden"), 404
         V = _j(r["vergabe"], {}) or {}
-        bid = c.execute("INSERT INTO ava_beleg(rechnung_id, name, data, created, user_name) VALUES(?,?,?,?,?) RETURNING id",
-                        (k, _s(fname, 200) or "Rechnung.pdf", roh, _now(), g.user["name"])).fetchone()["id"]
+        bid = c.execute("INSERT INTO ava_beleg(rechnung_id, name, data, datei_ref, created, user_name) VALUES(?,?,?,?,?,?) RETURNING id",
+                        (k, _s(fname, 200) or "Rechnung.pdf", *dateien.werte(c, roh), _now(), g.user["name"])).fetchone()["id"]   # Inhalt im Dateispeicher (bpcore/dateien.py)
         if scan:   # Texterkennung dauert – im Hintergrund, die Seite fragt nach
             c.execute("UPDATE ava_beleg SET auslese=? WHERE id=?", (json.dumps({"pos": {}, "kopf": {}, "laeuft": True, "ocr": True, "seit": _now()}), bid))
         else:
@@ -4732,7 +4732,8 @@ def beleg(b):
             _touch(c, x["lv_id"])
             d_ = _antwort(c, x["lv_id"]).get_json(); d_["papierkorb"] = pk
             return jsonify(d_)
-    return Response(bytes(x["data"]), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib_quote(x['name'])}",
+        roh = dateien.inhalt(c, x)
+    return Response(roh, mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib_quote(x['name'])}",
                                                                    "Cache-Control": "private, max-age=2592000"})   # eine Rechnung der Firma ändert sich nie – im Browser behalten
 
 
@@ -5919,7 +5920,7 @@ def lv_pdf(i):
                 bl = []
                 if "rechnung" in teile:
                     with db.tx() as c2:
-                        bl = [(f"rechnung:{b['id']}", _beleg_markiert(c2, bytes(b["data"]), b["id"])) for b in c2.execute("SELECT id, data FROM ava_beleg WHERE rechnung_id=? ORDER BY id", (rid,)).fetchall() if not nur_bel or b["id"] in nur_bel]
+                        bl = [(f"rechnung:{b['id']}", _beleg_markiert(c2, dateien.inhalt(c2, b), b["id"])) for b in c2.execute("SELECT id, data, datei_ref FROM ava_beleg WHERE rechnung_id=? ORDER BY id", (rid,)).fetchall() if not nur_bel or b["id"] in nur_bel]
                 am_ = [("aufmass", _am_pdf())] if "aufmass" in teile and P["aufmass"] else []
                 T_ = [x for x in T_ + am_ + bl if x[1]]
                 if len(T_) > 1 or (T_ and not pdf):

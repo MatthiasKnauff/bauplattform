@@ -1,9 +1,9 @@
 """Die Hintergrundaufgaben der Bauplattform als zwei Aufrufe: einrichten() einmal beim Start, starten() für die laufenden Aufgaben.
 Aufgerufen vom Container „dienste“ (bautagebuch/dienste.py) – und vom Bautagebuch selbst, solange es keinen Dienste-Container gibt."""
 from . import aufraeumen, auth, backups, db, extern, reminders, storage, sync
-from bpcore import fehler
+from bpcore import dateien, fehler
 
-AUFGABEN = ("einrichten", "sichern", "erinnern", "zurückholen", "pläne", "aufräumen", "wiki")
+AUFGABEN = ("einrichten", "sichern", "erinnern", "zurückholen", "pläne", "aufräumen", "wiki", "dateien")
 
 
 def einrichten():
@@ -21,6 +21,11 @@ def einrichten():
             storage.logo_in_die_datenbank(c)   # Büro-Logo für alle Apps bereitstellen (bpcore.logo)
     except Exception as e:   # noqa: BLE001 – ohne Logo läuft alles weiter
         fehler.still("dienste", "Logo in die Datenbank übernehmen", e)
+    try:
+        with db.tx() as c:
+            dateien.einrichten(c)   # gemeinsamer Dateispeicher: Ordner und Kennung (bpcore/dateien.py)
+    except Exception as e:   # noqa: BLE001 – ohne Dateispeicher schreiben die Apps wie früher in die Datenbank
+        fehler.still("dienste", "Dateispeicher einrichten", e)
     auth.ensure_admin()   # erster Start: Benutzer admin / Kennwort admin (muss sofort geändert werden)
     try:
         from bpcore import rechte
@@ -40,6 +45,7 @@ def starten():
     reminders.start()   # E-Mail-Erinnerungen für Erledigungsdaten
     backups.start()     # tägliche Datenbankversionen
     extern.start()      # nach einem Ausfall: Fotos und Logo vom Dateiserver zurückholen
+    dateien.start(db.tx)  # Dateispeicher: Schalter prüfen, vorhandene Dateien aus der Datenbank umziehen, nachts aufräumen
     aufraeumen.start()  # nachts alte Stände („…_old1“) auf dem Dateiserver aufräumen
     from . import wiki_dienst
     wiki_dienst.start()  # Wiki: PDF in „Pläne & Dateien“ → „Büro“, montags Zusammenfassung vorbereiten

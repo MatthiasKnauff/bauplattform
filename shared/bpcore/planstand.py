@@ -18,6 +18,7 @@ import re
 from datetime import datetime
 
 from . import bauteilliste as B
+from . import dateien
 
 FELDER = ("status", "berechnen", "vorlage", "wahl", "code", "kurz")
 ENDUNGEN = ("ifc", "dxf", "pdf")
@@ -250,16 +251,16 @@ def datei_speichern(c, sid, name, raw):
     import gzip
     if len(raw) > 200 * 1024 * 1024:
         return
-    c.execute("INSERT INTO pm_planstand_datei(planstand, name, daten) VALUES(?,?,?) ON CONFLICT (planstand) DO UPDATE SET name=EXCLUDED.name, daten=EXCLUDED.daten",
-              (sid, name[:200], gzip.compress(raw, 6)))
+    c.execute("INSERT INTO pm_planstand_datei(planstand, name, daten, datei_ref) VALUES(?,?,?,?) ON CONFLICT (planstand) DO UPDATE SET name=EXCLUDED.name, daten=EXCLUDED.daten, datei_ref=EXCLUDED.datei_ref",
+              (sid, name[:200], *dateien.werte(c, gzip.compress(raw, 6))))   # Inhalt im Dateispeicher (bpcore/dateien.py)
 
 
 def datei_lesen(c, pid, sid):
     """Gespeicherte IFC-Datei eines Planstands → (name, bytes) oder None."""
     import gzip
-    r = c.execute("SELECT d.name, d.daten FROM pm_planstand_datei d JOIN pm_planstand p ON p.id = d.planstand WHERE d.planstand=? AND p.project_id=?",
+    r = c.execute("SELECT d.name, d.daten, d.datei_ref FROM pm_planstand_datei d JOIN pm_planstand p ON p.id = d.planstand WHERE d.planstand=? AND p.project_id=?",
                   (sid or 0, pid)).fetchone()
-    return (r["name"], gzip.decompress(bytes(r["daten"]))) if r else None
+    return (r["name"], gzip.decompress(dateien.inhalt(c, r, "daten"))) if r else None
 
 
 # ------------------------------------------------------------------ Adressen (eingehängt in modell.routen)

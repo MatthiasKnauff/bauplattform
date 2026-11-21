@@ -5,7 +5,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 import modules
 from core import access, audit, auth, db, dienste, storage, sync, versions
-from bpcore import head, nurlesen, platform, sso, tempo   # gemeinsame Anmeldung der Bauplattform (shared/bpcore)
+from bpcore import dateien, head, nurlesen, platform, sso, tempo   # gemeinsame Anmeldung der Bauplattform (shared/bpcore)
 from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
 
 DIENSTE_EXTERN = os.environ.get("DIENSTE") == "extern"   # Hintergrundaufgaben laufen im Container „dienste“ (bautagebuch/dienste.py)
@@ -51,6 +51,7 @@ def create_app():
     versions.start()   # Versionsverlauf der Berichte (automatische Momentaufnahmen)
     app = Flask(__name__, static_folder="static", static_url_path="")
     tempo.einrichten(app, "bautagebuch")   # zuerst: packen, versionieren, langsame Anfragen melden (bpcore/tempo.py)
+    dateien.einhaengen(app, "bautagebuch", db.tx)   # gemeinsamer Dateispeicher (bpcore/dateien.py)
     nurlesen.einrichten(app, "bautagebuch")   # Apps je Rolle: „nur lesen“ (bpcore/nurlesen.py)
     app.secret_key = _secret_key()
     app.permanent_session_lifetime = timedelta(days=30)

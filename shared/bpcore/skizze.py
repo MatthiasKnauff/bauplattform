@@ -7,6 +7,8 @@ Kollegen in einer anderen App ihn sehen. Eingeladen wird über die Benutzerliste
 Koordinaten sind relativ zur Seite (0…1) – unabhängig von Zoom und Bildschirm.
 """
 import hashlib, json, re, secrets, time
+
+from . import dateien   # der Plan (PDF) liegt im Dateispeicher
 from datetime import datetime
 
 FARBEN = ["#e5484d", "#2f7fe0", "#1f9d55", "#e08a00", "#8e4ec6", "#0e9aa7"]
@@ -46,8 +48,8 @@ def neu(c, u, name, pdf):
     if len(pdf) > MAX_PDF:
         raise ValueError("Der Plan ist zu groß (höchstens 60 MB).")
     sid = secrets.token_urlsafe(9)
-    c.execute("INSERT INTO skizze(id, name, owner, owner_name, datei, seq, teilnehmer, created, updated, hash, groesse) VALUES(?,?,?,?,?,0,?,?,?,?,?)",
-              (sid, (name or "Plan.pdf")[:200], u["id"], name_von(u), pdf, json.dumps([u["id"]]), _now(), _now(), hashlib.sha256(pdf).hexdigest(), len(pdf)))
+    c.execute("INSERT INTO skizze(id, name, owner, owner_name, datei, datei_ref, seq, teilnehmer, created, updated, hash, groesse) VALUES(?,?,?,?,?,?,0,?,?,?,?,?)",
+              (sid, (name or "Plan.pdf")[:200], u["id"], name_von(u), *dateien.werte(c, pdf), json.dumps([u["id"]]), _now(), _now(), hashlib.sha256(pdf).hexdigest(), len(pdf)))
     return sid
 
 
@@ -228,10 +230,11 @@ def pdf_mit_markierungen(c, sid):
     """Plan mit allen Strichen und Unterschriften als PDF (zum Speichern, Senden, Ablegen, Drucken)."""
     import base64
     from . import unterschrift
-    r = c.execute("SELECT name, datei FROM skizze WHERE id=?", (sid,)).fetchone()
+    r = c.execute("SELECT name, datei, datei_ref FROM skizze WHERE id=?", (sid,)).fetchone()
+    roh = dateien.inhalt(c, r, "datei")
     L = striche_von(c, sid)
     striche, bilder = [d for d in L if d.get("art") != "bild"], [d for d in L if d.get("art") == "bild"]
-    pdf = pdf_zeichnen(bytes(r["datei"]), striche) if striche else bytes(r["datei"])
+    pdf = pdf_zeichnen(roh, striche) if striche else roh
     for d in bilder:   # eingebrannt erst beim Hinausgeben (L1) – derselbe Weg wie früher beim Übernehmen
         (x0, y0), (x1, y1) = d["pts"][:2]
         pdf = unterschrift.stempeln(pdf, base64.b64decode(d["png"]), d["seite"], min(x0, x1), min(y0, y1), abs(x1 - x0), abs(y1 - y0), d.get("text") or "",

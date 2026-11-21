@@ -3,7 +3,7 @@
 Stand: 14.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = wie lange Claude bis zum Push braucht (Bauen und eigener Test), ohne Abstimmungsrunden, euer Testen auf dem Testserver und die Pipeline (ca. 10 Minuten). Seit 11.11.2026 so gerechnet – vorher standen hier Arbeitszeiten eines Entwicklers, etwa zehn- bis zwanzigmal so lang.
 
 ## Wartet auf dich
-- **Aufräumen 21.11.2026:** ✓ (1) tote Tabellen gelöscht (0103) · ✓ (3) `esc()` nur noch einmal · ✓ (5) keine Checkliste im LV · ✓ (6) Türliste mit Kette. Offen: **(2) Dokumente aus der Datenbank** – es sind nicht 4, sondern rund 20 Tabellen (auch Pläne der PDF-Markierung, Anhänge, Verträge, Bauantrags-Pakete, IFC der Planstände); die Container haben keinen gemeinsamen Dateispeicher, nur die Datenbank – braucht eine Grundsatzentscheidung (Plan liegt im Chat vom 21.11.) · (4) LV neu zeichnen 70 → 50 ms **ca. 3 h** (zurückgestellt)
+- **Aufräumen 21.11.2026:** ✓ (1) tote Tabellen gelöscht (0103) · ✓ (3) `esc()` nur noch einmal · ✓ (5) keine Checkliste im LV · ✓ (6) Türliste mit Kette. ✓ (2) gemeinsamer Dateispeicher im Kern (`bpcore/dateien.py`), Etappe 1: Rechnungs-PDFs, Pläne der Markierung, IFC der Planstände. **Nächste Etappen** (je ca. 1 h, auf Zuruf): Anhänge der Kommunikation (`kom_datei`) und To-dos (`todo_datei`), LV-Dokumente/Nachträge/Bürgschaften (`ava_lvdok`, `ava_nt_datei`, `ava_buergschaft`), Verträge und Besprechungen (`ava_vergabedok`, `honorar_vertrag`), Bauantrag (`bauantrag_unterlage`), 3D-Netze (`pm_netz`), Kostendateien (`bk_files`). Offen dazu: Anzeige „Dateispeicher“ unter Datensicherung (Zahlen liefert die Abfrage schon) – erst Mock · (4) LV neu zeichnen 70 → 50 ms **ca. 3 h** (zurückgestellt)
 Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Seite „Ablauf“ auch für Einheiten** (Kisten „Gebäude / Allgemein“, „Einheit 1“, „Einheit 2“ mit Takt-Pfeilen) – Fragen offen, Mock folgt **ca. 30 min**
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
@@ -249,6 +249,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Gemeinsamer Dateispeicher im Kern (Etappe 1): Laufwerk in allen Containern, Datenbank hält nur den Verweis; Rechnungs-PDFs, Pläne der Markierung, IFC; Umzug der vorhandenen Dateien durch die Dienste, Kopie auf den Dateiserver mit der Datensicherung~~ (21.11.2026)
 - ~~Baukasten: Dächer verschneiden, Schritt 1 (Dach läuft in die Traufseite des Nachbardachs – Pult, Sattel mit Kehlen); Antwort löscht den Aufbau nicht mehr~~ (21.11.2026)
 - ~~`esc()` vereinheitlicht (37 Bausteine nehmen `window.bpEsc`), Türliste mit Kette statt ⇄, Dach im Baukasten 2 cm über den Wänden~~ (21.11.2026)
 - ~~Tote Tabellen gelöscht: pm_aenderung, pm_stand, gantt_links (Migration 0103)~~ (21.11.2026)

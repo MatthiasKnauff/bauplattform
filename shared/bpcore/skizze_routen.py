@@ -5,7 +5,7 @@ Eingehängt in head.blueprint():  skizze_routen.routen(bp, user, _stempel_felder
 """
 from flask import Response, jsonify, request
 
-from . import db, konto, mail, skizze, stempel
+from . import dateien, db, konto, mail, skizze, stempel
 
 
 def routen(bp, user, _stempel_felder):
@@ -62,8 +62,8 @@ def routen(bp, user, _stempel_felder):
         with db.tx() as c:
             if not skizze.darf(c, sid, u) and not skizze.beitreten(c, sid, u):   # wer den Link hat, ist dabei – keine Einladung nötig
                 return jsonify(error="Diese gemeinsame Skizze gibt es nicht (mehr)."), 404
-            r = c.execute("SELECT name, datei FROM skizze WHERE id=?", (sid,)).fetchone()
-        return Response(bytes(r["datei"]), mimetype="application/pdf", headers={"Cache-Control": "private, max-age=3600"})
+            roh = dateien.inhalt(c, c.execute("SELECT datei, datei_ref FROM skizze WHERE id=?", (sid,)).fetchone(), "datei")
+        return Response(roh, mimetype="application/pdf", headers={"Cache-Control": "private, max-age=3600"})
 
     @bp.get("/api/bp/skizze/<sid>/pdf")
     def skizze_pdf(sid):
@@ -277,8 +277,8 @@ def routen(bp, user, _stempel_felder):
             sid, _ = skizze.gast_pruefen(c, token)
             if not sid:
                 return jsonify(error="Dieser Link ist nicht (mehr) gültig."), 404
-            r = c.execute("SELECT name, datei FROM skizze WHERE id=?", (sid,)).fetchone()
-        return Response(bytes(r["datei"]), mimetype="application/pdf", headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})
+            roh = dateien.inhalt(c, c.execute("SELECT datei, datei_ref FROM skizze WHERE id=?", (sid,)).fetchone(), "datei")
+        return Response(roh, mimetype="application/pdf", headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})
 
     @bp.post("/api/bp/gast/<token>/strich")
     def gast_strich(token):

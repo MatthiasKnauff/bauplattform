@@ -145,11 +145,9 @@ def _kurz(name, k):   # „Erdgeschoss“ → EG, „1. Obergeschoss“ → 1OG,
 def raeume(raw):
     N = _Netz(raw)
     E = N.E
-    G = []
-    for i, a in E.alle("IFCBUILDINGSTOREY"):
-        z = float(a[9]) * N.f if len(a) > 9 and isinstance(a[9], (int, float)) else 0.0
-        G.append({"i": i, "n": str(a[2] or "").strip()[:40] or f"Geschoss {len(G) + 1}", "z": z})
-    G.sort(key=lambda g: g["z"])
+    from .netz import geschosse
+    G, zu, tl = geschosse(N)   # Zuordnung zum Geschoss aus dem IFC – die Höhe allein trügt (Allplan: alle Geschosse auf gleicher Höhe)
+    G = [{**g, "n": str(g["n"]).strip()[:40]} for g in G]
     if not G:
         G = [{"i": None, "n": "Gebäude", "z": -1e9}]
     teile = {k: [] for k in range(len(G))}   # Geschoss → [(Polygon 2D, Wand?, z0, z1)]
@@ -163,7 +161,9 @@ def raeume(raw):
             if not P:
                 continue
             z0, z1 = min(p[2] for p in P), max(p[2] for p in P)
-            k = max([k for k, g in enumerate(G) if g["z"] <= z0 + 0.3] or [0])
+            k = zu.get(i, zu.get(tl.get(i), zu.get(tl.get(tl.get(i)))))
+            if k is None or not G[k]["i"]:
+                k = max([k for k, g in enumerate(G) if g["z"] <= z0 + 0.3] or [0])
             for f in F:
                 Q = [(p[0], p[1]) for p in f]
                 if len(Q) >= 3 and abs(_flaeche(Q)) > 1e-4:

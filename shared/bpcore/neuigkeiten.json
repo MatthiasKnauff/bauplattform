@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-schlank-2111",
+  "datum": "2026-11-21",
+  "app": "gebaeudemodell",
+  "titel": "Gebäudemodell aufgeräumt",
+  "text": "Links nur noch Gebäude · Fragen & Anweisungen · Verknüpfungen. Oben: Planstand und Ansicht 3D · Grundriss · Tabelle. Ohne Plan baust du im 3D mit dem Baukasten. Im Grundriss nimmst du eine Fläche ohne Raum per Klick als Raum an. Mehrere Bauteile wählst du mit Haken, Strg oder „alle wählen“ und änderst sie gemeinsam. Die Liste rechts hat ihren eigenen Rollbalken unter den Angaben.",
+  "ziel": "#bfl"
+ },
+ {
   "id": "bk-drehen-2011",
   "datum": "2026-11-20",
   "app": "gebaeudemodell",

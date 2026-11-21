@@ -25,6 +25,7 @@ export async function ansicht3dPruefen(browser, repo) {
   });
   try {
     await p.goto('http://d3.test/seite');
+    await p.waitForSelector('.b3-l [data-b3dar]'); await p.click('.b3-l [data-b3dar]');   // Geschosse und Schieber unter „Darstellung ▾“ (20.11.2026)
     await p.waitForSelector('.b3-l [data-b3g="1"]');
     const a = await p.evaluate(() => ({ knoepfe: [...document.querySelectorAll('.b3-l button')].map((b) => b.textContent), legende: document.querySelector('.b3-k').textContent,
       meld: document.querySelector('.b3-m').hidden }));

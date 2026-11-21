@@ -363,8 +363,10 @@ def _dreiecke(f):
     return out
 
 
-def netz_ifc(raw):
-    N = _Netz(raw)
+def geschosse(N):
+    """Geschosse (nach Höhe) und Zuordnung der Bauteile über IfcRelContainedInSpatialStructure (auch Teile von Bauteilen über
+    IfcRelAggregates) – geteilt mit raumsuche: Allplan schreibt manchmal allen Geschossen dieselbe Höhe, dann trägt nur die Zuordnung.
+    → (G [{i, n, z}], geschoss {Objekt: Index}, teil {Teil: Ganzes})"""
     E = N.E
     geschoss, G = {}, []
     for i, a in E.alle("IFCBUILDINGSTOREY"):
@@ -383,6 +385,13 @@ def netz_ifc(raw):
             for x in a[5] or []:
                 if isinstance(x, tuple):
                     teil[x[1]] = a[4][1]
+    return G, geschoss, teil
+
+
+def netz_ifc(raw):
+    N = _Netz(raw)
+    E = N.E
+    G, geschoss, teil = geschosse(N)
     oeff = {}
     for _, a in E.alle("IFCRELVOIDSELEMENT"):
         if len(a) >= 6 and isinstance(a[4], tuple) and isinstance(a[5], tuple):

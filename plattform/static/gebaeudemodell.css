@@ -39,3 +39,22 @@ main.pl .gm-work{flex:1;min-height:0;display:flex}main.pl .gm-work.sr-split{disp
 .g3-a:hover{background:var(--hov)}.g3-a.alt{opacity:.5}.g3-a.zur .g3-at{text-decoration:line-through}.g3-ap{display:inline-flex;gap:.35rem;align-items:center}.g3-af{flex:none;width:.7rem;height:.7rem;border-radius:2px;display:inline-block}
 .g3-ar{color:var(--mute);font-size:.8rem;white-space:nowrap}.g3-aw{color:var(--mute);white-space:nowrap}
 .g3-ef{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.4rem .7rem;margin:0 0 .6rem;display:grid;gap:.2rem}.g3-ef legend{font-weight:600;padding:0 .3rem}
+/* Gebäudemodell schlank (GO 20.11.2026): Reiter über der Tabelle, Grundriss, Fragen & Anweisungen */
+#view.gm-bt>.gm-tab{display:flex;flex-direction:column;gap:.4rem}#view.gm-bt .gm-tabi{flex:1;min-height:0}
+.gm-tr{display:flex;flex-wrap:wrap;gap:.25rem;align-items:center;border-bottom:1px solid var(--line);padding-bottom:.3rem;margin-bottom:.3rem}
+.gm-tr [role=tab]{font:inherit;font-size:.88rem;border:1px solid var(--line);background:var(--card);color:inherit;border-radius:calc(7px*var(--rk,1)) calc(7px*var(--rk,1)) 0 0;padding:.22rem .7rem;cursor:pointer}
+.gm-tr [role=tab].on{border-color:var(--y);color:var(--y);font-weight:600}.gm-trf{flex:1}
+#view.gm-bt>.gm-gr{display:flex;flex-direction:column;gap:.4rem;min-height:0}
+.gm-fa{display:grid;gap:.7rem;align-content:start}.gm-ki{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}.gm-kiw{font-size:.86rem}.gm-h3{margin:.6rem 0 0;font-size:.95rem}
+/* Bereich rechts „Bauteil“ (L-B, 21.11.2026): oben die Angaben, unten die Liste – beide rollen für sich, Trenner dazwischen ziehbar */
+.g3-teil{flex:1;min-height:0;display:flex;flex-direction:column}.g3-oben{flex:0 0 var(--g3h,55%);min-height:80px;overflow:auto}.g3-teil.ohne .g3-oben{flex:1}
+.g3-tr{flex:none;height:7px;cursor:row-resize;background:var(--line);border-radius:3px;margin:.2rem .4rem;opacity:.7;touch-action:none}.g3-tr:hover{opacity:1;background:var(--y)}
+.g3-teil .g3-li{flex:1;min-height:80px;overflow:auto;border-top:0;padding:.3rem .2rem}.g3-lk .btn{margin-left:auto}.g3-lk{gap:.5rem}
+/* Grundriss (gebaeudemodell-grundriss.js) */
+.gr-k{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;font-size:.86rem}.gr-gs{display:inline-flex;flex-wrap:wrap;gap:.25rem}
+.gr-gs button{font:inherit;font-size:.82rem;border:1px solid var(--line);background:var(--card);color:inherit;border-radius:1em;padding:.08rem .6rem;cursor:pointer}.gr-gs button.on{border-color:var(--y);color:var(--y);font-weight:600}
+.gr-b{flex:1;min-height:300px;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));background:#fbfcfd;overflow:hidden}.gr-b svg{width:100%;height:100%;display:block}
+.gr-w{fill:#3a4450}.gr-fe{fill:#7db5da}.gr-tu{fill:#9d7c5c}
+.gr-f{cursor:pointer}.gr-f polygon{fill:#e8f0fa;stroke:#9fb6d3;stroke-width:.04}.gr-f:hover polygon{fill:#d6e4f5}
+.gr-f.frei polygon{fill:#fdf5d3;stroke:#d7b84a;stroke-dasharray:.25 .15;stroke-width:.06}.gr-f.frei:hover polygon{fill:#fbeaa8}
+.gr-f text{text-anchor:middle;fill:#1c2733;font-family:inherit;pointer-events:none}.gr-f text.gr-m{fill:#5d6b7a}.gr-f.frei text{fill:#7a5d00}

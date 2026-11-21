@@ -94,6 +94,7 @@ export async function wsModellPruefen(browser, repo) {
     {   // 20.11.2026: Reiter „3D“ – das Gebäude aus dem Planstand, gefärbt nach dem Nachweis; das gewählte Bauteil leuchtet, Klick zeigt U-Wert
       await p.evaluate(() => seiteReiter('ws', 'd3'));   // nicht über den Reiter klicken: bei schmaler Leiste steht er im „+n“-Menü (bp/leiste.js)
       await p.waitForSelector('.ws-3d .b3-l [data-b3f="ws-u"]', { timeout: 10000 }); await p.waitForTimeout(400);
+      await p.click('.ws-3d .b3-l [data-b3dar]');   // Schieber und Geschosse unter „Darstellung ▾“ (Mock „Gebäudemodell schlank“, 20.11.2026)
       const d = await p.evaluate(() => ({ modi: [...document.querySelectorAll('.ws-3d .b3-l [data-b3f]')].map((b) => b.textContent), an: document.querySelector('.ws-3d [data-b3f="ws-u"]').classList.contains('on'),
         leg: document.querySelector('.ws-3d .b3-k').textContent, wahl: document.querySelector('.ws-3d canvas').dataset.wahl, zug: !!document.querySelector('.ws-3d .b3-l [data-b3z]'), rahmen: !!document.querySelector('.ws-3d [data-b3w]') }));
       pruef(d.modi[0] === 'U-Wert' && d.modi[1] === 'Bauteilart' && d.an && /Höchstwert/.test(d.leg) && /nicht im Nachweis/.test(d.leg) && d.zug && d.rahmen, '3D im Wärmeschutz: Färbungen, Legende, Schieber, Rahmen – ' + JSON.stringify(d));

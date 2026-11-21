@@ -70,6 +70,10 @@
 .bt-plus{border:0;background:none;color:var(--y,#3b5a8f);font:inherit;font-size:.8rem;font-weight:600;cursor:pointer;margin-left:.5rem;opacity:.75}.bt-plus:hover{opacity:1}.bt-start{padding:.35rem .5rem .35rem 1.6rem}.bt-gerust tr.bt-bh td{opacity:.95}.bt-baum tr[data-btz]{cursor:pointer}.bt-baum tr.akt{background:var(--hov,rgba(47,111,179,.08))}.bt-baum tr.bt-bh td{background:var(--card,transparent);padding-top:.5rem}
 .bt-baum tr.weg{opacity:.55}.bt-baum th:first-child{min-width:13rem}.bt-kz{max-width:min(28rem,22vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.82rem;opacity:.85}.bt-ro{color:var(--red,#c62f2a)}
 .bt-teile{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;margin:.3rem 0;font-size:.84rem}.bt-teile>span{opacity:.7;margin-right:.2rem}.bt-teile button{font:inherit;border:1px solid var(--line,#d5d9de);border-radius:999px;padding:.05rem .6rem;background:var(--card,#fff);color:inherit;cursor:pointer}.bt-teile button.on{background:var(--af,#3b5a8f);border-color:var(--af,#3b5a8f);color:#fff}
+.bt-mwl{display:flex;flex-wrap:wrap;gap:.4rem .8rem;align-items:center;background:color-mix(in srgb,#7b2ff7 9%,var(--card,#fff));border:1px solid color-mix(in srgb,#7b2ff7 45%,transparent);border-radius:calc(8px*var(--rk,1));padding:.35rem .6rem;font-size:.86rem}
+.bt-mwg{display:inline-flex;flex-wrap:wrap;gap:.25rem;align-items:center}.bt-mwl button:not(.btn),.bt-mwd .bt-o button{font:inherit;font-size:.82rem;border:1px solid var(--line,#d6dce3);background:var(--card,#fff);color:inherit;border-radius:12px;padding:.1rem .55rem;cursor:pointer}
+.bt-mwl button.on,.bt-mwd .bt-o button.on{background:#7b2ff7;border-color:#7b2ff7;color:#fff}.bt-mwl select,.bt-mwd select{font:inherit;font-size:.84rem;max-width:22rem}.bt-mwv{color:#8a5a00;font-style:italic;font-size:.82rem}
+.bt-mwb{display:inline-flex;gap:.3rem;align-items:center}.bt-mwt{margin:0;font-size:1rem}.bt-mwh{margin:0 .35rem 0 0;vertical-align:-2px}tr.bt-mwz>td{background:color-mix(in srgb,#7b2ff7 8%,transparent)}
 .bt-rwl{display:flex;gap:.6rem;align-items:center;border:1px solid var(--y,#2f6fb3);border-radius:calc(8px*var(--rk,1));padding:.3rem .6rem;font-size:.86rem}.bt-rwl span{flex:1}
 .bt-el{width:100%;font-size:.82rem;border-collapse:collapse}.bt-el th{text-align:left;opacity:.7;font-weight:600}.bt-el td,.bt-el th{padding:.2rem .35rem;border-top:1px solid var(--line,#d5d9de)}.bt-el .r{text-align:right;white-space:nowrap}
 .bt-rs{display:flex;flex-wrap:wrap;gap:.3rem .9rem;font-size:.8rem;opacity:.8;align-items:center}.bt-rs label{display:flex;gap:.3rem;align-items:center;cursor:pointer}
@@ -162,7 +166,7 @@
   function mount(el, pid, opt = {}) {
     stil();
     const H = window.BPHead || {};
-    const Z = { d: null, auf: null, vorl: {}, vorlD: {}, blk: {}, laeuft: false, kg: {}, ps: [], an: null, rw: null, rwW: {}, sel: null, det: null };   // sel: markierte Zeile (Baumtabelle), det: Feld „Details“ rechts   // rw: Vorschläge der Apps (Rückweg), rwW: Wahl je Vorschlag   // an: Planstand, der gerade angesehen wird (gilt nicht)
+    const Z = { d: null, auf: null, vorl: {}, vorlD: {}, blk: {}, laeuft: false, kg: {}, ps: [], an: null, rw: null, rwW: {}, sel: null, det: null, mw: [] };   // sel: markierte Zeile (Baumtabelle), det: Feld „Details“ rechts   // rw: Vorschläge der Apps (Rückweg), rwW: Wahl je Vorschlag   // an: Planstand, der gerade angesehen wird (gilt nicht)
     const G = () => (Z.d && Z.d.modell && Z.d.modell.bauteilliste) || { zeilen: [], raeume: [], quelle: {} };
     const L = () => (Z.an ? Z.an.liste : G());
     const gilt = () => (G().quelle || {}).planstand || null;
@@ -541,7 +545,11 @@
     const klick = async (e) => {
       const t = e.target, r = t.closest('[data-btz]'), id = r && r.dataset.btz;
       if (opt.baum && t.closest('[data-btrwzeig]')) { Z.sel = '__rw'; Z.auf = null; zeichne(); if (opt.auswahl) opt.auswahl(null); return; }
-      if (opt.baum && r && r.tagName === 'TR' && !t.closest('[data-zu],input,button')) { Z.sel = id; Z.auf = id; zeichne(); if (opt.auswahl) opt.auswahl(L().zeilen.find((x) => x.id === id)); return; }
+      if (t.closest('[data-btmw]') && id) return mwUm(id, true);
+      if (opt.baum && r && r.tagName === 'TR' && (e.ctrlKey || e.metaKey) && !t.closest('[data-zu],input,button')) return mwUm(id, true);
+      if (t.closest('[data-btmwweg]')) return mwSetzen([]);
+      if (t.closest('[data-btmwst]')) return mwAendern({ status: t.closest('[data-btmwst]').dataset.btmwst });
+      if (opt.baum && r && r.tagName === 'TR' && !t.closest('[data-zu],input,button')) { if (Z.mw.length) { Z.mw = []; if (opt.mehr) opt.mehr([]); } Z.sel = id; Z.auf = id; zeichne(); if (opt.auswahl) opt.auswahl(L().zeilen.find((x) => x.id === id)); return; }
       if (t.closest('[data-btlesen]')) return einlesen();
       if (t.closest('[data-btanfang]')) return anfang();
       if (t.closest('[data-btplan]')) { const e = await ausPlanung(pid); if (!e) return; return e.erster ? laden() : abgleich(e); }   // gilt schon ein Planstand: Abgleich wie beim Einlesen
@@ -627,6 +635,8 @@
         }
         return schichtSetzen(id, i, o.mat, d, a);
       }
+      if (t.matches('[data-btmwvl]') && t.value) return mwAendern({ vorlage: t.value });
+      if (t.matches('[data-btmwber]')) return mwAendern({ berechnen: t.checked });
       if (t.matches('[data-btber]')) return zeile(t.closest('[data-btz]').dataset.btz, { berechnen: t.checked });
       if (t.matches('[data-btname]')) { const n = String(t.value).trim(), z0 = L().zeilen.find((x) => x.id === t.closest('[data-btz]').dataset.btz); if (!n || !z0 || n === z0.name) { if (z0) t.value = z0.name; return; } return zeile(z0.id, { name: n }); }
       if (t.matches('[data-btmenge]')) return zeile(t.closest('[data-btz]').dataset.btz, { menge: parseFloat(String(t.value).replace(/\./g, '').replace(',', '.')) || 0 });
@@ -666,7 +676,7 @@
       const zeilenHtml = (z, t) => {
         const fr = z.bereich === 'frage', w = (fr ? WORT_FRAGE : WORT)[z.status] || z.status;
         const menge = fr && !z.menge ? '<span title="kommt, sobald Fläche oder Räume bekannt sind (Assistent, Plan oder von Hand)">–</span>' : `${zahl(z.menge)}&nbsp;${esc(z.einheit)}`;
-        return `<tr data-btz="${esc(z.id)}" class="${Z.sel === z.id ? 'akt' : ''}${z.status === 'offen' ? ' offen' : ''}${z.entfaellt ? ' weg' : ''}${z.ergaenzt ? ' bt-erg' : ''}">${bpBaum.zelle({ tiefe: t, html: `<span class="bt-tn">${esc(mitTeil(z))}</span>${z.einordnung ? `<small class="bt-nr"> ${esc(z.einordnung)}</small>` : ''}${typeof bpWk === 'function' ? bpWk([z.name, z.material]) : ''}${(z.nummern || []).length && t < 2 ? `<small class="bt-nr"> ${esc(z.nummern.length > 6 ? z.nummern[0] + ' … ' + z.nummern[z.nummern.length - 1] : z.nummern.join(' · '))}</small>` : ''}` })}
+        return `<tr data-btz="${esc(z.id)}" class="${Z.sel === z.id ? 'akt' : ''}${Z.mw.includes(z.id) ? ' bt-mwz' : ''}${z.status === 'offen' ? ' offen' : ''}${z.entfaellt ? ' weg' : ''}${z.ergaenzt ? ' bt-erg' : ''}">${bpBaum.zelle({ tiefe: t, html: `${Z.an ? '' : `<input type="checkbox" class="bt-mwh" data-btmw${Z.mw.includes(z.id) || (!Z.mw.length && Z.sel === z.id) ? ' checked' : ''} title="Mehrere Zeilen wählen und gemeinsam ändern" aria-label="${esc(z.name)} wählen">`}<span class="bt-tn">${esc(mitTeil(z))}</span>${z.einordnung ? `<small class="bt-nr"> ${esc(z.einordnung)}</small>` : ''}${typeof bpWk === 'function' ? bpWk([z.name, z.material]) : ''}${(z.nummern || []).length && t < 2 ? `<small class="bt-nr"> ${esc(z.nummern.length > 6 ? z.nummern[0] + ' … ' + z.nummern[z.nummern.length - 1] : z.nummern.join(' · '))}</small>` : ''}` })}
           <td class="r">${z.bereich === 'hand' && !z.menge ? '<span class="bt-chip gelb" title="Menge fehlt – die Zeile wird mit 0 gerechnet. Eintragen rechts unter „Details“.">Menge fehlt</span>' : menge}</td><td><span class="bt-chip${z.status === 'offen' ? ' bt-ext' : ''}">${esc(w)}</span>${z.ergaenzt ? ' <span class="bt-chip gelb" title="Neben dem Plan ergänzt">ergänzt</span>' : ''}${z.entfaellt ? ' <span class="bt-chip">entfällt</span>' : ''}${z.kuerzel && !z.bestaetigt && !z.entfaellt ? ' <span class="bt-chip gelb" title="Aufbau aus dem Kürzel im Plan – bitte bestätigen">bestätigen</span>' : ''}</td>
           <td class="bt-kz" title="${esc(z.kurz || '')}">${esc(z.kurz || (z.berechnen ? 'kein Aufbau' : ''))}</td><td class="r" data-btu="${esc(z.id)}"></td><td class="c"><input type="checkbox" data-btber title="wird berechnet (Kosten, LV)"${z.berechnen ? ' checked' : ''}${z.status === 'offen' || Z.an ? ' disabled' : ''}></td></tr>`;
       };
@@ -696,7 +706,8 @@
       }
       const meldung = leer && typeof bpLeer === 'function' ? bpLeer({ was: 'kein Gebäudemodell', text: 'Mit Plan oder ohne: aus der Planung, Räume und Fenster selbst eintragen, einzelne Bauteile oder einen Plan einlesen (IFC, DXF, PDF).', knoepfe: [{ t: 'Anfangen …', attrs: 'data-btanfang' }] }) : '';
       const y = el.querySelector('.bt-bw') ? el.querySelector('.bt-bw').scrollTop : 0;
-      el.innerHTML = `<div class="bt-bl">${an}${rwl}${zl}${tw}${meldung}<div class="bt-w"></div><div class="bt-bw"><table class="bp-baum bt-baum${leer ? ' bt-gerust' : ''}"><thead><tr><th>Bauteil</th><th class="r">Menge</th><th>Antwort</th><th>Aufbau</th><th class="r" title="U-Wert aus dem gewählten Aufbau, W/(m²K) – Farbe nach GModG (Neubau: Referenzgebäude, Bestand: Anlage 7)">U</th><th class="c" title="wird berechnet">€</th></tr></thead><tbody>${body}</tbody></table></div>
+      const mwl = Z.mw.length > 1 && !Z.an ? `<div class="bt-mwl">${mwHtml(true)}</div>` : '';   // H1: gemeinsam ändern über der Tabelle
+      el.innerHTML = `<div class="bt-bl">${an}${rwl}${zl}${tw}${meldung}${mwl}<div class="bt-w"></div><div class="bt-bw"><table class="bp-baum bt-baum${leer ? ' bt-gerust' : ''}"><thead><tr><th>Bauteil</th><th class="r">Menge</th><th>Antwort</th><th>Aufbau</th><th class="r" title="U-Wert aus dem gewählten Aufbau, W/(m²K) – Farbe nach GModG (Neubau: Referenzgebäude, Bestand: Anlage 7)">U</th><th class="c" title="wird berechnet">€</th></tr></thead><tbody>${body}</tbody></table></div>
         <input type="file" accept=".ifc,.dxf,.pdf" data-btdatei hidden></div>`;
       el.querySelector('.bt-bw').scrollTop = y;
     }
@@ -714,6 +725,7 @@
     const uFuellen = (w) => { if (w && Z.d && !Z.an) ladeJs('uwert.js', () => window.bpUwert).then(() => window.bpUwert && bpUwert.fuellen(w, basis, Z.d.rev, { name: (id) => ((G().zeilen || []).find((x) => x.id === id) || {}).name || id, setzen: (id, v) => zeile(id, v) })); };   // U-Werte (bp/uwert.js, UW-A1)
     function detailsZeichnen() {
       const box = Z.det; if (!box || !box.isConnected) return;
+      if (Z.mw.length > 1) { box.innerHTML = `<div class="bt-l bt-mwd">${mwHtml(false)}</div>`; return; }
       if (Z.sel === '__rw') { box.innerHTML = `<div class="bt-l">${rueckwegHtml() || '<p class="bt-leer">Keine offenen Vorschläge.</p>'}</div>`; return; }
       const z = L().zeilen.find((x) => x.id === Z.sel);
       if (!z) { box.innerHTML = '<div class="bt-l"><p class="bt-leer">Links eine Zeile antippen – hier stehen Antwort, Aufbau mit Optionen, „wird berechnet“ und die Fenster, Türen oder Räume der Zeile.</p></div>'; return; }
@@ -729,6 +741,36 @@
       if (rb) raumbuchJs().then(() => window.bpRaumbuch && bpRaumbuch.mount(rb, { basis, rev: Z.d && Z.d.rev, sel: R.map((r) => r.nr), neu: (d) => api.neu(d) }));
       if (y != null) sc.scrollTop = y;
       if (Z.auf === z.id) editor().then(() => { if (y != null) sc.scrollTop = y; });
+    }
+    /* Mehrere Bauteile gemeinsam (GO 20.11.2026, Mock „Gebäudemodell schlank“ H1): Haken in der Tabelle, Strg + Klick, im 3D mit Strg oder Rahmen
+       (api.mehr). Rechts und über der Tabelle dieselben Felder: Antwort, Aufbau, „wird berechnet“ – „verschieden“, wo die Gewählten abweichen;
+       jede Änderung gilt für alle, ein Rückgängig für alle. */
+    const mwZ = () => Z.mw.map((id) => L().zeilen.find((x) => x.id === id)).filter(Boolean);
+    function mwSetzen(ids) { Z.mw = [...new Set(ids)].filter((id) => L().zeilen.some((x) => x.id === id)); if (Z.mw.length === 1) { Z.sel = Z.auf = Z.mw[0]; Z.mw = []; } zeichne(); if (opt.mehr) opt.mehr(Z.mw.length ? Z.mw : Z.sel ? [Z.sel] : []); }
+    function mwUm(id, mitSel) { const A = Z.mw.length ? [...Z.mw] : mitSel && Z.sel && Z.sel !== '__rw' ? [Z.sel] : []; const i = A.indexOf(id); if (i >= 0) A.splice(i, 1); else A.push(id); if (!A.length) { Z.sel = null; } mwSetzen(A); }
+    function mwHtml(kompakt) {
+      const R = mwZ(); if (R.length < 2) return '';
+      const gl = (f) => (R.every((z) => z[f] === R[0][f]) ? R[0][f] : undefined), versch = '<span class="bt-mwv">verschieden</span>';
+      const erl = (R[0].erlaubt || []).filter((s) => R.every((z) => (z.erlaubt || []).includes(s))), st = gl('status'), ber = gl('berechnen'), vl = gl('vorlage');
+      const k2 = String(R[0].kg || '').slice(0, 2), einKg = k2 && R.every((z) => String(z.kg || '').slice(0, 2) === k2), V = einKg ? Z.vorlD[k2] : null;
+      if (einKg && !V && !Z.mwL) { Z.mwL = true; vorlagen(k2).then(() => { Z.mwL = false; zeichne(); }, () => { Z.mwL = false; }); }
+      const ant = erl.length ? `${erl.map((s) => `<button type="button" data-btmwst="${s}" class="${st === s ? 'on' : ''}">${esc(WORT[s] || s)}</button>`).join('')}${st === undefined ? ' ' + versch : ''}` : '<span class="mute">keine gemeinsame Antwort</span>';
+      const auf = einKg ? `<select data-btmwvl aria-label="Aufbau für alle"><option value="">${vl ? esc(R[0].kurz || 'gewählter Aufbau') : 'verschieden – für alle wählen …'}</option>${(V || []).filter((v) => v.id !== vl || true).map((v) => `<option value="${esc(v.id)}"${v.id === vl ? ' selected' : ''}>${esc(v.name)}</option>`).join('')}</select>` : '<span class="mute">verschiedene Bauteilarten – Aufbau je Zeile</span>';
+      const be = `<label class="bt-mwb"><input type="checkbox" data-btmwber${ber ? ' checked' : ''}${ber === undefined ? ' data-mix' : ''}> wird berechnet${ber === undefined ? ' ' + versch : ''}</label>`;
+      if (kompakt) return `<b>${R.length} gewählt:</b><span class="bt-mwg"><span class="mute">Antwort</span>${ant}</span><span class="bt-mwg"><span class="mute">Aufbau</span>${auf}</span>${be}<button type="button" class="btn sm" data-btmwweg>Auswahl aufheben</button>`;
+      return `<h3 class="bt-mwt">${R.length} Bauteile gewählt</h3><p class="bt-nr">${R.slice(0, 8).map((z) => esc(z.name)).join(' · ')}${R.length > 8 ? ` · … ${R.length - 8} weitere` : ''}</p>
+        <div class="bt-o"><span>Antwort</span>${ant}</div><div class="bt-o"><span>Aufbau</span>${auf}</div><div class="bt-o"><span></span>${be}</div>
+        <p class="bt-h">Jede Änderung hier gilt für alle ${R.length}. „verschieden“ = die Gewählten haben verschiedene Werte; wählst du einen, gilt er für alle. Mit Strg + Klick weitere dazu oder weg.</p>
+        <button type="button" class="btn sm" data-btmwweg>Auswahl aufheben</button>`;
+    }
+    async function mwAendern(neu) {
+      const R = mwZ(); if (!R.length) return;
+      const alt = R.map((z) => [z.id, Object.fromEntries(Object.keys(neu).map((k) => [k, z[k]]).concat('status' in neu ? [['vorlage', z.vorlage], ['wahl', [...(z.wahl || [])]], ['berechnen', z.berechnen]] : 'vorlage' in neu ? [['wahl', [...(z.wahl || [])]]] : []))]);
+      const lauf = async (L2) => { for (const [id, v] of L2) await zeile(id, v, true); };
+      const stop = warte(`${R.length} Bauteile werden geändert …`);
+      try { await lauf(R.map((z) => [z.id, neu])); } finally { stop(); }
+      sag(`${R.length} Bauteile geändert.`);
+      if (window.rueckgaengig) rueckgaengig(`${R.length} Bauteile geändert`, () => lauf(alt), 10000, () => lauf(R.map((z) => [z.id, neu])));
     }
     const handZ = (id) => { const z = L().zeilen.find((x) => x.id === id); return z && HAND.includes(z.bereich) && !Z.an ? z : null; };
     async function handWeg(id) { const z = handZ(id); if (!z) return sag('Nur Zeilen von Hand lassen sich entfernen – Bauteile aus dem Plan entfallen mit dem nächsten Planstand.'); const alt = { ...z, wahl: [...(z.wahl || [])] };
@@ -751,8 +793,10 @@
       hand: () => tue('data-bthand'), aufraeumen: () => tue('data-btweg-alle'), ausgeben: () => tue('data-btaus'),
       gelten: () => (Z.an ? aendern(Z.an.id, { gilt: true }, 'Der Planstand gilt jetzt – die Apps arbeiten damit.') : null),
       details(box) { Z.det = box; box.onclick = klick; box.onchange = wechsel; box.addEventListener('toggle', blkMerk, true); detailsZeichnen(); },
-      zustand: () => ({ an: Z.an, ifc: ifcDa(G().quelle || {}), zeilen: L().zeilen, weg: G().zeilen.filter((z) => z.entfaellt).length, extern: !!(Z.rw && Z.rw.extern), sel: Z.sel, modell: Z.d && Z.d.modell, rev: Z.d && Z.d.rev }),
-      zeige(id, rollen) { Z.sel = id; Z.auf = id; zeichne(); const r = rollen && el.querySelector(`[data-btz="${CSS.escape(id)}"]`); if (r) r.scrollIntoView({ block: 'nearest' }); },   // rollen: aus der 3D-Ansicht gewählt – die Zeile ins Bild
+      zustand: () => ({ an: Z.an, ifc: ifcDa(G().quelle || {}), plan: !!(G().quelle || {}).planstand && ((G().quelle || {}).art || 'ifc') !== 'hand', planart: (G().quelle || {}).art || '', zeilen: L().zeilen, weg: G().zeilen.filter((z) => z.entfaellt).length, extern: !!(Z.rw && Z.rw.extern), sel: Z.sel, modell: Z.d && Z.d.modell, rev: Z.d && Z.d.rev }),
+      mehr(ids) { mwSetzen(ids || []); },   // im 3D mehrere gewählt (Zeilen-Kennungen)
+      mehrfach: () => [...Z.mw],
+      zeige(id, rollen) { Z.mw = []; Z.sel = id; Z.auf = id; zeichne(); const r = rollen && el.querySelector(`[data-btz="${CSS.escape(id)}"]`); if (r) r.scrollIntoView({ block: 'nearest' }); },   // rollen: aus der 3D-Ansicht gewählt – die Zeile ins Bild
       neu(d) { Z.d = d; zeichne(); },
       entwurf: (e) => (e.erster ? uebernehmen(e, {}, e.name) : abgleich(e)),   // Planstand von außen (Assistent: bpcore/modell_hand.py) – wie nach dem Einlesen
     };

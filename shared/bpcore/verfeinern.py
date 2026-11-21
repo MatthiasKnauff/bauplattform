@@ -141,20 +141,28 @@ def pruefen(c, m, roh, zid, vid, was):
     return out
 
 
-def verfeinern(c, pid, was, wer=""):
-    from . import ai, ki_fragen, modell
-    if not ki_fragen.zusatz_an(c):
-        raise modell.Ungueltig("Die externe KI als Ergänzung ist ausgeschaltet (Verwaltung → Einstellungen → KI).")
-    if not ki_fragen.projekt_ki(c, pid)["extern"]:
-        raise modell.Ungueltig("Für dieses Projekt ist die externe KI gesperrt (Projektdaten → Projekt → „Keine externe KI“).")
+def verfeinern(c, pid, was, wer="", ki=None):
+    """ki = Stufe vom KI-Schieber (Mock „Gebäudemodell schlank“, 20.11.2026: „KI: Lücken füllen“ mit einem Klick): „buero“ = Ollama im Büro,
+    „extern“ = externe KI (anonymisiert). Ohne Angabe wie bisher nur extern."""
+    from . import ai, ki_fragen, ki_stufe, modell
+    if ki in ("buero", "extern"):
+        st = ki_stufe.stufe(c, pid, ki)
+        prov = ki_stufe.anbieter(c, st)
+        if not prov:
+            raise modell.Ungueltig("Es ist keine KI bereit – Verwaltung → Einstellungen → KI." if st != "aus" else "In der Verwaltung ist „ohne KI“ eingestellt.")
+    else:
+        if not ki_fragen.zusatz_an(c):
+            raise modell.Ungueltig("Die externe KI als Ergänzung ist ausgeschaltet (Verwaltung → Einstellungen → KI).")
+        if not ki_fragen.projekt_ki(c, pid)["extern"]:
+            raise modell.Ungueltig("Für dieses Projekt ist die externe KI gesperrt (Projektdaten → Projekt → „Keine externe KI“).")
+        aus = ai.abgeschaltet(c)
+        prov = next((p["key"] for p in ai.providers(c) if p["paid"] and p["ok"] and p["key"] not in aus), None)
+        if not prov:
+            raise modell.Ungueltig("Es ist keine externe KI eingerichtet (Verwaltung → Einstellungen → KI).")
     was = [w for w in WAS if w in (was or [])] or list(VORGABE)
     m = modell.lesen(c, pid)["modell"]
     if not ((m.get("bauteilliste") or {}).get("zeilen")):
         raise modell.Ungueltig("Erst einen Planstand einlesen – ohne Bauteil-Liste gibt es nichts zu verfeinern.")
-    aus = ai.abgeschaltet(c)
-    prov = next((p["key"] for p in ai.providers(c) if p["paid"] and p["ok"] and p["key"] not in aus), None)
-    if not prov:
-        raise modell.Ungueltig("Es ist keine externe KI eingerichtet (Verwaltung → Einstellungen → KI).")
     text, zid, vid = anfrage(c, m, was)
     roh = ai.parse_json(ai.ask(prov, SYSTEM, text, max_tokens=2500, c=c, json_mode=True, zweck="verfeinern") or "")
     Z = pruefen(c, m, roh, zid, vid, was)
@@ -166,8 +174,9 @@ def verfeinern(c, pid, was, wer=""):
             c.execute("DELETE FROM pm_hinweis WHERE id=?", (h["id"],))
     if not Z:
         return 0
-    titel = f"Externe KI ({prov}): {len(Z)} Vorschl{'ag' if len(Z) == 1 else 'äge'} – ungeprüft"
-    modell.hinweis_neu(c, pid, "plaene", titel, {"art": "rueckweg", "herkunft": {**HERKUNFT, "name": prov}, "zeilen": Z, "extern": True}, "ki", wer)
+    ext = prov != "ollama"
+    titel = f"{'Externe KI (' + prov + ')' if ext else 'KI im Büro'}: {len(Z)} Vorschl{'ag' if len(Z) == 1 else 'äge'} – ungeprüft"
+    modell.hinweis_neu(c, pid, "plaene", titel, {"art": "rueckweg", "herkunft": {**HERKUNFT, "name": prov}, "zeilen": Z, "extern": ext}, "ki", wer)
     return len(Z)
 
 
@@ -180,8 +189,8 @@ def routen(bp, mit):
         def tun(c, wer):
             from . import ai, rueckweg
             try:
-                n = verfeinern(c, pid, d.get("was") if isinstance(d.get("was"), list) else [], wer)
+                n = verfeinern(c, pid, d.get("was") if isinstance(d.get("was"), list) else [], wer, d.get("ki"))
             except ai.AIError as e:
-                return jsonify(error=f"Die externe KI hat nicht geantwortet: {e}"), 502
+                return jsonify(error=f"Die KI hat nicht geantwortet: {e}"), 502
             return jsonify(n=n, vorschlaege=rueckweg.offene(c, pid))
         return mit(pid, tun)

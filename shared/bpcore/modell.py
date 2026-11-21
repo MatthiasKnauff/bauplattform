@@ -549,8 +549,10 @@ def routen(bp, _uid):
     fragen_aenderung.routen(bp, mit, lesen)   # „Fragen und Antworten“ führt Änderungssätze aus (Kürzel tauschen, Anweisungen), mit Protokoll
     from . import raumbuch
     raumbuch.routen(bp, mit, lesen, schreiben)   # Raumbuch: Boden, Wand, Decke je Raum (raumbuch.py)
+    from . import grundriss
+    grundriss.routen(bp, mit, lesen)   # Grundriss je Geschoss: Flächen zwischen den Wänden, mit Raum oder frei (grundriss.py)
     verfeinern.routen(bp, mit)   # Verfeinern mit externer KI – nur mit Zusatzrecherche, nur Vorschläge über den Rückweg
-    lernen.routen(bp, mit, lesen)   # Assistent lernt: Vorschläge aus ähnlichen Projekten, Liste „Gelerntes“
+    lernen.routen(bp, mit, lesen, _uid)   # Assistent lernt: Vorschläge aus ähnlichen Projekten, Liste „Gelerntes“
 
     @bp.get("/api/bp/modell/<int:pid>/vorschlag")
     def modell_vorschlag(pid):

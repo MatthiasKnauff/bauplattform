@@ -29,7 +29,6 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
-- Räume annehmen, wo das IFC keine hat, mit Flächenerkennung per Mausklick im Grundriss – Mock „Räume annehmen“ (A–D offen), ca. 60–90 Min.
 - Ausschreibung: Bauteile aus dem Gebäudemodell in die Kopierquelle – farbig markiert und verknüpft; Elemente (Positionen) eines Aufbaus einzeln an beliebiger Stelle im LV platzieren – erst Mock (Wunsch 20.11.2026)
 - Gebäude-Baukasten, Rest: E1 – bei einem später eingelesenen IFC die Angaben aus dem Baukasten als Vorschlag mit OK über den Abgleich (ca. 30–45 Min.)
 - Gebäudemodell beim Neuanfang: leeres Gerüst (Rohbau 0, „＋ Zeile“) unter „Anfangen …“ ausblenden (etwa 10 Minuten)
@@ -248,6 +247,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Gebäudemodell schlank (Mock A1–H1, L-B, F1): links Gebäude · Fragen & Anweisungen · Verknüpfungen; Leiste Planstand · Ansicht (3D · Grundriss · Tabelle); eine 3D-Ansicht (ohne Plan Baukasten, Korb rechts als Reiter); Grundriss mit „Fläche als Raum annehmen“; Reiter Bauteile · Räume · Fenster & Türen; mehrere Bauteile gemeinsam ändern (Haken, Strg, Rahmen, „alle wählen“); Liste rechts unter den Angaben mit eigenem Rollbalken; Färbungen nur Maßnahmen · U-Wert · Änderungen, Rest als Filter, Schieber unter „Darstellung ▾“; „KI: Lücken füllen“ mit einem Klick (auch KI im Büro); Gelerntes in der Verwaltung; Räume aus den Wänden nach dem Geschoss im IFC~~ (21.11.2026)
 - ~~Baukasten frei drehbar (Ziehen dreht/neigt), Staffelgeschoss rastet an der Kante darunter ein~~ (20.11.2026)
 - ~~Gebäudemodell: Listen rechts mehrfach filterbar, Änderungen lesbar im schmalen Bereich, 3D-Durchsicht, Umschalt dreht im Rahmenmodus~~ (20.11.2026)
 - ~~Verknüpfungen neu nach dem Konzept (Mock „Verknüpfungen neu“: A1 B1 C1 D1 E1) – ersetzt die alte Karte~~ (20.11.2026)

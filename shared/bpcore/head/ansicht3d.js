@@ -30,6 +30,7 @@
 .b3 canvas{width:100%;height:100%;display:block;cursor:grab}.b3 canvas:active{cursor:grabbing}
 .b3-l{position:absolute;left:.5rem;top:.5rem;display:flex;flex-wrap:wrap;align-items:center;gap:.3rem;max-width:calc(100% - 1rem)}
 .b3-l button{font:inherit;font-size:.78rem;border:1px solid var(--line,#c9ced4);background:rgba(255,255,255,.88);color:#23282b;border-radius:calc(99px*var(--rkp,1));padding:.12rem .6rem;cursor:pointer}
+.b3-dar{flex:1 0 100%;display:flex;flex-wrap:wrap;align-items:center;gap:.3rem}
 .b3-l button.on{border-color:var(--y,#2f6fb3);box-shadow:inset 0 0 0 1px var(--y,#2f6fb3);font-weight:600}
 .b3-k{position:absolute;left:.5rem;bottom:.5rem;display:flex;flex-wrap:wrap;gap:.2rem .6rem;font-size:.74rem;color:#23282b;background:rgba(255,255,255,.85);border-radius:6px;padding:.25rem .5rem}
 .b3-k i{display:inline-block;width:.75rem;height:.75rem;border-radius:2px;margin-right:.25rem;vertical-align:-.1rem}
@@ -214,9 +215,13 @@
     }
     function leiste() {
       const G = S.N.geschosse;
-      box.querySelector('.b3-l').innerHTML = MODI.map((m) => `<button type="button" data-b3f="${esc(m.key)}" class="${S.farbe === m.key ? 'on' : ''}">${esc(m.name)}</button>`).join('')
-        + `<button type="button" data-b3f="massnahme" class="${S.farbe === 'massnahme' ? 'on' : ''}">Maßnahmen</button><button type="button" data-b3f="modell" class="${S.farbe === 'modell' ? 'on' : ''}">Farben des Modells</button>`
+      /* oben nur Färbungen, Auswahl und Rahmen; Geschosse, Dach, Schieber und „Farben des Modells“ unter „Darstellung ▾“ (GO 20.11.2026, Mock
+         „Gebäudemodell schlank“: drei Zeilen Knöpfe nahmen dem Modell den Platz) */
+      const haupt = MODI.map((m) => `<button type="button" data-b3f="${esc(m.key)}" class="${S.farbe === m.key ? 'on' : ''}">${esc(m.name)}</button>`).join('')
+        + `<button type="button" data-b3f="massnahme" class="${S.farbe === 'massnahme' ? 'on' : ''}">Maßnahmen</button>`
         + (o.wahl ? `<button type="button" data-b3x ${WAHL.size ? '' : 'hidden'} title="Auswahl aufheben (Esc)">✕ Auswahl aufheben${WAHL.size > 1 ? ' (' + WAHL.size + ')' : ''}</button><button type="button" data-b3w class="${S.rahmen ? 'on' : ''}" title="Rahmen ziehen wählt viele Bauteile (nach rechts: ganz darin · nach links: berührt) – Strg wählt ab, Umschalt + Ziehen dreht; auch mit Alt + Ziehen">▭ Rahmen</button>` : '')
+        + `<button type="button" data-b3dar class="${S.dar ? 'on' : ''}" aria-expanded="${!!S.dar}" title="Geschosse, Dach, auseinanderziehen, Durchsicht, Wände spreizen">Darstellung ▾</button>`;
+      const dar = `<button type="button" data-b3f="modell" class="${S.farbe === 'modell' ? 'on' : ''}">Farben des Modells</button>`
         + G.map((g, k) => `<button type="button" data-b3g="${k}" class="${S.aus.has(k) ? '' : 'on'}">${esc(g.n)}</button>`).join('')
         + (S.N.e.some((e) => e.t === 'r') ? `<button type="button" data-b3d class="${S.dach ? 'on' : ''}">Dach</button>` : '') + '<button type="button" data-b3r title="Ansicht zurücksetzen">⟲</button>'
         + (G.length > 1 ? `<label class="b3-z">↕ auseinander <input type="range" min="0" max="100" value="${Math.round(S.zug / ZUG * 100)}" data-b3z aria-label="Geschosse auseinanderziehen" title="Geschosse auseinanderziehen"></label>` : '')
@@ -224,6 +229,7 @@
         + `<label class="b3-z">↔ Wände <input type="range" min="0" max="100" value="${Math.round(S.seit / SEIT * 100)}" data-b3s aria-label="Wände auseinanderspreizen" title="Wände senkrecht zu ihrer Fläche nach außen rücken – Fenster und Türen gehen mit"></label>`
         + (o.spreizWahl !== false ? `<button type="button" data-b3sp title="Welche Wände spreizen">${S.spreiz === 'alle' ? 'alle Wände' : 'nur Außenwände'}</button>` : '')
         + (S.teile > 1 ? `<label class="b3-z">⇔ Gebäudeteile <input type="range" min="0" max="100" value="${Math.round(S.teil / TEIL * 100)}" data-b3t aria-label="Gebäudeteile auseinanderziehen"></label>` : '');
+      box.querySelector('.b3-l').innerHTML = haupt + (S.dar ? `<div class="b3-dar">${dar}</div>` : '');
       const k = box.querySelector('.b3-k'); k.replaceChildren();   // Farben per CSSOM (kein style-Attribut – CSP im Bauherrenportal)
       const M = modus(), E = M ? (M.legende || []) : S.farbe === 'massnahme' ? Object.values(MASS) : [];
       E.forEach(([c, t]) => { const sp = document.createElement('span'), i = document.createElement('i'); i.style.background = c; sp.append(i, t); k.append(sp); });
@@ -243,6 +249,7 @@
       if (b.dataset.b3g) { const g = +b.dataset.b3g; if (S.aus.has(g)) S.aus.delete(g); else S.aus.add(g); }
       if ('b3d' in b.dataset) S.dach = !S.dach;
       if ('b3w' in b.dataset) { S.rahmen = !S.rahmen; return leiste(); }
+      if ('b3dar' in b.dataset) { S.dar = !S.dar; return leiste(); }
       if ('b3sp' in b.dataset) { S.spreiz = S.spreiz === 'alle' ? 'aussen' : 'alle'; leiste(); return bauen(); }
       if ('b3x' in b.dataset) return wahlWeg();
       if ('b3r' in b.dataset) { start(); return zeichne(); }

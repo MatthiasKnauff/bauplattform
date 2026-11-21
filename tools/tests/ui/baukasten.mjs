@@ -66,6 +66,17 @@ export async function baukastenPruefen(browser, repo) {
     await warte(m + 1);
     const fl = S.puts[m] && S.puts[m].baukasten.dach.k1 && S.puts[m].baukasten.dach.k1.fl;
     pruef(fl && Object.keys(fl).join() === '0' && fl['0'] !== 'A3' && S.puts[m].korb[fl['0']] && S.puts[m].korb[fl['0']].vorlage === '363.09', `eigener Aufbau nur für Dachfläche 1: ${JSON.stringify(S.puts[m] && S.puts[m].baukasten.dach)}`);
+    {   // eingebettet im Gebäudemodell (GO 20.11.2026, Mock „Gebäudemodell schlank“ F1): Angaben und Korb gehen in den Bereich rechts
+      const n = S.puts.length;
+      await p.evaluate(() => { const h = document.getElementById('h'), r = document.createElement('div'); r.id = 'rechts'; document.body.appendChild(r);
+        bpBaukasten.mount(h, 1, { seite: ({ detail, korb }) => { r.append(detail, korb); } }); });
+      await p.waitForSelector('#h [data-plus="oben"]', { timeout: 5000 });
+      pruef(await p.evaluate(() => !document.querySelector('#h aside') && !!document.querySelector('#rechts [data-bk="detail"]') && !!document.querySelector('#rechts [data-bk="korb"]') && document.querySelector('#h .bkx').classList.contains('eingebettet')), 'eingebettet: Angaben und Korb stehen rechts, nicht neben der Bühne');
+      await p.dispatchEvent('#h [data-k="k1"][data-seite]', 'click'); await p.waitForTimeout(150);
+      pruef(await p.evaluate(() => /Außenwand|Geschoss/.test(document.querySelector('#rechts [data-bk="detail"]').textContent)), 'eingebettet: Klick zeigt die Angaben rechts');
+      await p.dispatchEvent('#h [data-plus="oben"]', 'click'); await warte(n + 1);
+      pruef(S.puts.length > n, 'eingebettet: ＋ Geschoss speichert');
+    }
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
   await p.close();
   return fehler;

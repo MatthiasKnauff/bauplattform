@@ -5,7 +5,7 @@ die Datenbank wuchs mit jedem Plan. Jetzt hält die Datenbank nur den Verweis (P
 
 Aufbau
   Laufwerk    DATA_DIR/dateien/<ab>/<cd>/<sha256> – das Volume „bautagebuch_data“, das JEDER App-Container unter /data einbindet
-              (Stack-Dateien; prüft tools/tests/einheit/plattform_dateien.py). Gleicher Inhalt = dieselbe Datei, Dateien ändern sich nie.
+              (Stack-Dateien; prüft tools/tests/ordnung.py). Gleicher Inhalt = dieselbe Datei, Dateien ändern sich nie.
   Tabelle     bp_datei(sha, groesse, erstellt, frei_seit, extern) – was im Speicher liegt (Migration 0104).
   Verweis     je Tabelle die Spalte `datei_ref` neben der bisherigen BYTEA-Spalte (TABELLEN). Eine Zeile hat entweder den Verweis
               oder (ältere Zeile bzw. Speicher nicht eingeschaltet) den Inhalt in der Datenbank – gelesen wird immer über inhalt().

@@ -2,16 +2,12 @@
 Geprüft wird vor allem das Sicherheitsnetz: geschrieben wird erst, wenn alle Apps das Laufwerk sehen; nichts geht verloren."""
 import json
 import os
-import re
 import sqlite3
 import tempfile
 from datetime import datetime, timedelta
 
 from bpcore import dateien
 from lib import gleich, pruefe
-
-WURZEL = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 
 def _db():
     c = sqlite3.connect(":memory:")
@@ -117,12 +113,3 @@ def test_verlorenes_laufwerk_wird_nicht_still_neu_angelegt():
     dateien._schreiben(sha, b"wichtig")   # vom Dateiserver zurückgeholt (extern.dateien_holen)
     pruefe(dateien.einrichten(c, zurueck=True) and dateien.sieht(c), "nach dem Zurückholen bekommt das Laufwerk seine Kennung wieder")
 
-
-def test_jeder_app_container_bindet_das_laufwerk_ein():
-    for p in ("docker-compose.yml", "server/docker-compose.yml", "server/test.yml"):
-        text = open(os.path.join(WURZEL, p), encoding="utf-8").read()
-        dienste = text.split("\nservices:", 1)[1]
-        dienste = re.split(r"\n(?=[a-z])", dienste, maxsplit=1)[0]   # bis zum nächsten Abschnitt (volumes: …)
-        ohne = [m.group(1) for m in re.finditer(r"\n  ([A-Za-z0-9_-]+):[^\n]*\n((?:(?!\n  [A-Za-z0-9_-]+:)[\s\S])*)", dienste)
-                if re.search(r"\n\s+APP(_MODULE)?:", m.group(2)) and "bautagebuch_data:/data" not in m.group(2)]
-        gleich(ohne, [], f"{p}: jeder App-Dienst bindet bautagebuch_data unter /data ein (sonst sieht er die Dateien nicht)")

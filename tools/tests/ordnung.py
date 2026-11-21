@@ -136,6 +136,15 @@ def main():
         if VERBOTEN.search(p) and p not in ERLAUBT:
             fehler.append(f"heikle Datei im Repo: {p} (Kataloge, PDFs, Bilder, Schlüssel und Sicherungen gehören nie ins Repo)")
 
+    # Gemeinsamer Dateispeicher (bpcore/dateien.py): jeder App-Dienst der Stack-Dateien bindet das Laufwerk unter /data ein –
+    # ein Dienst ohne Laufwerk sähe die Dateien nicht (und hielte den Speicher für alle ausgeschaltet)
+    for p in ("docker-compose.yml", "server/docker-compose.yml", "server/test.yml"):
+        text = open(os.path.join(ROOT, p), encoding="utf-8").read().split("\nservices:", 1)[1]
+        text = re.split(r"\n(?=[a-z])", text, maxsplit=1)[0]
+        for m in re.finditer(r"\n  ([A-Za-z0-9_-]+):[^\n]*\n((?:(?!\n  [A-Za-z0-9_-]+:)[\s\S])*)", text):
+            if re.search(r"\n\s+APP(_MODULE)?:", m.group(2)) and "bautagebuch_data:/data" not in m.group(2):
+                fehler.append(f"{p}: Dienst „{m.group(1)}“ bindet das Laufwerk nicht ein (volumes: - bautagebuch_data:/data) – gemeinsamer Dateispeicher")
+
     ui = oberflaechen()
     for p in ui:
         s = open(os.path.join(ROOT, p), encoding="utf-8").read()

@@ -134,6 +134,9 @@ export async function bauteilePruefen(browser, repo) {
       T.L = { quelle: { planstand: 9, name: 'Von Hand', art: 'hand' }, raeume: [], zeilen: [{ id: 'frage:elektro', bereich: 'frage', art: 'Elektro', kg: '444', name: 'Elektroinstallation', menge: 0, einheit: 'm²', zustand: 'frage', status: 'offen', erlaubt: ['bleibt', 'erneuern'], quelle: 'frage', ids: [], nummern: [] }]
         .concat(d.nur_start ? [] : [{ id: 'hand:1', bereich: 'hand', art: 'von Hand', kg: d.kg, name: d.name, menge: 0, einheit: 'm²', zustand: 'hand', status: 'neu', erlaubt: ['neu'], quelle: 'hand', ids: [], nummern: [] }]) };
       return J({ modell: { bauteilliste: T.L }, rev: 2, staende: [], links: [] }); }
+    if (u.endsWith('/bauteile/vorlagen')) return J([{ id: '331.01', kg: '331', name: 'Außenwand Mauerwerk + WDVS', einheit: 'm²', schichten: [{ name: 'Tragschicht', optionen: [{ k: 'KS 17,5', mat: 'Kalksandstein', t: 'Kalksandstein 17,5 cm', std: true }, { k: 'HLz 36,5', mat: 'Ziegel', t: 'Hochlochziegel 36,5 cm' }] }, { name: 'Dämmung', optionen: [{ k: 'WDVS 16', mat: 'Mineralwolle', t: 'WDVS Mineralwolle 16 cm', std: true }] }] },
+      { id: '331.05', kg: '331', name: 'Holzrahmenwand', einheit: 'm²', schichten: [{ name: 'Ständer', optionen: [{ k: 'KVH 24', mat: 'Holz', t: 'Holzrahmen 24 cm', std: true }] }] }]);
+    if (u.endsWith('/modell/kuerzel')) return J({ kern: [['KS', 'Kalksandstein'], ['HLz', 'Hochlochziegel']], lage: [] });
     if (u.endsWith('/planstaende')) return J({ planstaende: [], gilt: null });
     if (u.endsWith('/rueckweg')) return J({ vorschlaege: [], schalter: {}, phasen: [], termine: {} });
     if (u === '/api/bp/modell/7') return J({ modell: { bauteilliste: T.L }, rev: 1, staende: [], links: [] });
@@ -181,6 +184,10 @@ export async function bauteilePruefen(browser, repo) {
     await q.click('.bt-grp [data-bpgplus]'); await q.click('.pickm .pm-o:has-text("Bereich")'); await q.waitForTimeout(100); await q.click('.bt-grp [data-bpgweg="teil"]'); await q.waitForTimeout(100);
     await q.evaluate(() => document.querySelector('.bt-baum tr[data-btz="hand:1"]:not(.bt-snz) [data-btschnell]').click());   // Dreieck ohne head.css ohne Größe await q.waitForTimeout(100);
     pruef(await q.evaluate(() => !!document.querySelector('tr.bt-snz [data-btsuch]') && !!document.querySelector('tr.bt-snz [data-btpop]')), 'Dreieck: Zeile mit Aufbau-Suche und „Eigenschaften …“ darunter');
+    {   // Aufbau-Suche (21.11.2026): Wörter einzeln, Kürzel je Wort, Komma = Punkt
+      const such = async (t) => { await q.fill('tr.bt-snz [data-btsuch]', t); await q.waitForTimeout(250); return q.evaluate(() => [...document.querySelectorAll('tr.bt-snz .bt-vs [data-btvs]')].map((b) => b.firstChild.textContent)); };
+      const a1 = await such('ks 17,5'), a2 = await such('Kalksandstein WDVS'), a3 = await such('hlz 36.5'), a4 = await such('beton xyz');
+      pruef(a1.length && /Tragschicht: KS 17,5/.test(a1[0]) && a2.length && /Mauerwerk/.test(a2[0]) && a3.length && /HLz 36,5/.test(a3[0]) && !a4.length, `Aufbau-Suche: ${JSON.stringify([a1, a2, a3, a4])}`); }
     await q.evaluate(() => document.querySelector('.bt-baum tr[data-btz="hand:1"]:not(.bt-snz) [data-btschnell]').click());   // Dreieck ohne head.css ohne Größe await q.waitForTimeout(100);
     pruef(await q.evaluate(() => !document.querySelector('tr.bt-snz')), 'Dreieck noch einmal: zu');
     await q.dblclick('.bt-baum tr[data-btz="hand:1"] .bt-tn'); await q.waitForSelector('.bt-pop', { state: 'attached', timeout: 5000 });

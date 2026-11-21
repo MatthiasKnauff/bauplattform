@@ -547,21 +547,33 @@
     const falt = (t) => String(t || '').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');
     let KZL = null;
     const kzl = () => KZL || (KZL = J('api/bp/modell/kuerzel').then((r) => r.json()).then((d) => { const M = {}; (d.kern || []).concat(d.lage || []).forEach(([k, n]) => { M[falt(k)] = falt(n).replace(/\s*\(.*$/, ''); }); return M; }).catch(() => ({})));
+    /* Aufbau-Suche (21.11.2026 überarbeitet – „KS 17,5“ oder „Kalksandstein WDVS“ fand nichts): die Eingabe zerfällt in Wörter, JEDES Wort muss im
+       Aufbau vorkommen (Vorlage, Schicht, Option, Material); Kürzel je Wort (KS → Kalksandstein), Zahlen mit Komma oder Punkt; sortiert nach Güte. */
     function suchTreffer(z, V, q, K) {
-      const w = falt(q).trim(); if (w.length < 2) return [];
-      const W = [...new Set([w, K[w]].filter(Boolean))], hat = (t) => { const f = falt(t); return W.some((x) => f.includes(x)); }, st = z.status || '', T = [];
+      const zahl = (t) => t.replace(/(\d),(\d)/g, '$1.$2'), norm = (t) => zahl(falt(t));
+      const W = norm(q).trim().split(/\s+/).filter(Boolean); if (W.join('').length < 2) return [];
+      const A = W.map((w) => [...new Set([w, K[w] && zahl(K[w])].filter(Boolean))]);   // je Wort: das Wort oder die Bedeutung des Kürzels
+      const in_ = (t, i) => A[i].some((x) => t.includes(x)), st = z.status || '', T = [];
       for (const v of V) {
         if ((v.bestand && st === 'neu') || !passt(z, v)) continue;
-        if (hat(v.name)) T.push({ v, t: kurzName(v.name), u: 'Vorlage' });
-        (v.schichten || []).forEach((s, si) => s.optionen.forEach((o, oi) => { if (hat(`${o.k} ${o.mat || ''} ${o.t || ''}`)) T.push({ v, si, oi, t: `${kurzName(v.name)} · ${s.name}: ${optName(o)}`, u: K[w] ? `Kürzel ${q.trim().toUpperCase()}` : 'Option in der Schicht' }); }));
+        const vn = norm(`${v.name} ${v.kg || ''}`), S = (v.schichten || []).map((s) => ({ n: norm(s.name), o: s.optionen.map((o) => norm(`${o.k} ${o.mat || ''} ${o.t || ''}`)) }));
+        const std = S.map((s, i) => s.o[Math.max(0, v.schichten[i].optionen.findIndex((o) => o.std))] || '').join(' ');
+        if (W.every((_, i) => in_(vn, i) || in_(std, i))) T.push({ v, t: kurzName(v.name), u: 'Vorlage', g: W.reduce((g, _, i) => g + (in_(vn, i) ? 3 : 1), 1) });
+        S.forEach((s, si) => s.o.forEach((ot, oi) => {
+          if (!W.every((_, i) => in_(ot, i) || in_(s.n, i) || in_(vn, i))) return;
+          const g = W.reduce((g2, _, i) => g2 + (in_(ot, i) ? 3 : in_(vn, i) ? 2 : 1), 0); if (!W.some((_, i) => in_(ot, i))) return;   // die Option selbst muss etwas treffen
+          const o = v.schichten[si].optionen[oi];
+          T.push({ v, si, oi, t: `${kurzName(v.name)} · ${v.schichten[si].name}: ${optName(o)}`, u: W.some((w) => K[w]) ? `Kürzel ${q.trim().toUpperCase()}` : 'Option in der Schicht', g });
+        }));
       }
-      return T.slice(0, 10);
+      return T.sort((a, b) => b.g - a.g).slice(0, 12);
     }
     async function suchen(e) {
       const i = e.target.closest && e.target.closest('[data-btsuch]'); if (!i) return;
       const r = i.closest('[data-btz]'), z = r && L().zeilen.find((x) => x.id === r.dataset.btz), box = i.parentElement.querySelector('.bt-vs'); if (!z || !box) return;
-      const V = Z.vorlD[String(Z.kg[z.id] || z.kg || '').slice(0, 2)] || [], K = await kzl();
-      const T = suchTreffer(z, V, i.value, K); Z.tr = T;
+      const k2 = String(Z.kg[z.id] || z.kg || '').slice(0, 2); if (!Z.vorlD[k2] && k2) { try { await vorlagen(k2); } catch { /* ohne */ } }   // erst laden, dann suchen (vorher „nichts gefunden“)
+      const V = Z.vorlD[k2] || [], K = await kzl();
+      if (!i.isConnected) return; const T = suchTreffer(z, V, i.value, K); Z.tr = T;   // nach dem Warten mit dem Text von jetzt
       box.innerHTML = T.map((x, k) => `<button type="button" data-btvs="${k}"${k ? '' : ' class="on"'}>${esc(x.t)}<small>${esc(x.u)}</small></button>`).join('') || (i.value.trim().length > 1 ? '<span class="mute" style="padding:.3rem .55rem">nichts gefunden</span>' : '');
     }
     function suchWahl(id, x) {   // Vorlage und Option zusammen – die übrigen Schichten in der Regelausführung

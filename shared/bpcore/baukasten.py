@@ -393,8 +393,11 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
     def baukasten_lesen(pid):
         def tun(c, wer):
             m = lesen_modell(c, pid)["modell"]
-            bk = sauber(m.get("baukasten")) if (m.get("baukasten") or {}).get("koerper") and request.args.get("neu") != "1" else aus_assistent(m)
-            return jsonify(baukasten=abgleich(bk, m), korb=korb_sauber(m.get("korb")), plan=_plan_art(m), raeume=(m.get("bauteilliste") or {}).get("raeume") or [])
+            gesp = (m.get("baukasten") or {}).get("koerper") and request.args.get("neu") != "1"
+            bk = sauber(m.get("baukasten")) if gesp else aus_assistent(m)
+            a = m.get("assistent") or {}
+            herkunft = "baukasten" if gesp else "assistent" if (m.get("teile") or a.get("area") or m.get("flaeche")) else "leer"   # „leer“ = nur ein Vorschlag (ein Erdgeschoss)
+            return jsonify(baukasten=abgleich(bk, m), korb=korb_sauber(m.get("korb")), plan=_plan_art(m), herkunft=herkunft, raeume=(m.get("bauteilliste") or {}).get("raeume") or [])
         return mit(pid, tun)
 
     @bp.put("/api/bp/modell/<int:pid>/baukasten")

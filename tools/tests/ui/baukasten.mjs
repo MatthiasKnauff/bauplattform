@@ -21,7 +21,7 @@ export async function baukastenPruefen(browser, repo) {
       <script>window.UNDO = []; window.rueckgaengig = (t, f) => UNDO.push([t, f]); window.toast = () => {};</script><script src="/bp/gebaeudekasten.js"></script>` });
     if (pf === '/bp/gebaeudekasten.js') return r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(path.join(K, 'gebaeudekasten.js')) });
     if (pf === '/api/bp/modell/1/bauteile/vorlagen') return J(VL[u.searchParams.get('kg')] || []);
-    if (pf === '/api/bp/modell/1/baukasten' && r.request().method() === 'GET') return J({ baukasten: BK, korb: KORB, plan: 'hand', raeume: [{ nr: '0.01', name: 'Wohnen', geschoss: 'Erdgeschoss', flaeche: 32 }] });
+    if (pf === '/api/bp/modell/1/baukasten' && r.request().method() === 'GET') return J({ baukasten: BK, korb: KORB, plan: 'hand', herkunft: S.herkunft, raeume: [{ nr: '0.01', name: 'Wohnen', geschoss: 'Erdgeschoss', flaeche: 32 }] });
     if (pf === '/api/bp/modell/1/baukasten') { const b = r.request().postDataJSON(); S.puts.push(b); return J({ rev: S.puts.length, plan: 'hand', modell: { bauteilliste: { zeilen: [] } } }); }
     return r.fulfill({ status: 404, body: '' });
   });
@@ -76,6 +76,15 @@ export async function baukastenPruefen(browser, repo) {
       pruef(await p.evaluate(() => /Außenwand|Geschoss/.test(document.querySelector('#rechts [data-bk="detail"]').textContent)), 'eingebettet: Klick zeigt die Angaben rechts');
       await p.dispatchEvent('#h [data-plus="oben"]', 'click'); await warte(n + 1);
       pruef(S.puts.length > n, 'eingebettet: ＋ Geschoss speichert');
+    }
+    {   // 21.11.2026: Gebäudemodell ohne Planstand – was der Baukasten zeigt, wird der Planstand „Assistent“ (nicht bei bloßem Vorschlag „leer“)
+      S.herkunft = 'leer'; let n = S.puts.length;
+      await p.evaluate(() => bpBaukasten.mount(document.getElementById('h'), 1, { anlegen: () => true })); await p.waitForSelector('#h [data-plus="oben"]'); await p.waitForTimeout(1100);
+      pruef(S.puts.length === n, 'ohne Angaben (nur Vorschlag) legt der Baukasten keinen Planstand an');
+      S.herkunft = 'assistent'; n = S.puts.length;
+      await p.evaluate(() => bpBaukasten.mount(document.getElementById('h'), 1, { anlegen: () => true })); await p.waitForSelector('#h [data-plus="oben"]'); await warte(n + 1);
+      pruef(S.puts.length === n + 1, 'ohne Planstand legt der Baukasten den Planstand „Assistent“ an');
+      S.herkunft = undefined;
     }
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
   await p.close();

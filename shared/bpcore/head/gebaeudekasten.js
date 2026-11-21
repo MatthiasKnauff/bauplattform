@@ -524,7 +524,7 @@
   const basis = `api/bp/modell/${pid}`;
   const J = (u, m, b) => fetch(u, { method: m || 'GET', credentials: 'same-origin', headers: b ? { 'Content-Type': 'application/json' } : {}, body: b ? JSON.stringify(b) : undefined })
     .then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Der Baukasten konnte nicht geladen werden.'); return j; });
-  let STAND = '', PLAN = 'hand', RAEUME = [], LADEN = false, TS = 0, RM = false, BIBOK = null;
+  let STAND = '', PLAN = 'hand', HERKUNFT = '', RAEUME = [], LADEN = false, TS = 0, RM = false, BIBOK = null;
   const tippe = (t) => { const x = $('#stand'); if (x) x.textContent = t; };
   function bib() {
     return BIBOK || (BIBOK = Promise.all(['331', '36', '32', '35'].map((kg) => J(`${basis}/bauteile/vorlagen?kg=${kg}`).catch(() => []))).then(([w, d, b1, b2]) => {
@@ -563,7 +563,7 @@
       Object.keys(KORB).forEach((k) => delete KORB[k]); KN = 0;
       Object.entries(d.korb || {}).forEach(([id, e]) => { const b = BIB[e.art].find((y) => y[0] === e.vorlage); KORB[id] = { id, art: e.art, von: e.vorlage, name: e.name || (b && b[1]) || e.vorlage, u: null, eigen: e.eigen }; KN = Math.max(KN, +id.slice(1) || 0); });
       M.koerper = (bk.koerper || []).map((k) => ({ ...k, seiten: { ...(k.seiten || {}) } })); M.dach = bk.dach || {}; M.gauben = bk.gauben || []; M.oeff = bk.oeff || [];
-      M.teile = bk.teile || { h: 'Hauptgebäude' }; RM = !!bk.raeume; PLAN = d.plan; RAEUME = d.raeume || [];
+      M.teile = bk.teile || { h: 'Hauptgebäude' }; RM = !!bk.raeume; PLAN = d.plan; RAEUME = d.raeume || []; HERKUNFT = d.herkunft || '';
       M.koerper.forEach((k) => { if (!KORB[k.wand]) k.wand = korbHol('wand', VOR.wand);
         if (!KORB[k.boden]) k.boden = korbHol('boden', k.z <= Math.min(...M.koerper.filter((q) => q.teil === k.teil).map((q) => q.z)) + 0.01 ? VOR.boden : VOR.decke); });
       Object.values(M.dach).forEach((D) => { if (!KORB[D.aufbau]) D.aufbau = korbHol('dach', D.form === 'flach' ? VOR.flach : VOR.dach); if (D.fl) { Object.keys(D.fl).forEach((i) => { if (!KORB[D.fl[i]]) delete D.fl[i]; }); if (!Object.keys(D.fl).length) delete D.fl; } });
@@ -574,6 +574,7 @@
     } catch (e) { tippe(e.message); }
     LADEN = false;
     if (neu) spaeter();
+    else if (OPT.anlegen && M.koerper.length && HERKUNFT !== 'leer' && OPT.anlegen()) { STAND = ''; spaeter(); }   // Gebäudemodell ohne Planstand: was hier steht, wird der Planstand „Assistent“ (21.11.2026 – kein Bild ohne Stand)
   }
   function raeume() {   // F1/F2 umschaltbar: Räume je Geschoss neben dem Bild
     const box = $('#raeume'); if (!box) return; box.hidden = !RM; if (!RM) return;

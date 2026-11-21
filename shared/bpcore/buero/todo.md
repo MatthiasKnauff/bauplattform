@@ -247,6 +247,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Gebäudemodell ohne Planstand: was der Baukasten aus den Angaben zeigt, wird gleich der Planstand „Assistent“ (kein Bild ohne Stand im Menü)~~ (21.11.2026)
 - ~~Gebäudemodell: kein zweiter Baukasten im Reiter „Planung“; Planstand-Menü ohne Planstand („noch keiner“) lässt sich öffnen und bietet „Neuen Planstand einlesen“~~ (21.11.2026)
 - ~~Startseite: neue Apps kommen zu den Kacheln statt ganz nach unten unter die Widgets~~ (21.11.2026)
 - ~~Startseite: „n Tage Zeiten bestätigen“ steht nicht mehr in „Zu tun“~~ (21.11.2026)

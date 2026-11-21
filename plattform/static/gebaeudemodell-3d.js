@@ -225,7 +225,7 @@ function g3Laden(feld, st) {
   if (G3.bk) {   // ohne Plan: das Gebäude im Baukasten bauen – dieselbe Mitte, Angaben und Korb rechts
     G3.BK = bpBaukasten.mount(feld, PID, { seite: ({ detail, korb }) => { G3.bkD = detail; G3.bkK = korb; const b = document.querySelector('.g3-bk'); if (b) b.appendChild(detail);
       if (window.seiteFuellen) seiteFuellen('gm', 'korb'); },
-    nachher: () => { if (BT && BT.laden) BT.laden(); } });
+    nachher: () => { if (BT && BT.laden) BT.laden(); }, anlegen: () => !!BT && !BT.zustand().planstaende });   // ohne Planstand: der Baukasten legt „Assistent“ an
     return;
   }
   const F = (G3.E || {}).f || 'f1';

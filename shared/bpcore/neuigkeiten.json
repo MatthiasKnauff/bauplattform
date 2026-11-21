@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-ohneps-2111",
+  "datum": "2026-11-21",
+  "app": "gebaeudemodell",
+  "titel": "Immer ein Planstand",
+  "text": "Gibt es im Gebäudemodell keinen Planstand, wird das Gebäude aus den Angaben des Assistenten gleich zum Planstand „Assistent“. Oben im Menü steht damit immer, was gilt.",
+  "ziel": ".gm-vm"
+ },
+ {
   "id": "zutun-zeiten-2111",
   "datum": "2026-11-21",
   "app": "portal",

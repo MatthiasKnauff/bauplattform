@@ -259,6 +259,9 @@ export async function gebaeudemodellPruefen(browser, repo) {
         const r = await p.evaluate(() => ({ mitte: G3.mitte, d3: document.querySelector('#view .gm-d3').hidden, leer: !document.querySelector('#view .gm-d3 canvas') }));
         const z = await w.evaluate(() => ({ canvas: !!document.querySelector('.b3 canvas'), zurueck: (document.querySelector('[data-b3ab]') || {}).textContent }));
         pruef(r.mitte === 'grundriss' && r.d3 && r.leer && z.canvas && z.zurueck === '↙', `3D abgedockt: ${JSON.stringify([r, z])}`);
+        await w.reload().catch(() => {}); await p.waitForTimeout(1500);   // F5 im Fenster: bleibt abgedockt, das 3D steht wieder darin
+        const f5 = { mitte: await p.evaluate(() => G3.mitte), canvas: await w.evaluate(() => !!document.querySelector('.b3 canvas')).catch(() => false) };
+        pruef(f5.mitte === 'grundriss' && f5.canvas, `F5 im abgedockten Fenster: ${JSON.stringify(f5)}`);
         await w.close(); await p.waitForTimeout(400);
         pruef(await p.evaluate(() => G3.mitte === '3d' && !!document.querySelector('#view .gm-d3 canvas')), 'Fenster zu: 3D wieder in der Mitte'); } }
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n').slice(0, 3).join(' ')); }

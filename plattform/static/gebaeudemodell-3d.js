@@ -155,7 +155,7 @@ const g3Feld = () => (g3Ab() ? G3.abF : V.querySelector('.gm-d3'));
 function g3Abdocken() {
   if (g3Ab()) { G3.ab.close(); return; }   // ↙: pagehide → g3Zurueck
   if (!window.seiteFenster) return;
-  const w = seiteFenster('gm3d', `3D – ${document.title}`, (el) => { G3.abF = el; }, g3Zurueck); if (!w) return;
+  const w = seiteFenster('gm3d', `3D – ${document.title}`, (el, x, wieder) => { G3.abF = el; if (wieder) { g3Neu(G3.bk, G3.an); g3Mitte('grundriss', true); } }, g3Zurueck); if (!w) return;   // wieder: F5 im Fenster – das 3D dort neu aufbauen
   const alt = V.querySelector('.gm-d3'); if (alt) alt.innerHTML = '';   // das 3D zieht ganz um – in der Mitte bleibt nichts stehen
   G3.ab = w;
   g3Neu(G3.bk, G3.an); g3Mitte('grundriss', true);

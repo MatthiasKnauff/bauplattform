@@ -32,7 +32,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 ## Jetzt in Arbeit
 - Eigenschaften-Fenster: Haken je Bauteil unten + „alle“ in der Kopfzeile statt violetter Hinterlegung (wartet auf GO)
 - U-Wert-Färbung wählbar: GModG · BEG-Einzelmaßnahmen · Effizienzhaus (Recherche + Mock)
-- Abgedocktes 3D: F5 im Fenster leert es und holt das 3D zurück
+- Eigenschaften-Fenster als EIN Baustein für Bauteile und LV (Aussehen wie bei den Bauteilen) – Mock zuerst
 - Gebäudemodell Schritt 2: Räume als Baum (Gruppieren), Eigenschaften-Fenster Raum (Allgemein · Raumbuch · Maße), Räume als Kisten im 3D (Mock „Räume rechts“ R-B, R-D)
 - Planung: Staffelgeschoss als Angabe im Assistenten (Mock zuerst)
 - Ausschreibung: Bauteile aus dem Gebäudemodell in die Kopierquelle – je Position verknüpft/gelöst (wie die Türliste), Linie „Ausschreibung“ hat Vorrang; Mock „Gebäudemodell in der Kopierquelle“ wartet auf Entscheidung – zusammen mit „Bauteile wie der LV-Baum“ ca. 4–5 Std.
@@ -254,6 +254,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Abgedockte Fenster (3D, Reiter): F5 lässt sie abgedockt und füllt sie neu~~ (21.11.2026)
 - ~~Gebäudemodell: U-Wert-Färbung im 3D folgt sofort einem geänderten Aufbau~~ (21.11.2026)
 - ~~3D: bei „Durchsicht“ Kanten deutlich blasser~~ (21.11.2026)
 - ~~Baukasten → Planung: Anbau und Aufstockung aus dem Baukasten stehen in der Planung, entfernte Teile gehen heraus~~ (21.11.2026)

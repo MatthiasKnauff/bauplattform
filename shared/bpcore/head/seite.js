@@ -188,9 +188,19 @@
       w._srB = A.map((b) => { const n = new w.CSSStyleSheet(); n.replaceSync([...b.cssRules].map((r) => r.cssText).join('\n')); return n; });
       d.adoptedStyleSheets = [...w._srB, ...eigen]; w._srN = A.length; } catch { /* alter Browser: ohne */ }
   }
-  function eigenAuf(key, rt) {
+  /* F5 im eigenen Fenster (21.11.2026): das Fenster ist ein leeres Dokument, das diese Seite beschreibt – neu geladen ist es leer. Nach „pagehide“
+     ist es dann noch offen: wieder beschreiben statt es als geschlossen zu behandeln. Erst wenn es wirklich zu ist, gilt es als geschlossen. */
+  function nachPagehide(w, sel, zu, wieder) {
+    let n = 0;
+    const p = () => { let d = null; try { d = w.closed ? null : w.document; } catch { /* fremd */ }
+      if (!d) return zu();
+      if (d.readyState === 'complete' && !d.querySelector(sel)) return wieder();
+      if (++n < 60) setTimeout(p, 50); else zu(); };
+    setTimeout(p, 50);
+  }
+  function eigenAuf(key, rt, w0) {
     const q = lies(`${key}.win.${rt.id}`, null) || { w: 900, h: Math.min(1100, screen.availHeight - 80) };
-    const w = window.open('', 'bp_sr_' + key + '_' + rt.id, `popup=yes,width=${q.w},height=${q.h}${q.x != null ? `,left=${q.x},top=${q.y}` : ''}`);
+    const w = w0 || window.open('', 'bp_sr_' + key + '_' + rt.id, `popup=yes,width=${q.w},height=${q.h}${q.x != null ? `,left=${q.x},top=${q.y}` : ''}`);
     if (!w) { if (window.toast) window.toast('Das Fenster wurde vom Browser blockiert – bitte Pop-ups für diese Seite erlauben.', true); return; }
     const d = w.document; d.open(); d.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><base href="${esc(document.baseURI)}"><title>${esc(rt.titel)}</title></head><body><div class="sr-b"></div></body></html>`); d.close();
     eigenStil(w); EIGEN.set(key + '|' + rt.id, w); BP_FENSTER.add(w);
@@ -199,23 +209,23 @@
     w.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { if (w.closed) return; merk(`${key}.win.${rt.id}`, { w: w.outerWidth, h: w.outerHeight, x: w.screenX, y: w.screenY });
       if (Math.abs(w.innerWidth - breite) > 40) { breite = w.innerWidth; const x = AKTIV.get(key), a = x && x.reiter.find((y) => y.id === rt.id); if (a && a.neu) a.neu(); } }, 350); });
     w.addEventListener('pagehide', () => { try { merk(`${key}.win.${rt.id}`, { w: w.outerWidth, h: w.outerHeight, x: w.screenX, y: w.screenY }); } catch { /* egal */ }
-      EIGEN.delete(key + '|' + rt.id); BP_FENSTER.delete(w); setTimeout(() => nochmal(key), 0); });
+      nachPagehide(w, '.sr-b', () => { EIGEN.delete(key + '|' + rt.id); BP_FENSTER.delete(w); nochmal(key); }, () => eigenAuf(key, rt, w)); });
     merk(key + '.frei', lies(key + '.frei', []).filter((id) => id !== rt.id));
     nochmal(key); if (rt.neu) setTimeout(() => { if (!w.closed) rt.neu(); }, 400);
   }
   /* Beliebiger Inhalt in ein eigenes Browserfenster (21.11.2026, zuerst das 3D des Gebäudemodells) – dasselbe Fenster wie für einen Reiter:
-     Aussehen der Seite, Bedien-Ereignisse, gemerkte Größe/Lage. seiteFenster(id, titel, mount(el, w), zu?) → das Fenster (oder null, blockiert);
-     nachher(w) führt später geladene Stilblätter nach (seiteFenster.stil(w)). Schließt man es, ruft es zu(). */
-  function seiteFenster(id, titel, mount, zu) {
+     Aussehen der Seite, Bedien-Ereignisse, gemerkte Größe/Lage. seiteFenster(id, titel, mount(el, w, wieder), zu?) → das Fenster (oder null, blockiert);
+     nachher(w) führt später geladene Stilblätter nach (seiteFenster.stil(w)). Schließt man es, ruft es zu(); F5 im Fenster ruft mount erneut mit wieder = true. */
+  function seiteFenster(id, titel, mount, zu, w0) {
     const q = lies(`frei.win.${id}`, null) || { w: Math.min(1400, screen.availWidth - 80), h: Math.min(1000, screen.availHeight - 80) };
-    const w = window.open('', 'bp_fr_' + id, `popup=yes,width=${q.w},height=${q.h}${q.x != null ? `,left=${q.x},top=${q.y}` : ''}`);
+    const w = w0 || window.open('', 'bp_fr_' + id, `popup=yes,width=${q.w},height=${q.h}${q.x != null ? `,left=${q.x},top=${q.y}` : ''}`);
     if (!w) { if (window.toast) window.toast('Das Fenster wurde vom Browser blockiert – bitte Pop-ups für diese Seite erlauben.', true); return null; }
     const d = w.document; d.open(); d.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><base href="${esc(document.baseURI)}"><title>${esc(titel)}</title><style>html,body{height:100%;margin:0}.sr-fr{height:100%;display:flex;flex-direction:column}.sr-fr>*{flex:1;min-height:0}</style></head><body><div class="sr-fr"></div></body></html>`); d.close();
     eigenStil(w); BP_FENSTER.add(w); BP_HORCHER.forEach(([t, f, o]) => d.addEventListener(t, f, o));
     let t = 0; const merkLage = () => { try { merk(`frei.win.${id}`, { w: w.outerWidth, h: w.outerHeight, x: w.screenX, y: w.screenY }); } catch { /* egal */ } };
     w.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { if (!w.closed) merkLage(); }, 350); });
-    w.addEventListener('pagehide', () => { merkLage(); BP_FENSTER.delete(w); if (zu) setTimeout(zu, 0); });
-    mount(d.querySelector('.sr-fr'), w); eigenBlaetter(w);
+    w.addEventListener('pagehide', () => { merkLage(); nachPagehide(w, '.sr-fr', () => { BP_FENSTER.delete(w); if (zu) zu(); }, () => seiteFenster(id, titel, mount, zu, w)); });
+    mount(d.querySelector('.sr-fr'), w, !!w0); eigenBlaetter(w);
     return w;
   }
   seiteFenster.stil = (w) => { if (w && !w.closed) eigenBlaetter(w); };

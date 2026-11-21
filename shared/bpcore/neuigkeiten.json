@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-nav-2111",
+  "datum": "2026-11-21",
+  "app": "gebaeudemodell",
+  "titel": "Gebäudemodell: Ansichten links",
+  "text": "Links stehen jetzt Gebäude (3D, Tabelle), Räume (Raumliste, Grundriss) und Verknüpfungen – die Ansichtswahl oben ist weg. „Fragen & Anweisungen“ ist ein Reiter rechts. Die Heftzwecke oben rechts blendet Kopf und Befehlsleiste aus.",
+  "ziel": "#navL"
+ },
+ {
   "id": "gm-planung-2111",
   "datum": "2026-11-21",
   "app": "gebaeudemodell",

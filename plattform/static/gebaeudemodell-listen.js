@@ -1,7 +1,7 @@
 'use strict';
 /* Gebäudemodell – Listen aus dem Modell (GO 16.11.2026, Fragen 7 und 8): Fenster & Türen einzeln (Nummer, Art, Geschoss, Raum, Maße,
    Brüstung, Antwort und Aufbau der Zeile), Räume mit Boden, Wänden und Decke – als Reiter der Tabelle im Gebäude; ausgeführte Anweisungen
-   (zurücknehmen) auf der Seite „Fragen & Anweisungen“.
+   (zurücknehmen) im Reiter „Fragen“ rechts.
    Gemeinsame Namen mit gebaeudemodell.js (V, PID, zuBauteil, anweisung, leiste). Antippen springt in die Bauteile und markiert die Zeile. */
 const gmZahl = (v) => (v == null ? '–' : bpZahl(v, 0, 2));
 const GM_WORT = { offen: 'offen', bleibt: 'bleibt', instandsetzen: 'instandsetzen', erneuern: 'erneuern', neu: 'neu', abbruch: 'Abbruch', pruefen: 'prüfen lassen' };
@@ -81,7 +81,7 @@ async function gmListeZeichnen(art, fokus, L, C, an) {
     return fok();
   }
 }
-/* Ausgeführte Anweisungen (Seite „Fragen & Anweisungen“, Mock „Gebäudemodell schlank“) – zurücknehmen stellt die Zeilen wieder her */
+/* Ausgeführte Anweisungen (Reiter „Fragen“, Mock „Gebäudemodell schlank“) – zurücknehmen stellt die Zeilen wieder her */
 async function gmAnweisungen(box) {
   const D = await api(`api/bp/modell/${PID}`), A = (((D.modell || {}).bauteilliste) || {}).anweisungen || [];
   box.innerHTML = `<div class="gm-hin"><span>Anweisungen teilen die Zeilen der Bauteile auf (z. B. Böden im EG mit Mosaikparkett) und gelten auch für neue Planstände. Am einfachsten oben als Satz schreiben; zurücknehmen stellt die Zeilen wieder her.</span>
@@ -103,16 +103,18 @@ V.addEventListener('click', async (e) => {
     return;
   }
   const r = e.target.closest('tr[data-gmz]'); if (r && r.dataset.gmz && !e.target.closest('button')) return zuBauteil(r.dataset.gmz);
-  if (e.target.closest('[data-gmanw]')) return anweisung();
   if (e.target.closest('[data-gmtl]')) {
     try { const d = await api(`api/bp/modell/${PID}/elemente/aus_tuerliste`, 'POST'); toast(`${d.n} Fenster und Türen aus der Türliste ins Modell übernommen.`); await gmListe('fenster'); } catch (er) { toast(er.message, true); }
     return;
   }
+});
+async function gmAnwKlick(e) {   // Klicks im Reiter „Fragen“ (fragenSeite in gebaeudemodell.js): ＋ Anweisung, zurücknehmen
+  if (e.target.closest('[data-gmanw]')) return anweisung();
   const w = e.target.closest('[data-gmanwweg]'); if (!w) return;
   const a = w.dataset.gmanwweg;
   if (!(await bpFrage('Diese Anweisung zurücknehmen? Die Zeilen der Bauteile entstehen ohne sie neu.', { ok: 'Zurücknehmen' }))) return;
-  try { await api(`api/bp/modell/${PID}/anweisung/${a}`, 'DELETE'); toast('Anweisung zurückgenommen.'); await fragenSeite(); } catch (er) { toast(er.message, true); }
-});
+  try { await api(`api/bp/modell/${PID}/anweisung/${a}`, 'DELETE'); toast('Anweisung zurückgenommen.'); if (FA && FA.isConnected) await fragenSeite(FA); } catch (er) { toast(er.message, true); }
+}
 V.addEventListener('change', async (e) => {   // Name eines ermittelten Raums (die Geometrie kennt keine Namen)
   const i = e.target.closest('[data-gmrn]'); if (!i) return;
   const nr = i.dataset.gmrn, alt = i.defaultValue, neu = i.value.trim(); if (!neu || neu === alt) { i.value = alt; return; }

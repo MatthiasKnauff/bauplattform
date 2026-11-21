@@ -68,12 +68,13 @@ export async function gebaeudemodellPruefen(browser, repo) {
     const a = await p.evaluate(() => ({ nav: [...document.querySelectorAll('#navL [data-pl]')].map((x) => x.textContent.trim()), bf: [...document.querySelectorAll('#bfl .bf-gt')].map((x) => x.textContent.trim()),
       kn: [...document.querySelectorAll('#bfl button')].map((x) => x.textContent.trim()), reiter: [...document.querySelectorAll('#view .gm-tr [role=tab]')].map((x) => x.textContent.trim()),
       tabs: [...document.querySelectorAll('.sr-tab')].map((x) => x.textContent.trim()), quer: document.documentElement.scrollWidth > innerWidth + 1, vm: !!document.querySelector('.gm-vm *') }));
-    // GO 20.11.2026 (Mock „Gebäudemodell schlank“): drei Punkte links, Leiste nur Rückgängig · Planstand · Ansicht, Reiter über der Tabelle
-    pruef(a.nav.join('|') === 'Gebäude|Fragen & Anweisungen|Verknüpfungen', `Navigation: ${a.nav.join('|')}`);
-    pruef(a.bf.includes('Planstand') && a.bf.includes('Ansicht') && !['Neu', 'KI', 'Ausgabe', 'Teilen'].some((g) => a.bf.includes(g)), `Befehlsleiste: ${a.bf.join('|')}`);
-    pruef(['3D', 'Grundriss', 'Tabelle'].every((t) => a.kn.some((k) => k.endsWith(t))) && !a.kn.some((k) => /Details|Aufräumen|entfallene/.test(k)), `Knöpfe: ${a.kn.join('|')}`);
-    pruef(a.reiter.join('|') === 'Bauteile|Räume|Fenster & Türen', `Reiter über der Tabelle: ${a.reiter.join('|')}`);
-    pruef(a.tabs.join('|') === 'Bauteil|Planung', `Reiter rechts: ${a.tabs.join('|')}`);
+    // 21.11.2026: links Gebäude › 3D · Tabelle, Räume › Raumliste · Grundriss, Verknüpfungen; Leiste nur Rückgängig · Planstand (+ Heftzwecke); Fragen rechts
+    pruef(a.nav.join('|') === '3D|Tabelle|Raumliste|Grundriss|Verknüpfungen', `Navigation: ${a.nav.join('|')}`);
+    pruef(a.bf.includes('Planstand') && !a.bf.includes('Ansicht') && !['Neu', 'KI', 'Ausgabe', 'Teilen'].some((g) => a.bf.includes(g)), `Befehlsleiste: ${a.bf.join('|')}`);
+    pruef(!['3D', 'Grundriss', 'Tabelle'].some((t) => a.kn.some((k) => k.endsWith(t))) && !a.kn.some((k) => /Details|Aufräumen|entfallene/.test(k)), `Knöpfe: ${a.kn.join('|')}`);
+    pruef(a.reiter.join('|') === 'Bauteile|Fenster & Türen', `Reiter über der Tabelle: ${a.reiter.join('|')}`);
+    pruef(a.tabs.join('|') === 'Bauteil|Fragen|Planung', `Reiter rechts: ${a.tabs.join('|')}`);
+    pruef(await p.evaluate(() => !!document.querySelector('.bf-heftz .bf-heft')), 'Heftzwecke über dem Gebäudemodell');
     pruef(a.vm, 'Versionsmenü der Planstände in der Navigation fehlt');
     pruef(!a.quer, 'waagerechter Scrollbalken');
     await p.click('tr[data-btz="raum:boden:trocken"] td.baumz'); await p.waitForSelector('.sr-r [data-btz="raum:boden:trocken"] [data-btst="erneuern"]');
@@ -103,22 +104,24 @@ export async function gebaeudemodellPruefen(browser, repo) {
       await p.click('.sr-r .bt-mwe [data-btvl="353.02"]'); await p.waitForTimeout(500);
       pruef(S.zeile.filter((b) => b.vorlage === '353.02').map((b) => b.id).sort().join() === 'raum:boden:nass,raum:boden:trocken', `Aufbau im Editor gilt für alle Gewählten: ${JSON.stringify(S.zeile)}`);
       await p.click('.bt-mwl [data-btmwweg]').catch(() => {}); S.zwei = false; S.zeile = []; await zu('bauteile'); }
-    {   // 21.11.2026: Räume, Fenster & Türen sind Reiter derselben Seite – rechts bleibt alles stehen (kein „Planungsassistent wird geladen“)
-      await zu('bauteile'); await p.waitForSelector('#view [data-gmtr="raeume"]');
+    {   // 21.11.2026: Raumliste (links), Fenster & Türen (Reiter) in derselben Seite – rechts bleibt alles stehen (kein „Planungsassistent wird geladen“)
+      await zu('bauteile'); await p.waitForSelector('#view [data-gmtr="fenster"]');
       await p.evaluate(() => { window.RECHTS = document.querySelector('#work .sr-r'); });
-      await p.click('#view [data-gmtr="raeume"]'); await p.waitForSelector('#view .gm-li tr[data-gmz]');
+      await p.click('#navL [data-pl="rliste"]'); await p.waitForSelector('#view .gm-li tr[data-gmz]');
       pruef(await p.evaluate(() => document.querySelector('#view .gm-tabi').hidden && !document.querySelector('#view .gm-li').hidden && document.querySelector('#work .sr-r') === window.RECHTS
-        && [...document.querySelectorAll('.sr-tab')].map((x) => x.textContent.trim()).join('|') === 'Bauteil|Planung'), 'Reiter „Räume“: Liste in derselben Seite, rechts unverändert');
+        && [...document.querySelectorAll('.sr-tab')].map((x) => x.textContent.trim()).join('|') === 'Bauteil|Fragen|Planung' && document.querySelector('#navL [data-pl="rliste"]').classList.contains('on')), 'Raumliste: in derselben Seite, rechts unverändert, links markiert');
+      await p.click('#navL [data-pl="rgr"]'); await p.waitForTimeout(300);
+      pruef(await p.evaluate(() => !document.querySelector('#view .gm-gr').hidden && document.querySelector('#navL [data-pl="rgr"]').classList.contains('on')), 'Grundriss unter „Räume“');
+      await p.click('#navL [data-pl="gtab"]'); await p.waitForSelector('#view [data-gmtr="fenster"]');
       await p.click('#view [data-gmtr="fenster"]'); await p.waitForSelector('#view .gm-li tr[data-gmz]');
       pruef(await p.evaluate(() => document.querySelector('#work .sr-r') === window.RECHTS && !/Planungsassistent wird geladen/.test(document.querySelector('#work').textContent)), 'Wechsel Räume → Fenster lädt rechts nicht neu');
       // angesehener Planstand, der nicht gilt: Räume, 3D und Grundriss bleiben bei ihm, nur zum Ansehen
-      await p.evaluate(() => BT.ansehen(2)); await p.click('#view [data-gmtr="raeume"]'); await p.waitForSelector('#view .gm-li .gm-ansehen', { timeout: 6000 });
+      await p.evaluate(() => BT.ansehen(2)); await p.click('#navL [data-pl="rliste"]'); await p.waitForSelector('#view .gm-li .gm-ansehen', { timeout: 6000 });
       pruef(await p.evaluate(() => /Altbau/.test(document.querySelector('#view .gm-li').textContent) && !/Wohnen/.test(document.querySelector('#view .gm-li').textContent)
         && [...document.querySelectorAll('#view .gm-li input')].every((x) => x.disabled)), 'angesehener Planstand: Räume aus ihm, nur zum Ansehen');
-      pruef(await p.evaluate(() => { const b = [...document.querySelectorAll('#bfl button')].find((x) => /3D$/.test(x.textContent.trim())); return b && !b.disabled; }), '3D beim Ansehen nicht gesperrt');
-      S.netzUrl = ''; await p.evaluate(() => mitteWahl('3d')); await p.waitForTimeout(600);
+      S.netzUrl = ''; await p.click('#navL [data-pl="g3d"]'); await p.waitForTimeout(600);
       pruef(/planstand=2/.test(S.netzUrl || ''), `3D zeigt den angesehenen Planstand: ${S.netzUrl}`);
-      await p.evaluate(() => mitteWahl('tabelle')); await p.waitForSelector('#view [data-gman="zurueck"]');
+      await p.click('#navL [data-pl="rliste"]'); await p.waitForSelector('#view [data-gman="zurueck"]');
       await p.click('#view [data-gman="zurueck"]'); await p.waitForFunction(() => /Wohnen/.test((document.querySelector('#view .gm-li') || {}).textContent || ''), null, { timeout: 6000 }).catch(() => {});
       pruef(await p.evaluate(() => /Wohnen/.test(document.querySelector('#view .gm-li').textContent) && !document.querySelector('#view .gm-ansehen')), '„Zurück zum gültigen“: wieder die Räume des gültigen Planstands');
       await zu('bauteile');
@@ -130,21 +133,21 @@ export async function gebaeudemodellPruefen(browser, repo) {
       await zu('bauteile');
     }
     // Fragen & Anweisungen: Anweisung mit Vorschau, Rückfrage (Katalog), anwenden – ausgeführt in der Liste darunter; Rückgängig nimmt sie zurück
-    await p.click('#navL [data-pl="fragen"]'); await p.waitForSelector('#view [data-gmanw]', { timeout: 8000 });
-    pruef(await p.evaluate(() => !!document.querySelector('#view [data-gmluecken]') && !document.querySelectorAll('#bfl .bf-gt').length || ![...document.querySelectorAll('#bfl .bf-gt')].some((x) => /KI/.test(x.textContent))), 'Fragen & Anweisungen: „KI: Lücken füllen“ auf der Seite, keine KI-Gruppe in der Leiste');
-    await p.click('#view [data-gmluecken]'); await p.waitForSelector('#view [data-gmvs]', { timeout: 6000 });
+    await p.evaluate(() => seiteReiter('gm', 'fragen')); await p.waitForSelector('.sr-r [data-gmanw]', { timeout: 8000 });
+    pruef(await p.evaluate(() => !!document.querySelector('.sr-r [data-gmluecken]') && ![...document.querySelectorAll('#bfl .bf-gt')].some((x) => /KI/.test(x.textContent))), 'Fragen & Anweisungen: Reiter rechts mit „KI: Lücken füllen“, keine KI-Gruppe in der Leiste');
+    await p.click('.sr-r [data-gmluecken]'); await p.waitForSelector('.sr-r [data-gmvs]', { timeout: 6000 });
     pruef(S.verf && S.verf.ki && S.verf.was.includes('luecken'), `Lücken füllen mit einem Klick: ${JSON.stringify(S.verf)}`);
-    await p.click('#view [data-gmanw]');
+    await p.click('.sr-r [data-gmanw]');
     await p.waitForSelector('[data-awt]'); await p.fill('[data-awt]', 'Alle Räume im EG Mosaikparkett geölt'); await p.click('[data-m="verstehen"]');
     await p.waitForSelector('[data-m="k:0:0"]');
     pruef(await p.evaluate(() => document.querySelector('[data-m="ok"]').disabled), 'Anwenden vor der Wahl im Katalog darf nicht gehen');
-    await p.click('[data-m="k:0:0"]'); await p.click('[data-m="ok"]'); await p.waitForSelector('#view [data-gmanwweg="a1"]', { timeout: 6000 });
+    await p.click('[data-m="k:0:0"]'); await p.click('[data-m="ok"]'); await p.waitForSelector('.sr-r [data-gmanwweg="a1"]', { timeout: 6000 });
     pruef(S.anwB && S.anwB.schritte[0].treffer.vorlage === '353.02', `Anwenden mit Treffer: ${JSON.stringify(S.anwB)}`);
     await p.keyboard.press('Control+z'); await p.waitForTimeout(400);
     pruef(S.weg === 1, 'Rückgängig nimmt die Anweisung zurück');
     // Fenster & Türen, Räume – Reiter über der Tabelle (B1, C1)
     await zu('bauteile'); await p.waitForSelector('#view [data-gmtr="fenster"]'); await p.click('#view [data-gmtr="fenster"]'); await p.waitForSelector('#view tr[data-gmz]');
-    pruef(await p.evaluate(() => /F 01/.test(document.querySelector('#view').textContent) && /1,26/.test(document.querySelector('#view').textContent) && document.querySelector('#navL [data-pl="gebaeude"]').classList.contains('on')), 'Fenster & Türen: Nummer, Maße; links bleibt „Gebäude“ gewählt');
+    pruef(await p.evaluate(() => /F 01/.test(document.querySelector('#view').textContent) && /1,26/.test(document.querySelector('#view').textContent) && document.querySelector('#navL [data-pl="gtab"]').classList.contains('on')), 'Fenster & Türen: Nummer, Maße; links bleibt „Tabelle“ gewählt');
     await p.click('#view tr[data-gmz="f"]'); await p.waitForSelector('table.bt-baum tr.akt[data-btz="f"]');
     await zu('raeume'); await p.waitForSelector('#view tr[data-gmz]');
     pruef(await p.evaluate(() => /Wohnen/.test(document.querySelector('#view').textContent)), 'Räume');
@@ -205,7 +208,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
     }
     // Grundriss (A1, Räume annehmen): Fläche ohne Raum gelb, Klick nimmt sie als Raum an (Ergänzung neben dem Plan)
     { S.plusPut = null;
-      await p.evaluate(() => [...document.querySelectorAll('#bfl button')].find((b) => /Grundriss/.test(b.textContent)).click()); await p.waitForSelector('#view .gr-f.frei', { timeout: 8000 });
+      await p.click('#navL [data-pl="rgr"]'); await p.waitForSelector('#view .gr-f.frei', { timeout: 8000 });
       pruef(await p.evaluate(() => !!document.querySelector('#view .gr-w') && document.querySelectorAll('#view .gr-f').length === 2 && /Wohnen/.test(document.querySelector('#view .gr-b').textContent)), 'Grundriss: Wände und zwei Flächen, eine mit Raum aus dem Plan');
       await p.click('#view .gr-f.frei'); await p.waitForSelector('.bph-frage-in'); await p.fill('.bph-frage-in', 'Abstellraum'); await p.click('.bph-frage [data-f="ja"]'); await p.waitForTimeout(400);
       pruef(S.plusPut && S.plusPut.raeume && S.plusPut.raeume[0].name === 'Abstellraum' && S.plusPut.raeume[0].flaeche === 4.5, `Fläche als Raum angenommen: ${JSON.stringify(S.plusPut)}`); S.plus = null; }
@@ -229,7 +232,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
       { const d = await p.evaluate(() => { const l = document.querySelector('.b3-l').getBoundingClientRect(), b = document.querySelector('.b3-l [data-b3dar]').getBoundingClientRect(), x = document.querySelector('.b3-dar').getBoundingClientRect(), c = document.querySelector('.b3 canvas').getBoundingClientRect();
           return { rechts: l.right - b.right < 4, unter: x.top >= b.bottom - 1, buendig: Math.abs(x.right - b.right) < 4, hoehe: c.bottom > document.querySelector('#view').getBoundingClientRect().bottom - 30 }; });
         pruef(d.rechts && d.unter && d.buendig && d.hoehe, `„Darstellung ▾“ ganz rechts, klappt darunter auf; 3D bis unten: ${JSON.stringify(d)}`); }
-      await p.evaluate(() => [...document.querySelectorAll('#bfl button')].find((b) => /Tabelle/.test(b.textContent)).click()); await p.waitForSelector('table.bt-baum', { timeout: 4000 });
+      await p.click('#navL [data-pl="gtab"]'); await p.waitForSelector('table.bt-baum', { timeout: 4000 });
       pruef(await p.evaluate(() => !!document.querySelector('#view .gm-d3[hidden]')), 'Umschalten auf die Tabelle'); }
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n').slice(0, 3).join(' ')); }
   await p.close();

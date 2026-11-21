@@ -214,8 +214,9 @@
         + sec('Baubeginn', 'start', schrittHtml('start')) + sec('Leistungen', 'lst', lstHtml()) + sec('Was daraus entsteht', 'fertig', schrittHtml('fertig'));
     }
     function zeig() {
-      const gm = (((window.BPHead && BPHead.conf) || {}).apps || []).find((a) => a.key === 'gebaeudemodell'), hier = location.pathname.split('/').filter(Boolean)[0] === 'gebaeudemodell';
-      const umsch = `<div class="pa-um" role="group" aria-label="Ansicht"><button type="button" data-pasicht="schritt" class="${Z.sicht === 'schritt' ? 'on' : ''}">Schritt für Schritt</button><button type="button" data-pasicht="alles" class="${Z.sicht === 'alles' ? 'on' : ''}">Alles auf einer Seite</button><button type="button" data-pasicht="baukasten" class="${Z.sicht === 'baukasten' ? 'on' : ''}" title="Dasselbe Gebäude per Klick und Ziehen – füllt dieselben Angaben">Baukasten</button></div>`
+      const gm = (((window.BPHead && BPHead.conf) || {}).apps || []).find((a) => a.key === 'gebaeudemodell'), hier = (window.BPHead && BPHead.app === 'gebaeudemodell') || location.pathname.split('/').filter(Boolean)[0] === 'gebaeudemodell';
+      if (hier && Z.sicht === 'baukasten') Z.sicht = 'schritt';   // im Gebäudemodell steht der Baukasten groß in der Mitte – nicht noch einmal hier (21.11.2026)
+      const umsch = `<div class="pa-um" role="group" aria-label="Ansicht"><button type="button" data-pasicht="schritt" class="${Z.sicht === 'schritt' ? 'on' : ''}">Schritt für Schritt</button><button type="button" data-pasicht="alles" class="${Z.sicht === 'alles' ? 'on' : ''}">Alles auf einer Seite</button>${hier ? '' : `<button type="button" data-pasicht="baukasten" class="${Z.sicht === 'baukasten' ? 'on' : ''}" title="Dasselbe Gebäude per Klick und Ziehen – füllt dieselben Angaben">Baukasten</button>`}</div>`
         + (gm && !hier && window.BPHead.appUrl ? `<a class="btn sm pa-gm" href="${esc(BPHead.appUrl(gm))}/" title="Bauteile, Verknüpfungen und Fragen zum Projekt – im Gebäudemodell">↗ Gebäudemodell</a>` : '');   // RR (18.11.2026): überall ein Knopf ins Gebäudemodell
       if (Z.sicht === 'baukasten') {   // A3: Fragen ⇄ Baukasten – beide füllen dieselben Angaben (bp/gebaeudekasten.js)
         el.innerHTML = `<div class="pa pa-bk">${umsch}<div data-pabk><p class="pa-h">Gebäude-Baukasten wird geladen …</p></div></div>`;

@@ -50,6 +50,7 @@ export async function baukastenPruefen(browser, repo) {
     pruef(!!w, 'Wand liegt im Bild');
     await p.mouse.click(w[0], w[1]); await p.waitForTimeout(250);
     pruef(await p.evaluate(() => /Außenwand/.test(document.querySelector('[data-bk="detail"]').textContent)), `Klick auf eine Wand zeigt rechts die Außenwand: ${await p.evaluate(() => document.querySelector('[data-bk="detail"]').textContent.slice(0, 80))}`);
+    pruef(await p.evaluate(() => { const d = document.querySelector('[data-bk="detail"]'); return !d.querySelector('[data-boden]') && !/Boden|Kellersohle/.test(d.textContent); }), 'Wand gewählt: rechts steht nur die Wand, nicht der Boden des Geschosses (21.11.2026)');
     pruef(await p.evaluate(() => !document.querySelector('[data-bk="palk"]').classList.contains('zu')), '„Hineinziehen“ bleibt beim Bearbeiten offen (21.11.2026)');
     await p.click('[data-bk="palzu"]');
     pruef(await p.evaluate(() => document.querySelector('[data-bk="palk"]').classList.contains('zu') && localStorage.getItem('bp.bk.pal') === 'zu'), 'der Knopf klappt die Symbolreihe zu, gemerkt');
@@ -135,7 +136,7 @@ export async function baukastenPruefen(browser, repo) {
       await p.waitForFunction(() => window.BKH.d3 && document.querySelector('#h .b3 canvas'), null, { timeout: 8000 }); await p.waitForTimeout(250);
       const w2 = await punkt([5, 0, 1.45]); await p.mouse.click(w2[0], w2[1]); await p.waitForTimeout(250);
       const e = await p.evaluate(() => ({ sel: document.querySelectorAll('#rechts [data-bk="detail"] select').length, k: !!document.querySelector('#rechts [data-bk="korb"]'), st: !!document.querySelector('#rechts [data-bk="stand"]'), b: document.querySelectorAll('#rechts [data-bkeig]').length }));
-      pruef(!e.k && e.st && e.b >= 2, `ohne Korb, Stand rechts, „Aufbau …“-Knöpfe: ${JSON.stringify(e)}`);
+      pruef(!e.k && e.st && e.b === 1, `ohne Korb, Stand rechts, ein „Aufbau …“-Knopf für die gewählte Wand: ${JSON.stringify(e)}`);
       await p.click('#rechts [data-bkeig]'); await p.waitForTimeout(100);
       const ids = await p.evaluate(() => window.__eig);
       pruef(ids.length === 1 && ids[0].length >= 1 && ids[0].every((i) => i >= 9600000), `„Aufbau …“ meldet die Nummern der Wand: ${JSON.stringify(ids)}`);

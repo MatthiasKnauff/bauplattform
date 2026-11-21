@@ -497,9 +497,9 @@
           ${k.z > 0 && SEL.art === 'koerper' ? `<div class="chips"><button type="button" data-staffel="0" aria-pressed="${!k.staffel}">Vollgeschoss</button><button type="button" data-staffel="1" aria-pressed="${!!k.staffel}">Staffelgeschoss</button></div>` : ''}
           <div class="reihe"><label class="feld">Länge m<input type="number" step="0.5" min="2" value="${k.w}" data-mass="w"></label><label class="feld">Breite m<input type="number" step="0.5" min="2" value="${k.d}" data-mass="d"></label><label class="feld">Höhe m<input type="number" step="0.1" min="2" value="${k.h}" data-mass="h"></label></div>
           ${OPT.eigenschaften ? eigKurz(`Außenwand${SEL.art === 'wand' ? ' – diese Seite' : 'e'}`, Wd, idsVon(SEL.art === 'wand' ? SEL : { art: 'wand', id: k.id, seite: 'ym' }), dickeTxt(wid, DICKE.wand) + pruef(Wd[2], UMAX.wand))
-            + eigKurz(k.z < 0 ? 'Kellersohle' : 'Boden', aufbau(k.boden), [ID0 + M.koerper.indexOf(k) * 20 + 5], '')
+            + (SEL.art === 'koerper' ? eigKurz(k.z < 0 ? 'Kellersohle' : 'Boden', aufbau(k.boden), [ID0 + M.koerper.indexOf(k) * 20 + 5], '') : '')   // eine Wand gewählt: nur die Wand (21.11.2026 – der Boden des Geschosses stand mit da)
           : `<label class="feld">Aufbau Außenwand${SEL.art === 'wand' ? ' – diese Seite' : ''}<select data-wand>${optK('wand', Wd[0])}</select></label>${verkn(Wd[0])}${dickeTxt(wid, DICKE.wand)}<div>${pruef(Wd[2], UMAX.wand)}</div>
-          <label class="feld">${k.z < 0 ? 'Kellersohle' : 'Boden'}<select data-boden>${optK('boden', k.boden)}</select></label>`}`; return; }
+          ${SEL.art === 'koerper' ? `<label class="feld">${k.z < 0 ? 'Kellersohle' : 'Boden'}<select data-boden>${optK('boden', k.boden)}</select></label>` : ''}`}`; return; }
       if (SEL.art === 'dach') { const k = kz(SEL.id), D = M.dach[SEL.id]; if (!k || !D) { SEL = null; return detail(); }
         const i = flNr(SEL), af = i == null ? D.aufbau : flAuf(SEL.id, i), A = aufbau(af), nF = DFL[D.form].length;
         el.innerHTML = `<h2>${i == null ? 'Dach' : `Dachfläche${nF > 1 ? ' ' + (i + 1) + ' von ' + nF : ''}`}</h2><dl class="w"><dt>Teil</dt><dd>${esc(M.teile[k.teil] || '')}</dd><dt>auf</dt><dd>${esc(k.name)}</dd></dl>

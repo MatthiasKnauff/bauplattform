@@ -249,6 +249,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Baukasten: Wand angeklickt → rechts nur die Wand (vorher stand der Boden des Geschosses mit da)~~ (21.11.2026)
 - ~~Gebäudemodell: „Neuer Planstand – mit der Planung/dem Baukasten“ legt nur noch einen Planstand an (vorher zwei: die Mitte wurde zweimal gleichzeitig aufgebaut, beide Baukästen speicherten als neu)~~ (21.11.2026)
 - ~~Baudaten: Leistungsbereiche links springen beim Anklicken nicht mehr (Handy), „oft geöffnet“ tauscht nicht mehr bei jedem Klick die Plätze~~ (21.11.2026)
 - ~~Ausschreibung: Fenster „Eigenschaften: Position“ ist in jedem Reiter gleich groß (sprang zwischen Allgemein, Weiteres, Menge, Grafik)~~ (21.11.2026)

@@ -61,6 +61,26 @@ def test_planung_folgt_ins_3d():
            "Planung: Anbau entfernt, Aufstockung oben drauf, das Dach wandert mit")
 
 
+def test_staffel_planung_3d():
+    """PL-E1 (21.11.2026): Staffelgeschoss in beide Richtungen – Baukasten → Planung (dg, Vollgeschosse ohne Staffel) und Planung → Baukasten."""
+    import copy
+    K = [{"id": "k1", "teil": "h", "x": 0, "y": 0, "z": 0, "w": 10, "d": 8, "h": 2.9}, {"id": "k2", "teil": "h", "x": 0, "y": 0, "z": 2.9, "w": 10, "d": 8, "h": 2.8}]
+    bk = BK.sauber({"koerper": K, "dach": {"k2": {"form": "flach"}}})
+    a = {"type": "k:ef:nb:", "choice": {}, "floors": 2, "dg": "staffel"}
+    b2 = BK.abgleich(copy.deepcopy(bk), {"assistent": a})
+    S = [k for k in b2["koerper"] if k.get("staffel")]
+    pruefe(len(S) == 1 and S[0]["z"] == 5.7 and S[0]["w"] == 7.5 and b2["dach"][S[0]["id"]]["form"] == "flach" and "k2" not in b2["dach"], "Planung → 3D: Staffelgeschoss oben, zurückgesetzt, Flachdach, darunter Terrasse")
+    a2 = BK.ins_assistent({"type": "k:ef:nb:", "choice": {}, "floors": 1}, b2)
+    gleich((a2["floors"], a2["dg"]), (2, "staffel"), "3D → Planung: zwei Vollgeschosse und Staffelgeschoss")
+    b3 = BK.abgleich(copy.deepcopy(b2), {"assistent": dict(a2, floors=3)})
+    gleich(sorted((k["z"], bool(k.get("staffel"))) for k in b3["koerper"]), [(0, False), (2.9, False), (5.7, False), (8.5, True)], "drittes Vollgeschoss: Staffel rückt nach oben")
+    b4 = BK.abgleich(copy.deepcopy(b2), {"assistent": dict(a2, dg="kalt")})
+    pruefe(any(k.get("staffel") for k in b4["koerper"]), "ältere Stände (ohne pl): Planung entfernt kein Staffelgeschoss")
+    b2["pl"] = 1
+    b5 = BK.abgleich(copy.deepcopy(b2), {"assistent": dict(a2, dg="kalt", choice={"dachform": "sattel"})})
+    pruefe(not any(k.get("staffel") for k in b5["koerper"]) and b5["dach"].get("k2", {}).get("form") == "sattel", "Planung „nichts“: Staffel weg, Dach wieder auf dem obersten Vollgeschoss")
+
+
 def test_fenster_aus_dem_3d():
     """21.11.2026 „nur was im 3D ist“: Fenster und Türen des Baukastens werden Elemente mit der Nummer des Netzes, Geschoss als Kurzname."""
     K = [{"id": "k0", "teil": "h", "x": 0, "y": 0, "z": -2.6, "w": 10, "d": 8, "h": 2.6}, {"id": "k1", "teil": "h", "x": 0, "y": 0, "z": 0, "w": 10, "d": 8, "h": 2.9},

@@ -66,7 +66,7 @@
 .vk-vl{display:flex;flex-direction:column;gap:.15rem;max-height:12rem;overflow:auto}
 .vk-vl button{display:flex;justify-content:space-between;gap:.6rem;border:0;background:none;padding:.2rem .4rem;border-radius:5px;text-align:left}
 .vk-vl button.on{background:color-mix(in srgb,var(--y,#2f6fb3) 13%,transparent);font-weight:600}.vk-vl small{opacity:.65;white-space:nowrap}
-.vk-h{border-top:1px solid var(--line,#d5d9de);padding-top:.5rem;display:flex;flex-direction:column;gap:.3rem}.vk-h small{opacity:.75}.vk-h .vk-grp{display:flex;gap:.35rem;flex-wrap:wrap}
+.vk-h{border-top:1px solid var(--line,#d5d9de);padding-top:.5rem;display:flex;flex-direction:column;gap:.3rem}.vk-h small{opacity:.75}.vk-h.vk-blink{box-shadow:inset 3px 0 0 var(--red,#c62f2a);padding-left:.5rem}.vk-h .vk-grp{display:flex;gap:.35rem;flex-wrap:wrap}
 .vk-n{font-size:.8rem;opacity:.75;margin:0}
 .vk-opt{display:flex;gap:.5rem;align-items:flex-start;border:1px solid var(--line,#d5d9de);border-radius:calc(8px*var(--rk,1));padding:.45rem .6rem;cursor:pointer}.vk-opt small{opacity:.75}
 .vk-wl{display:flex;flex-direction:column;gap:.3rem;margin:.6rem 0;max-height:50vh;overflow:auto}.vk-vlg{max-height:60vh;overflow:auto;display:flex;flex-direction:column;gap:.25rem;margin:.6rem 0}
@@ -171,7 +171,13 @@
         <aside class="vk-det">${feld()}</aside></div>`;
       pfeile();
       const l = Z.app && link(Z.app);
-      if (l && l.offen && !Z.hin[l.app]) J(`${basis}/hinweise?app=${l.app}`).then((h) => { Z.hin[l.app] = h; if (Z.app === l.app && el.isConnected) { const d = el.querySelector('.vk-det'); if (d) d.innerHTML = feld(); } }, () => {});
+      if (l && l.offen && !Z.hin[l.app]) J(`${basis}/hinweise?app=${l.app}`).then((h) => { Z.hin[l.app] = h; if (Z.app === l.app && el.isConnected) { const d = el.querySelector('.vk-det'); if (d) d.innerHTML = feld(); zuHin(); } }, () => {});
+      else zuHin();
+    }
+    /* aus der Planung über die rote Zahl gekommen (Mock „Planung aufräumen“ F, 21.11.2026): gleich zu den wartenden Änderungen rollen */
+    function zuHin() {
+      if (!Z.zuHin) return; const h = el.querySelector('.vk-det .vk-h'); if (!h) return; Z.zuHin = false;
+      h.scrollIntoView({ block: 'center' }); el.querySelectorAll('.vk-det .vk-h').forEach((x) => x.classList.add('vk-blink'));
     }
 
     /* Pfeile: aus der Lage der Kisten gerechnet; A → B blau, B → App grün/lila, Wärmeschutz in beide Richtungen; getrennt gestrichelt grau */
@@ -247,7 +253,7 @@
     el.onkeydown = (e) => { const box = e.target.closest && e.target.closest('.vk-k[data-app]'); if (box && e.target === box && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); box.click(); } };
     if (window.ResizeObserver) { let b0 = 0; new ResizeObserver(() => { if (!el.isConnected || !Z.D) return; const b = el.clientWidth; if (b !== b0) { b0 = b; pfeile(); } }).observe(el); }
     const api = { neu: () => J(basis).then((r) => { Z.D = r; Z.hin = {}; zeichne(); }) };
-    J(basis).then((r) => { Z.D = r; const ziel = window.bpKarteZiel && link(window.bpKarteZiel), o = (r.links || []).find((x) => x.offen && (C.some((c) => c[0] === x.app) || ABSEITS.some((c) => c[0] === x.app))); window.bpKarteZiel = null;
+    J(basis).then((r) => { Z.D = r; Z.zuHin = !!window.bpKarteHin; window.bpKarteHin = false; const ziel = window.bpKarteZiel && link(window.bpKarteZiel), o = (r.links || []).find((x) => x.offen && (C.some((c) => c[0] === x.app) || ABSEITS.some((c) => c[0] === x.app))); window.bpKarteZiel = null;
       Z.app = ziel ? ziel.app : o ? o.app : null; zeichne(); }, (e) => { el.innerHTML = `<p class="vk-n">${esc(e.message)}</p>`; });
     return api;
   }

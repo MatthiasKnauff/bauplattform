@@ -1,5 +1,13 @@
 [
  {
+  "id": "planung-aufgeraeumt-2111",
+  "datum": "2026-11-21",
+  "app": "gebaeudemodell",
+  "titel": "Planung aufgeräumt",
+  "text": "In der Planung lässt sich alles zurücksetzen. Jeder Gebäudeteil ist ein zuklappbarer Block; Anbauten übernehmen Dach, Fassade und Fenster des Hauptgebäudes (blau) – geänderte Werte stehen gelb mit ↺. Ein Staffelgeschoss geht je Teil und erscheint gleich im 3D. „Leistungen“ stehen nur noch im Bauzeitenplan. Im letzten Schritt führt die rote Zahl direkt zu den wartenden Änderungen.",
+  "ziel": ""
+ },
+ {
   "id": "fenster-aus-3d-2111",
   "datum": "2026-11-21",
   "app": "gebaeudemodell",

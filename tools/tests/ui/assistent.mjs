@@ -13,7 +13,7 @@ export async function assistentPruefen(browser, repo) {
   const fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
   const SEITE = (pid) => `<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/bp/bp.css"><link rel="stylesheet" href="/bp/head.css"><body>
     <div id="work" style="display:grid;margin-bottom:40px"><section>Tabelle</section></div><div id="ohne" style="display:grid"><section>ohne Projektbezug</section></div>
-    <script>window.BP_HEAD_BASIS = ['/bp/', '']; window.BPHead = { projektId: () => ${pid} };</script>${ESC}<script src="/bp/seite.js"></script>
+    <script>window.BP_HEAD_BASIS = ['/bp/', '']; window.BPHead = { projektId: () => ${pid} };</script>${ESC}<script src="/bp/bp.js"></script><script src="/bp/seite.js"></script>
     <script>seite(document.getElementById('work'), 'ba', [{ id: 'pdf', titel: 'PDF', mount: (el) => { el.textContent = 'PDF'; } }], { start: 'pdf' });
       seite(document.getElementById('ohne'), 'bt', [{ id: 'kal', titel: 'Kalender', mount: (el) => { el.textContent = 'K'; } }]);</script>`;
   const LINKS = [{ app: 'termine', name: 'Termine', richtung: 'beide', uebernahme: 'uebernahme', zustand: 'lebendig' }, { app: 'kosten', name: 'Kosten', richtung: 'zur_app', uebernahme: 'auto', zustand: 'lebendig' }];
@@ -47,6 +47,7 @@ export async function assistentPruefen(browser, repo) {
     pruef(tabs.join('|') === 'PDF|Planung|Baukasten|Fragen und Antworten', `Bauantrag: nur „Planung“ hinter den Reitern der App – Bauteile nur in Kosten/LV/Wärmeschutz, Verknüpfungen nur im Gebäudemodell (RR-A1): ${tabs.join('|')}`);
     pruef(!(await p.$('#ohne .sr-tab[data-srt="planung"]')), 'Reiter „Planung“ im Bautagebuch (dort ohne Sinn, 17.11.2026)');
     pruef(!S.geladen.includes('assistent.js') && !S.geladen.includes('plankatalog.js'), 'Assistent oder Katalog werden schon beim Öffnen der App geladen');
+    await p.evaluate(() => { BPHead.app = 'gantt'; });   // PL-B1: „Leistungen“ nur im Bauzeitenplan – dieser Durchlauf spielt dort
     await p.click('#work .sr-tab[data-srt="planung"]'); await p.waitForSelector('#work .pa[data-pa-schritt]');
     pruef(await schritt(p) === 'plaene', 'leeres Modell beginnt nicht mit „Pläne einlesen“');
     await p.click('#work .pa-nav .btn.primary'); pruef(await schritt(p) === 'type', '„Überspringen“ führt nicht zu „Was wird gebaut?“');
@@ -119,9 +120,9 @@ export async function assistentPruefen(browser, repo) {
     pruef(await p.evaluate(() => !!document.querySelector('#work [data-pasicht="baukasten"]')), 'Schalter „Baukasten“ fehlt außerhalb des Gebäudemodells');
     await p.evaluate(() => { BPHead.app = 'gebaeudemodell'; document.querySelector('#work [data-pasicht="alles"]').click(); });   // im Gebäudemodell steht der Baukasten in der Mitte (21.11.2026)
     pruef(await p.evaluate(() => !document.querySelector('#work [data-pasicht="baukasten"]')), 'im Gebäudemodell kein zweiter Baukasten im Reiter „Planung“');
-    await p.evaluate(() => { BPHead.app = ''; });
     const al = await p.evaluate(() => ({ sec: [...document.querySelectorAll('#work .pa-sec')].map((x) => x.dataset.paSec).join(','), sel: document.querySelectorAll('#work select[data-pachs]').length }));
-    pruef(al.sec === 'type,eck,bau,start,lst,fertig' && al.sel >= 5, `„Alles auf einer Seite“: Abschnitte ${al.sec}, ${al.sel} Auswahlfelder`);
+    pruef(al.sec === 'type,eck,bau,start,fertig' && al.sel >= 5,   // im Gebäudemodell ohne „Leistungen“ (PL-B1)
+      `„Alles auf einer Seite“: Abschnitte ${al.sec}, ${al.sel} Auswahlfelder`);
     const n0 = S.puts.length; await p.selectOption('#work select[data-pachs="dachform"]', 'sattel'); await gespeichert(p, S, n0 + 1);
     pruef(S.modell.assistent.choice.dachform === 'sattel' && await schritt(p) === 'alles', 'Auswahl in der zweiten Ansicht wird nicht gespeichert');
     pruef(Array.isArray(S.modell.assistent.sel) && !S.modell.assistent.sel.includes(vorher[0]), 'eigene Auswahl der Leistungen geht beim Ändern der Bauweise verloren');
@@ -146,6 +147,8 @@ export async function assistentPruefen(browser, repo) {
     pruef(await p.evaluate(() => /1× in Haus Becker/.test(document.querySelector('#work .pa-vs').textContent)), 'Vorschlag ohne Herkunft „1× in …“');
     await p.click('#work [data-palv]'); await p.fill('#work [data-pane="eck"]', 'Keller dicht ausführen'); await p.click('#work [data-paeneu="eck"]'); await gespeichert(p, S, 3);
     pruef(JSON.stringify((S.modell.assistent.notiz || {}).eck) === '["Radonvorsorge prüfen","Keller dicht ausführen"]', `Ergänzungen im Abschnitt: ${JSON.stringify(S.modell.assistent.notiz)}`);
+    pruef(await p.evaluate(() => document.querySelectorAll('#work .pa-dots button').length === 7 && !document.querySelector('#work .pa-dots [data-pago="5"]')), 'PL-B1: außerhalb des Bauzeitenplans kein Schritt „Leistungen“');
+    await p.evaluate(() => { BPHead.app = 'gantt'; }); await p.click('#work [data-pago="2"]');
     await p.click('#work [data-pago="5"]'); await p.evaluate(() => { const d = document.querySelector('#work details.pa-ph'); d.open = true; });
     const ph = await p.evaluate(() => document.querySelector('#work details.pa-ph').dataset.ph);
     await p.fill(`#work [data-paln="${ph}"]`, 'Blower-Door-Messung'); await p.click(`#work [data-palneu="${ph}"]`); await gespeichert(p, S, 4);
@@ -164,10 +167,22 @@ export async function assistentPruefen(browser, repo) {
     await p.fill('#work [data-pateil="anbau"][data-f="area"]', '55'); await p.dispatchEvent('#work [data-pateil="anbau"][data-f="area"]', 'change'); await gespeichert(p, S, 1);
     const ta = (S.modell.teile || []).find((t) => t.k === 'anbau') || {};
     pruef(ta.flaeche === 55 && S.modell.assistent.erwArea === 55 && ta.neu === true, `Fläche des Anbaus: ${JSON.stringify([ta, S.modell.assistent.erwArea])}`);
-    await p.click('#work [data-pateil="anbau"][data-f="wie"]'); await p.waitForSelector('#work [data-pateil="anbau"][data-f="h:fassade"]');
-    await p.selectOption('#work [data-pateil="anbau"][data-f="h:fassade"]', { index: 1 }); await gespeichert(p, S, 3);
+    {   // PL-C1/D1/E1 (21.11.2026): Teile als zuklappbare Blöcke, Hülle vorbelegt (blau „wie Bestand“), „Über dem obersten Geschoss“ je Teil
+      const v = await p.evaluate(() => ({ det: document.querySelectorAll('#work details.pa-tl').length, wie: !document.querySelector('#work [data-f="wie"]'), blau: /wie Bestand/.test(document.querySelector('#work details.pa-tl[data-patd="anbau"]').textContent),
+        dg: !!document.querySelector('#work [data-pateil="anbau"][data-f="dg"]'), kurz: (document.querySelector('#work details.pa-tl[data-patd="anbau"] .pa-tlk') || {}).textContent, reset: !!document.querySelector('#work [data-pareset]') }));
+      pruef(v.det === 2 && v.wie && v.blau && v.dg && /55 m²/.test(v.kurz || '') && v.reset, `Gebäudeteile als Blöcke, vorbelegt, Staffel je Teil, Zurücksetzen: ${JSON.stringify(v)}`); }
+    await p.selectOption('#work [data-pateil="anbau"][data-f="h:fassade"]', { index: 1 }); await gespeichert(p, S, 2);
     const h = ((S.modell.assistent.teile || {}).anbau || {}).h || {};
     pruef(h.fassade && ((S.modell.teile || []).find((t) => t.k === 'anbau') || {}).huelle.fassade === h.fassade, `eigene Fassade des Anbaus: ${JSON.stringify(h)}`);
+    await p.waitForSelector('#work [data-pahz="anbau|fassade"]', { timeout: 4000 }).catch(() => {});
+    pruef(await p.evaluate(() => /eigener Wert/.test(document.querySelector('#work details.pa-tl[data-patd="anbau"]').textContent)), 'eigene Fassade: gelb „eigener Wert“ mit ↺');
+    await p.click('#work [data-pahz="anbau|fassade"]').catch(() => {}); await p.waitForTimeout(800);
+    pruef(!(((S.modell.assistent.teile || {}).anbau || {}).h || {}).fassade, `↺: Fassade wieder wie der Bestand – ${JSON.stringify((S.modell.assistent.teile || {}).anbau)}`);
+    await p.selectOption('#work [data-pateil="anbau"][data-f="dg"]', 'staffel').catch(() => {}); await p.waitForTimeout(800);
+    pruef(((S.modell.assistent.teile || {}).anbau || {}).dg === 'staffel' || !(await p.$('#work [data-pateil="anbau"][data-f="dg"] option[value="staffel"]')), `Staffelgeschoss je Teil: ${JSON.stringify((S.modell.assistent.teile || {}).anbau)}`);
+    await p.evaluate(() => { document.querySelector('#work details.pa-tl[data-patd="anbau"]').open = false; }); await p.waitForTimeout(100);
+    pruef(await p.evaluate(() => JSON.parse(localStorage.getItem('bp.pa.tlzu') || '[]').includes('anbau')), 'zugeklappter Gebäudeteil wird nicht gemerkt');
+    await p.evaluate(() => { document.querySelector('#work details.pa-tl[data-patd="anbau"]').open = true; });
     pruef(!(await p.$('#work [data-pach="tragwerk"][data-v="misch"]')) && !(await p.$('#work [data-pachs="tragwerk"] option[value="misch"]')), '„gemischt“ steht noch zur Wahl (B1: je Geschoss …)');
     // GG (18.11.2026): Technik und Ausbau gemeinsam, je Teil abweichend; Liste der Teile statt Chips
     await p.click('#work [data-pago="3"]'); await p.waitForSelector('#work [data-pa-schritt="bau"]');

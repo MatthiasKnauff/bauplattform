@@ -32,7 +32,6 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 ## Jetzt in Arbeit
 - U-Wert-Färbung wählbar: GModG · BEG-Einzelmaßnahmen · Effizienzhaus (Recherche + Mock)
 - Eigenschaften-Fenster Etappe 2 (EF-B1 C1): einzelne Teile einer Zeile mit Haken, Abtrennen als eigene Zeile (Kern: Baukasten je Teil, IFC Zeile teilen), Doppelklick im 3D hakt nur das Teil an – ca. 2 Std.
-- Planung: Mock „Zurücksetzen, Leistung suchen nur im Bauzeitenplan, Gebäudeteile zuklappbar, Bestandswerte vorbelegt, Staffelgeschoss“
 - Gebäudemodell Schritt 2: Räume als Baum (Gruppieren), Eigenschaften-Fenster Raum (Allgemein · Raumbuch · Maße), Räume als Kisten im 3D (Mock „Räume rechts“ R-B, R-D)
 - Ausschreibung: Bauteile aus dem Gebäudemodell in die Kopierquelle – je Position verknüpft/gelöst (wie die Türliste), Linie „Ausschreibung“ hat Vorrang; Mock „Gebäudemodell in der Kopierquelle“ wartet auf Entscheidung – zusammen mit „Bauteile wie der LV-Baum“ ca. 4–5 Std.
 - Gebäude-Baukasten, Rest: E1 – bei einem später eingelesenen IFC die Angaben aus dem Baukasten als Vorschlag mit OK über den Abgleich (ca. 30–45 Min.)
@@ -253,6 +252,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Planung aufräumen: Zurücksetzen, Leistungen nur im Bauzeitenplan, Gebäudeteile zuklappbar und vorbelegt, Staffelgeschoss je Teil ⇄ 3D, Zahl → wartende Änderungen (PL-A2 B1 C1 D1 E1 F2)~~ (21.11.2026)
 - ~~Baukasten-Planstand: Fenster/Türen nur aus dem 3D (plus von Hand), keine geschätzten Fenster/Räume mehr~~ (21.11.2026)
 - ~~Aufbau-Suche: Wörter einzeln, Kürzel je Wort, Komma/Punkt, nach Güte sortiert~~ (21.11.2026)
 - ~~Planung → 3D sofort (Geschosse, Dach, Keller, Teile je Gebäudeteil), Name des Gebäudeteils auf dem Dach~~ (21.11.2026)

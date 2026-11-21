@@ -108,7 +108,7 @@ def assistent_sauber(a):
     te = {}
     for k, v in list((a.get("teile") if isinstance(a.get("teile"), dict) else {}).items())[:20]:
         if _s(k, 20) and isinstance(v, dict):
-            o = {f: _s(v.get(f), 80 if f == "n" else 12) for f in ("n", "tw", "dach") if _s(v.get(f), 80)}
+            o = {f: _s(v.get(f), 80 if f == "n" else 12) for f in ("n", "tw", "dach", "dg") if _s(v.get(f), 80)}   # dg: über dem obersten Geschoss je Teil (PL-E1)
             o.update({f: _zahl(v.get(f), 0, 1e6 if f == "area" else 30) for f in ("area", "floors", "keller", "neu", "wie") if v.get(f) not in (None, "")})
             for f in ("h", "flTw", "a"):   # Hülle je Teil (Dachform, Dachdeckung, Fassade, Fenster), Bauweise je Geschoss, Ausbau/Technik je Teil (GG-B1/C1)
                 d = v.get(f) if isinstance(v.get(f), dict) else {}

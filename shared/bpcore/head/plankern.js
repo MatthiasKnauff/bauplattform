@@ -517,8 +517,13 @@
       ['tw', 'dach'].forEach((f) => { if (o[f]) r[f] = String(o[f]); });
       ['area', 'floors', 'keller'].forEach((f) => { if (o[f] != null && o[f] !== '') r[f] = +o[f]; });
       if (o.n && !(Array.isArray(cfg.tl) && cfg.tl.length)) r.n = String(o.n);
-      r.wie = i ? o.wie !== 0 : true;
-      r.huelle = { ...H0, ...(i && !r.wie ? Object.fromEntries(Object.entries(o.h || {}).filter(([g, v]) => HUELLE.includes(g) && v)) : {}) };
+      /* Hülle der weiteren Teile (Mock „Planung aufräumen“ PL-D1, 21.11.2026): vorbelegt mit der des ersten Teils, eigene Werte je Feld in o.h –
+         kein Haken „wie …“ mehr; ältere Stände mit o.wie = 1 (Haken gesetzt) folgen weiter dem ersten Teil */
+      const eig = i && o.wie !== 1 ? Object.fromEntries(Object.entries(o.h || {}).filter(([g, v]) => HUELLE.includes(g) && v)) : {};
+      r.wie = !Object.keys(eig).length;
+      r.huelle = { ...H0, ...eig };
+      r.eigen = Object.keys(eig);
+      r.dg = i ? (o.dg || 'kalt') : (cfg.dg || 'kalt');   // „Über dem obersten Geschoss“ je Teil (PL-E1) – Staffelgeschoss auch beim Anbau
       if (o.dach && !(o.h && o.h.dachform)) r.huelle.dachform = String(o.dach);   // Dach aus Schritt 1 (vor 1b)
       r.dach = r.huelle.dachform || r.dach;
       r.flTw = o.flTw && typeof o.flTw === 'object' && Object.keys(o.flTw).length ? { ...o.flTw } : null;
@@ -549,6 +554,7 @@
     Object.entries(tl.ausbau || {}).forEach(([g, v]) => { if (v) c.choice[g] = v; });   // Ausbau/Technik je Teil (GG-B1, C1)
     c.choice.keller = tl.keller ? (c.choice.keller && c.choice.keller !== 'none' ? c.choice.keller : 'wu') : 'none';
     if (tl.dach) c.choice.dachform = tl.dach;
+    if (tl.dg) c.dg = tl.dg;   // Staffelgeschoss / ausgebautes Dach je Teil (PL-E1)
     if (tl.art === 'aufstock' || (tl.art === 'anbau' && !tl.keller)) c.choice.keller = 'none';
     delete c.sel; c.choice = choiceAll(c); return c;
   }

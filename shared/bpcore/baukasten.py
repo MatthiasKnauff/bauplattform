@@ -88,7 +88,8 @@ def sauber(bk):
     T = {_s(t, 20): _s(n, 80) for t, n in list((bk.get("teile") if isinstance(bk.get("teile"), dict) else {}).items())[:20] if _s(t, 20)}
     for k in K:
         T.setdefault(k["teil"], "Hauptgebäude" if not T else f"Anbau {len(T)}")
-    return {"koerper": K, "dach": D, "gauben": G, "oeff": O, "teile": {t: n for t, n in T.items() if any(k["teil"] == t for k in K)}, "raeume": bool(bk.get("raeume"))}
+    return {"koerper": K, "dach": D, "gauben": G, "oeff": O, "teile": {t: n for t, n in T.items() if any(k["teil"] == t for k in K)}, "raeume": bool(bk.get("raeume")),
+            **({"pl": 1} if bk.get("pl") else {})}   # pl: die Planung kennt das Staffelgeschoss schon (seit ins_assistent es überträgt) – erst dann darf sie es entfernen
 
 
 def _fenster(o):
@@ -141,12 +142,15 @@ def aus_assistent(m):
 
 
 def _geschosse(bk, t, soll):
-    """Teil t auf soll Geschosse (über Gelände) bringen: oben eines drauf bzw. weg – das Dach (und seine Gauben) wandert mit."""
-    K = sorted([k for k in bk["koerper"] if k["teil"] == t and k["z"] >= 0], key=lambda k: k["z"])
+    """Teil t auf soll VOLLgeschosse (über Gelände) bringen: oben eines drauf bzw. weg – das Dach (und seine Gauben) wandert mit, ein
+    Staffelgeschoss bleibt oben und rückt mit (zählt nicht mit, PL-E1 21.11.2026)."""
+    K = sorted([k for k in bk["koerper"] if k["teil"] == t and k["z"] >= 0 and not k.get("staffel")], key=lambda k: k["z"])
+    S = [k for k in bk["koerper"] if k["teil"] == t and k.get("staffel")]
     while K and len(K) < soll:
         o = K[-1]
         n = dict(o, id=_frei(bk), z=round(o["z"] + o["h"], 2), h=2.8, seiten=dict(o.get("seiten") or {}))
-        n.pop("staffel", None)
+        for q in S:
+            q["z"] = round(q["z"] + n["h"], 2)
         if o["id"] in bk["dach"]:
             bk["dach"][n["id"]] = bk["dach"].pop(o["id"])
             for g in bk["gauben"]:
@@ -158,12 +162,37 @@ def _geschosse(bk, t, soll):
         o = K.pop()
         bk["koerper"] = [k for k in bk["koerper"] if k["id"] != o["id"]]
         bk["oeff"] = [x for x in bk["oeff"] if x["k"] != o["id"]]
+        for q in S:
+            q["z"] = round(q["z"] - o["h"], 2)
         if o["id"] in bk["dach"]:
             bk["dach"][K[-1]["id"]] = bk["dach"].pop(o["id"])
             for g in bk["gauben"]:
                 if g["k"] == o["id"]:
                     g["k"] = K[-1]["id"]
     return K
+
+
+def _staffel(bk, t, an, form=""):
+    """Staffelgeschoss des Teils t an (zurückgesetzt um RUECK, eigenes Flachdach; das Dach darunter wird Terrasse) bzw. weg (das oberste
+    Vollgeschoss bekommt wieder ein Dach – form aus der Planung, sonst Flachdach). Wie staffel() im Baustein (PL-E1, 21.11.2026)."""
+    V = sorted([k for k in bk["koerper"] if k["teil"] == t and k["z"] >= 0 and not k.get("staffel")], key=lambda k: k["z"])
+    S = [k for k in bk["koerper"] if k["teil"] == t and k.get("staffel")]
+    if not V:
+        return
+    o = V[-1]
+    if an and not S and o["w"] > 2 * RUECK + 1 and o["d"] > 2 * RUECK + 1:
+        n = dict(o, id=_frei(bk), z=round(o["z"] + o["h"], 2), h=2.8, x=o["x"] + RUECK, y=o["y"] + RUECK, w=round(o["w"] - 2 * RUECK, 3), d=round(o["d"] - 2 * RUECK, 3),
+                 seiten=dict(o.get("seiten") or {}), staffel=True)
+        alt = bk["dach"].pop(o["id"], None) or {}
+        bk["gauben"] = [g for g in bk["gauben"] if g["k"] != o["id"]]
+        bk["dach"][n["id"]] = {"form": "flach", "aufbau": alt.get("aufbau", "") if alt.get("form") == "flach" else ""}
+        bk["koerper"].append(n)
+    elif not an and S:
+        weg = {k["id"] for k in S}
+        bk["koerper"] = [k for k in bk["koerper"] if k["id"] not in weg]
+        bk["oeff"] = [x for x in bk["oeff"] if x["k"] not in weg]
+        bk["dach"] = {k: v for k, v in bk["dach"].items() if k not in weg}
+        bk["dach"][o["id"]] = {"form": form if form in FORMEN else "flach", "aufbau": ""}
 
 
 def _keller(bk, t, an):
@@ -238,8 +267,12 @@ def abgleich(bk, m):
         if soll:
             K = _geschosse(bk, t, max(1, int(soll)))
         else:
-            K = sorted([k for k in bk["koerper"] if k["teil"] == t and k["z"] >= 0], key=lambda k: k["z"])
+            K = sorted([k for k in bk["koerper"] if k["teil"] == t and k["z"] >= 0 and not k.get("staffel")], key=lambda k: k["z"])
         f = ch.get("dachform") if main else ang.get("dach")
+        dg = a.get("dg") if main else ang.get("dg")
+        hat = any(k.get("staffel") for k in bk["koerper"] if k["teil"] == t)
+        if dg is not None and (dg == "staffel") != hat and (dg == "staffel" or bk.get("pl")):   # Staffelgeschoss aus der Planung (PL-E1); entfernt nur, wenn die Planung es schon kannte
+            _staffel(bk, t, dg == "staffel", f)
         if f in FORMEN and K and K[-1]["id"] in bk["dach"] and not K[-1].get("staffel"):
             bk["dach"][K[-1]["id"]]["form"] = f
         kel = (ch.get("keller") not in (None, "", "none") if "keller" in ch else None) if main else (bool(ang["keller"]) if "keller" in ang else None)
@@ -309,10 +342,16 @@ def ins_assistent(a, bk):
     for i, t in enumerate(teile):
         K = [k for k in bk["koerper"] if k["teil"] == t]
         ob = [k for k in K if k["z"] >= 0]
+        st = any(k.get("staffel") for k in ob)   # Staffelgeschoss: kein Vollgeschoss, steht als „über dem obersten Geschoss“ in der Planung (PL-E1)
+        voll = max(1, len([k for k in ob if not k.get("staffel")]))
         fl = round(sum(k["w"] * k["d"] for k in ob) * 0.8)   # Wohnfläche ≈ 0,8 × BGF
         dk = next((bk["dach"][k["id"]]["form"] for k in sorted(K, key=lambda k: -k["z"]) if k["id"] in bk["dach"]), "")
         if not i:
-            a.update(floors=max(1, len(ob)), area=fl or a.get("area") or 0)
+            a.update(floors=voll, area=fl or a.get("area") or 0)
+            if st:
+                a["dg"] = "staffel"
+            elif a.get("dg") == "staffel":
+                a["dg"] = "kalt"
             if a["choice"].get("keller") is not None or any(k["z"] < 0 for k in K):
                 a["choice"]["keller"] = (a["choice"].get("keller") if a["choice"].get("keller") not in (None, "", "none") else "wu") if any(k["z"] < 0 for k in K) else "none"
             if dk:
@@ -329,7 +368,9 @@ def ins_assistent(a, bk):
             x.pop("auf", None)
         zu[t] = x["k"]
         tl.append(x)
-        te[x["k"]] = dict(te.get(x["k"]) or {}, area=fl, floors=max(1, len(ob)), keller=1 if any(k["z"] < 0 for k in K) else 0, **({"dach": dk} if dk else {}))
+        alt_dg = (te.get(x["k"]) or {}).get("dg")
+        te[x["k"]] = dict(te.get(x["k"]) or {}, area=fl, floors=voll, keller=1 if any(k["z"] < 0 for k in K) else 0, **({"dach": dk} if dk else {}),
+                          **({"dg": "staffel"} if st else {"dg": "kalt"} if alt_dg == "staffel" else {}))
     if len(tl) > 1 or alt:   # ein Teil ohne Liste = wie bisher (ältere Planungen ohne tl bleiben so)
         a["tl"] = tl
         a["teile"] = {k: v for k, v in te.items() if k == t0 or any(x["k"] == k for x in tl)}
@@ -821,6 +862,8 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                 return jsonify(error="Mindestens ein Geschoss braucht der Baukasten."), 400
             m["baukasten"], m["korb"] = bk, kb
             m["assistent"] = ins_assistent(m.get("assistent") or {}, bk)
+            if (m["assistent"] or {}).get("type"):
+                bk["pl"] = 1   # ab jetzt steht das Staffelgeschoss auch in der Planung
             neu = bool(d.get("neu"))   # „Neuer Planstand – mit dem Baukasten“ (21.11.2026): eigener Planstand, gilt sofort – auch neben einem IFC
             plan = _plan_art(m)
             if neu or plan != "ifc":   # ohne Plan: den Planstand aus dem Baukasten nachführen (Bauteile + 3D)

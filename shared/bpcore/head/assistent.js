@@ -35,12 +35,13 @@
 .pa-f span.e{opacity:.65;font-size:.82rem;margin-left:.4rem}.pa-f div{display:flex;align-items:center}
 .pa-t{border-collapse:collapse}.pa-t th,.pa-t td{text-align:left;padding:.2rem .5rem .2rem 0;font-weight:normal}.pa-t th{font-size:.78rem;opacity:.65}.pa-t input{max-width:7rem}
 .pa-tl{border:1px solid var(--line,#d5d9de);border-radius:var(--rk,6px);margin:.35rem 0;overflow:hidden}.pa-tl>.k{display:flex;gap:.5rem;align-items:center;padding:.3rem .55rem;background:color-mix(in srgb,var(--af,#3b5a8f) 14%,var(--card,#fff));color:var(--ink,#222);font-weight:600}.pa-tl>.k b{flex:1;min-width:0}.pa-tl>.k input{font:inherit;font-weight:600;border:0;background:transparent;flex:1;min-width:0;color:inherit}.pa-tl>.k small{font-weight:400;opacity:.7}.pa-tl>.pa-f{padding:.45rem .55rem}
+.pa-tl>summary{cursor:pointer}.pa-tl .pa-tlk{margin-left:auto;opacity:.75;font-size:.78rem}.pa-tl>.pa-f{padding:.45rem .55rem .55rem}.pa-hk{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}
 .pa-gr{margin:.2rem 0 .5rem}.pa-gr>b{display:block;font-size:.84rem;margin-bottom:.25rem}
 .pa-nav{display:flex;gap:.5rem;align-items:center;margin-top:.3rem}.pa-nav span{flex:1}
 .pa-h{font-size:.84rem;opacity:.75;line-height:1.4}.pa-fl{font-size:.8rem;border-top:1px solid var(--line,#d5d9de);padding-top:.5rem;opacity:.8}
 .pa-app{width:100%;border-collapse:collapse}.pa-app th{font-size:.74rem;font-weight:600;opacity:.7;text-align:left;padding:.15rem .4rem;border-bottom:1px solid var(--line,#d5d9de)}.pa-app td{padding:.22rem .4rem;vertical-align:baseline}.pa-app .r{text-align:right;white-space:nowrap}
 .pa-app tbody tr{cursor:pointer}.pa-app tbody tr:hover{background:var(--hov,rgba(0,0,0,.04))}.pa-app i{font-style:normal;opacity:.65;font-size:.84rem}
-.pa-z{display:inline-block;min-width:1.2em;text-align:center;border-radius:1em;padding:0 .4em;font-size:.78rem;background:var(--line,#d5d9de)}.pa-z.rot{background:var(--red,#c62f2a);color:#fff}
+.pa-z{display:inline-block;min-width:1.2em;text-align:center;border-radius:1em;padding:0 .4em;font-size:.78rem;background:var(--line,#d5d9de)}.pa-z.rot{background:var(--red,#c62f2a);color:#fff;cursor:pointer}.pa-reset{float:right;margin-top:.2rem}
 .pa-aus{opacity:.6;cursor:default}
 .pa-um{display:inline-flex;align-self:flex-start;border:1px solid var(--line,#d5d9de);border-radius:var(--rk,6px);overflow:hidden}.pa-um button{border:0;background:none;color:inherit;font:inherit;font-size:.84rem;padding:.3rem .7rem;cursor:pointer}.pa-um button.on{background:var(--y,#2f6fb3);color:var(--on,#fff)}
 .pa-sec{border-top:1px solid var(--line,#d5d9de);padding-top:.6rem;display:flex;flex-direction:column;gap:.5rem}.pa-sec h4{margin:0;font-size:.95rem}
@@ -73,7 +74,7 @@
   function mount(el, pid) {
     stil(el.ownerDocument);
     const merk = (k, v) => { try { if (v === undefined) return localStorage.getItem('bp.pa.' + k); localStorage.setItem('bp.pa.' + k, v); } catch { /* ohne Speicher */ } return null; };
-    const Z = { d: null, m: null, i: 0, t: 0, laeuft: null, fehler: '', sicht: ['alles', 'baukasten'].includes(merk('sicht')) ? merk('sicht') : 'schritt', auf: new Set(), jt: new Set() };   // sicht: Schritt für Schritt | alles auf einer Seite (wie im Bauzeitenplan)
+    const Z = { d: null, m: null, i: 0, t: 0, laeuft: null, fehler: '', sicht: ['alles', 'baukasten'].includes(merk('sicht')) ? merk('sicht') : 'schritt', auf: new Set(), jt: new Set(), tlZu: new Set((() => { try { return JSON.parse(merk('tlzu') || '[]'); } catch { return []; } })()) };   // tlZu: zugeklappte Gebäudeteile (PL-C1)   // sicht: Schritt für Schritt | alles auf einer Seite (wie im Bauzeitenplan)
     el.innerHTML = '<div class="pa"><p class="pa-h">Planungsassistent wird geladen …</p></div>';
     const K = () => window.PlanKern, cfg = () => (Z.m.assistent && Z.m.assistent.type ? Z.m.assistent : null);
     const big = (attr, on, titel, sub, ic) => `<button type="button" class="pa-o${on ? ' on' : ''}" ${attr}>${ic ? `<span class="ic">${ic}</span>` : ''}<span><b>${esc(titel)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span></button>`;
@@ -158,8 +159,8 @@
         <table class="pa-app"><thead><tr><th>App</th><th>wie sie mit dem Modell verbunden ist</th><th class="r" title="Änderungen aus dem Modell, die die App noch übernehmen soll („mit Übernahme“)">wartet auf dich</th></tr></thead><tbody>${L.map((l) => {
           const n = offen[l.app] || 0, weg = l.zustand === 'getrennt';
           return `<tr data-pavk="${esc(l.app)}" title="Verbindung ansehen und ändern (Reiter „Verknüpfungen“)"><td><b>${esc(l.name)}</b></td><td><i>${weg ? 'getrennt' : l.zustand === 'fest' ? 'eingefroren' + (l.stand_name ? ' – ' + esc(l.stand_name) : '') : esc(RICHT[l.richtung] || l.richtung) + (l.uebernahme === 'auto' ? ' · automatisch' : ' · mit Übernahme')}</i></td>
-            <td class="r"><span class="pa-z${n ? ' rot' : ''}" title="${n ? n + ' Änderung' + (n === 1 ? '' : 'en') + ' warten auf Übernahme – Klick führt hin' : weg ? 'nicht verbunden' : 'alles übernommen'}">${n || (weg ? '–' : '✓')}</span></td></tr>`; }).join('')}</tbody></table>
-        <p class="pa-h">„wartet auf dich“: Änderungen aus dem Modell, die eine App noch übernehmen soll. Rot = so viele warten, ✓ = alles übernommen, – = nicht verbunden. Ein Klick auf eine Zeile öffnet die <b>Verknüpfungen</b> – dort änderst du Richtung und Übernahme.</p>
+            <td class="r"><span class="pa-z${n ? ' rot' : ''}"${n ? ' data-pavkh role="button"' : ''} title="${n ? n + ' Änderung' + (n === 1 ? '' : 'en') + ' warten auf Übernahme – Klick: zu den Änderungen (übernehmen oder ablehnen)' : weg ? 'nicht verbunden' : 'alles übernommen'}">${n || (weg ? '–' : '✓')}</span></td></tr>`; }).join('')}</tbody></table>
+        <p class="pa-h">„wartet auf dich“: Änderungen aus dem Modell, die eine App noch übernehmen soll. Rot = so viele warten, ✓ = alles übernommen, – = nicht verbunden. Klick auf die <b>rote Zahl</b>: zu den wartenden Änderungen (übernehmen oder ablehnen); auf die übrige Zeile: wie die App verbunden ist (<b>Verknüpfungen</b> – „mit Übernahme“ oder „automatisch“).</p>
         ${(window.bpAssistentAktionen ? window.bpAssistentAktionen(m) : []).map((a, i) => `<div class="pa-nav"><button type="button" class="btn${i ? '' : ' primary'}" data-paakt="${i}">${esc(a.text)}</button></div>`).join('')}
         <div class="pa-nav"><button type="button" class="btn" data-pabt>Neuer Planstand aus der Planung …</button><span class="pa-h" style="margin:0">das ganze Gebäude im Baukasten des Gebäudemodells – Grundlage für Kosten und Ausschreibung</span></div>`;
     }
@@ -211,12 +212,24 @@
         ${jeGeschoss(c)}<p class="pa-h">Gebäude: <b>${esc(K().buildingDesc(c))}</b></p>`;
       const viele = K().teile(K().clone(c)).length > 1;
       return sec('Was wird gebaut?', 'type', schrittHtml('type')) + sec('Größe des Gebäudes', 'eck', schrittHtml('eck') + ergaenzungHtml('eck')) + sec(viele ? 'Technik und Ausbau' : 'Bauweise und Dach', 'bau', (viele ? technikHtml(c) : bau) + ergaenzungHtml('bau') + ergaenzungHtml('dg', true))
-        + sec('Baubeginn', 'start', schrittHtml('start')) + sec('Leistungen', 'lst', lstHtml()) + sec('Was daraus entsteht', 'fertig', schrittHtml('fertig'));
+        + sec('Baubeginn', 'start', schrittHtml('start')) + (imPlan() ? sec('Leistungen', 'lst', lstHtml()) : '') + sec('Was daraus entsteht', 'fertig', schrittHtml('fertig'));
+    }
+    /* Schritt „Leistungen“ (Leistung suchen, Weitere Leistungen …) nur im Bauzeitenplan – anderswo bewirkt er nichts (PL-B1, 21.11.2026).
+       Z.i zählt weiter in SCHRITTE (cfg.schritt gilt für alle Apps), hier werden nur die sichtbaren Schritte gezeigt und angesprungen. */
+    const imPlan = () => (window.BPHead && BPHead.app === 'gantt') || !!window.AssistCore;
+    const sichtbar = () => SCHRITTE.map((x, j) => j).filter((j) => SCHRITTE[j][0] !== 'lst' || imPlan());
+    const naechst = (j, r) => { const V = sichtbar(); if (V.includes(j)) return j; const x = r < 0 ? V.filter((v) => v < j).pop() : V.find((v) => v > j); return x == null ? V[r < 0 ? 0 : V.length - 1] : x; };
+    async function zuruecksetzen() {   // PL-A2: alle Angaben der Planung weg – mit Rückgängig (die Apps behalten ihre Stände)
+      if (window.bpFrage && !(await bpFrage('Planung zurücksetzen? Gebäudeteile, Fläche, Geschosse, Bauweise und Leistungen der Planung werden gelöscht – Termine, Kosten und LV behalten ihre eigenen Stände.', { ok: 'Zurücksetzen' }))) return;
+      const F = ['assistent', 'typ', 'teile', 'einheiten', 'flaeche', 'massnahme', 'geschosse'], alt = JSON.parse(JSON.stringify(Object.fromEntries(F.map((f) => [f, Z.m[f]]))));
+      const leer = () => { Object.assign(Z.m, { assistent: null, typ: '', teile: [], einheiten: 0, flaeche: 0, massnahme: '', geschosse: [] }); Z.i = 0; speichern(); zeig(); };
+      leer(); sag('Planung zurückgesetzt.');
+      if (window.rueckgaengig) rueckgaengig('Planung zurückgesetzt', () => { Object.assign(Z.m, JSON.parse(JSON.stringify(alt))); Z.i = cfg() ? Math.min(SCHRITTE.length - 1, cfg().schritt || 1) : 0; speichern(); zeig(); }, leer);
     }
     function zeig() {
       const gm = (((window.BPHead && BPHead.conf) || {}).apps || []).find((a) => a.key === 'gebaeudemodell'), hier = (window.BPHead && BPHead.app === 'gebaeudemodell') || location.pathname.split('/').filter(Boolean)[0] === 'gebaeudemodell';
       if (hier && Z.sicht === 'baukasten') Z.sicht = 'schritt';   // im Gebäudemodell steht der Baukasten groß in der Mitte – nicht noch einmal hier (21.11.2026)
-      const umsch = `<div class="pa-um" role="group" aria-label="Ansicht"><button type="button" data-pasicht="schritt" class="${Z.sicht === 'schritt' ? 'on' : ''}">Schritt für Schritt</button><button type="button" data-pasicht="alles" class="${Z.sicht === 'alles' ? 'on' : ''}">Alles auf einer Seite</button>${hier ? '' : `<button type="button" data-pasicht="baukasten" class="${Z.sicht === 'baukasten' ? 'on' : ''}" title="Dasselbe Gebäude per Klick und Ziehen – füllt dieselben Angaben">Baukasten</button>`}</div>`
+      const umsch = (cfg() ? '<button type="button" class="pa-x pa-reset" data-pareset title="Alle Angaben der Planung löschen – mit Rückgängig">Planung zurücksetzen …</button>' : '') + `<div class="pa-um" role="group" aria-label="Ansicht"><button type="button" data-pasicht="schritt" class="${Z.sicht === 'schritt' ? 'on' : ''}">Schritt für Schritt</button><button type="button" data-pasicht="alles" class="${Z.sicht === 'alles' ? 'on' : ''}">Alles auf einer Seite</button>${hier ? '' : `<button type="button" data-pasicht="baukasten" class="${Z.sicht === 'baukasten' ? 'on' : ''}" title="Dasselbe Gebäude per Klick und Ziehen – füllt dieselben Angaben">Baukasten</button>`}</div>`
         + (gm && !hier && window.BPHead.appUrl ? `<a class="btn sm pa-gm" href="${esc(BPHead.appUrl(gm))}/" title="Bauteile, Verknüpfungen und Fragen zum Projekt – im Gebäudemodell">↗ Gebäudemodell</a>` : '');   // RR (18.11.2026): überall ein Knopf ins Gebäudemodell
       if (Z.sicht === 'baukasten') {   // A3: Fragen ⇄ Baukasten – beide füllen dieselben Angaben (bp/gebaeudekasten.js)
         el.innerHTML = `<div class="pa pa-bk">${umsch}<div data-pabk><p class="pa-h">Gebäude-Baukasten wird geladen …</p></div></div>`;
@@ -227,12 +240,12 @@
       if (Z.sicht === 'alles') { const rolle = el.closest('.sr-b') || el, pos = rolle.scrollTop;
         el.innerHTML = `<div class="pa pa-alles" data-pa-schritt="alles">${umsch}<div class="pa-n"><span class="pa-st">${Z.fehler ? 'nicht gespeichert' : Z.d.geaendert ? 'gespeichert' : 'noch leer'}</span></div>${allesHtml()}</div>`;
         rolle.scrollTop = pos; return; }
-      const S = SCHRITTE; Z.i = Math.max(0, Math.min(S.length - 1, Z.i));
-      const [k, t0] = S[Z.i], t = k === 'bau' && cfg() && K().teile(K().clone(cfg())).length > 1 ? 'Technik und Ausbau' : t0, fertig = (j) => j < Z.i && (j === 0 || !!cfg());
-      el.innerHTML = `<div class="pa" data-pa-schritt="${k}">${umsch}<div class="pa-dots">${S.map((y, j) => `<button type="button" class="${j === Z.i ? 'cur' : fertig(j) ? 'ok' : ''}" data-pago="${j}" title="${esc(y[1])}" aria-label="${esc(y[1])}"></button>`).join('')}</div>
-        <div><div class="pa-n">Schritt ${Z.i + 1} von ${S.length} · <span class="pa-st">${Z.fehler ? 'nicht gespeichert' : Z.d.geaendert ? 'gespeichert' : 'noch leer'}</span></div><h3>${esc(t)}</h3></div>
+      const S = SCHRITTE, V = sichtbar(); Z.i = naechst(Math.max(0, Math.min(S.length - 1, Z.i)), 1);
+      const [k, t0] = S[Z.i], t = k === 'bau' && cfg() && K().teile(K().clone(cfg())).length > 1 ? 'Technik und Ausbau' : t0, fertig = (j) => j < Z.i && (j === 0 || !!cfg()), p = V.indexOf(Z.i);
+      el.innerHTML = `<div class="pa" data-pa-schritt="${k}">${umsch}<div class="pa-dots">${V.map((j) => `<button type="button" class="${j === Z.i ? 'cur' : fertig(j) ? 'ok' : ''}" data-pago="${j}" title="${esc(S[j][1])}" aria-label="${esc(S[j][1])}"></button>`).join('')}</div>
+        <div><div class="pa-n">Schritt ${p + 1} von ${V.length} · <span class="pa-st">${Z.fehler ? 'nicht gespeichert' : Z.d.geaendert ? 'gespeichert' : 'noch leer'}</span></div><h3>${esc(t)}</h3></div>
         ${schrittHtml(k)}${['eck', 'bau', 'dg'].includes(k) ? ergaenzungHtml(k) : ''}
-        <div class="pa-nav"><button type="button" class="btn" data-pago="${Z.i - 1}"${Z.i ? '' : ' disabled'}>Zurück</button><span></span>${Z.i < S.length - 1 ? `<button type="button" class="btn primary" data-pago="${Z.i + 1}">${k === 'plaene' ? 'Überspringen' : 'Weiter'}</button>` : '<button type="button" class="btn primary" data-pafertig>Fertig</button>'}</div>
+        <div class="pa-nav"><button type="button" class="btn" data-pago="${V[p - 1] ?? 0}"${p ? '' : ' disabled'}>Zurück</button><span></span>${p < V.length - 1 ? `<button type="button" class="btn primary" data-pago="${V[p + 1]}">${k === 'plaene' ? 'Überspringen' : 'Weiter'}</button>` : '<button type="button" class="btn primary" data-pafertig>Fertig</button>'}</div>
         ${FLIESST[k] ? `<div class="pa-fl">Diese Angaben fließen in: <b>${esc(FLIESST[k])}</b></div>` : ''}</div>`;
     }
     /* Gebäudeteile (GT, 18.11.2026): aus den Maßnahmen der Bauart (PlanKern.teile); je Teil Name, Fläche, Geschosse, Bauweise, Keller, Dach.
@@ -259,18 +272,26 @@
     }
     const tlSetzen = (fn) => setz((c) => { c.tl = K().teilListe(c).map((x) => ({ ...x })); fn(c.tl, c); delete c.teilePlus;
       const t0 = c.type; c.type = K().typAusTeilen(c); if (c.type !== t0) delete c.sel; });
+    /* Je Gebäudeteil ein zuklappbarer Block (Mock „Planung aufräumen“ PL-C1, 21.11.2026) mit Kurzzeile; die weiteren Teile sind mit der Hülle des
+       ersten vorbelegt – blau „wie …“, eigener Wert gelb mit ↺ (PL-D1, bpHerkunft wie in den Projektdaten); „Über dem obersten Geschoss“ je Teil (PL-E1). */
     function teileHtml(c) {
       const T = K().teile(K().clone(c)), G = K().choiceGroups(c), gk = (k) => G.find((g) => g.k === k);
       if (T.length < 2) return '';
-      const best = T.some((t) => t.art === 'bestand'), n0 = T[0].n;
+      const best = T.some((t) => t.art === 'bestand'), n0 = T[0].n, H0 = T[0].huelle || {};
       const sel = (attr, opts, v) => `<select ${attr}>${opts.map(([k, n]) => `<option value="${esc(k)}"${k === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`;
       const grp = (g) => `<label>${esc(g.n)}</label><div>${sel(`data-pachs="${esc(g.k)}"`, g.opts.filter((o) => o.k !== 'misch' || g.val === 'misch').map((o) => [o.k, g.k === 'tragwerk' ? TWN[o.k] || o.n : o.n]), g.val)}</div>`;
       const O = K().dgOpts(c), dgv = O.some(([v]) => v === c.dg) ? c.dg : 'kalt';
+      const optN = (g, v) => ((K().CHM[g] && K().CHM[g].opts.find((o) => o.k === v)) || {}).n || v || '–';
+      const dachN = (t) => optN('dachform', t.dach || (t.huelle || {}).dachform);
+      const kurz = (t) => [t.area ? `${t.area} m²` : '', `${t.floors || 1} ${t.floors > 1 ? 'Geschosse' : 'Geschoss'}${t.dg === 'staffel' ? ' + Staffel' : ''}`, dachN(t)].filter(Boolean).join(' · ');
       return `<div class="pa-gr"><b>Angaben je Gebäudeteil</b>${T.map((t, i) => {
         const tg = (t.art === 'haupt' || (t.art === 'anbau' && best)) && gk('tragwerk'), kg = t.art === 'anbau' && best && gk('anbaukeller'), d = `data-pateil="${esc(t.k)}"`;
         const tw = tg ? sel('data-pachs="tragwerk"', tg.opts.filter((o) => o.k !== 'misch' || tg.val === 'misch').map((o) => [o.k, TWN[o.k] || o.n]), tg.val) : sel(`${d} data-f="tw"`, Object.entries(TWN).filter(([k]) => k !== 'misch'), t.tw);
         const auf = t.lage === 'auf' ? (T.find((y) => y.k === t.auf) || {}).n : '';
-        return `<div class="pa-tl"><div class="k"><b>${esc(t.n)}</b><small>${t.lage === 'bestand' ? 'Bestand' : auf ? `neu – auf „${esc(auf)}“` : 'neu'}</small></div>
+        const He = { geerbt: Object.fromEntries(K().HUELLE.map((g) => [g, [H0[g] || '', optN(g, H0[g]), 'h']])), quellen: { h: 'wie ' + n0 } };
+        const hfeld = (g) => `<label>${esc(K().CHM[g].n)}</label><div class="pa-hk">${sel(`${d} data-f="h:${g}"`, K().CHM[g].opts.filter((o) => !o.hidden).map((o) => [o.k, o.n]), t.huelle[g])}${window.bpHerkunft ? bpHerkunft.schild(He, g, t.huelle).replace(/data-dmzur="/g, `data-pahz="${esc(t.k)}|`) : ''}</div>`;
+        const tO = i ? K().dgOpts(K().teilCfg(c, t)) : O, tdg = tO.some(([v]) => v === t.dg) ? t.dg : 'kalt';
+        return `<details class="pa-tl" data-patd="${esc(t.k)}"${Z.tlZu.has(t.k) ? '' : ' open'}><summary class="k"><b>${esc(t.n)}</b><small>${t.lage === 'bestand' ? 'Bestand' : auf ? `neu – auf „${esc(auf)}“` : 'neu'}</small><small class="pa-tlk">${esc(kurz(i ? t : { ...t, area: c.area, floors: c.floors }))}</small></summary>
           <div class="pa-f">${i ? `<label>Fläche</label><div><input type="number" min="0" ${d} data-f="area" value="${esc(t.area || '')}"><span class="e">m²</span></div>
             <label>Geschosse</label><div><input type="number" min="1" max="30" ${d} data-f="floors" value="${esc(t.floors || 1)}"><span class="e">${t.art === 'aufstock' ? `neue Geschosse auf „${esc(auf)}“` : 'Vollgeschosse'}</span></div>`
             : '<label>Fläche, Geschosse</label><div><span class="e" style="margin:0">wie oben</span></div>'}
@@ -278,9 +299,8 @@
             ${t.flTw ? K().teilGeschosse(t, T).map((g) => `<label>${esc(g)}</label><div>${sel(`${d} data-f="fl:${esc(g)}"`, Object.entries(TWN).filter(([k]) => k !== 'misch'), t.flTw[g] || t.tw)}</div>`).join('') : ''}
             ${i ? (t.art === 'aufstock' ? '' : kg ? `<label>Keller</label><div>${sel('data-pachs="anbaukeller"', kg.opts.map((o) => [o.k, o.n]), kg.val)}</div>` : `<label>Keller</label><div><input type="checkbox" ${d} data-f="keller"${t.keller ? ' checked' : ''} style="width:auto"></div>`)
               : ['bestkeller', 'keller'].map(gk).filter(Boolean).map(grp).join('')}
-            ${i ? `<label>Dach, Fassade, Fenster</label><div><label style="display:flex;gap:.35rem;align-items:center"><input type="checkbox" ${d} data-f="wie"${t.wie ? ' checked' : ''} style="width:auto">wie ${esc(n0)}</label></div>
-              ${t.wie ? '' : K().HUELLE.filter((g) => K().CHM[g]).map((g) => `<label>${esc(K().CHM[g].n)}</label><div>${sel(`${d} data-f="h:${g}"`, K().CHM[g].opts.filter((o) => !o.hidden).map((o) => [o.k, o.n]), t.huelle[g])}</div>`).join('')}`
-              : K().HUELLE.map(gk).filter(Boolean).map(grp).join('') + `<label>Über dem obersten Geschoss</label><div>${sel('data-padgs="1"', O, dgv)}</div>`}</div></div>`; }).join('')}</div>`;
+            ${i ? K().HUELLE.filter((g) => K().CHM[g]).map(hfeld).join('') + `<label>Über dem obersten Geschoss</label><div>${sel(`${d} data-f="dg"`, tO, tdg)}</div>`
+              : K().HUELLE.map(gk).filter(Boolean).map(grp).join('') + `<label>Über dem obersten Geschoss</label><div>${sel('data-padgs="1"', O, dgv)}</div>`}</div></details>`; }).join('')}</div>`;
     }
     /* Technik und Ausbau bei mehreren Teilen (GG-B1, C1): einmal fürs ganze Gebäude bzw. als Vorgabe für alle Teile; „je Teil …“ für Abweichungen */
     const HUELLE_TEIL = ['bestkeller', 'keller', 'anbaukeller', 'tragwerk', 'erweiterung', 'dachform', 'dachdeckung', 'fassade', 'fenster'];
@@ -298,11 +318,11 @@
     function teilSetzen(k, f, v) {
       setz((c) => {
         c.teile = { ...(c.teile || {}) }; const o = { ...(c.teile[k] || {}) };
-        if (f.startsWith('h:')) o.h = { ...(o.h || {}), [f.slice(2)]: v };   // Hülle des Teils (Dachform, Dachdeckung, Fassade, Fenster)
+        if (f.startsWith('h:')) { const g = f.slice(2), H0 = (K().teile(K().clone(c))[0] || {}).huelle || {}; o.h = { ...(o.h || {}) }; delete o.wie;   // Hülle des Teils: eigener Wert nur, wo er vom ersten Teil abweicht (PL-D1)
+          if (!v || v === H0[g]) delete o.h[g]; else o.h[g] = v; if (!Object.keys(o.h).length) delete o.h; }
         else if (f.startsWith('a:')) { const g = f.slice(2), A = { ...(o.a || {}) }; if (v === K().choiceAll(K().clone(c))[g]) delete A[g]; else A[g] = v; if (Object.keys(A).length) o.a = A; else delete o.a; }   // Ausbau/Technik je Teil
         else if (f.startsWith('fl:')) o.flTw = { ...(o.flTw || {}), [f.slice(3)]: v };   // Bauweise je Geschoss
         else if (v === '' || v == null) delete o[f]; else o[f] = v;
-        if (f === 'wie' && !v) { const t = K().teile(K().clone(c)).find((x) => x.k === k); if (t) o.h = { ...t.huelle }; }   // eigene Hülle: mit der des ersten Teils anfangen
         c.teile[k] = o;
         const T = K().teile(K().clone(c)).filter((t) => t.art === 'anbau' || t.art === 'aufstock');   // Fläche der Erweiterung wie bisher für die Dauern
         if (T.length) c.erwArea = T.reduce((s, t) => s + (+t.area || 0), 0);
@@ -328,7 +348,9 @@
         else if (!alt) ausModellSetzen(neu);   // erste Wahl: Fläche und Geschosse aus dem Gebäudemodell
         Z.m.assistent = neu; ableiten(); speichern(); return zeig();
       }
-      const vk = e.target.closest('[data-pavk]');   // Zeile im letzten Schritt → Reiter „Verknüpfungen“ an dieser Linie (im Gebäudemodell: dessen Ansicht)
+      if (e.target.closest('[data-pareset]')) return zuruecksetzen();
+      const vk = e.target.closest('[data-pavk]');
+      if (vk) window.bpKarteHin = !!e.target.closest('[data-pavkh]');   // F: Zahl → gleich zu den wartenden Änderungen, übrige Zeile → Einstellung der Verbindung   // Zeile im letzten Schritt → Reiter „Verknüpfungen“ an dieser Linie (im Gebäudemodell: dessen Ansicht)
       if (vk) { window.bpKarteZiel = vk.dataset.pavk;   // im Gebäudemodell: dessen Ansicht „Verknüpfungen“; in den Apps (RR-A1: kein eigener Reiter mehr) dorthin springen
         if (location.pathname.split('/').filter(Boolean)[0] === 'gebaeudemodell') { document.dispatchEvent(new CustomEvent('bp:verknuepfung', { detail: { app: vk.dataset.pavk } })); return; }
         const gm = (((window.BPHead && BPHead.conf) || {}).apps || []).find((a) => a.key === 'gebaeudemodell'); if (gm && BPHead.appUrl) location.href = BPHead.appUrl(gm) + '/#karte'; return; }
@@ -365,6 +387,7 @@
         if (abw || Z.jt.has(g)) Z.jt.delete(g); else Z.jt.add(g); return zeig(); }
       if (b.dataset.pajg != null) { const c = cfg(), g = bauGruppen(c).find((x) => x.k === 'tragwerk');
         if (g && g.val === 'misch') { const L = K().levelsOf(K().clone(c)).L, F = K().floorTw(K().clone(c), L); wahl('tragwerk', F[0] || 'massiv'); } else wahl('tragwerk', 'misch'); return zeig(); }
+      if (b.dataset.pahz) { const [k, g] = b.dataset.pahz.split('|'); teilSetzen(k, 'h:' + g, ''); return zeig(); }   // ↺ wieder wie das erste Teil (PL-D1)
       if (b.dataset.patgs) { const k = b.dataset.patgs; setz((c) => { c.teile = { ...(c.teile || {}) }; const o = { ...(c.teile[k] || {}) }; if (o.flTw) delete o.flTw; else { const T = K().teile(K().clone(c)), t = T.find((x) => x.k === k); o.flTw = Object.fromEntries(K().teilGeschosse(t, T).map((g) => [g, t.tw])); } c.teile[k] = o; }); return zeig(); }
       if (b.dataset.pafertig != null) return fertigMachen();
       if (b.dataset.pabt != null) { await bauteileLaden(); return bpBauteile.planungNeu(); }   // „Neuer Planstand – mit der Planung“: das ganze Gebäude im Baukasten (21.11.2026)
@@ -387,7 +410,7 @@
       if (n.dataset.pag) { ableiten(); const g = Z.m.geschosse.find((x) => x.name === n.dataset.pag); if (g) { g[n.dataset.f] = Math.max(0, zahl(n.value)); speichern(); } return; }
       if (n.dataset.pafl) { setz((c) => { const L = K().levelsOf(K().clone(c)).L, F = K().floorTw(K().clone(c), L); const ft = L.map((l, i) => [l, l === n.dataset.pafl ? n.value : F[i]]), eins = new Set(ft.map((x) => x[1])).size === 1;   // alle gleich → diese Bauweise statt „gemischt“
         c.flTw = eins ? {} : Object.fromEntries(ft); if (eins) c.choice = { ...c.choice, tragwerk: ft[0][1] }; }); return zeig(); }
-      if (n.dataset.pateil) { const f = n.dataset.f, v = f === 'keller' || f === 'wie' ? (n.checked ? 1 : 0) : f.includes(':') ? n.value : f === 'area' || f === 'floors' ? (n.value === '' ? '' : Math.max(f === 'floors' ? 1 : 0, Math.round(zahl(n.value)))) : n.value.trim().slice(0, 80);
+      if (n.dataset.pateil) { const f = n.dataset.f, v = f === 'keller' ? (n.checked ? 1 : 0) : f.includes(':') ? n.value : f === 'area' || f === 'floors' ? (n.value === '' ? '' : Math.max(f === 'floors' ? 1 : 0, Math.round(zahl(n.value)))) : n.value.trim().slice(0, 80);
         teilSetzen(n.dataset.pateil, f, v); if (f !== 'n') setTimeout(zeig); return; }   // nach dem Ereignis neu zeichnen (blur eines anderen Felds kann noch laufen)
       if (n.dataset.patl) { const k = n.dataset.patl, f = n.dataset.f, v = n.value;
         tlSetzen((L) => { const x = L.find((y) => y.k === k); if (!x) return; if (f === 'n') x.n = v.trim().slice(0, 80) || x.n;
@@ -450,7 +473,8 @@
     };
     el.addEventListener('input', (e) => { if (e.target.matches('[data-paq]')) { Z.q = e.target.value; suchen(); } });
     new MutationObserver(() => { if (Z.q && el.querySelector('[data-paq]')) suchen(); }).observe(el, { childList: true });
-    el.addEventListener('toggle', (e) => { const d = e.target; if (d.dataset && d.dataset.ph && !Z.q) { if (d.open) Z.auf.add(d.dataset.ph); else Z.auf.delete(d.dataset.ph); } }, true);   // offene Abschnitte der Leistungen merken
+    el.addEventListener('toggle', (e) => { const d = e.target; if (d.dataset && d.dataset.patd) { if (d.open) Z.tlZu.delete(d.dataset.patd); else Z.tlZu.add(d.dataset.patd); merk('tlzu', JSON.stringify([...Z.tlZu])); return; }
+      if (d.dataset && d.dataset.ph && !Z.q) { if (d.open) Z.auf.add(d.dataset.ph); else Z.auf.delete(d.dataset.ph); } }, true);   // offene Abschnitte der Leistungen merken
     Promise.all([kernLaden(), J('api/bp/modell/' + pid), J('api/bp/modell/' + pid + '/hinweise').catch(() => []), J('api/bp/modell/' + pid + '/lernen').catch(() => [])]).then(async ([, d, h, lern]) => {
       Z.lern = Array.isArray(lern) ? lern : []; Z.lernTyp = d.modell && d.modell.assistent && d.modell.assistent.type;
       Z.d = d; Z.m = d.modell; Z.hin = Array.isArray(h) ? h : (h && h.hinweise) || [];

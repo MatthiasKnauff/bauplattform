@@ -96,8 +96,11 @@ main.ws .ws-work{flex:1;min-height:0;display:flex}main.ws .ws-work.sr-split{disp
 
 /* Reiter „3D“ (ws-modell3d.js): der Betrachter füllt den Bereich */
 .ws-3d{height:100%;padding:.4rem;box-sizing:border-box}.ws-3d .b3{height:100%;min-height:300px}
-.ws-baum{margin:.2rem 0 .4rem}.ws-baum>.nh{font-weight:700;color:var(--mute);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;margin:.6rem .4rem .2rem}
-.ws-baum .bt-grp{font-size:.78rem}.ws-baum tr.ws-nurz{cursor:pointer}.ws-baum tr.ws-nurz.akt>td{background:color-mix(in srgb,#7b2ff7 8%,transparent)}
+/* Reiter „Gebäudemodell“ rechts (WR-1 A, ws-baum.js) */
+.ws-baum{padding:.4rem .5rem}.ws-baum .bt-grp{font-size:.78rem}
+.ws-bkopf{display:flex;gap:.5rem;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:.78rem;margin-bottom:.3rem}
+.ws-bu.ws-geae{outline:2px solid #e5c45a;outline-offset:1px;border-radius:3px}
+.ws-ablage{outline:2px dashed var(--af,#2f6f8f);outline-offset:-4px}
 
 /* Schichtaufbau (Mock „Schichtaufbau neu – mit Gefachen“, 22.11.2026; ws-schichten.js) */
 .ws-st{display:inline-flex;gap:.25rem;align-items:center;border-radius:calc(999px*var(--rkp,1));padding:0 .55rem;font-size:.78rem;font-weight:600;border:1px solid;white-space:nowrap}
@@ -157,7 +160,7 @@ main.ws .ws-work{flex:1;min-height:0;display:flex}main.ws .ws-work.sr-split{disp
 .ws-dk span{font-size:.72rem;color:var(--mute);padding-right:3px}.ws-dk.kl{height:23px}.ws-dk.kl input{width:34px}
 .ws-lam{width:60px;text-align:right;font:inherit;font-size:.85rem;border:1px solid transparent;border-radius:4px;background:transparent;color:var(--ink);padding:1px 4px}.ws-lam:hover,.ws-lam:focus{border-color:var(--line)}
 .ws-lam.hand{background:color-mix(in srgb,var(--y,#e0a800) 18%,var(--card));border-color:color-mix(in srgb,var(--y,#e0a800) 50%,var(--line))}.ws-lam:placeholder-shown{color:var(--mute)}
-.ws-ant{display:flex;align-items:center;gap:.35rem}.ws-ant i{display:block;height:6px;border-radius:3px;background:var(--af,#2f6f8f);opacity:.75}.ws-ant small{font-size:.72rem;color:var(--mute)}
+.ws-ant{display:flex;align-items:center;gap:.35rem}.ws-ant i{display:block;height:6px;border-radius:3px;background:var(--af,#2f6f8f);opacity:.75}.ws-ant small{font-size:.72rem;color:var(--mute);white-space:nowrap}
 .ws-mehr,.ws-x{border:0;background:none;cursor:pointer;color:var(--mute);border-radius:4px;height:24px;font:inherit}.ws-mehr:hover,.ws-x:hover{background:var(--hov);color:var(--ink)}
 .ws-gef{display:grid;grid-template-columns:44px minmax(0,1fr);gap:.5rem;padding:0 .6rem .5rem}
 .ws-gef .ic{justify-self:end;margin-top:4px;width:14px;height:14px;border-radius:3px;background:#c99a5b;background-image:repeating-linear-gradient(0deg,transparent 0 3px,rgba(90,58,23,.3) 3px 4px)}

@@ -181,7 +181,8 @@ tr.bt-mwz>td{background:color-mix(in srgb,#7b2ff7 8%,transparent)}
     const H = window.BPHead || {};
     /* Für andere Apps (22.11.2026, Wärmeschutz – Mock „Wärmeschutz: Bauteile-Baum“ WB-1 B): opt.filter(z) – nur diese Zeilen; opt.gruppenExtra
        { key: [Name, (z) => Wert] } – eigene Ebenen; opt.grp0 / opt.grpKey – Vorgabe und Merk-Schlüssel; opt.kompakt – nur Bauteil · Menge · U ·
-       letzte Spalte; opt.letzte { kopf, zelle(z), gruppe(R) } statt „in Kosten/LV“; opt.nachher() – Zeilen der App unter dem Baum */
+       letzte Spalte; opt.letzte { kopf, zelle(z), gruppe(R) } statt „in Kosten/LV“; opt.nachher() – Zeilen der App unter dem Baum;
+       opt.umsortieren: false – Ziehen und Strg+X/V ordnen nichts um; opt.ziehen(ids) – beim Anfassen der Zeilen (Ablegen außerhalb macht die App) */
     const GX = opt.gruppenExtra || {}, GR = { ...GRUPPEN, ...Object.fromEntries(Object.entries(GX).map(([k, [n]]) => [k, n])) };
     const grpKey = opt.grpKey || 'bp.bt.grp3', grp0 = opt.grp0 || GRP0, KOMP = !!opt.kompakt, NS = KOMP ? 4 : 6;
     const Z = { d: null, auf: null, vorl: {}, vorlD: {}, blk: {}, laeuft: false, kg: {}, ps: [], an: null, rw: null, rwW: {}, sel: null, det: null, mw: [], grp: grpLies(grpKey, GR, grp0), gk: [], schnell: null, pop: null, popU: 'an' };   // sel: markierte Zeile (Baumtabelle), det: Feld „Details“ rechts   // rw: Vorschläge der Apps (Rückweg), rwW: Wahl je Vorschlag   // an: Planstand, der gerade angesehen wird (gilt nicht)
@@ -968,6 +969,7 @@ tr.bt-mwz>td{background:color-mix(in srgb,#7b2ff7 8%,transparent)}
       el.addEventListener('keydown', (e) => {   // US-2 A: Strg+X/C/V, Strg+Umschalt+V, Strg+A im Baum (nicht beim Tippen)
         if (!(e.ctrlKey || e.metaKey) || e.altKey || Z.an || (window.bpTippt && bpTippt(e.target)) || !e.target.closest('.bt-baum, .bt-bw')) return;
         const k = e.key.toLowerCase();
+        if (opt.umsortieren === false && ['x', 'v'].includes(k)) return;   // nur ansehen und übernehmen (Wärmeschutz) – nichts im Modell umsortieren
         if (k === 'x' || k === 'c') { if (!auswahlIds().length) return; e.preventDefault(); ablage(k === 'x'); }
         else if (k === 'v' && Z.clip) { e.preventDefault(); if (e.shiftKey) aufbauEinfuegen(); else einfuegen(Z.selG ? el.querySelector(`tr.bt-bh[data-btgk="${CSS.escape(Z.selG)}"]`) : Z.sel && el.querySelector(`tr[data-btz="${CSS.escape(Z.sel)}"]`)); }
         else if (k === 'a' && Z.sel) { const g = gruppeVon(Z.sel); if (g) { e.preventDefault(); mwSetzen(g[1]); } }
@@ -980,14 +982,15 @@ tr.bt-mwz>td{background:color-mix(in srgb,#7b2ff7 8%,transparent)}
         const id = tr.dataset.btz; Z.zieh = Z.mw.includes(id) ? [...Z.mw] : [id];
         const g = document.createElement('div'); g.className = 'bt-geist'; g.textContent = Z.zieh.length === 1 ? (L().zeilen.find((x) => x.id === id) || {}).name || '1 Bauteil' : `${Z.zieh.length} Bauteile`;
         document.body.appendChild(g); e.dataTransfer.setDragImage(g, 12, 12); setTimeout(() => g.remove(), 0);
-        e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', g.textContent);
+        e.dataTransfer.effectAllowed = opt.umsortieren === false ? 'copy' : 'move'; e.dataTransfer.setData('text/plain', g.textContent);
+        if (opt.ziehen) opt.ziehen([...Z.zieh]);   // andere Apps: die gezogenen Zeilen auch außerhalb des Baums ablegen (Wärmeschutz: nach links/in die Mitte = übernehmen, WR-3 A)
       });
       el.addEventListener('dragover', (e) => {
-        if (!Z.zieh) return; const tr = zielTr(e); markeWeg(); if (!tr || (tr.dataset.btz && Z.zieh.includes(tr.dataset.btz))) return;
+        if (!Z.zieh || opt.umsortieren === false) return; const tr = zielTr(e); markeWeg(); if (!tr || (tr.dataset.btz && Z.zieh.includes(tr.dataset.btz))) return;
         const P = umPlan(Z.zieh, zielWeg(tr)); tr.classList.add(P.ok ? 'bt-ziel' : 'bt-nein'); tr.title = P.ok ? `Hier ablegen: ${P.schritte.map((s) => s.w).join(' · ')}` : P.grund;
         if (P.ok) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
       });
-      el.addEventListener('drop', (e) => { const tr = zielTr(e), ids = Z.zieh; markeWeg(); Z.zieh = null; if (!tr || !ids) return; e.preventDefault(); umsortieren(ids, zielWeg(tr)); });
+      el.addEventListener('drop', (e) => { const tr = zielTr(e), ids = Z.zieh; markeWeg(); Z.zieh = null; if (!tr || !ids || opt.umsortieren === false) return; e.preventDefault(); umsortieren(ids, zielWeg(tr)); });
       el.addEventListener('dragend', () => { Z.zieh = null; markeWeg(); });
       el.addEventListener('click', (e) => { if (e.detail !== 2) return; const r = e.target.closest('tr[data-btz]'); if (!r || !el.contains(r) || e.target.closest('input,button,select,[data-btschnell]')) return; e.preventDefault(); e.stopPropagation(); clearTimeout(Z.klT); eigenschaften(r.dataset.btz); }, true);   // Doppelklick = Eigenschaften wie im LV – als zweiter Klick (detail 2) vor dem Neuzeichnen: der erste Klick zeichnet die Zeile neu, dann käme kein dblclick an
     }

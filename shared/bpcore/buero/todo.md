@@ -253,7 +253,10 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 - Wärmeschutz – Soll der weiteren Nachbarländer (NL, BE, LU, FR, DK, PL, CZ): Werte je Land mit Quelle recherchieren und in `WS_REGELN.SOLL` eintragen **ca. 1 h** · Querschnitt auch im Eigenschaften-Fenster des Gebäudemodells (SA-8) **ca. 1 h**
 
+- Kopierquelle im LV auf den gemeinsamen Baum (WR-6 A) – eigener Mock **ca. 2 h**
+
 ## Erledigt
+- ~~Wärmeschutz: Gebäudemodell rechts wie die Kopierquelle (Mock WR-1 … WR-7): „← übernehmen“/Ziehen, links wieder die Bauteile des Nachweises, rechts Gebäudemodell · Bauphysik · 3D~~ (22.11.2026)
 - ~~Wärmeschutz: Schichtaufbau neu (Mock SA-1 … SA-17): Querschnitt mit Ziehen/Fugen/＋, Gefache kreuzweise und in Flucht richtig gerechnet, Draufsicht, R′/R″ ≤ 1,5, Soll fürs Gebäude (GModG, BEG, EH, Passivhaus, AT, CH) mit 5 Stufen, Ausdruck mit Blöcken und Teilflächen~~ (22.11.2026)
 - ~~Pipeline schneller: Freigabe startet nur einmal (vorher zweimal nacheinander), Oberflächentests mit nachgebildetem Server in drei parallelen Jobs neben Bauen und Rauchtest~~ (22.11.2026)
 - ~~Bauzeitenplan: Soll, Ist und Fortschritt (Mock SI2-1 … SI2-6): Balken füllt sich mit Zahl, Soll grau darunter, Punkt „heute“ mit Verzug, Klick auf den Balken = Feld „Zeit und Stand“, im Eigenschaften-Fenster ein Block~~ (22.11.2026)

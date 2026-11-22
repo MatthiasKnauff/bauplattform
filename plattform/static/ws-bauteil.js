@@ -134,7 +134,8 @@ async function modellLaden() {
   catch { MOD = null; }   // ohne Modell geht der Nachweis genauso
 }
 function modellHtml() {
-  const H = MOD ? MOD.hinweise.filter((h) => wsSicht(h) && !(h.art === 'neu' && wsZeileVon(h.ref) && wsHu().has(wsZeileVon(h.ref)))) : []; if (!H.length) return '';   // „neu“ aus dem Gebäudemodell: im Baum links („＋ in den Nachweis“, WB-4 A)
+  const H = MOD ? MOD.hinweise.filter((h) => wsSicht(h) && !(h.art === 'neu' && wsZeileVon(h.ref) && wsHu().has(wsZeileVon(h.ref))) && !(h.art === 'flaeche' && h.da && h.da !== BID)) : [];
+  if (!H.length) return '';   // WR-5 A: „neu“ aus dem Gebäudemodell steht rechts als „← übernehmen“, eine Änderung nur beim betroffenen Bauteil
   const arten = R7.TYPEN.filter(([k]) => k !== 'innenwand');
   return `<div class="ws-mod"><div class="ws-modk"><span class="ws-modz">${H.length}</span><b>${H.length === 1 ? 'Hinweis' : 'Hinweise'} aus dem Projektmodell – nichts wird ohne dich geändert</b></div>
     <ul>${H.map((h) => `<li data-wshin="${h.id}"${h.ref ? ' title="Anklicken: im 3D-Modell zeigen"' : ''}><div class="t"><b>${esc(h.titel)}</b><p>${esc(h.text)}</p><small>Quelle: ${esc(h.quelle)}</small></div>

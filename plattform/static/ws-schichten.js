@@ -90,7 +90,7 @@ function schichtenNeu(b) {
   S.forEach((s, i) => {
     const rr = V.querySelector(`[data-rr="${i}"]`), ra = V.querySelector(`[data-ra="${i}"]`), ga = V.querySelector(`[data-sga="${i}"]`), x = r ? r.u.rSchicht[i] : null;
     if (rr) rr.textContent = x != null ? zahl(x, 2) : '–';
-    if (ra) ra.innerHTML = x != null ? `<i style="width:${Math.max(2, x / mx * 58)}px"></i><small>${zahl(x / r.u.rT * 100, 0)} %</small>` : '';
+    if (ra) ra.innerHTML = x != null ? `<i style="width:${Math.max(2, x / mx * 44)}px"></i><small>${zahl(x / r.u.rT * 100, 0)} %</small>` : '';
     if (ga) { const q = s.gl === 'flucht' ? skKopf(S, i) : s; ga.textContent = q && q.breite > 0 && q.abstand > 0 ? zahl(q.breite / q.abstand * 100, 1) + ' %' : '–'; }
   });
   const sum = $('#wsSum'); if (sum) sum.textContent = `d ${zahl(S.reduce((a, s) => a + (+s.d || 0), 0), 1)} cm${r ? ` · R gesamt ${zahl(r.u.rT, 2)} m²K/W · Rsi ${zahl(r.u.rsi)} · Rse ${zahl(r.u.rse)}` : ''}`;

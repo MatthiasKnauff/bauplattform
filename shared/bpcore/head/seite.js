@@ -43,7 +43,7 @@
 
   /* Planungsassistent (bp/assistent.js, Projektmodell): in den Bereichen mit Projektbezug hängen hier von selbst die Reiter „Planung“, „Bauteile“ (bp/bauteile.js) und „Verknüpfungen“ (bp/karte.js) an.
      Geladen wird der Baustein erst, wenn jemand den Reiter öffnet. Projekt: window.bpPlanungPid() der App, sonst das Projekt der Kopfleiste. */
-  const PLANUNG = new Set(['lv', 'ba', 'ws', 'gantt', 'bk']);   // nur wo Planung/Bauteile die App speisen (LV, Bauantrag, Wärmeschutz, Bauzeitenplan, Kosten) – nicht in Aufträgen, Aufmaß, Rechnungen, Angeboten, Versand, Honorar, Bautagebuch (17.11.2026)
+  const PLANUNG = new Set(['lv', 'ba', 'gantt', 'bk']);   // nur wo Planung/Bauteile die App speisen (LV, Bauantrag, Bauzeitenplan, Kosten) – nicht in Aufträgen, Aufmaß, Rechnungen, Angeboten, Versand, Honorar, Bautagebuch (17.11.2026); Wärmeschutz seit 22.11.2026 ohne (Mock „Wärmeschutz – Gebäudemodell rechts“ WR-4 A: rechts Gebäudemodell · Bauphysik · 3D)
   const planPid = () => (window.bpPlanungPid ? window.bpPlanungPid() : window.BPHead && BPHead.projektId && BPHead.projektId()) || null;
   const planLadung = {};
   const planBaustein = (id, titel, datei, glob, laedt, fehlt) => ({ id, titel, mount: (el) => {   // Baustein erst beim Öffnen des Reiters holen
@@ -61,7 +61,7 @@
   const baukastenReiter = planBaustein('baukasten', 'Baukasten', 'gebaeudekasten.js', 'bpBaukasten', 'Gebäude-Baukasten wird geladen …', 'Der Gebäude-Baukasten konnte nicht geladen werden.');   // Gebäude per Klick und Ziehen (bp/gebaeudekasten.js, A3 20.11.2026)
   const kartenReiter = planBaustein('karte', 'Verknüpfungen', 'karte.js', 'bpKarte', 'Verknüpfungen werden geladen …', 'Die Verknüpfungen konnten nicht geladen werden.');   // Verknüpfungs-Karte des Projektmodells (bp/karte.js)
   const fragenReiter = planBaustein('fragen', 'Fragen und Antworten', 'fragen.js', 'bpFragen', 'KI-Gespräch wird geladen …', 'Das KI-Gespräch konnte nicht geladen werden.');   // KI-Gespräch zum Projekt (bp/fragen.js) – nur Ollama
-  const BAUTEILE = new Set(['bk', 'lv']);   // Bauteile nur, wo sie die App speisen (RR-A1, 18.11.2026): Kosten, LV – nicht Bauzeitenplan, Bauantrag; im Wärmeschutz steht der Baum links (ws-baum.js, WB-1 B, 22.11.2026)
+  const BAUTEILE = new Set(['bk', 'lv']);   // Bauteile nur, wo sie die App speisen (RR-A1, 18.11.2026): Kosten, LV – nicht Bauzeitenplan, Bauantrag; im Wärmeschutz bringt die App ihren Reiter „Gebäudemodell“ selbst mit (ws-baum.js, WR-1 A, 22.11.2026)
   const FRAGEN = PLANUNG;   // Reiter „Fragen und Antworten“ überall, wo „Planung“ steht (18.11.2026); im Gebäudemodell eine eigene Ansicht
   const bauteilReiter = planBaustein('bauteile', 'Bauteile', 'bauteile.js', 'bpBauteile', 'Bauteil-Checkliste wird geladen …', 'Die Bauteil-Checkliste konnte nicht geladen werden.');   // Bauteil-Checkliste im Projektmodell (bp/bauteile.js)
 

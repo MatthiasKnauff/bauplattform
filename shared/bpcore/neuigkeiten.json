@@ -1,5 +1,13 @@
 [
  {
+  "id": "ws-gm-rechts-2026-11-22",
+  "datum": "2026-11-22",
+  "app": "waermeschutz",
+  "titel": "Gebäudemodell rechts, Bauteile wieder links",
+  "text": "Rechts steht jetzt der Reiter „Gebäudemodell“ wie die Baudaten im LV: die Hülle aus dem Gebäudemodell, gruppiert nach Hüllfläche. Mit „← übernehmen“ oder durch Ziehen nach links kommt ein Bauteil in den Nachweis. Links stehen wieder die Bauteile des Nachweises. Tauwasser und Hitzeschutz sind ein Reiter „Bauphysik“; der Querschnitt steht im Bauteil selbst.",
+  "ziel": ".sr-r"
+ },
+ {
   "id": "ws-schichtaufbau-2026-11-22",
   "datum": "2026-11-22",
   "app": "waermeschutz",

@@ -1,7 +1,7 @@
 'use strict';
 /* Wärmeschutz – Seite der App. Projekt oben in der Kopfleiste wie überall; links die Navigation (bpNav: Nachweis, Bauteile, Katalog),
    oben die Befehlsleiste, in der Mitte die Ablaufleiste (bp-stufen, wie Honorar) und darunter je Stufe eine Karte:
-   Grundlagen (aus dem Bauantrag) → Bauteile (Rechner, ws-bauteil.js; Hülle aus dem Projektmodell als Hinweise) → Prüfung (Anlage 7 GModG) → Nachweis → Eingereicht.
+   Grundlagen (aus dem Bauantrag) → Bauteile (Rechner, ws-bauteil.js / ws-schichten.js; Hülle aus dem Gebäudemodell rechts im Reiter, ws-baum.js) → Prüfung (Anlage 7 GModG) → Nachweis → Eingereicht.
    Jede Änderung wird sofort gespeichert (Rückgängig-Dock). Rechnen: bp/wsphysik.js, Regeln: bp/wsregeln.js, Server: plattform/waermeschutz.py. */
 let L = null, D = null, NID = null, PID = null, BID = null, MOD = null;   // MOD: Hinweise aus dem Projektmodell (ws-bauteil.js)
 const NAV = $('#navL'), LEISTE = $('#bfl'), V = $('#view'), WORK = $('#work');
@@ -65,14 +65,19 @@ function nav() {
     { id: 's:grundlagen', text: 'Grundlagen', icon: IC.schicht, farbe: 'var(--c-b)', zahl: D.grundlagen.vorhaben ? '✓' : 'offen' },
     { id: 's:pruefung', text: 'Prüfung', icon: IC.haken, farbe: 'var(--c-v)', zahl: !D.bauteile.length ? '–' : off ? off + ' ✗' : '✓', zahlTip: off ? 'Bauteile über dem Höchstwert' : '' },
     { id: 's:nachweis', text: 'Nachweis', icon: IC.ablage, farbe: 'var(--c-t)', zahl: D.nachweis.status === 'eingereicht' ? 'eingereicht' : '' }] });
+  G.push({ titel: 'Bauteile', punkte: [...wsBauteile().map((b) => { const e = ergebnis(b), st = e.stufe;   // WR-2 A: die Bauteile des Nachweises, 🔗 = aus dem Gebäudemodell
+    return { id: 'b:' + b.id, text: `${String(b.ref || '').startsWith('bk:') ? '🔗 ' : ''}${b.kurz || ''} ${b.name || typName(b.typ)}`.trim(), icon: IC.wand,
+      farbe: !st ? 'var(--c-o)' : st.s <= 1 ? 'var(--c-g)' : st.s === 2 ? 'var(--c-o)' : 'var(--c-r)',
+      zahl: e.u == null ? '–' : zahl(e.u) + (st ? ' ' + st.zeichen : ''), zahlTip: st ? `${st.text} · ${st.prozent} % vom Soll ${zahl(e.umax)}` : 'kein Soll' }; }),
+    { id: 'b+', text: '＋ Bauteil …', icon: IC.neu }] });
   G.push({ titel: 'Datenbank des Büros', punkte: [{ id: 'k', text: 'Bauteilkatalog …', icon: IC.kat }, { id: 'bs', text: 'Baustoffe …', icon: IC.schicht, zahl: String(BS.filter((m) => m.aktiv).length) }] });
   bpNav(NAV, { kopf: { titel: P, klein: VORHABEN[D.grundlagen.vorhaben] ? VORHABEN[D.grundlagen.vorhaben].split(' (')[0] : '' }, davor: '<div class="ws-vm"></div>',
-    nachher: (el) => { const b = el.querySelector('.ws-vm'); if (b) versionMenue(b); wsBaum(el); wsFilterEin(); },
-    gruppen: G, attr: 'ws', lage: true,
+    nachher: (el) => { const b = el.querySelector('.ws-vm'); if (b) versionMenue(b); wsFilterEin(el); },
+    gruppen: G, aktiv: BID ? 'b:' + BID : '', attr: 'ws', lage: true,
     wahl: (id, e) => navWahl(id, e) });
 }
-function wsFilterEin() {   // Umschalter über dem Baum (nur wenn es Innenbauteile gibt oder der Filter nicht „Außen“ steht)
-  const g = WSB.el; if (!g || !g.querySelector('.nh')) return; g.querySelectorAll('.ws-fi').forEach((x) => x.remove());
+function wsFilterEin(el) {   // Umschalter über der Bauteilliste links (nur wenn es Innenbauteile gibt oder der Filter nicht „Außen“ steht)
+  const g = [...el.querySelectorAll('.ng')].find((x) => (x.querySelector('.nh') || {}).textContent === 'Bauteile'); if (!g) return;
   const f = LS.get('filter', 'aussen'), n = D.bauteile.filter(wsInnen).length + (MOD ? MOD.hinweise.filter(wsInnen).length : 0);
   if (!n && f === 'aussen') return;
   g.querySelector('.nh').insertAdjacentHTML('afterend', `<div class="ws-fi" role="group" aria-label="Bauteile filtern">${[['alle', 'Alle'], ['aussen', 'Außen'], ['innen', `Innen${n ? ' ' + n : ''}`]]
@@ -100,6 +105,8 @@ async function versionUmbenennen() {
 function navWahl(id, e) {
   if (id.startsWith('n:')) { BID = null; laden(+id.slice(2)); return; }
   if (id.startsWith('s:')) { const k = V.querySelector(`[data-karte="${id.slice(2)}"]`); if (k) k.scrollIntoView({ block: 'start' }); return; }
+  if (id === 'b+') { bauteilNeu(e && e.target.closest('button')); return; }
+  if (id.startsWith('b:')) { BID = id.slice(2); WS_AUF.add('bauteile'); zeichne(); const k = V.querySelector('[data-karte="bauteile"]'); if (k) k.scrollIntoView({ block: 'start' }); return; }
   if (id === 'k') { katalogZeigen(); return; }
   if (id === 'bs') { baustoffeZeigen(); return; }
 }
@@ -144,6 +151,7 @@ function zeichne() {
   if (fsel) { const f = V.querySelector(fsel); if (f) f.focus(); }
   if (!WORK.querySelector(':scope > .sr-r')) bereich();
   bauteilNachher();
+  wsBaumNeu();   // Reiter „Gebäudemodell“ rechts: Haken und Stufen nachführen
 }
 
 /* Welche Fassung gilt: Datum des Bauantrags (bzw. Bauanzeige; verfahrensfrei: Baubeginn) – § 111 Abs. 2 GModG */

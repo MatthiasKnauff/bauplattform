@@ -64,11 +64,12 @@ export async function wsModellPruefen(browser, repo) {
     await p.click('[data-wsmod="uebernehmen"][data-hid="12"]'); await p.waitForTimeout(200);
     pruef(S.posts.length === 0, 'Decke ohne Art wurde angelegt, statt erst nach der Art zu fragen');
     await p.selectOption('[data-wsmodtyp="12"]', 'kellerdecke'); await p.click('[data-wsmod="uebernehmen"][data-hid="12"]');
-    await p.waitForFunction(() => document.querySelectorAll('.ws-mod li').length === 2);
+    await p.waitForFunction(() => BID === 'n12' && document.querySelectorAll('.ws-mod li').length === 1);   // WR-5 A: die Flächenänderung von AW1 steht nur bei AW1
     pruef(JSON.stringify(S.posts[0]) === JSON.stringify({ hid: 12, tun: 'uebernehmen', typ: 'kellerdecke' }), `Übernehmen schickt ${JSON.stringify(S.posts[0])}`);
     pruef(await p.evaluate(() => BID === 'n12'), 'das neue Bauteil wird nicht gezeigt');
-    await p.click('[data-wsmod="ablehnen"][data-hid="13"]'); await p.waitForFunction(() => document.querySelectorAll('.ws-mod li').length === 1);
+    await p.click('[data-wsmod="ablehnen"][data-hid="13"]'); await p.waitForFunction(() => !document.querySelector('.ws-mod'));
     pruef(S.posts[1] && S.posts[1].tun === 'ablehnen' && S.posts[1].hid === 13, '„Nicht nötig“ schickt kein Ablehnen');
+    await p.evaluate(() => { BID = 'aw1'; zeichne(); }); await p.waitForSelector('[data-wsmod="uebernehmen"][data-hid="11"]');
     await p.click('[data-wsmod="uebernehmen"][data-hid="11"]'); await p.waitForFunction(() => !document.querySelector('.ws-mod'));
     pruef(S.bauteile[0].flaeche === 228, 'Fläche nicht angeglichen');
     await p.evaluate(() => { BID = 'aw1'; zeichne(); });
@@ -115,16 +116,19 @@ export async function wsModellPruefen(browser, repo) {
       }
       if (process.env.BILD3) await p.screenshot({ path: process.env.BILD3 });
     }
-    {   // Baum links (Mock „Wärmeschutz: Bauteile-Baum“ WB-1 B … WB-4 A): nur die Hülle, Hüllfläche › Typ, im Nachweis, „＋ in den Nachweis“
-      await p.click('#navL [data-wsfi="aussen"]').catch(() => {}); await p.waitForSelector('#navL .ws-baum .bt-baum', { timeout: 8000 });
-      for (let n = 0; n < 4; n++) { const z = await p.$('#navL .ws-baum tr.bt-bh .car.zu'); if (!z) break; await z.click(); await p.waitForTimeout(80); }
-      const t = await p.evaluate(() => ({ k: [...document.querySelectorAll('#navL .ws-baum tr.bt-bh b')].map((b) => b.textContent), z: [...document.querySelectorAll('#navL .ws-baum tr[data-btz]')].map((r) => r.dataset.btz),
-        plus: !!document.querySelector('#navL .ws-baum [data-wsplus="b7"]'), nur: !!document.querySelector('#navL .ws-baum [data-wsneu]'), kasten: [...document.querySelectorAll('.ws-mod li')].some((l) => /Dach 168/.test(l.textContent)) }));
-      pruef(t.k[0] === 'Außenwände' && t.k.includes('Dach und oberste Geschossdecke') && t.k.includes('Nur im Nachweis') && !t.z.includes('x9') && t.plus && t.nur && !t.kasten,
-        `Baum: Hüllfläche, nur Hülle, ＋ in den Nachweis statt Hinweis im Kasten – ${JSON.stringify(t)}`);
-      const n0 = S.posts.length; await p.click('#navL .ws-baum [data-wsplus="b7"]'); for (let i = 0; i < 40 && S.posts.length === n0; i++) await p.waitForTimeout(50);
-      pruef(JSON.stringify(S.posts[n0]) === JSON.stringify({ hid: 14, tun: 'uebernehmen', typ: 'steildach' }), `＋ in den Nachweis schickt ${JSON.stringify(S.posts[n0])}`);
-      await p.click('#navL .ws-baum tr[data-btz="b1"] td:nth-child(2)'); await p.waitForTimeout(200);
+    {   // Gebäudemodell rechts wie die Kopierquelle (Mock „Wärmeschutz – Gebäudemodell rechts“ WR-1 … WR-7 A): nur die Hülle, Hüllfläche › Typ, „← übernehmen“;
+        // links wieder die Bauteile des Nachweises; rechts nur Gebäudemodell · Bauphysik · 3D (kein Planung, Baukasten, Fragen, Querschnitt, Prüfung)
+      await p.evaluate(() => seiteReiter('ws', 'modell')); await p.waitForSelector('.ws-baum .bt-baum', { timeout: 8000 });
+      for (let n = 0; n < 4; n++) { const z = await p.$('.ws-baum tr.bt-bh .car.zu'); if (!z) break; await z.click(); await p.waitForTimeout(80); }
+      const t = await p.evaluate(() => ({ k: [...document.querySelectorAll('.ws-baum tr.bt-bh b')].map((b) => b.textContent), z: [...document.querySelectorAll('.ws-baum tr[data-btz]')].map((r) => r.dataset.btz),
+        plus: (document.querySelector('.ws-baum [data-wsplus="b7"]') || {}).textContent || '', inNav: !!document.querySelector('#navL .ws-baum'), links: document.querySelector('#navL').innerText,
+        reiter: [...document.querySelectorAll('.sr-tabs [data-srt], .sr-tab, [role="tab"]')].map((x) => x.textContent.trim()).filter(Boolean), kasten: [...document.querySelectorAll('.ws-mod li')].some((l) => /Dach 168/.test(l.textContent)) }));
+      pruef(t.k[0] === 'Außenwände' && t.k.includes('Dach und oberste Geschossdecke') && !t.z.includes('x9') && /übernehmen/.test(t.plus) && !t.inNav && !t.kasten && /Außenwand/.test(t.links) && /Bauteil …/.test(t.links),
+        `Gebäudemodell rechts, links die Bauteile des Nachweises – ${JSON.stringify(t)}`);
+      pruef(!t.reiter.some((r) => /^(Planung|Baukasten|Fragen|Querschnitt|Prüfung|Tauwasser|Hitzeschutz)/.test(r)), `Reiter rechts: ${t.reiter.join(' · ')}`);
+      const n0 = S.posts.length; await p.click('.ws-baum [data-wsplus="b7"]'); for (let i = 0; i < 40 && S.posts.length === n0; i++) await p.waitForTimeout(50);
+      pruef(JSON.stringify(S.posts[n0]) === JSON.stringify({ hid: 14, tun: 'uebernehmen', typ: 'steildach' }), `← übernehmen schickt ${JSON.stringify(S.posts[n0])}`);
+      await p.click('.ws-baum tr[data-btz="b1"] td:nth-child(2)'); await p.waitForTimeout(200);
       pruef(await p.evaluate(() => BID === 'aw1'), 'Klick auf die Zeile öffnet das Bauteil des Nachweises');
     }
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n').slice(0, 3).join(' ')); }

@@ -328,7 +328,7 @@ function pickMenu(anchor, opt) {
     shown = opt.items.filter((x) => !q || passt([x.title, x.sub, x.find, x.group].join(' '), q));   // jedes Wort muss vorkommen (wie überall)
     let g = null; const L = m.querySelector('.pm-l');
     L.innerHTML = shown.map((x, i) => { const h = x.group && x.group !== g ? `<div class="pm-g">${esc(x.group)}</div>` : ''; g = x.group;
-      return h + `<div class="pm-o${x.on ? ' on' : ''}${i === act ? ' act' : ''}" data-i="${i}" role="option" aria-selected="${!!x.on}"><span><b>${esc(x.title)}</b>${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</span>${x.extra ? `<span class="pm-x">${x.extra}</span>` : ''}</div>`; }).join('')
+      return h + `<div class="pm-o${x.on ? ' on' : ''}${x.aus ? ' pm-aus' : ''}${i === act ? ' act' : ''}" data-i="${i}" role="option" aria-selected="${!!x.on}"${x.aus ? ' aria-disabled="true"' : ''}><span><b>${esc(x.title)}</b>${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</span>${x.extra ? `<span class="pm-x">${x.extra}</span>` : ''}</div>`; }).join('')
       || `<div class="pm-e">${esc(opt.empty || 'Nichts gefunden.')}</div>`;
     const a = L.querySelector('.act'); if (a) a.scrollIntoView({ block: 'nearest' });
   };
@@ -339,12 +339,12 @@ function pickMenu(anchor, opt) {
     if (e.key === 'Escape') { close(); anchor.focus(); }
     else if (e.key === 'ArrowDown') { e.preventDefault(); act = Math.min(shown.length - 1, act + 1); draw(); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); act = Math.max(0, act - 1); draw(); }
-    else if (e.key === 'Enter' && shown[Math.max(0, act)]) { e.preventDefault(); const x = shown[Math.max(0, act)]; close(); opt.onPick(x.value, x, e); }
+    else if (e.key === 'Enter' && shown[Math.max(0, act)] && !shown[Math.max(0, act)].aus) { e.preventDefault(); const x = shown[Math.max(0, act)]; close(); opt.onPick(x.value, x, e); }
   });
   m.addEventListener('click', (e) => {
     const f = e.target.closest('.pm-f'); if (f && opt.onFooter) { opt.onFooter(e, close); return; }
     if (e.target.closest('.pm-x a')) { close(); return; }
-    const b = e.target.closest('[data-i]'); if (!b) return; const x = shown[+b.dataset.i]; close(); opt.onPick(x.value, x, e);
+    const b = e.target.closest('[data-i]'); if (!b) return; const x = shown[+b.dataset.i]; if (x.aus) return; close(); opt.onPick(x.value, x, e);   // aus: ausgegraut, mit Grund (sub)
   });
   return { close };
 }

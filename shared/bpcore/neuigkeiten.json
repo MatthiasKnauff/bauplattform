@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-einzeln-2211",
+  "datum": "2026-11-22",
+  "app": "gebaeudemodell",
+  "titel": "Einzelne Wände, Geschoss, „zählt / zählt nicht“",
+  "text": "Unter jeder Zeile stehen die einzelnen Bauteile (Dreieck) – im 3D angeklickt wird genau dieses markiert. Gruppieren geht auch nach Geschoss; was hier nichts unterscheidet, ist ausgegraut. Anwählen bewegt die Liste nicht mehr. Doppelklick auf mehrere gewählte Zeilen öffnet die Eigenschaften für alle (auch per Rechtsklick). Statt des Häkchens unter „€“ steht jetzt „in Kosten/LV: zählt / zählt nicht“ – auch für ganze Gruppen.",
+  "ziel": ".bt-grp"
+ },
+ {
   "id": "gm-baum-2211",
   "datum": "2026-11-22",
   "app": "gebaeudemodell",

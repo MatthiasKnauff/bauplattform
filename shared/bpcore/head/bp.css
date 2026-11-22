@@ -95,7 +95,7 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .pickm .pm-g{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);padding:.55rem .6rem .25rem}
 .pickm .pm-o{display:flex;align-items:center;gap:.6rem;width:100%;text-align:left;border-radius:calc(8px*var(--rk,1));padding:.5rem .6rem;color:var(--ink);background:none;border:0;cursor:pointer;font:inherit}
 .pickm .pm-o span{display:flex;flex-direction:column;min-width:0;flex:1}
-.pickm .pm-o b{font-weight:500}
+.pickm .pm-o b{font-weight:500}.pickm .pm-o.pm-aus{opacity:.45;cursor:default}
 .pickm .pm-o small{color:var(--mute);font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pickm .pm-o:hover,.pickm .pm-o.act{background:var(--hov)}
 .pickm .pm-o.on b{color:var(--y);font-weight:600}

@@ -859,6 +859,7 @@ def ifc_lesen(raw, bestand=False, art_je=None):
                 RI.setdefault(id(gr), (gr, []))[1].append((i, m))
             if bestand:
                 gr["ids"].append(i)
+                gr.setdefault("je", {})[str(i)] = round(m or 0, 3)   # Menge je Bauteil (einzelne Wände im Baum, 22.11.2026)
             gr["menge"] += m or 0
             gr["anzahl"] += 1
             if not gr.get("uw") and kg == "334":   # Fenster/Türen: U-Wert, wenn das Modell ihn mitgibt (für den Wärmeschutz)
@@ -900,6 +901,7 @@ def ifc_lesen(raw, bestand=False, art_je=None):
             for i, m_ in L_:
                 if RW.get(i):
                     gr_.setdefault("richtung", {})[RW[i]] = round(gr_.get("richtung", {}).get(RW[i], 0) + m_, 2)
+                    gr_.setdefault("rj", {})[str(i)] = RW[i]   # Himmelsrichtung je Wand
     bauteile, klein = [], 0
     for g in sorted(gruppen.values(), key=lambda x: (x["kg"], -x["menge"])):
         if g["einheit"] != "St" and g["menge"] < 0.5:   # Splitter (z. B. falsch modellierte Wandstücke) weglassen

@@ -35,3 +35,13 @@ def test_liste_behaelt_art_je():
     pruefe(z["kg"] == "342" and "Innen" in (z.get("einordnung") or z.get("name") or "") or z["kg"] == "342", f"Zeile der neuen Art: {z['kg']} {z.get('name')}")
     L2 = B.sauber(B.zeilen_aus_ifc(c, cadimport.ifc_lesen(IFC, bestand=True), L))
     gleich(L2.get("art_je"), {GID: "342"}, "bleibt beim Neubilden ohne neue Angabe")
+
+
+def test_menge_je_bauteil():
+    """Einzelne Wände im Baum (22.11.2026): je Bauteil die Menge (je) – bleibt in der Liste (sauber)."""
+    c = db()
+    R = cadimport.ifc_lesen(IFC, bestand=True)
+    w = next(g for g in R["bauteile"] if 10 in g.get("ids", []))
+    pruefe(set(w.get("je", {})) == {str(i) for i in w["ids"]} and abs(sum(w["je"].values()) - w["menge"]) < 0.01, f"Menge je Bauteil: {w.get('je')} · {w['menge']}")
+    z = next(z for z in B.sauber(B.zeilen_aus_ifc(c, R))["zeilen"] if 10 in z.get("ids", []))
+    gleich(z.get("je"), w["je"], "steht an der Zeile")

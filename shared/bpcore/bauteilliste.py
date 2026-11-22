@@ -182,6 +182,8 @@ def sauber(d):
                               **({"uw": round(_z(z["uw"], 0.3, 6), 2)} if z.get("uw") and 0.3 <= _z(z["uw"]) <= 6 else {}),   # Uw laut Angebot (U-Werte D1)
                               "code": _s(z.get("code"), 20), "kurz": _s(z.get("kurz"), 300), "quelle": _s(z.get("quelle"), 12),
                               "ids": [int(x) for x in (z.get("ids") or [])[:5000] if str(x).isdigit()], "nummern": [_s(x, 12) for x in (z.get("nummern") or [])[:500]],
+                              **({"je": {k: round(_z(v), 3) for k, v in list(z["je"].items())[:5000] if str(k).isdigit()}} if isinstance(z.get("je"), dict) and z["je"] else {}),   # Menge je Bauteil
+                              **({"rj": {k: v for k, v in list(z["rj"].items())[:5000] if str(k).isdigit() and v in ("N", "O", "S", "W")}} if isinstance(z.get("rj"), dict) and z["rj"] else {}),
                               "hinweis": _s(z.get("hinweis"), 300), "entfaellt": bool(z.get("entfaellt")),
                               "phase": _s(z.get("phase"), 12), "herkunft": _s(z.get("herkunft"), 120), "teil": _s(z.get("teil"), 20),   # Gebäudeteil (18.11.2026)
                               # Teil 2 (16.11.2026): Räume einer Raum-Zeile; abgeleitet = Zeile aus einer Anweisung (Basis-Zeile), verteilt = so viele Mitglieder
@@ -370,7 +372,8 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
                    lagen=[[str(n)[:80], round(float(d or 0), 4)] for n, d in (g.get("lagen") or [])[:20] if n and d],   # Schichten mit dem Allplan-Material (B1)
                    material=g.get("material") or "", menge=g["menge"], einheit=g["einheit"], anzahl=g["anzahl"], zustand=zu, ids=list(g.get("ids") or []),
                    status="abbruch" if zu == "abbruch" else "neu" if g.get("code") or zu == "neu" else "offen",   # beantworten lassen – klar sind Katalogbauteile und neue Teile
-                   hinweis=g.get("hinweis") or "", teil=g.get("teil") or "", **({"korb": g["korb"]} if g.get("korb") else {}))   # z. B. „aus dem DXF geschätzt“
+                   hinweis=g.get("hinweis") or "", teil=g.get("teil") or "", **({"korb": g["korb"]} if g.get("korb") else {}),
+                   **({"je": g["je"]} if g.get("je") else {}), **({"rj": g["rj"]} if g.get("rj") else {}))   # je Bauteil: Menge, Himmelsrichtung (einzelne Wände im Baum)   # z. B. „aus dem DXF geschätzt“
         if KZ and ber != "oeffnung":   # Kürzel aus dem Plan (nicht bei Fenstern/Türen – der Name ist dort der Typ; Ausführung über die Türliste): wie verstanden, Vorschlag aus dem Baukasten (bzw. Gelerntes), „bitte bestätigen“ (C1)
             z.update(kuerzel=g["kuerzel"], dicke_plan=g.get("dicke") or 0, richtung=g.get("richtung") or {}, bestaetigt=True,
                      erkannt={"stufe": kuerzel.stufe(KZ), "folge": kuerzel.lesbar(KZ), "frage": KZ["frage"], "waerme": KZ["waerme"]})

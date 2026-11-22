@@ -2,7 +2,8 @@
    Baumtabelle als Chips in ihrer Reihenfolge – außen vor innen. Ziehen ordnet um, ✕ nimmt eine Ebene weg, „＋“ fügt eine hinzu.
    bpGruppen.html(G, O, opt)   G = gewählte Schlüssel in Reihenfolge, O = { schlüssel: 'Name' } alle möglichen; opt.titel (Standard „Gruppieren:“),
                                opt.rechts = HTML rechts in der Leiste (z. B. Hinweis „Doppelklick: Eigenschaften“)
-   bpGruppen.an(box, { lies: () => G, setze: (G) => … })   Klicks und Ziehen in box anmelden (einmal je box)
+   bpGruppen.an(box, { lies: () => G, setze: (G) => …, aus: () => ({ schlüssel: 'Grund' }) })   Klicks und Ziehen in box anmelden (einmal je box);
+                               aus = Ebenen, die hier nichts unterscheiden – im ＋-Menü ausgegraut mit Grund (22.11.2026)
    Zuerst benutzt: Bauteile im Gebäudemodell (bp/bauteile.js). */
 (() => {
   if (window.bpGruppen) return;
@@ -28,9 +29,9 @@
       const w = e.target.closest('[data-bpgweg]'); if (w && box.contains(w)) { e.stopPropagation(); return O().setze(O().lies().filter((k) => k !== w.dataset.bpgweg)); }
       const p = e.target.closest('[data-bpgplus]'); if (!p || !box.contains(p)) return;
       e.stopPropagation();
-      const G = O().lies(), N = O().namen || {}, rest = Object.keys(N).filter((k) => !G.includes(k));
-      if (rest.length === 1 || typeof window.pickMenu !== 'function') return O().setze([...G, rest[0]]);
-      window.pickMenu(p, { items: rest.map((k) => ({ value: k, title: N[k] })), onPick: (k) => O().setze([...G, k]) });
+      const G = O().lies(), N = O().namen || {}, rest = Object.keys(N).filter((k) => !G.includes(k)), A = O().aus ? O().aus() : {};
+      if (typeof window.pickMenu !== 'function') return O().setze([...G, rest[0]]);
+      window.pickMenu(p, { items: rest.map((k) => ({ value: k, title: N[k], ...(A[k] ? { aus: true, sub: A[k] } : {}) })), onPick: (k) => O().setze([...G, k]) });
     });
     let von = null;
     box.addEventListener('dragstart', (e) => { const c = e.target.closest && e.target.closest('[data-bpgk]'); if (!c) return; von = c.dataset.bpgk; c.classList.add('zieht'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', von); } catch { /* egal */ } });

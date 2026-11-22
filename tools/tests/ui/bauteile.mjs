@@ -52,12 +52,12 @@ export async function bauteilePruefen(browser, repo) {
     await p.goto('http://bauteile.test/seite');
     await p.waitForSelector('[data-btz="f"]');
     const a = await p.evaluate(() => ({ offen: document.querySelectorAll('.bt-r.offen').length, bereiche: [...document.querySelectorAll('.bt-b h4')].map((h) => h.textContent), nr: document.querySelector('[data-btz="f"] .bt-nr').textContent,
-      quer: document.documentElement.scrollWidth > innerWidth + 1, ber: document.querySelector('[data-btz="f"] [data-btber]').disabled }));
+      quer: document.documentElement.scrollWidth > innerWidth + 1, ber: document.querySelector('[data-btz="f"] [data-btber]').disabled }));   // Schalter „zählt / zählt nicht“ (22.11.2026)
     pruef(a.offen === 3 && a.bereiche.length === 3 && /F 01/.test(a.nr) && a.ber, `Anfang: ${JSON.stringify(a)}`);
     pruef(!a.quer, 'schmal: waagerechter Scrollbalken');
     await p.click('[data-btz="f"] [data-btst="erneuern"]'); await p.waitForSelector('[data-btz="f"] code');
     pruef(S.anfragen[0] && S.anfragen[0].status === 'erneuern' && S.anfragen[0].rev === 1, `Status: ${JSON.stringify(S.anfragen[0])}`);
-    pruef(await p.evaluate(() => /334\.15\.002/.test(document.querySelector('[data-btz="f"]').textContent) && document.querySelector('[data-btz="f"] [data-btber]').checked), 'erneuern: Element und „berechnen“ fehlen');
+    pruef(await p.evaluate(() => /334\.15\.002/.test(document.querySelector('[data-btz="f"]').textContent) && document.querySelector('[data-btz="f"] [data-btber]').classList.contains('an')), 'erneuern: Element und „berechnen“ fehlen');
     await p.click('[data-btz="f"] [data-btauf]'); await p.waitForSelector('[data-btz="f"] [data-btop="0.1"]');
     pruef(await p.evaluate(() => !document.querySelector('[data-btz="f"] .bt-blk') && document.querySelectorAll('[data-btz="f"] [data-btvlauf]').length === 2), 'Vorlage gewählt: nur sie und „andere Vorlage …“ (kompakt, 20.11.2026)');
     await p.click('[data-btz="f"] .bt-vlw[data-btvlauf]'); await p.waitForSelector('[data-btz="f"] .bt-blk');
@@ -177,8 +177,10 @@ export async function bauteilePruefen(browser, repo) {
     // Bauteile wie der LV-Baum (21.11.2026, Mock A1 … I1): Gruppieren-Leiste (C1), Dreieck = schnelle Aufbau-Wahl (E3), Doppelklick = Eigenschaften-Fenster (D4)
     const chips = () => q.evaluate(() => [...document.querySelectorAll('.bt-grp [data-bpgk]')].map((c) => c.dataset.bpgk).join(','));
     pruef(await chips() === 'art,typ', `Gruppieren: Vorgabe „Bauteilart › Typ“ (22.11.2026; ohne Typen steht der Standardbaum) – ${await chips()}`);
-    await q.click('.bt-grp [data-bpgplus]'); await q.click('.pickm .pm-o:has-text("Gebäudeteil")'); await q.waitForTimeout(100);
-    pruef(await chips() === 'art,typ,teil', `＋ fügt „Gebäudeteil“ an – ${await chips()}`);
+    await q.click('.bt-grp [data-bpgplus]'); await q.waitForSelector('.pickm');
+    pruef(await q.evaluate(() => [...document.querySelectorAll('.pickm .pm-o')].some((o) => /Gebäudeteil/.test(o.textContent) && o.classList.contains('pm-aus'))), '＋-Menü: Gebäudeteil ausgegraut (hier ohne Gebäudeteile)');
+    await q.click('.pickm .pm-o:has-text("Maßnahme")'); await q.waitForTimeout(100);
+    pruef(await chips() === 'art,typ,mass', `＋ fügt „Maßnahme“ an – ${await chips()}`);
     await q.click('.bt-grp [data-bpgweg="typ"]'); await q.waitForTimeout(100); await q.click('.bt-grp [data-bpgweg="art"]'); await q.waitForTimeout(100);
     // Gruppen sind anfangs zu (22.11.2026); Aufklappen öffnet sie, die angeklickte Zeile bleibt an ihrer Stelle
     const zu0 = await q.evaluate(() => !document.querySelector('.bt-baum [data-btz="hand:1"]') && !!document.querySelector('.bt-baum tr.bt-bh [data-zu^="og:"]'));
@@ -186,8 +188,9 @@ export async function bauteilePruefen(browser, repo) {
     await q.evaluate(() => document.querySelector('.bt-baum tr.bt-bh [data-zu^="og:"]').click()); await q.waitForTimeout(150);
     const y1 = await q.evaluate(() => document.querySelector('.bt-baum tr.bt-bh [data-zu^="og:"]').getBoundingClientRect().top);
     pruef(zu0 && Math.abs(y1 - y0) < 1, `Gruppe anfangs zu, Aufklappen bewegt die Zeile nicht – zu ${zu0}, ${y0} → ${y1}`);
-    pruef(await chips() === 'teil' && await q.evaluate(() => !!document.querySelector('.bt-baum [data-btz="hand:1"]') && JSON.parse(localStorage.getItem('bp.bt.grp3')).join() === 'teil'), `nur nach Gebäudeteil, gemerkt, Zeile da – ${await chips()}`);
-    await q.click('.bt-grp [data-bpgplus]'); await q.click('.pickm .pm-o:has-text("Bereich")'); await q.waitForTimeout(100); await q.click('.bt-grp [data-bpgweg="teil"]'); await q.waitForTimeout(100);
+    for (let n = 0; n < 9; n++) { const da = await q.evaluate(() => { const b = document.querySelector('.bt-baum tr.bt-bh .car.zu[data-zu^="og:"]'); if (b) b.click(); return !!b; }); if (!da) break; await q.waitForTimeout(60); }
+    pruef(await chips() === 'mass' && await q.evaluate(() => !!document.querySelector('.bt-baum [data-btz="hand:1"]') && JSON.parse(localStorage.getItem('bp.bt.grp3')).join() === 'mass'), `nur nach Maßnahme, gemerkt, Zeile da – ${await chips()}`);
+    await q.click('.bt-grp [data-bpgplus]'); await q.click('.pickm .pm-o:has-text("Bereich")'); await q.waitForTimeout(100); await q.click('.bt-grp [data-bpgweg="mass"]'); await q.waitForTimeout(100);
     await q.evaluate(() => document.querySelector('.bt-baum tr[data-btz="hand:1"]:not(.bt-snz) [data-btschnell]').click());   // Dreieck ohne head.css ohne Größe await q.waitForTimeout(100);
     pruef(await q.evaluate(() => !!document.querySelector('tr.bt-snz [data-btsuch]') && !!document.querySelector('tr.bt-snz [data-btpop]')), 'Dreieck: Zeile mit Aufbau-Suche und „Eigenschaften …“ darunter');
     {   // Aufbau-Suche (21.11.2026): Wörter einzeln, Kürzel je Wort, Komma = Punkt

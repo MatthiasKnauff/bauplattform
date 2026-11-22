@@ -54,7 +54,14 @@ function g3Ids(ids) {
   const Z = [...new Set((ids || []).map((i) => (G3.zu.get(+i) || {}).z).filter(Boolean).map((z) => z.id))];
   if (!BT || !Z.length) return;
   if (window.seiteReiter && !(G3.bk && G3.bearb)) seiteReiter('gm', 'details');
-  if (Z.length > 1) BT.mehr(Z); else BT.zeige(Z[0], false);
+  if (Z.length > 1) BT.mehr(Z); else if (!((ids || []).length === 1 && BT.element(+ids[0]))) BT.zeige(Z[0], false);   // genau ein Bauteil: diese Wand im Baum (darunter einzeln)
+}
+/* Geschoss je Bauteil aus dem Netz (Zuordnung im IFC, netz.geschosse) – für den Baum: einzelne Bauteile, Gruppieren nach Geschoss */
+function g3ElInfo(i) {
+  const N = G3.N; if (!N || !N.e) return null;
+  if (G3.eMapN !== N) { G3.eMap = new Map(N.e.map((e) => [+e.i, e])); G3.eMapN = N; }
+  const e = G3.eMap.get(+i); if (!e) return null;
+  const g = (N.geschosse || [])[e.g]; return g ? { g: g.n, gi: e.g } : {};
 }
 
 async function bauteile3d(zeige) {
@@ -74,7 +81,8 @@ async function bauteile3d(zeige) {
   if (lauf !== G3.lauf) return;
   const zuordnen = (Z) => { G3.zu = new Map(); (Z || []).forEach((z) => (z.ids || []).forEach((i, k) => G3.zu.set(+i, { z, nr: (z.nummern || [])[k] || '' }))); };
   let erst = true;
-  BT = bpBauteile.mount(fT, PID, { einlesen: true, baum: true, artJe: g3Art, e3: () => G3.wahl || [], raeume: () => gmWeg('raeume'), baukasten: () => gmWeg('baukasten'),
+  BT = bpBauteile.mount(fT, PID, { einlesen: true, baum: true, einzeln: true, elementInfo: g3ElInfo, element: (i) => { if (G3.D3 && !g3Frisch()) { G3.wahl = [+i]; G3.D3.waehle([+i]); } },
+    artJe: g3Art, e3: () => G3.wahl || [], raeume: () => gmWeg('raeume'), baukasten: () => gmWeg('baukasten'),
     nachher: () => {
       if (lauf !== G3.lauf || G3.btE !== bE) return;   // Seite inzwischen neu aufgebaut – dieser Stand gilt nicht mehr (der Baum steht rechts, nicht im Dokument geprüft)
       leiste(); const b = NAV.querySelector('.gm-vm'); if (b) BT.menue(b);
@@ -154,13 +162,13 @@ function g3Laden(feld, st) {
     eigenschaften: (ids) => {   // „Aufbau …“ beim Baukörper → Eigenschaften-Fenster der Zeile(n) dieser Bauteile
       const Z = [...new Set(ids.map((i) => (G3.zu.get(+i) || {}).z).filter(Boolean).map((z) => z.id))]; if (!Z.length || !BT) return toast('Zu diesem Bauteil gibt es noch keine Zeile – erst speichern lassen.', true);
       if (Z.length > 1) { BT.mehr(Z); BT.eigenschaften(null); } else BT.eigenschaften(Z[0]); },
-    d3: { ...D3O, geladen: (N) => { G3.N = N; if (G3.BK) G3.D3 = G3.BK.d3; }, onWahl: (ids) => { if (G3.bearb) { if (ids && ids.length && window.seiteReiter) seiteReiter('gm', 'koerper'); } else g3Ids(ids); } },
+    d3: { ...D3O, geladen: (N) => { G3.N = N; if (G3.BK) G3.D3 = G3.BK.d3; if (BT && BT.zeigen) BT.zeigen(); }, onWahl: (ids) => { if (G3.bearb) { if (ids && ids.length && window.seiteReiter) seiteReiter('gm', 'koerper'); } else g3Ids(ids); } },
     neu: !!G3.bkNeu, planung: G3.bkNeu === 'planung', bearbeiten: G3.bearb,   // an: Gewähltes unter „Baukörper“, aus: die Zeile im Baum
     nachher: () => { G3.bkNeu = false; if (BT && BT.laden) BT.laden(); } });
     return;
   }
   G3.D3 = bp3d.mount(feld, { ...D3O, url: `api/bp/modell/${PID}/netz${st.an ? '?planstand=' + st.an.id : ''}`, wahl: true,
-    geladen: (N) => { G3.N = N; if (G3.D3) G3.D3.farben(g3Modi()); },
+    geladen: (N) => { G3.N = N; if (G3.D3) G3.D3.farben(g3Modi()); if (BT && BT.zeigen) BT.zeigen(); },   // Geschosse je Bauteil sind jetzt da – Baum neu (einzelne Bauteile, Gruppe Geschoss)
     kontext: g3ArtPunkte, onWahl: (ids) => g3Ids(ids) });
 }
 function g3Extras(st) {   // Färbung merken, U-Werte nachladen – für Plan und Baukasten gleich

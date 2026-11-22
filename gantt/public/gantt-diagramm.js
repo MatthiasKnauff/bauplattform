@@ -249,14 +249,12 @@ function renderChart() {
       const gc = effColor(t);
       const bst = gc ? ` style="fill:${gc};stroke:${cr ? '#c00000' : shade(gc, 0.7)};stroke-width:${cr ? 2 : 1}"` : '';
       const pst = gc ? ` style="fill:${shade(gc, 0.42)}"` : '';
-      let doneW = t.dur * (t.pct || 0) / 100, h = '', px = g.x1;
+      const F = pctTeile(g, t.dur, t.pct || 0); let h = '', px = F.px;
       g.segs.forEach((sg, k) => {
-        const w = Math.max(2, sg.x2 - sg.x1), d = sg.d;
-        const f = Math.max(0, Math.min(1, doneW / d)); doneW -= d;
-        if (f > 0) px = sg.x1 + w * f;
+        const w = Math.max(2, sg.x2 - sg.x1);
         if (k) h += `<line class="segc" x1="${g.segs[k - 1].x2}" y1="${y + 12}" x2="${sg.x1}" y2="${y + 12}"/>`;
         h += `<g class="sg" data-seg="${k}"><rect class="b" data-seg="${k}" x="${sg.x1}" y="${y + 6}" width="${w}" height="12"${bst}/>`
-          + (f > 0 ? `<rect class="p" x="${sg.x1}" y="${y + 10}" width="${w * f}" height="4"${pst}/>` : '') + '</g>';
+          + `<rect class="p" x="${sg.x1}" y="${y + 10}" width="${F.w[k]}" height="4"${pst}/></g>`;   // auch bei 0 %: das Ziehen am Fortschritt füllt sie
       });
       if (t.ueber && t.ueber.at) { const w = Math.max(2, g.x2 - g.xp); px = g.x2;   // K7/SI-3: fertig später – rote Verlängerung vom geplanten bis zum neuen Ende
         h += `<rect class="ue" x="${g.xp}" y="${y + 9}" width="${w}" height="6"><title>Fertig ${t.ueber.at} AT später als geplant – ${esc((typeof UEBER_GRUND !== 'undefined' ? UEBER_GRUND : {})[t.ueber.grund] || t.ueber.grund)}</title></rect>`; }
@@ -278,6 +276,11 @@ function renderChart() {
 }
 
 /* ---------- Balkengeometrie (auch für den Druck) ---------- */
+/* Fortschritt eines Balkens: gefüllte Breite je Abschnitt (w[k]) und die Spitze px – Zeichnen und Ziehen rechnen gleich */
+function pctTeile(g, dur, pct) {
+  let rest = dur * pct / 100, px = g.x1; const w = g.segs.map((sg) => { const b = Math.max(2, sg.x2 - sg.x1), f = Math.max(0, Math.min(1, rest / sg.d)); rest -= sg.d; if (f > 0) px = sg.x1 + b * f; return b * f; });
+  return { w, px };
+}
 function barGeo(i, y, Xf, ppd) {
   const c = CAL, t = P.tasks[i];
   if (!c.summ[i] && t.dur === 0) { const cx = Xf(c.sd[i]) + (c.msEnd[i] ? ppd : 0); return { x1: cx - 6, x2: cx + 6, cx, y, ms: true, segs: [] }; }

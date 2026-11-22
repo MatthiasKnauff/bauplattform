@@ -273,7 +273,9 @@ addEventListener('mousemove', (e) => {
     const v = Math.max(0, Math.min(100, Math.round(done / t.dur * 20) * 5));
     const ende = g.segs.length ? g.segs[g.segs.length - 1].x2 : g.x2, ueber = p.x > ende + ppd / 2 ? Math.max(1, Math.round((p.x - ende) / ppd * 5 / 7)) : 0;   // K7: über das geplante Ende hinaus = fertig später (in AT)
     drag.val = v; drag.ueber = ueber;
-    const ph = drag.el.querySelector('.ph'); if (ph) ph.setAttribute('transform', `translate(${p.x - drag.sx},0)`);
+    const F = pctTeile(g, t.dur, v), F0 = pctTeile(g, t.dur, t.pct || 0);   // Balken füllt sich mit, die Spitze rastet auf 5 % ein
+    drag.el.querySelectorAll('rect.p').forEach((r, k) => r.setAttribute('width', F.w[k]));
+    const ph = drag.el.querySelector('.ph'); if (ph) ph.setAttribute('transform', `translate(${(ueber ? p.x : F.px) - F0.px},0)`);
     showTip(e, ueber ? `<b>Fertig ${ueber} AT später</b>als geplant – beim Loslassen kurz der Grund` : `<b>Fortschritt</b>${v}% abgeschlossen`);
   } else if (drag.mode === 'link') {
     let ln = svg.querySelector('.dragline');

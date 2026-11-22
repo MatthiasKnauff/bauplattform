@@ -254,6 +254,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Bauzeitenplan: Fortschritt mit der Maus ziehen – der Balken füllt sich mit (nicht nur die Zahl im Tooltip), Spitze rastet auf 5 % ein~~ (22.11.2026)
 - ~~Verlauf-Knöpfe überall entfernt – ältere Stände nur noch über Rückgängig ▾ → „Ältere Stände …“ (`bpAeltereStaende`); Verwaltung ohne Seite „Verlauf“, Verknüpfungen ohne Verlauf-Fenster; Kommunikation/Bauantrag „Protokoll“; Bautagebuch: Berichtsstand nur in der Mitte~~ (22.11.2026)
 - ~~Bauteile: Spaltenbreiten fest (ändern sich nicht mehr mit dem Inhalt)~~ (22.11.2026)
 - ~~Nichts springt: Auswahl-Leiste der Bauteile schwebt (statt die Liste zu schieben), Bäume rollen mit der Maus nie, Anker-Rückroll-Tricks entfernt~~ (22.11.2026)

@@ -118,6 +118,15 @@ export async function ganttHeftPruefen(browser, repo) {
       await p.keyboard.press('Escape'); await p.evaluate(() => document.activeElement.blur());
       await p.setViewportSize({ width: 1600, height: 900 }); await p.waitForTimeout(300);
     }
+    {   // Fortschritt mit der Maus ziehen (22.11.2026): der Balken füllt sich beim Ziehen mit, nicht nur die Zahl im Tooltip
+      await p.evaluate(() => { P.tasks = [fillTask({ uid: 1, name: 'A', dur: 10, lvl: 0, preds: [] })]; CAL = schedule(); render(); });
+      const r = await p.evaluate(() => { const b = document.querySelector('#chartBody .bar[data-i="0"] rect.b').getBoundingClientRect(), h = document.querySelector('#chartBody .bar[data-i="0"] .ph').getBoundingClientRect(); return { x1: b.left, w: b.width, hx: h.left + h.width / 2, hy: h.top + h.height / 2 }; });
+      await p.mouse.move(r.hx, r.hy); await p.mouse.down(); await p.mouse.move(r.x1 + r.w * 0.3, r.hy, { steps: 4 }); await p.mouse.move(r.x1 + r.w * 0.6, r.hy, { steps: 4 });
+      const z = await p.evaluate(() => { const g = document.querySelector('#chartBody .bar[data-i="0"]'), b = g.querySelector('rect.b').getBoundingClientRect(), f = g.querySelector('rect.p').getBoundingClientRect(), h = g.querySelector('.ph').getBoundingClientRect(); return { f: f.width / b.width, spitze: (h.left + h.width / 2 - b.left) / b.width }; });
+      await p.mouse.up(); await p.waitForTimeout(200);
+      const pct = await p.evaluate(() => P.tasks[0].pct);
+      pruef(Math.abs(z.f - 0.6) < 0.06 && Math.abs(z.spitze - z.f) < 0.03 && pct === 60, `Fortschritt ziehen: Füllung ${z.f.toFixed(2)}, Spitze ${z.spitze.toFixed(2)}, danach ${pct} %`);
+    }
     {   // Soll und Ist (Mock „Soll und Ist“, 22.11.2026): Überziehung schiebt die Nachfolger (SI-3); das Soll liegt darunter, „Soll aus“ (SI-2)
       const T0 = [{ uid: 1, name: 'A', dur: 2, lvl: 0, preds: [] }, { uid: 2, name: 'B', dur: 3, lvl: 0, preds: [{ uid: 1, type: 'FS', lag: 0 }] }];
       const v = await p.evaluate((T0) => { P.tasks = T0.map((t) => fillTask({ ...t, preds: t.preds.map((x) => ({ ...x })) })); const a = schedule().es[1];

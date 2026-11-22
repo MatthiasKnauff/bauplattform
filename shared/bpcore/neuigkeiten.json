@@ -1,5 +1,13 @@
 [
  {
+  "id": "adr-spalten-2211",
+  "datum": "2026-11-22",
+  "app": "adressen",
+  "titel": "Mehr Spalten in der Adress-Tabelle",
+  "text": "Rechtsklick auf die Kopfzeile → Spalten: neu sind Stichwörter (dort stehen eingelesene Projektnummern), Projekt, Tags, weitere Ansprechpartner, weitere Nummern und E-Mails sowie „Geändert“. Stichwörter lassen sich direkt in der Tabelle ändern.",
+  "ziel": "#tw"
+ },
+ {
   "id": "adr-einlesen-2211",
   "datum": "2026-11-22",
   "app": "adressen",

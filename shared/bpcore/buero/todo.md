@@ -262,6 +262,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Bauzeitenplan „Zeit und Stand“: Grund auch als eigener Text, Block auch rechts unter Details, Felder bündig, Meilenstein ohne Fortschritt/Überzug~~ (22.11.2026)
 - ~~Bauzeitenplan: Gruppen füllen sich wie die Balken (Mock SI2-2 A nachgezogen), „0 %“ im Balken~~ (22.11.2026)
 - ~~Gebäudemodell: Klick im Grundriss baute den Bereich rechts neu auf (Liste sprang nach oben), „undefined“ über dem Bauteil-Baum~~ (22.11.2026)
+- ~~Adressen-Tabelle: Spalten Stichwörter, Projekt, Tags, weitere Ansprechpartner/Nummern/E-Mails, Geändert~~ (22.11.2026)
 - ~~Kontaktmaske: Anrede schob sich über den Titel („rof.“ statt „Prof.“)~~ (22.11.2026)
 - ~~Adressen einlesen aus Excel/CSV – Vorschau, Firmen zusammengefasst, Projekte verknüpft, Rückgängig~~ (22.11.2026)
 - ~~Navigation: Neuzeichnen gleicht an Ort und Stelle an – der angeklickte Punkt bleibt stehen, auch wenn der Filterkasten oben wächst~~ (22.11.2026)

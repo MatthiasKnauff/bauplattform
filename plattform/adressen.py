@@ -27,6 +27,7 @@ FIELDS = {   # Feld → (höchste Länge, Bezeichnung für das Protokoll)
     "name": (200, "Name"), "trade": (300, "Gewerk"), "contact_person": (200, "Ansprechpartner:in"), "role": (200, "Funktion"),
     "phone": (100, "Telefon"), "mobile": (100, "Mobil"), "email": (200, "E-Mail"), "website": (300, "Internet"),
     "street": (200, "Straße"), "zip": (20, "PLZ"), "city": (200, "Ort"), "notes": (5000, "Notizen"), "art": (60, "Art"),
+    "stichworte": (600, "Stichwörter"), "tags": (300, "Tags"),   # in der Tabelle änderbar (Spalte „Stichwörter“)
 }
 DUP = "Einen Kontakt mit diesem Namen gibt es schon."
 

@@ -65,6 +65,8 @@ export async function adrStartPruefen(browser, repo) {
       pruef(await zahl(p) === 3, `„immer ohne Projekt“: Start ohne Projektfilter (3) – ${await zahl(p)}`);
       // Mock „Adressen rechts“ (AR-1 … AR-5 A, 22.11.2026): Klick zeigt rechts, ↓ blättert, Doppelklick öffnet die Maske; die Liste nutzt die Breite
       await p.waitForSelector('#adrW > .sr-r', { timeout: 5000 });
+      const sp = await p.evaluate(() => ({ k: COLS.map((c) => c[0]), pj: cellVal({ projects: ['A1 X', 'B2 Y'] }, 'projekte') }));   // Spalten Stichwörter/Projekt u. a. (22.11.2026) – hinten angehängt, die gemerkte Wahl zählt nach Nummer
+      pruef(['stichworte', 'projekte', 'tags', 'weitere', 'wtel', 'wmail', 'updated'].every((k) => sp.k.includes(k)) && sp.k.indexOf('stichworte') > sp.k.indexOf('used') && sp.pj === 'A1 X, B2 Y', `Spalten der Tabelle: ${JSON.stringify(sp)}`);
       await p.click('#tw tbody tr[data-id="3"] td.ro'); await p.waitForTimeout(200);   // Tabelle: Klick in eine Zeile zeigt rechts
       pruef(await p.evaluate(() => (document.querySelector('.sr-r .adr-r h3') || {}).textContent === 'Fam. Muster'), 'Tabelle: Klick zeigt den Kontakt rechts');
       await p.evaluate(() => setView('karten')); await p.waitForSelector('#list .ct');

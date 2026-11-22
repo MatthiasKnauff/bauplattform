@@ -271,18 +271,23 @@ async function edit(c, verlaufAuf) {
 const COLS = [
   ['name', 'Firma / Name', 220], ['kind', 'Art', 100, 'ro'], ['trade', 'Gewerk', 160], ['contact_person', 'Ansprechpartner:in', 170], ['role', 'Funktion', 130],
   ['phone', 'Telefon', 140], ['mobile', 'Mobil', 140], ['email', 'E-Mail', 210], ['website', 'Internet', 180],
-  ['street', 'Straße', 190], ['zip', 'PLZ', 70], ['city', 'Ort', 140], ['notes', 'Notizen', 240], ['used', 'Im Bautagebuch', 200, 'ro']];
+  ['street', 'Straße', 190], ['zip', 'PLZ', 70], ['city', 'Ort', 140], ['notes', 'Notizen', 240], ['used', 'Im Bautagebuch', 200, 'ro'],
+  ['stichworte', 'Stichwörter', 160], ['projekte', 'Projekt', 200, 'ro'], ['tags', 'Tags', 140], ['weitere', 'Weitere Ansprechpartner', 220, 'ro'],
+  ['wtel', 'Weitere Nummern', 180, 'ro'], ['wmail', 'Weitere E-Mails', 210, 'ro'], ['updated', 'Geändert', 110, 'ro']];   // hinten angehängt: die gemerkte Spaltenwahl (bp.sp.adressen) zählt nach Nummer
 const KINDN = { firma: 'Firma', bauherr: 'Bauherr:in', baustelle: 'Baustelle' };
 let TV;
 try { TV = JSON.parse(localStorage.getItem('adr.tabelle')) || {}; } catch { TV = {}; }
 const TVW = TV.w || {};
 /* Spalten wählen und ordnen: gemeinsamer Baustein (/bp/spalten.js, Schlüssel „adressen“). Im Standard ausgeblendet: */
-const SP_AUS = ['role', 'website', 'notes', 'used'];
+const SP_AUS = ['role', 'website', 'notes', 'used', 'tags', 'weitere', 'wtel', 'wmail', 'updated'];
 try { if (Array.isArray(TV.hide) && localStorage.getItem('bp.sp.adressen') == null)   // bisherige eigene Auswahl einmal übernehmen
   localStorage.setItem('bp.sp.adressen', JSON.stringify({ aus: TV.hide.map((k) => COLS.findIndex((c) => c[0] === k)).filter((n) => n > 0) })); } catch { /* egal */ }
 TV = { w: TVW, view: TV.view || (matchMedia('(pointer:fine)').matches && innerWidth > 900 ? 'tabelle' : 'karten'), sort: TV.sort || { k: 'name', d: 1 }, flt: {} };
 const tvSave = () => { try { localStorage.setItem('adr.tabelle', JSON.stringify({ view: TV.view, sort: TV.sort, w: TV.w })); } catch { /* egal */ } };
-const cellVal = (c, k) => (k === 'kind' ? KINDN[c.kind] || c.kind : k === 'used' ? (c.used ? `${c.used} × ${c.projects.join(', ')}` : '') : c[k] || '');
+const cellVal = (c, k) => (k === 'kind' ? KINDN[c.kind] || c.kind : k === 'used' ? (c.used ? `${c.used} × ${c.projects.join(', ')}` : '') : k === 'projekte' ? (c.projects || []).join(', ')
+  : k === 'weitere' ? (c.weitere || []).filter((x) => x.typ === 'person').map((x) => [x.anrede, x.titel, x.wert].filter(Boolean).join(' ') + (x.bez ? ` (${x.bez})` : '')).join(', ')
+  : k === 'wtel' ? wtTel(c).map(([b, n]) => (b ? b + ' ' : '') + n).join(', ') : k === 'wmail' ? wtMails(c).slice(1).join(', ')
+  : k === 'updated' ? (c.updated ? c.updated.slice(0, 10).split('-').reverse().join('.') : '') : c[k] || '');
 function tableRows() {
   const fl = Object.entries(TV.flt).filter(([, v]) => v);
   let r = shown().filter((c) => fl.every(([k, v]) => (k === 'kind' ? c.kind === v : passt(String(cellVal(c, k)), v))));

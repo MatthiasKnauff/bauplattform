@@ -1,5 +1,13 @@
 [
  {
+  "id": "ws-schichtaufbau-2026-11-22",
+  "datum": "2026-11-22",
+  "app": "waermeschutz",
+  "titel": "Schichtaufbau neu – mit Gefachen und Soll fürs Gebäude",
+  "text": "Der Aufbau eines Bauteils steht als Querschnitt in Maßstab da: Schichten durch Ziehen umsortieren, an der Fuge die Dicke ziehen, mit ＋ eine Schicht dazwischen. Gefache bekommen eine eigene Zeile mit Breite, Abstand und „kreuzweise“ oder „in Flucht“ – gerechnet nach DIN EN ISO 6946 mit Draufsicht der Teilflächen. Oben wählst du das Soll fürs ganze Gebäude (GModG, BEG, Effizienzhaus, Passivhaus, Nachbarländer); bewertet wird in fünf Stufen. Der Ausdruck zeigt den Aufbau als Zeichnung.",
+  "ziel": ".ws-soll"
+ },
+ {
   "id": "gantt-sollist-2026-11-22",
   "datum": "2026-11-22",
   "app": "gantt",

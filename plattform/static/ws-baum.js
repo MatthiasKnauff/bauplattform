@@ -42,7 +42,7 @@ async function wsBaumMount() {
       ri: ['Himmelsrichtung', wsRi, ['Nord', 'Ost', 'Süd', 'West', 'ohne Richtung']] },
     letzte: { kopf: 'im Nachweis',
       zelle: (z) => { const b = wsImNachweis(z.id); if (!b) return wsHinweisVon(z.id) ? `<button type="button" class="btn sm" data-wsplus="${esc(z.id)}" title="Als Bauteil in den Nachweis übernehmen (mit Haken: alle angehakten)">＋ in den Nachweis</button>` : '<span class="mute">–</span>';
-        const e = ergebnis(b); return `<span class="${e.ok === false ? 'ws-no' : e.ok ? 'ws-ok' : ''}" title="${esc(b.name || typName(b.typ))}${e.umax != null ? ' · U max ' + zahl(e.umax) : ''}">${zahl(e.u)} ${e.ok === false ? '✗' : e.ok ? '✓' : ''}</span>`; },
+        const e = ergebnis(b), st = e.stufe; return `<span class="ws-bu${st ? ' ws-st' + st.s : ''}" title="${esc(b.name || typName(b.typ))}${e.umax != null ? ' · Soll ' + zahl(e.umax) : ''}${st ? ' · ' + st.text + ' (' + st.prozent + ' %)' : ''}">${zahl(e.u)} ${st ? st.zeichen : ''}</span>`; },
       gruppe: (R) => `${R.filter((z) => wsImNachweis(z.id)).length} von ${R.length}` },
     nachher: () => wsNurNachweis(),
     auswahl: (z) => { const b = z && wsImNachweis(z.id); if (b && b.id !== BID) { BID = b.id; WS_AUF.add('bauteile'); zeichne(); } },
@@ -52,7 +52,7 @@ function wsNurNachweis() {   // Bauteile des Nachweises ohne Zeile im Modell (vo
   const H = wsHu(), N = (D ? D.bauteile : []).filter((b) => !H.has(wsZeileVon(b.ref)) && wsSicht(b));
   return `<tr class="bt-bh ws-nur"><td colspan="3"><b>Nur im Nachweis</b> <small class="bt-nr">${N.length} · von Hand</small> <button type="button" class="bt-plus" data-wsneu title="Bauteil von Hand anlegen: Art wählen, Musteraufbau oder aus dem Katalog">＋ Bauteil …</button></td><td class="c"></td></tr>`
     + N.map((b) => { const e = ergebnis(b);
-      return `<tr class="ws-nurz${b.id === BID ? ' akt' : ''}" data-wsb="${esc(b.id)}"><td style="padding-left:1.4rem">${esc(`${b.kurz || ''} ${b.name || typName(b.typ)}`.trim())}</td><td class="r">${b.flaeche ? zahl(b.flaeche) + '&nbsp;m²' : ''}</td><td class="r">${zahl(e.u)}</td><td class="c"><span class="${e.ok === false ? 'ws-no' : e.ok ? 'ws-ok' : ''}">${e.ok === false ? '✗' : e.ok ? '✓' : ''}</span></td></tr>`; }).join('');
+      return `<tr class="ws-nurz${b.id === BID ? ' akt' : ''}" data-wsb="${esc(b.id)}"><td style="padding-left:1.4rem">${esc(`${b.kurz || ''} ${b.name || typName(b.typ)}`.trim())}</td><td class="r">${b.flaeche ? zahl(b.flaeche) + '&nbsp;m²' : ''}</td><td class="r">${zahl(e.u)}</td><td class="c">${e.stufe ? `<span class="ws-bu ws-st${e.stufe.s}" title="${e.stufe.text}">${e.stufe.zeichen}</span>` : ''}</td></tr>`; }).join('');
 }
 function wsBaumAn(el) {   // Klicks der App im Baum – vor denen des Bausteins (Erfassung), damit nichts anderes passiert
   el.addEventListener('click', async (e) => {

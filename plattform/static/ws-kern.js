@@ -48,7 +48,8 @@ async function speichern(body, text, still) {
 
 const bauteil = () => (D ? D.bauteile.find((b) => b.id === BID) : null);
 const zone = () => (D && D.grundlagen.zone) || '19';
-const ergebnis = (b) => R7.pruefe(b, zone());
+const sollK = () => (D && D.grundlagen.soll) || 'gm7';   // Anforderung fürs ganze Gebäude (SA-14, ws-schichten.js)
+const ergebnis = (b) => R7.pruefe(b, zone(), null, sollK());
 const typName = (t) => (R7.TYPEN.find((x) => x[0] === t) || [, t])[1];
 
 function nav() {
@@ -133,7 +134,7 @@ function zeichne() {
   const weiter = (s, t) => `<button type="button" class="btn sm pri" data-wsweiter="${s}">${t} ›</button>`;
   const pos = V.scrollTop, fokus = document.activeElement && document.activeElement.dataset && (document.activeElement.dataset.wsg || document.activeElement.dataset.bk) ? document.activeElement : null;
   const fsel = fokus ? (fokus.dataset.wsg ? `[data-wsg="${fokus.dataset.wsg}"]` : `[data-bk="${fokus.dataset.bk}"]`) : '';
-  V.innerHTML = `<div class="ws-w"><div class="bp-stufen" role="group" aria-label="Ablauf">${flow}</div>
+  V.innerHTML = `<div class="ws-w">${sollHtml()}<div class="bp-stufen" role="group" aria-label="Ablauf">${flow}</div>
     ${k(0, 'grundlagen', '📋', 'Grundlagen', grundlagenHtml(), weiter('bauteile', 'Bauteile'))}
     ${k(1, 'bauteile', '🧱', 'Bauteile', bauteilKarte(), weiter('pruefung', 'Prüfung'))}
     ${k(2, 'pruefung', '✔', 'Prüfung', `<div id="wsPruef">${pruefungHtml()}</div>`, weiter('nachweis', 'Nachweis'))}
@@ -176,14 +177,14 @@ function pruefKurz() {
 function pruefungHtml() {
   if (!wsBauteile().length) return '<p class="ws-hin">Noch keine Bauteile.</p>';
   const rows = wsBauteile().map((b) => { const e = ergebnis(b), m = R7.massnahmen(b.typ).find((x) => x.k === b.massnahme);
-    const ch = e.ok == null ? '<span class="ws-ch of">offen</span>' : e.ok ? '<span class="ws-ch ok">✓ erfüllt</span>' : '<span class="ws-ch no">✗ zu hoch</span>';
+    const ch = stufeChip(e);   // 5 Stufen bezogen aufs Soll (SA-15)
     const tw = e.r && e.r.glaser ? (e.r.glaser.tauwasser ? `${zahl(e.r.glaser.mc, 3)} kg/m²` : 'kein') : '–';
     const fr = e.r ? (e.r.frsi >= 0.7 ? '✓ ' : '✗ ') + zahl(e.r.frsi) : '–';
     return `<tr><td>${esc(b.kurz || '')} ${esc(b.name || typName(b.typ))}</td><td>${m ? 'Nr. ' + m.k : '<span class="mute">Maßnahme wählen</span>'}</td><td class="r">${b.flaeche ? zahl(b.flaeche, 1) + ' m²' : ''}</td>
       <td class="r">${zahl(e.u)}</td><td class="r">${e.umax == null ? (m ? 'keine' : '–') : zahl(e.umax)}</td><td>${ch}</td><td class="r">${tw}</td><td class="r">${fr}</td></tr>`; }).join('');
   const aw = D.bauteile.filter((b) => b.typ === 'wand').reduce((s, b) => s + (+b.flaeche || 0), 0), ges = parseFloat(String(D.grundlagen.flaeche_aw || '').replace(',', '.'));
   const zehn = aw && ges ? `<p class="ws-hin"><b>10-%-Regel (§ 36 Satz 2):</b> geänderte Außenwand ${zahl(aw, 1)} m² von ${zahl(ges, 1)} m² = ${zahl(aw / ges * 100, 0)} % → ${aw / ges > 0.1 ? 'Anforderungen gelten.' : 'unter 10 % – die Anforderungen der Anlage 7 gelten nicht.'}</p>` : '';
-  return `<table class="ws-pt"><thead><tr><th>Bauteil</th><th>Anlage 7</th><th class="r">Fläche</th><th class="r">U</th><th class="r">U max</th><th></th><th class="r">Tauwasser</th><th class="r">fRsi ≥ 0,70</th></tr></thead><tbody>${rows}</tbody></table>${zehn}
+  return `<table class="ws-pt"><thead><tr><th>Bauteil</th><th>${sollK() === 'gm7' ? 'Anlage 7' : 'Maßnahme'}</th><th class="r">Fläche</th><th class="r">U</th><th class="r">Soll</th><th></th><th class="r">Tauwasser</th><th class="r">fRsi ≥ 0,70</th></tr></thead><tbody>${rows}</tbody></table>${zehn}
     <p class="ws-hin">U in W/(m²K) nach DIN EN ISO 6946, Tauwasser nach DIN 4108-3 (Glaser, −5/20 °C), Mindestwärmeschutz DIN 4108-2 (fRsi). Richtwerte der Baustoffe – für den Nachweis die Bemessungswerte der eingebauten Produkte eintragen.</p>`;
 }
 
@@ -222,13 +223,20 @@ async function nachweisLoeschen() {
    zeichnet daraus das PDF (plattform/waermeschutz_pdf.py, Druck-Layout „Wärmeschutznachweis“); Druckseite, Senden, Ablegen über bpDruck. */
 function wsDruckDaten() {
   const r2 = (v, k = 4) => (v == null || !isFinite(v) ? null : +(+v).toFixed(k));
-  return { fassung: fassung().lang, zone: zone() === '12' ? 'Innentemperatur 12–19 °C' : 'Innentemperatur ≥ 19 °C', vorhaben: (VORHABEN[D.grundlagen.vorhaben] || '').split(' (')[0],
+  const SO = R7.sollVon(sollK());
+  return { soll: { n: SO.n, quelle: SO.quelle, stand: SO.stand, land: SO.land }, fassung: fassung().lang, zone: zone() === '12' ? 'Innentemperatur 12–19 °C' : 'Innentemperatur ≥ 19 °C', vorhaben: (VORHABEN[D.grundlagen.vorhaben] || '').split(' (')[0],
     bauteile: wsBauteile().map((b) => { const e = ergebnis(b), r = e.r, m = R7.massnahmen(b.typ).find((x) => x.k === b.massnahme), g0 = r && r.glaser;
       return { name: [b.kurz, b.name || typName(b.typ)].filter(Boolean).join(' '), art: [typName(b.typ), m ? 'Anlage 7 Nr. ' + m.k : ''].filter(Boolean).join(' · '), einordnung: b.einordnung || '',
         flaeche: b.flaeche, u: r2(e.u, 3), umax: e.umax, ok: e.ok, rsi: r ? r2(r.u.rsi) : null, rse: r ? r2(r.u.rse) : null, rt: r ? r2(r.u.rT) : null,
         hinweis: r ? `Mindestwärmeschutz DIN 4108-2: fRsi = ${zahl(r.frsi)} ${r.frsi >= 0.7 ? '≥' : '<'} 0,70` : (b.uw ? 'Uw laut Datenblatt/Angebot' : ''),
-        schichten: (b.schichten || []).map((s, i) => { const bs = BSI[s.m] || {}; return { name: s.name || '', baustoff: bs.name ? (bs.hersteller ? bs.hersteller + ' ' + bs.name : bs.name) : (s.name || 'eigener Baustoff'),
-          d: s.d, lam: r2(s.lam || bs.lambda), r: r ? r2(r.u.rSchicht[i], 3) : null, mu: s.mu != null ? s.mu : bs.mu }; }),
+        schichten: (b.schichten || []).map((s, i) => { const bs = BSI[s.m] || {}, h = s.m2 ? BSI[s.m2] || {} : null, q = s.gl === 'flucht' ? skKopf(b.schichten, i) || s : s;
+          return { name: s.name || '', baustoff: bs.name ? (bs.hersteller ? bs.hersteller + ' ' + bs.name : bs.name) : (s.name || 'eigener Baustoff'), farbe: bs.farbe || '', aus: !!bs.belueftet,
+            d: s.d, lam: r2(s.lam || bs.lambda), r: r && r.u.rSchicht[i] != null ? r2(r.u.rSchicht[i], 3) : null, mu: s.mu != null ? s.mu : bs.mu,
+            gef: h ? { holz: h.name || 'Holz', breite: q.breite, abstand: q.abstand, anteil: q.breite > 0 && q.abstand > 0 ? r2(q.breite / q.abstand) : null,
+              lage: skGruppeVon(b.schichten, i) === 0 && s.gl !== 'flucht' ? 'erst' : s.gl === 'flucht' ? 'flucht' : 'kreuz', lam: r2(h.lambda), r: h.lambda ? r2((+s.d || 0) / 100 / h.lambda, 3) : null } : null }; }),
+        stufe: e.stufe || null,
+        inh: r && r.u.inhomogen ? { ro: r2(r.u.rOben), ru: r2(r.u.rUnten), fehler: r2(r.u.fehler), verh: r2(r.u.verhaeltnis), ok: r.u.zulaessig,
+          teil: r.u.pfade.map((t) => [r.u.gruppen.map((g, k) => ((t.m >> k) & 1 ? 'Holz' : 'Dämmung')).join(' / '), r2(t.f), r2(t.r, 3)]) } : null,
         temp: r ? r.tWinter.punkte.map((p) => [r2(p.x * 100, 2), r2(p.t, 2)]) : [],
         glaser: g0 ? { tauwasser: !!g0.tauwasser, mc: r2(g0.mc), mev: r2(g0.mev), ps: (g0.knoten || []).map((k) => [r2(k.sd), r2(k.ps, 1)]), p: (g0.hull || []).map((h) => [r2(h.sd), r2(h.p, 1)]) } : {} }; }) };
 }

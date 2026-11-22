@@ -251,7 +251,10 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg C2: LV im Entwurf schreibt mit – Position merkt sich ihre Zeile im Modell; vorher feste Kennung je Bauteil klären (≈ 60 Min.)
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
+- Wärmeschutz – Soll der weiteren Nachbarländer (NL, BE, LU, FR, DK, PL, CZ): Werte je Land mit Quelle recherchieren und in `WS_REGELN.SOLL` eintragen **ca. 1 h** · Querschnitt auch im Eigenschaften-Fenster des Gebäudemodells (SA-8) **ca. 1 h**
+
 ## Erledigt
+- ~~Wärmeschutz: Schichtaufbau neu (Mock SA-1 … SA-17): Querschnitt mit Ziehen/Fugen/＋, Gefache kreuzweise und in Flucht richtig gerechnet, Draufsicht, R′/R″ ≤ 1,5, Soll fürs Gebäude (GModG, BEG, EH, Passivhaus, AT, CH) mit 5 Stufen, Ausdruck mit Blöcken und Teilflächen~~ (22.11.2026)
 - ~~Pipeline schneller: Freigabe startet nur einmal (vorher zweimal nacheinander), Oberflächentests mit nachgebildetem Server in drei parallelen Jobs neben Bauen und Rauchtest~~ (22.11.2026)
 - ~~Bauzeitenplan: Soll, Ist und Fortschritt (Mock SI2-1 … SI2-6): Balken füllt sich mit Zahl, Soll grau darunter, Punkt „heute“ mit Verzug, Klick auf den Balken = Feld „Zeit und Stand“, im Eigenschaften-Fenster ein Block~~ (22.11.2026)
 - ~~Dateispeicher Etappe 2: Anhänge, Dokumente und Fotos (Kommunikation, To-dos, LV-Dokumente, Nachträge, Bürgschaften, Positionsbilder, Vergabe-PDFs, Architektenverträge, Fachplaner-Rechnungen, Bauherrenportal) liegen als Datei statt in der Datenbank; die Dienste ziehen den Bestand um~~ (22.11.2026)

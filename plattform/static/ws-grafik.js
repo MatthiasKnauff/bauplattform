@@ -1,30 +1,9 @@
 'use strict';
-/* Wärmeschutz – Ergebniszeile (Ampel) am Bauteil und der Bereich rechts (seite.js, abdockbar) mit den Grafiken:
-   Querschnitt mit Temperaturverlauf, Glaser-Diagramm (Dampfdruck über sd), Hitzeschutz (Temperaturwelle über 24 h), Prüfung.
+/* Wärmeschutz – der Bereich rechts (seite.js, abdockbar) mit den Grafiken:
+   Querschnitt mit Temperaturverlauf (Ergebnisleiste am Bauteil: ws-schichten.js), Glaser-Diagramm (Dampfdruck über sd), Hitzeschutz (Temperaturwelle über 24 h), Prüfung.
    Nutzt aus ws-kern.js: D, WORK, R7, zahl, ergebnis, bauteil, pruefungHtml; aus ws-bauteil.js: BSI, bsName, ntz. */
 const WSR = {};   // Reiter-Felder rechts: id → Element
 const WS_FARBE = { innen: '#c84b3a', aussen: '#3b6fb0', p: '#2f7d6d', ps: '#c84b3a' };
-
-/* ---------- Ergebniszeile am Bauteil ---------- */
-function ampelKl(b) { const e = ergebnis(b); return e.ok === false ? 'no' : e.ok ? 'ok' : ''; }
-function ampelHtml(b) {
-  const e = ergebnis(b);
-  if (e.u == null) return '<span class="mute">Schichten eintragen – U-Wert, Tauwasser und Temperaturen rechnen sofort mit.</span>';
-  const ch = (ok, t) => `<span class="ws-a ${ok == null ? '' : ok ? 'ok' : 'no'}">${ok == null ? '' : ok ? '✓ ' : '✗ '}${t}</span>`;
-  let mehr = '';
-  if (e.ok === false && e.r && e.umax) {   // wie viel Dämmung (WLS 035) fehlt bis U max
-    const d = Math.ceil((1 / e.umax - e.r.u.rT) * 0.035 * 100);
-    if (d > 0) mehr = ` · rund <b>${d} cm</b> Dämmung WLS 035 mehr`;
-  }
-  let h = `<span class="ws-u">U = ${zahl(e.u, 3)}</span><span>${e.umax == null ? (b.massnahme ? 'keine Anforderung' : 'Maßnahme wählen') : `U max ${zahl(e.umax)} (Nr. ${esc(b.massnahme)})${mehr}`}</span>`;
-  if (e.r) {
-    const gl = e.r.glaser;
-    h += ch(!gl.tauwasser || (gl.mc <= 1 && gl.mev >= gl.mc), gl.tauwasser ? `Tauwasser ${zahl(gl.mc, 3)} kg/m²` : 'kein Tauwasser');
-    h += ch(e.r.frsi >= 0.7, `fRsi ${zahl(e.r.frsi)}`);
-    if (e.r.inst) h += ch(null, `Phasenversch. ${zahl(e.r.inst.phasenverschiebung, 1)} h`);
-  }
-  return h;
-}
 
 /* ---------- Bereich rechts ---------- */
 function bereich() {
@@ -87,7 +66,7 @@ function querschnitt(b, r) {
     if (i === 0 || i === P.length - 3) g += `<g transform="translate(${p[0] + (i ? -6 : 6)},${y(p[1]) + (i ? -10 : 14)})"><rect x="${i ? -34 : 0}" y="-10" width="34" height="15" rx="7" fill="#fff" stroke="${WS_FARBE.innen}" stroke-opacity=".5"/><text x="${i ? -17 : 17}" y="1" text-anchor="middle" class="pl">${zahl(p[1], 1)}°</text></g>`; });
   (r.glaser.ebenen || []).forEach((e) => { const x = x0 + e.x * 100 * sc; g += `<line x1="${x}" x2="${x}" y1="${y0}" y2="${y1}" stroke="${WS_FARBE.aussen}" stroke-width="2.5"/><text x="${x + 4}" y="${y0 + 12}" class="tp">💧 Tauwasser</text>`; });
   g += `<text x="6" y="14" class="hd">innen 20 °C</text><text x="${W - 6}" y="14" text-anchor="end" class="hd">außen −5 °C</text>`;
-  return `<svg class="ws-g" viewBox="0 0 ${W} ${H}" role="img" aria-label="Querschnitt mit Temperaturverlauf">${g}</svg>`;
+  return `<svg class="ws-g" viewBox="0 0 ${W} ${H}" role="img" aria-label="Querschnitt mit Temperaturverlauf (Ergebnisleiste am Bauteil: ws-schichten.js)">${g}</svg>`;
 }
 
 /* Dampfdruck über der sd-Achse: Sättigungsdampfdruck (rot) und vorhandener Dampfdruck (grün); berühren sie sich: Tauwasser */

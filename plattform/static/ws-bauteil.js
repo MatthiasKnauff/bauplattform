@@ -1,7 +1,7 @@
 'use strict';
 /* Wärmeschutz – Karte „Bauteile“: das links gewählte Bauteil mit Art, Maßnahme nach Anlage 7, Fläche und den Schichten (innen → außen).
    Tippen rechnet sofort (U-Wert, Temperaturen, Tauwasser, fRsi, Phasenverschiebung, Querschnitt); gespeichert wird beim Verlassen des Feldes.
-   Gefach (Sparren/Ständer): zweiter Baustoff mit Breite und Achsabstand → U-Wert nach DIN EN ISO 6946 (obere/untere Grenze).
+   Schichten, Querschnitt, Gefache und Ergebnisleiste: ws-schichten.js.
    Neues Bauteil leer, als Musteraufbau oder aus dem Bauteilkatalog des Büros. Nutzt aus ws-kern.js: D, BID, R7, speichern, zeichne, zahl, typName. */
 /* Baustoffe aus der Datenbank (ws-kern.js lädt sie beim Start: baustoffeLaden). Herstellerprodukte stehen je Kategorie mit dem Herstellernamen. */
 let BS = [], BSI = {};
@@ -26,38 +26,15 @@ function bauteilKarte() {
         return `<option value="${m.k}"${b.massnahme === m.k ? ' selected' : ''}>${m.k} ${esc(m.n)} – ${u == null ? 'keine Anforderung' : 'U max ' + zahl(u)}</option>`; }).join('')}</select></label>
       <label>Fläche (m²)<input data-bk="flaeche" value="${ntz(b.flaeche)}" style="width:5rem" inputmode="decimal"></label>
       ${ohne ? `<label>U-Wert laut Datenblatt<input data-bk="uw" value="${ntz(b.uw)}" style="width:6rem" inputmode="decimal" placeholder="z. B. 0,95"></label>` : ''}</div>${herkunftHtml(b)}`;
-  if (ohne) return kopf + `<div class="ws-ampel" id="wsErg">${ampelHtml(b)}</div><p class="ws-hin">Fenster und Türen: U-Wert (Uw, Ug bzw. Uc je nach Maßnahme) aus dem Datenblatt des Herstellers.</p>`;
-  const S = b.schichten || [];
-  const zeilen = S.map((s, i) => { const m = BSI[s.m], eig = !m;
-    const gef = s.m2 ? `<tr class="gef"><td></td><td colspan="2">Gefach: ${baustoffWahl(s.m2, `data-sk="m2" data-si="${i}" aria-label="Baustoff im Gefach"`)}</td>
-        <td colspan="3">Breite <input class="n" data-sk="breite" data-si="${i}" value="${ntz(s.breite)}" inputmode="decimal"> cm · Achsabstand <input class="n" data-sk="abstand" data-si="${i}" value="${ntz(s.abstand)}" inputmode="decimal"> cm</td>
-        <td class="r" colspan="2">${s.breite > 0 && s.abstand > 0 ? zahl(s.breite / s.abstand * 100, 1) + ' % Anteil' : ''}</td><td></td></tr>` : '';
-    return `<tr data-row="${i}"${m && m.belueftet ? ' class="aus" title="Belüftete Schicht: sie und alles außen davon zählen nicht (Rse = Rsi)"' : ''}><td><span class="sw" style="background:${esc((m || {}).farbe || '#dcdcdc')}"></span></td>
-      <td>${!eig && s.name ? `<b class="ws-pn" title="Name aus dem Plan – der Baustoff dahinter liefert λ, ρ und μ">${esc(s.name)}</b> = ` : ''}${baustoffWahl(eig ? 'eigen' : s.m, `data-sk="m" data-si="${i}" aria-label="Baustoff"`)}${eig ? ` <input data-sk="name" data-si="${i}" value="${esc(s.name || '')}" placeholder="Name" style="width:9rem">` : ''}</td>
-      <td class="r"><input class="n" data-sk="d" data-si="${i}" value="${ntz(s.d)}" inputmode="decimal" aria-label="Dicke in cm"></td>
-      <td class="r"><input class="n${s.lam ? ' hand' : ''}" data-sk="lam" data-si="${i}" value="${ntz(s.lam)}" placeholder="${m && m.lambda ? ntz(m.lambda) : ''}" inputmode="decimal" aria-label="λ" title="leer = Richtwert des Baustoffs; eintragen = Bemessungswert des Produkts"></td>
-      <td class="r"><input class="n${s.mu != null || s.sd != null ? ' hand' : ''}" data-sk="${m && m.sd != null ? 'sd' : 'mu'}" data-si="${i}" value="${ntz(m && m.sd != null ? s.sd : s.mu)}" placeholder="${m ? (m.sd != null ? 'sd ' + ntz(m.sd) : ntz(m.mu)) : '1'}" inputmode="decimal" aria-label="${m && m.sd != null ? 'sd in m' : 'μ'}"></td>
-      <td class="r" data-rr="${i}"></td><td class="r" data-th="${i}"></td>
-      <td class="r"><button type="button" class="ib${s.m2 ? ' on' : ''}" data-sgef="${i}" title="Gefach (Sparren/Ständer) ${s.m2 ? 'entfernen' : 'hinzufügen'}">▥</button><button type="button" class="ib" data-smv="${i}" data-r="-1" title="nach innen"${i ? '' : ' disabled'}>↑</button><button type="button" class="ib" data-smv="${i}" data-r="1" title="nach außen"${i < S.length - 1 ? '' : ' disabled'}>↓</button><button type="button" class="ib" data-sweg="${i}" title="Schicht entfernen">✕</button></td></tr>${gef}`; }).join('');
-  return kopf + `<div class="ws-ampel" id="wsErg"></div><div class="ws-tw"><table class="ws-t" data-volle><thead><tr><th></th><th>Schicht (innen → außen)</th><th class="r">d [cm]</th><th class="r">λ [W/mK]</th><th class="r">μ / sd</th><th class="r">R [m²K/W]</th><th class="r">θ innen [°C]</th><th></th></tr></thead>
-      <tbody>${zeilen || '<tr><td></td><td colspan="7" class="mute">Noch keine Schicht – oben „Schicht → Neu“.</td></tr>'}</tbody>
-      <tfoot><tr><td></td><td><button type="button" class="btn sm" data-sneu>＋ Schicht</button> <span class="mute" id="wsRs"></span></td><td class="r" id="wsDs"></td><td></td><td></td><td class="r" id="wsRt"></td><td></td><td></td></tr></tfoot></table></div>`;
+  if (ohne) return kopf + `<div class="ws-ampel ${ergebnisKl(b)}" id="wsErg">${ergebnisLeiste(b)}</div><p class="ws-hin">Fenster und Türen: U-Wert (Uw, Ug bzw. Uc je nach Maßnahme) aus dem Datenblatt des Herstellers.</p>`;
+  return kopf + schichtenHtml(b);   // Schichtaufbau: ws-schichten.js (Mock „Schichtaufbau neu“, 22.11.2026)
 }
 
 /* Nur die Rechenwerte neu (beim Tippen), ohne die Eingabefelder anzufassen */
 function ergebnisNeu() {
   const b = bauteil(); if (!b) return;
-  const E = $('#wsErg'); if (E) { E.innerHTML = ampelHtml(b); E.className = 'ws-ampel ' + ampelKl(b); }
   rechtsNeu();
-  if (R7.ohneSchichten(b.typ)) return;
-  const e = ergebnis(b), r = e.r;
-  (b.schichten || []).forEach((_, i) => { const rr = V.querySelector(`[data-rr="${i}"]`), th = V.querySelector(`[data-th="${i}"]`);
-    if (rr) rr.textContent = r && r.u.rSchicht[i] != null ? zahl(r.u.rSchicht[i], 3) : r ? '–' : '';
-    if (th) th.textContent = r && r.tWinter.punkte[i] ? zahl(r.tWinter.punkte[i].t, 1) : ''; });
-  const ds = $('#wsDs'), rt = $('#wsRt'), rs = $('#wsRs');
-  if (ds) ds.textContent = zahl((b.schichten || []).reduce((s, x) => s + (+x.d || 0), 0), 1);
-  if (rt) rt.textContent = r ? zahl(r.u.rT, 3) : '';
-  if (rs) rs.textContent = r ? `Rsi ${zahl(r.u.rsi)} · Rse ${zahl(r.u.rse)}` : '';
+  schichtenNeu(b);
 }
 function bauteilNachher() { if (bauteil()) ergebnisNeu(); else rechtsNeu(); }
 
@@ -84,17 +61,6 @@ V.addEventListener('click', (e) => {   // Baustoff einer Schicht bzw. eines Gefa
   const k = e.target.closest('.ws-bsb[data-sk]'), b = bauteil(); if (!k || !b) return;
   const s = b.schichten[+k.dataset.si]; if (!s) return;
   bsWaehlen(k.dataset.bswert, (id) => { s[k.dataset.sk] = id; if (k.dataset.sk === 'm') { delete s.lam; delete s.mu; delete s.sd; } bauteilSpeichern('Baustoff gewählt'); }, k.dataset.sk === 'm2' ? 'Baustoff im Gefach' : 'Baustoff der Schicht');
-});
-V.addEventListener('click', (e) => {
-  const b = bauteil(); if (!b) return;
-  const t = e.target.closest('[data-sneu],[data-sweg],[data-smv],[data-sgef]'); if (!t) return;
-  const S = b.schichten;
-  if (t.dataset.sneu != null) { schichtNeu(); return; }
-  if (t.dataset.sweg != null) { S.splice(+t.dataset.sweg, 1); bauteilSpeichern('Schicht entfernt'); return; }
-  if (t.dataset.smv != null) { const i = +t.dataset.smv, j = i + +t.dataset.r; if (j < 0 || j >= S.length) return; [S[i], S[j]] = [S[j], S[i]]; bauteilSpeichern('Schicht verschoben'); return; }
-  const s = S[+t.dataset.sgef];
-  if (s.m2) { delete s.m2; delete s.breite; delete s.abstand; } else Object.assign(s, { m2: 'holz_nadel', breite: 6, abstand: 62.5 });
-  bauteilSpeichern(s.m2 ? 'Gefach hinzugefügt' : 'Gefach entfernt');
 });
 function schichtNeu() {
   const b = bauteil(); if (!b || R7.ohneSchichten(b.typ)) return;

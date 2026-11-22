@@ -24,3 +24,25 @@ def test_bauen():
         pdf = W.bauen(DD, teile, {"name": "A1 Test", "client": "WEG"}, bv, LW, LAY, False, {}, "Tester")
         pruefe(pdf[:5] == b"%PDF-" and len(pdf) > 1500, f"PDF mit {teile}")
     gleich(W._diagramm(W._bt({"name": "x"}), 400, False), None, "ohne Temperaturen keine Grafik")
+
+
+DACH = {"name": "D 1 Steildach", "art": "Steildach", "flaeche": 168, "u": 0.154, "umax": 0.24, "ok": True, "rsi": 0.1, "rse": 0.1, "rt": 6.5,
+        "stufe": {"s": 0, "zeichen": "✓✓", "text": "deutlich besser", "prozent": 63},
+        "schichten": [{"name": "", "baustoff": "Gipskartonplatte", "d": 1.25, "lam": 0.25, "r": 0.05, "farbe": "#eee8dc"},
+                      {"name": "", "baustoff": "Mineralwolle 035", "d": 22, "lam": 0.035, "r": 4.9, "farbe": "#f2dc7d",
+                       "gef": {"holz": "Nadelholz", "breite": 8, "abstand": 75, "anteil": 0.107, "lage": "erst", "lam": 0.13, "r": 1.69}},
+                      {"name": "", "baustoff": "Mineralwolle 035", "d": 6, "lam": 0.035, "r": 1.3, "farbe": "#f2dc7d",
+                       "gef": {"holz": "Nadelholz", "breite": 8, "abstand": 75, "anteil": 0.107, "lage": "flucht", "lam": 0.13, "r": 0.46}},
+                      {"name": "", "baustoff": "Luftschicht belüftet", "d": 4, "farbe": "#ffffff", "aus": True}, {"baustoff": "Dachziegel", "d": 2, "farbe": "zzz"}],
+        "inh": {"ro": 6.6, "ru": 6.4, "fehler": 0.007, "verh": 1.02, "ok": True, "teil": [["Dämmung", 0.893, 8.3], ["Holz", 0.107, 2.4]]}}
+
+
+def test_gefach_im_ausdruck():
+    """Mock „Schichtaufbau neu“ SA-12: Zeichnung als Blöcke, Unterzeile je Gefach, Teilflächen, R′/R″; Soll mit Quelle (SA-17)."""
+    b = W._bt(DACH)
+    gleich((b["schichten"][1]["gef"]["lage"], b["schichten"][4]["farbe"], b["schichten"][3]["aus"], b["stufe"]["s"], len(b["inh"]["teil"])), ("erst", "#dcdcdc", True, 0, 2), "Gefach, Farbe geprüft, belüftet, Stufe, Teilflächen")
+    LAY = layout.pruefen(layout.standard("waermeschutz"), "waermeschutz")
+    DD = {"bauteile": [b], "fassung": "GModG", "zone": "≥ 19 °C", "soll": {"n": "BEG Einzelmaßnahme – Fördergrenze", "quelle": "Richtlinie BEG EM", "stand": "17.07.2026", "land": "DE"}}
+    pdf = W.bauen(DD, ["bauteile", "uebersicht"], {"name": "A1"}, {}, {"buero": "B"}, LAY, False, {}, "T")
+    pruefe(pdf[:5] == b"%PDF-" and len(pdf) > 3000, "PDF mit Gefachen")
+    pruefe(W._aufbau_zeichnung(b, 400, {"n": "Helvetica"}) is not None, "Zeichnung des Aufbaus")

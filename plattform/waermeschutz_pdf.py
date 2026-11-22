@@ -35,13 +35,88 @@ def _bt(b):
     return {"name": t(b.get("name")), "art": t(b.get("art"), 80), "einordnung": t(b.get("einordnung")), "flaeche": _f(b.get("flaeche"), 0, 1e6),
             "u": _f(b.get("u"), 0, 20), "umax": _f(b.get("umax"), 0, 20), "ok": b.get("ok") if isinstance(b.get("ok"), bool) else None,
             "rsi": _f(b.get("rsi"), 0, 1), "rse": _f(b.get("rse"), 0, 1), "rt": _f(b.get("rt"), 0, 100), "hinweis": t(b.get("hinweis"), 300),
-            "schichten": [{"name": t(s.get("name")), "baustoff": t(s.get("baustoff")), "d": _f(s.get("d"), 0, 1000), "lam": _f(s.get("lam"), 0, 500),
-                           "r": _f(s.get("r"), 0, 100), "mu": _f(s.get("mu"), 0, 1e7)} for s in (b.get("schichten") or [])[:30] if isinstance(s, dict)],
+            "schichten": [_schicht(s, t) for s in (b.get("schichten") or [])[:30] if isinstance(s, dict)],
+            "stufe": _stufe(b.get("stufe"), t), "inh": _inh(b.get("inh"), t),
             "temp": [[_f(p[0], 0, 1000), _f(p[1], -60, 60)] for p in (b.get("temp") or [])[:40] if isinstance(p, (list, tuple)) and len(p) == 2],
             "glaser": {k: _f((b.get("glaser") or {}).get(k), -1e6, 1e6) for k in ("mc", "mev", "pi", "pe", "sd")} | {
                 "tauwasser": bool((b.get("glaser") or {}).get("tauwasser")),
                 "ps": [[_f(p[0], 0, 1e5), _f(p[1], 0, 1e5)] for p in ((b.get("glaser") or {}).get("ps") or [])[:120] if isinstance(p, (list, tuple)) and len(p) == 2],
                 "p": [[_f(p[0], 0, 1e5), _f(p[1], 0, 1e5)] for p in ((b.get("glaser") or {}).get("p") or [])[:40] if isinstance(p, (list, tuple)) and len(p) == 2]}}
+
+
+def _farbe(v):
+    v = str(v or "")
+    return v if len(v) == 7 and v.startswith("#") and all(ch in "0123456789abcdefABCDEF" for ch in v[1:]) else "#dcdcdc"
+
+
+def _schicht(s, t):
+    """Schicht mit Farbe (Zeichnung), belüftet und Gefach (Mock „Schichtaufbau neu“ SA-12: Blöcke, Unterzeile je Gefach)."""
+    x = {"name": t(s.get("name")), "baustoff": t(s.get("baustoff")), "d": _f(s.get("d"), 0, 1000), "lam": _f(s.get("lam"), 0, 500),
+         "r": _f(s.get("r"), 0, 100), "mu": _f(s.get("mu"), 0, 1e7), "farbe": _farbe(s.get("farbe")), "aus": bool(s.get("aus"))}
+    g = s.get("gef")
+    if isinstance(g, dict):
+        x["gef"] = {"holz": t(g.get("holz"), 80), "breite": _f(g.get("breite"), 0, 500), "abstand": _f(g.get("abstand"), 0, 1000), "anteil": _f(g.get("anteil"), 0, 1),
+                    "lage": g.get("lage") if g.get("lage") in ("erst", "kreuz", "flucht") else "erst", "lam": _f(g.get("lam"), 0, 500), "r": _f(g.get("r"), 0, 100)}
+    return x
+
+
+def _stufe(st, t):
+    if not isinstance(st, dict):
+        return None
+    s = _f(st.get("s"), 0, 4)
+    return {"s": int(s or 0), "text": t(st.get("text"), 40), "zeichen": t(st.get("zeichen"), 4), "prozent": _f(st.get("prozent"), 0, 10000)}
+
+
+def _inh(x, t):
+    """Inhomogene Schichten nach DIN EN ISO 6946: Teilflächen, R′, R″, Fehler, R′/R″ (SA-12, SA-13)."""
+    if not isinstance(x, dict):
+        return None
+    return {"ro": _f(x.get("ro"), 0, 100), "ru": _f(x.get("ru"), 0, 100), "fehler": _f(x.get("fehler"), -1, 1), "verh": _f(x.get("verh"), 0, 100), "ok": bool(x.get("ok")),
+            "teil": [[t(p[0], 60), _f(p[1], 0, 1), _f(p[2], 0, 100)] for p in (x.get("teil") or [])[:16] if isinstance(p, (list, tuple)) and len(p) == 3]}
+
+
+def _aufbau_zeichnung(b, W, F):
+    """Gesamtaufbau als Blöcke (innen → außen): Maßkette oben, Nummern unten, Gefach als Holz-Querschnitte (erstes Gefach mit Kreuz)."""
+    from reportlab.graphics.shapes import Circle, Drawing, Line, Rect, String
+    from reportlab.lib import colors
+    L = [s for s in b["schichten"] if (s["d"] or 0) > 0]
+    if not L:
+        return None
+    H, X0, BW = 64.0, 26.0, W - 60.0
+    gs = sum(s["d"] for s in L)
+    w = [max(0.024, s["d"] / gs) for s in L]
+    k = sum(w)
+    w = [x / k * BW for x in w]
+    d = Drawing(W, H + 34)
+    y0 = 16.0
+    d.add(String(2, y0 + H / 2, "innen", fontName=F["n"], fontSize=6.5))
+    d.add(String(X0 + BW + 4, y0 + H / 2, "außen", fontName=F["n"], fontSize=6.5))
+    x = X0
+    for i, (s, ww) in enumerate(zip(L, w)):
+        d.add(Rect(x, y0, ww, H, fillColor=colors.white if s["aus"] else colors.HexColor(s["farbe"]), strokeColor=colors.HexColor("#333333"), strokeWidth=0.5,
+                   strokeDashArray=[2, 1.5] if s["aus"] else None))
+        g = s.get("gef")
+        if g and g["breite"] and g["abstand"]:
+            sk = H / 90.0
+            yy = -g["abstand"] / 2 + 12
+            while yy < 90:
+                a, e = max(0, yy), min(90, yy + g["breite"])
+                if e > a:
+                    ry = y0 + H - e * sk
+                    d.add(Rect(x, ry, ww, (e - a) * sk, fillColor=colors.HexColor("#c99a5b"), strokeColor=colors.HexColor("#6b4a22"), strokeWidth=0.4))
+                    if g["lage"] != "kreuz":
+                        d.add(Line(x, ry, x + ww, ry + (e - a) * sk, strokeColor=colors.HexColor("#6b4a22"), strokeWidth=0.4))
+                        d.add(Line(x, ry + (e - a) * sk, x + ww, ry, strokeColor=colors.HexColor("#6b4a22"), strokeWidth=0.4))
+                yy += max(g["abstand"], g["breite"] + 1)
+        d.add(Line(x, y0 + H + 6, x, y0 + H + 12, strokeWidth=0.4))
+        if ww > 14:
+            d.add(String(x + ww / 2, y0 + H + 8, f"{s['d']:g}".replace(".", ","), fontName=F["n"], fontSize=6.5, textAnchor="middle"))
+        d.add(Circle(x + ww / 2, 7, 4.6, fillColor=colors.white, strokeColor=colors.HexColor("#333333"), strokeWidth=0.4))
+        d.add(String(x + ww / 2, 5, str(i + 1), fontName=F["n"], fontSize=5.8, textAnchor="middle"))
+        x += ww
+    d.add(Line(x, y0 + H + 6, x, y0 + H + 12, strokeWidth=0.4))
+    d.add(Line(X0, y0 + H + 9, x, y0 + H + 9, strokeWidth=0.4))
+    return d
 
 
 @app.post("/api/nachweise/<int:nid>/druckdaten")
@@ -53,7 +128,8 @@ def druckdaten(nid):
         if not n:
             return jsonify(error="Nachweis nicht gefunden"), 404
         d = {"bauteile": [_bt(x) for x in (b.get("bauteile") or [])[:80] if isinstance(x, dict)],
-             "fassung": str(b.get("fassung") or "")[:200], "zone": str(b.get("zone") or "")[:80], "vorhaben": str(b.get("vorhaben") or "")[:120]}
+             "fassung": str(b.get("fassung") or "")[:200], "zone": str(b.get("zone") or "")[:80], "vorhaben": str(b.get("vorhaben") or "")[:120],
+             "soll": {k: str((b.get("soll") or {}).get(k) or "")[:300] for k in ("n", "quelle", "stand", "land")}}
         c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT(key) DO UPDATE SET data=excluded.data, updated=excluded.updated, updated_by=excluded.updated_by",
                   (f"ws:druck:{nid}", json.dumps(d, ensure_ascii=False), datetime.now().isoformat(timespec="seconds"), g.user["name"]))
         ordner = "/".join(ablage_einst.ordner(einstellungen.alle(c), "ordner_waerme"))   # C1: Ordner aus den Einstellungen des Wärmeschutzes
@@ -159,6 +235,10 @@ def bauen(DD, teile, p, bv, LW, LAY, frei, gl, wer, F=None, logo_fn=None):
         return t
     B = DD["bauteile"]
     alle_ok = all(b["ok"] is not False for b in B)
+    SO = DD.get("soll") or {}
+    soll_t = " – ".join(x for x in (SO.get("n"), f"{SO.get('quelle')}, Stand {SO.get('stand')}" if SO.get("quelle") else "") if x) or "GModG Anlage 7 (Höchstwert je Maßnahme)"
+    stufe_t = lambda b: (f"{b['stufe']['zeichen']} {b['stufe']['text']} ({z(b['stufe']['prozent'], 0)} %)" if b.get("stufe")   # noqa: E731
+                         else "erfüllt" if b["ok"] else "nicht erfüllt" if b["ok"] is False else "–")
     story = []
     if "deckblatt" in teile:
         adr = ", ".join(x for x in (p.get("street") or "", " ".join(y for y in (p.get("zip") or "", p.get("city") or "") if y)) if x)
@@ -166,29 +246,51 @@ def bauen(DD, teile, p, bv, LW, LAY, frei, gl, wer, F=None, logo_fn=None):
         story += [Spacer(1, 18 * mm), Paragraph("Nachweis des Wärmeschutzes", S["h1"]),
                   Paragraph(X(f"nach dem Gebäudemodernisierungsgesetz (GModG) · {DD.get('vorhaben') or gl.get('vorhaben') or ''}"), S["p"]), Spacer(1, 8 * mm)]
         for k, v in (("Bauvorhaben", ", ".join(x for x in (p.get("name") or "", adr if adr and adr not in (p.get("name") or "") else "") if x)), ("Bauherr:in", p.get("client") or ""),
-                     ("Aufgestellt von", "\n".join(x for x in (auf or wer, office) if x)), ("Grundlagen", " · ".join(x for x in (DD.get("fassung"), DD.get("zone")) if x)),
+                     ("Aufgestellt von", "\n".join(x for x in (auf or wer, office) if x)), ("Grundlagen", " · ".join(x for x in (DD.get("fassung"), DD.get("zone")) if x)), ("Anforderung (Soll)", soll_t),
                      ("Ergebnis", ("Alle " if alle_ok else "") + f"{sum(1 for b in B if b['ok'] is not False)} von {len(B)} Bauteilen erfüllen die Anforderungen.")):
             if v:
                 story += [Paragraph(X(k), S["m"]), Paragraph(X(v).replace("\n", "<br/>"), S["p"]), Spacer(1, 3.5 * mm)]
         story += [Spacer(1, 18 * mm), Paragraph("_" * 46, S["p"]), Paragraph(X(f"Ort, Datum · Unterschrift {bv.get('name') or ''}".strip()), S["m"]), PageBreak()]
     if "uebersicht" in teile:
-        rows = [["Bauteil", "Fläche", "U vorh.", "U zul.", ""]] + [[Paragraph(X(b["name"]) + (f"<br/><font size=7 color='#6b6b66'>{X(b['art'])}</font>" if b["art"] else ""), S["c"]),
+        rows = [["Bauteil", "Fläche", "U vorh.", "Soll", ""]] + [[Paragraph(X(b["name"]) + (f"<br/><font size=7 color='#6b6b66'>{X(b['art'])}</font>" if b["art"] else ""), S["c"]),
                                                               f"{z(b['flaeche'], 0)} m²" if b["flaeche"] else "", z(b["u"]), z(b["umax"]) if b["umax"] else "–",
-                                                              "erfüllt" if b["ok"] else "nicht erfüllt" if b["ok"] is False else "–"] for b in B]
+                                                              stufe_t(b)] for b in B]
         t = tab(rows, [W - 90 * mm, 22 * mm, 20 * mm, 20 * mm, 28 * mm], rechts=(1, 2, 3))
-        t.setStyle(TableStyle([("TEXTCOLOR", (4, i + 1), (4, i + 1), OK if b["ok"] else NO) for i, b in enumerate(B)]))
+        t.setStyle(TableStyle([("TEXTCOLOR", (4, i + 1), (4, i + 1), OK if b["ok"] else NO) for i, b in enumerate(B) if b["ok"] is not None]))
         story += [Paragraph("Übersicht der Bauteile", S["h2"]), t, Spacer(1, 3 * mm),
-                  Paragraph("U-Werte nach DIN EN ISO 6946, Bemessungswerte der Wärmeleitfähigkeit nach DIN 4108-4 bzw. Herstellerangabe. Höchstwerte nach GModG (Anlage 7 bei Änderung, sonst Referenz Anlage 1).", S["m"]), Spacer(1, 6 * mm)]
+                  Paragraph(X("U-Werte nach DIN EN ISO 6946, Bemessungswerte der Wärmeleitfähigkeit nach DIN 4108-4 bzw. Herstellerangabe. Soll: " + soll_t), S["m"]), Spacer(1, 6 * mm)]
     if "bauteile" in teile:
         for b in B:
             el = [Paragraph(X(b["name"]), S["h2"]), Paragraph(X(" · ".join(x for x in (b["art"], b["einordnung"], f"{z(b['flaeche'], 0)} m²" if b["flaeche"] else "") if x)), S["m"]), Spacer(1, 2 * mm)]
             if b["schichten"]:
-                rows = [["Schicht", "= Baustoff", "d cm", "λ", "R"]] + [[Paragraph(X(s["name"] or s["baustoff"]), S["c"]), Paragraph(X(s["baustoff"] if s["name"] and s["name"] != s["baustoff"] else ""), S["c"]),
-                                                                        z(s["d"], 1), z(s["lam"], 3), z(s["r"], 2)] for s in b["schichten"]]
-                el.append(tab(rows, [W * 0.36, W * 0.34, W * 0.1, W * 0.1, W * 0.1], rechts=(2, 3, 4)))
+                zg = _aufbau_zeichnung(b, W, F)
+                if zg:
+                    el += [Paragraph("AUFBAU (INNEN → AUSSEN, MASSE IN CM)", S["m"]), zg, Spacer(1, 2 * mm)]
+                rows, grau = [["Nr", "Schicht", "= Baustoff", "d cm", "λ", "R"]], []
+                for i, s_ in enumerate(b["schichten"]):
+                    rows.append([str(i + 1), Paragraph(X(s_["name"] or s_["baustoff"]) + (" <i>(belüftet, zählt nicht)</i>" if s_["aus"] else ""), S["c"]),
+                                 Paragraph(X(s_["baustoff"] if s_["name"] and s_["name"] != s_["baustoff"] else ""), S["c"]), z(s_["d"], 2 if s_["d"] and round(s_["d"], 1) != s_["d"] else 1), z(s_["lam"], 3), z(s_["r"], 3) if s_["r"] is not None else "–"])
+                    g_ = s_.get("gef")
+                    if g_:
+                        lage = {"kreuz": ", kreuzweise", "flucht": ", in Flucht"}.get(g_["lage"], "")
+                        rows.append(["", Paragraph(X(f"Gefach {g_['holz']} {z(g_['breite'], 0)} cm, Abstand {z(g_['abstand'], 1)} cm – Anteil {z((g_['anteil'] or 0) * 100, 1)} %{lage}"), S["m"]),
+                                     "", "", z(g_["lam"], 3), z(g_["r"], 3)])
+                        grau.append(len(rows) - 1)
+                t_ = tab(rows, [W * 0.06, W * 0.34, W * 0.3, W * 0.1, W * 0.1, W * 0.1], rechts=(3, 4, 5))
+                t_.setStyle(TableStyle([("TEXTCOLOR", (0, i), (-1, i), MUTE) for i in grau] + [("FONT", (0, i), (-1, i), F["n"], 7.8) for i in grau] + [("SPAN", (1, i), (3, i)) for i in grau]))
+                el.append(t_)
                 el.append(Spacer(1, 1.5 * mm))
+                ih = b.get("inh")
+                if ih and ih["teil"]:
+                    zeilen = [[Paragraph(X(f"Teilfläche {n}"), S["c"]), f"{z((f or 0) * 100, 1)} %", f"R {z(r, 3)}"] for n, f, r in ih["teil"]]
+                    zeilen += [[Paragraph("obere Grenze R′", S["c"]), "", z(ih["ro"], 3)], [Paragraph("untere Grenze R″", S["c"]), "", z(ih["ru"], 3)],
+                               [Paragraph("R<sub>T</sub> = (R′ + R″) / 2", S["c"]), "", z(b["rt"], 3)],
+                               [Paragraph("Fehler e · R′/R″", S["c"]), f"{z((ih['fehler'] or 0) * 100, 1)} %", z(ih["verh"])]]
+                    el += [Paragraph("INHOMOGENE SCHICHTEN NACH DIN EN ISO 6946", S["m"]), tab([["", "Anteil", "R m²K/W"]] + zeilen, [W * 0.6, W * 0.2, W * 0.2], rechts=(1, 2)), Spacer(1, 1.5 * mm)]
+                    if not ih["ok"]:
+                        el.append(Paragraph("<font color='#c62828'><b>R′/R″ &gt; 1,5 – das vereinfachte Verfahren ist nicht zulässig; eine Wärmebrückenberechnung ist nötig. Der U-Wert ist nur ein Anhalt.</b></font>", S["p"]))
             el.append(Paragraph(X(f"Rsi {z(b['rsi'])} · Rse {z(b['rse'])} · RT {z(b['rt'])} m²K/W · ") + f"<b>U = {z(b['u'])} W/(m²K)</b>"
-                                + (X(f" · zulässig {z(b['umax'])}") if b["umax"] else "") + (" <font color='#2e7d32'>– erfüllt</font>" if b["ok"] else " <font color='#c62828'>– nicht erfüllt</font>" if b["ok"] is False else ""), S["p"]))
+                                + (X(f" · Soll {z(b['umax'])}") if b["umax"] else "") + (f" <font color='{'#2e7d32' if b['ok'] else '#c62828'}'>– {X(stufe_t(b))}</font>" if b["ok"] is not None else ""), S["p"]))
             if b["hinweis"]:
                 el.append(Paragraph(X(b["hinweis"]), S["m"]))
             if "glaser" in teile and b["schichten"]:

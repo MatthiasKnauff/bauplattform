@@ -42,6 +42,49 @@
     return x ? { u: x.u19, quelle: `GModG Anlage 7 Nr. ${x.k} (Änderung im Bestand)` } : null;
   }
 
+  /* Soll fürs ganze Gebäude (Mock „Schichtaufbau neu“ SA-14 … SA-17, GO 22.11.2026): EINE Wahl am Nachweis (grundlagen.soll).
+     Werte je Bauteilgruppe in W/(m²K), recherchiert am 22.11.2026 – je Eintrag Quelle und Stand. „gm7“ = Höchstwert nach der Maßnahme
+     am Bauteil (Anlage 7). Länder erscheinen im Ausdruck nur, wenn sie hier gewählt sind (SA-17). Gruppen: wand · dach · unten (gegen
+     Erdreich/unbeheizt) · aussen (Decke über Außenluft) · fenster · dachfenster · tuer. z12 = Werte bei 12 bis < 19 °C, wenn die Quelle sie nennt. */
+  const SG = { wand: 'wand', steildach: 'dach', flachdach: 'dach', ogd: 'dach', kellerdecke: 'unten', bodenplatte: 'erde', erdwand: 'erde', innenwand: 'unten', decke_aussen: 'aussen',
+    fenster: 'fenster', dachfenster: 'dachfenster', tuer: 'tuer', lichtkuppel: 'dachfenster' };
+  const refMal = (f) => Object.fromEntries(Object.entries(REF).map(([k, v]) => [k, Math.round(v * f * 100) / 100]));
+  const SOLL = [
+    { k: 'gm7', land: 'DE', gruppe: 'Deutschland', n: 'GModG Anlage 7 – Änderung im Bestand', kurz: 'GModG', quelle: 'GModG § 36 mit Anlage 7 (Höchstwert je Maßnahme am Bauteil)', stand: '29.07.2026' },
+    { k: 'ref', land: 'DE', gruppe: 'Deutschland', n: 'GModG Neubau – Referenzgebäude (Anlage 1)', kurz: 'Ref.', quelle: 'GModG Anlage 1 Nr. 1.1–1.7 (Referenzausführung; der Neubau wird eigentlich über H′T nachgewiesen)', stand: '29.07.2026', typ: { ...REF } },
+    { k: 'beg', land: 'DE', gruppe: 'Deutschland', n: 'BEG Einzelmaßnahme – Fördergrenze', kurz: 'BEG', quelle: 'Richtlinie BEG EM, Anlage Technische Mindestanforderungen Nr. 1.1 (Werte unverändert seit BAnz AT 29.12.2023 B1)', stand: '17.07.2026',
+      g: { wand: 0.20, dach: 0.14, unten: 0.25, erde: 0.25, aussen: 0.20, fenster: 0.95, dachfenster: 1.0, tuer: 1.3 }, typ: { erdwand: 0.25, innenwand: 0.25 },
+      z12: { wand: 0.25, dach: 0.25, unten: 0.25, erde: 0.25, aussen: 0.25, fenster: 1.3, dachfenster: 1.1, tuer: 1.6 }, z12typ: { flachdach: 0.20 } },
+    { k: 'eh55', land: 'DE', gruppe: 'Deutschland', n: 'Effizienzhaus 55 – Orientierung je Bauteil', kurz: 'EH55', quelle: 'Referenzgebäude × 0,70 – Effizienzhaus 55: H′T höchstens 70 % des Referenzgebäudes; gilt fürs ganze Gebäude, je Bauteil nur Orientierung', stand: '22.11.2026', typ: refMal(0.70) },
+    { k: 'eh40', land: 'DE', gruppe: 'Deutschland', n: 'Effizienzhaus 40 – Orientierung je Bauteil', kurz: 'EH40', quelle: 'Referenzgebäude × 0,55 – Effizienzhaus 40: H′T höchstens 55 % des Referenzgebäudes; gilt fürs ganze Gebäude, je Bauteil nur Orientierung', stand: '22.11.2026', typ: refMal(0.55) },
+    { k: 'ph', land: 'DE', gruppe: 'Freiwillig', n: 'Passivhaus – Richtwerte', kurz: 'PH', quelle: 'Passivhaus Institut: Fenster Uw ≤ 0,80 (Merkblatt Fenster); opake Hülle ≤ 0,15 als Planungsrichtwert', stand: '22.11.2026',
+      g: { wand: 0.15, dach: 0.15, unten: 0.15, erde: 0.15, aussen: 0.15, fenster: 0.80, dachfenster: 0.80, tuer: 0.80 } },
+    { k: 'at', land: 'AT', gruppe: 'Nachbarländer', n: 'Österreich – OIB-Richtlinie 6, Neubau', kurz: 'AT', quelle: 'OIB-Richtlinie 6, Pkt. 4.4.1 (OIB-330.6-009/15)', stand: 'Ausgabe 2015',
+      g: { wand: 0.35, dach: 0.20, unten: 0.40, erde: 0.40, aussen: 0.20, fenster: 1.40, dachfenster: 1.70, tuer: 1.70 } },
+    { k: 'ch', land: 'CH', gruppe: 'Nachbarländer', n: 'Schweiz – MuKEn 2014, Neubau / neue Bauteile', kurz: 'CH', quelle: 'MuKEn 2014 Anhang 1 (Einzelbauteilnachweis, gegen Außenklima bzw. unbeheizt/Erdreich > 2 m)', stand: 'MuKEn 2014',
+      g: { wand: 0.17, dach: 0.17, unten: 0.25, erde: 0.17, aussen: 0.17, fenster: 1.0, dachfenster: 1.0, tuer: 1.2 } },
+    { k: 'chum', land: 'CH', gruppe: 'Nachbarländer', n: 'Schweiz – MuKEn 2014, Umbau', kurz: 'CH Umbau', quelle: 'MuKEn 2014 Anhang 2 (Umbauten und Umnutzungen)', stand: 'MuKEn 2014',
+      g: { wand: 0.25, dach: 0.25, unten: 0.28, erde: 0.25, aussen: 0.25, fenster: 1.0, dachfenster: 1.0, tuer: 1.2 } },
+  ];
+  const sollVon = (k) => SOLL.find((x) => x.k === k) || SOLL[0];
+  /* Höchstwert eines Bauteils nach dem gewählten Soll (gm7: nach der Maßnahme am Bauteil) */
+  function sollUmax(b, sollK, zone) {
+    const S = sollVon(sollK), z12 = (b.zone || zone) === '12';
+    if (S.k === 'gm7') return umax(b.typ, b.massnahme, b.zone || zone);
+    const g = SG[b.typ] || 'wand';
+    if (z12 && S.z12) return (S.z12typ && S.z12typ[b.typ] != null) ? S.z12typ[b.typ] : S.z12[g] != null ? S.z12[g] : null;
+    if (S.typ && S.typ[b.typ] != null) return S.typ[b.typ];
+    return S.g && S.g[g] != null ? S.g[g] : null;
+  }
+  /* Bewertung bezogen aufs Soll (SA-15): 0 ✓✓ deutlich besser (≤ 80 %) · 1 ✓ erfüllt · 2 ⚠ knapp drüber (bis +10 %) · 3 ✗ nicht erfüllt (bis +50 %) · 4 ✗✗ weit drüber */
+  const STUFEN = [['✓✓', 'deutlich besser'], ['✓', 'erfüllt'], ['⚠', 'knapp drüber'], ['✗', 'nicht erfüllt'], ['✗✗', 'weit drüber']];
+  function stufe(u, um) {
+    if (u == null || um == null) return null;
+    const q = (Math.round(u * 100) / 100) / um;
+    const s = q <= 0.8 + 1e-9 ? 0 : q <= 1 + 1e-9 ? 1 : q <= 1.1 + 1e-9 ? 2 : q <= 1.5 + 1e-9 ? 3 : 4;
+    return { s, zeichen: STUFEN[s][0], text: STUFEN[s][1], prozent: Math.round(q * 100) };
+  }
+
   /* Gespeicherte Schichten (d in cm, Baustoff-Schlüssel, Gefach m2 mit Breite/Abstand) → Rechenmodell (d in m, mat-Objekte) */
   function aufbau(b, baustoffe) {
     const M = baustoffe || root.WS_BAUSTOFFE || [];
@@ -55,22 +98,27 @@
       if (s.name) x.name = s.name;
       return x;
     };
+    let kopf = null;   // Gefach in Flucht übernimmt Breite und Abstand vom Gefach davor (SA-10)
     return { typ: b.typ, schichten: (b.schichten || []).map((s) => {
       const y = { mat: mat(s), d: (+s.d || 0) / 100 };
-      if (s.m2 && s.breite > 0 && s.abstand > 0) { y.mat2 = finde(s.m2) || null; y.anteil2 = Math.min(1, s.breite / s.abstand); }
+      if (s.m2) {
+        const q = s.gl === 'flucht' && kopf ? kopf : s;
+        if (q.breite > 0 && q.abstand > 0) { y.mat2 = finde(s.m2) || null; y.anteil2 = Math.min(1, q.breite / q.abstand); if (q !== s) y.flucht = true; }
+        if (q === s) kopf = s;
+      }
       if (y.mat.belueftet) y.belueftet = true;
       return y;
     }) };
   }
   /* Ergebnis eines Bauteils: U-Wert, Höchstwert, erfüllt? (Fenster/Türen: U aus dem Datenblatt) */
-  function pruefe(b, zone, physik) {
+  function pruefe(b, zone, physik, soll) {
     const P = physik || root.WSP;
-    const um = umax(b.typ, b.massnahme, b.zone || zone);
-    if (ohneSchichten(b.typ)) { const u = b.uw > 0 ? +b.uw : null; return { u, umax: um, ok: u == null ? null : um == null ? true : u <= um + 1e-9 }; }
+    const um = sollUmax(b, soll || 'gm7', zone);
+    if (ohneSchichten(b.typ)) { const u = b.uw > 0 ? +b.uw : null; return { u, umax: um, ok: u == null ? null : um == null ? true : u <= um + 1e-9, stufe: stufe(u, um) }; }
     if (!(b.schichten || []).length) return { u: null, umax: um, ok: null };
     const r = P.berechne(aufbau(b));
     const u = r.u.u;
-    return { u, umax: um, ok: um == null ? true : Math.round(u * 100) / 100 <= um + 1e-9, r };
+    return { u, umax: um, ok: um == null ? true : Math.round(u * 100) / 100 <= um + 1e-9, r, stufe: stufe(u, um) };
   }
-  root.WS_REGELN = { TYPEN, A7, REF, massnahmen, umax, anforderung, aufbau, pruefe, ohneSchichten };
+  root.WS_REGELN = { TYPEN, A7, REF, SOLL, SG, sollVon, sollUmax, stufe, STUFEN, massnahmen, umax, anforderung, aufbau, pruefe, ohneSchichten };
 })(typeof window !== 'undefined' ? window : globalThis);

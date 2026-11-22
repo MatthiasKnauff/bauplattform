@@ -17,7 +17,7 @@ app = C.make_app(__name__)
 KEY = "waermeschutz"
 STUFEN = ("grundlagen", "bauteile", "pruefung", "nachweis", "eingereicht")
 TYPEN = ("wand", "steildach", "flachdach", "ogd", "kellerdecke", "bodenplatte", "erdwand", "decke_aussen", "innenwand", "fenster", "tuer")
-G_FELDER = ("vorhaben", "nutzung", "gebaeudeklasse", "baujahr", "antrag_datum", "zone", "flaeche_aw", "notiz", "eingereicht", "pruef_notiz")
+G_FELDER = ("vorhaben", "nutzung", "gebaeudeklasse", "baujahr", "antrag_datum", "zone", "flaeche_aw", "notiz", "eingereicht", "pruef_notiz", "soll")   # soll: Anforderung fürs Gebäude (WS_REGELN.SOLL, SA-14)
 
 
 @app.before_request
@@ -92,6 +92,8 @@ def _schichten(L):
         for k in ("m2", "name"):
             if s.get(k):
                 x[k] = _txt(s[k], 80)
+        if s.get("gl") == "flucht":   # Gefach in Flucht mit dem Gefach davor (Holz über Holz, SA-10); sonst kreuzweise
+            x["gl"] = "flucht"
         out.append(x)
     return out
 

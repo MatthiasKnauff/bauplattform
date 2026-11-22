@@ -89,48 +89,54 @@
     return { typ, rsi, rse, aktiv, belueftetAb };
   }
 
+  /** Gefache in Gruppen (Mock „Schichtaufbau neu – mit Gefachen“ SA-10, 22.11.2026): jedes Gefach eröffnet eine Gruppe (kreuzweise =
+   *  unabhängig), ein Gefach „in Flucht“ (s.flucht: Holz über Holz) gehört zur Gruppe davor und teilt deren Teilflächen. → [{ L: [Index], f }] */
+  function gruppen(aktiv) {
+    const G = [];
+    aktiv.forEach((s, i) => {
+      if (!(s.mat2 && s.anteil2 > 0)) return;
+      if (s.flucht && G.length) G[G.length - 1].L.push(i);
+      else G.push({ L: [i], f: s.anteil2 });
+    });
+    return G;
+  }
+
   /** U-Wert nach ISO 6946 Abschnitt 6.7 (obere/untere Grenze) */
   function uWert(bauteil) {
     const a = aufbereiten(bauteil);
     const r = a.typ.richtung;
-    const inh = a.aktiv.map((s, i) => (s.mat2 && s.anteil2 > 0) ? i : -1).filter(i => i >= 0);
+    const G = gruppen(a.aktiv), anteil = (i) => { const g = G.find((x) => x.L.includes(i)); return g ? g.f : 0; };
 
     // untere Grenze R'': je Schicht flächengewichtet parallel
     let rUnten = a.rsi + a.rse;
-    const rSchicht = a.aktiv.map(s => {
-      const ra = rMaterial(s.mat, s.d, r);
-      if (!(s.mat2 && s.anteil2 > 0)) return ra;
+    const rSchicht = a.aktiv.map((s, i) => {
+      const ra = rMaterial(s.mat, s.d, r), f = anteil(i);
+      if (!f) return ra;
       const rb = rMaterial(s.mat2, s.d, r);
-      const f = s.anteil2;
       return 1 / ((1 - f) / Math.max(ra, 1e-9) + f / Math.max(rb, 1e-9));
     });
     rSchicht.forEach(x => rUnten += x);
 
-    // obere Grenze R': Pfade (Kombination aller inhomogenen Schichten, unabhängig angenommen)
+    // obere Grenze R': Teilflächen = Kombination der Gruppen (in Flucht: Holz durchgehend in allen Schichten der Gruppe)
     let rOben = rUnten;
-    let pfade = [{ f: 1, r: a.rsi + a.rse }];
-    if (inh.length) {
-      const n = Math.min(inh.length, 8);
+    let pfade = [{ f: 1, r: a.rsi + a.rse, m: 0 }];
+    if (G.length) {
+      const n = Math.min(G.length, 8);
       pfade = [];
       for (let m = 0; m < (1 << n); m++) {
-        let f = 1, rt = a.rsi + a.rse;
-        a.aktiv.forEach((s, i) => {
-          const k = inh.indexOf(i);
-          if (k >= 0 && k < n) {
-            const b = (m >> k) & 1;
-            f *= b ? s.anteil2 : 1 - s.anteil2;
-            rt += rMaterial(b ? s.mat2 : s.mat, s.d, r);
-          } else rt += rMaterial(s.mat, s.d, r);
-        });
-        if (f > 0) pfade.push({ f, r: rt });
+        let f = 1, rt = a.rsi + a.rse; const holz = new Set();
+        G.slice(0, n).forEach((g, k) => { const b = (m >> k) & 1; f *= b ? g.f : 1 - g.f; if (b) g.L.forEach((i) => holz.add(i)); });
+        a.aktiv.forEach((s, i) => { rt += rMaterial(holz.has(i) ? s.mat2 : s.mat, s.d, r); });
+        if (f > 0) pfade.push({ f, r: rt, m });
       }
       rOben = 1 / pfade.reduce((sum, p) => sum + p.f / p.r, 0);
     }
     const rT = (rOben + rUnten) / 2;
-    const fehler = inh.length ? (rOben - rUnten) / (2 * rT) : 0;
+    const fehler = G.length ? (rOben - rUnten) / (2 * rT) : 0;
+    const verhaeltnis = G.length ? rOben / rUnten : 1;   // SA-13: > 1,5 → vereinfachtes Verfahren nicht zulässig (ISO 6946, 6.7.2)
     return {
-      u: 1 / rT, rT, rOben, rUnten, fehler, rsi: a.rsi, rse: a.rse,
-      rSchicht, inhomogen: inh.length > 0, belueftetAb: a.belueftetAb, typ: a.typ
+      u: 1 / rT, rT, rOben, rUnten, fehler, verhaeltnis, zulaessig: verhaeltnis <= 1.5, rsi: a.rsi, rse: a.rse,
+      rSchicht, inhomogen: G.length > 0, gruppen: G, pfade, belueftetAb: a.belueftetAb, typ: a.typ
     };
   }
 

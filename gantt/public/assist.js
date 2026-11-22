@@ -345,9 +345,6 @@
         syncTasks(old, cfg, ids);
       }));
     },
-    suggestPlace: (text, cfg, ph, kind, force) => (window.AiPlace ? window.AiPlace.suggest(String(text), clone(cfg), ph, kind, force) : Promise.reject(new Error('nicht verfügbar'))),
-    sugBar: () => window.SugBar,
-    aiLabel: () => (window.AiPlace && window.AiPlace.enabled() ? window.AiPlace.label() : ''),
     libAdd: (it) => (window.Library ? window.Library.add(clone(it)) : Promise.reject(new Error('Leistungskatalog nicht geladen'))),
     libItem: (id) => { const x = libList().find((y) => y.id === id); return x ? clone(x) : null; },
     recFor: (cfg) => recFor(clone(cfg)),

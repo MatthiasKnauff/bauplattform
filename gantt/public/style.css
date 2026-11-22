@@ -420,7 +420,6 @@ html[data-theme="dunkel"] .selband{fill:#2c3647}
 .lv-grip{cursor:grab;color:#aaa;text-align:center;user-select:none}
 
 .fv-x:disabled{opacity:.25;cursor:default}
-.lv-ai{color:#7e57c2!important}
 
 /* ohne geöffnetes Projekt */
 #startView{flex:1;min-height:0;overflow:auto;background:#fafafa}
@@ -453,23 +452,13 @@ html[data-theme="dunkel"]{--pre:#6aaeff;--suc:#ffa94d;--preband:rgba(106,174,255
 .tip-pre{color:var(--pre);font-weight:600;white-space:nowrap} .tip-suc{color:var(--suc);font-weight:600;white-space:nowrap}
 
 /* Vorschlags-Umschalter Eigene | Eingebaut | KI */
-.sg-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 2px;padding:5px 8px;background:#f5f1fc;border:1px solid #e2d8f5;border-radius:calc(5px*var(--rk,1));font-size:calc(var(--fs)*0.958)}
-.sg-l{color:#6a4fb0;font-weight:600;white-space:nowrap}
-.sg-seg{display:inline-flex;border:1px solid #c9b8ec;border-radius:calc(4px*var(--rk,1));overflow:hidden;flex:none}
-.sg-seg button{border:0;border-right:1px solid #c9b8ec;background:#fff;color:#5a4a80;padding:3px 10px;font:inherit;cursor:pointer;position:relative}
-.sg-seg button:last-child{border-right:0}
-.sg-seg button:hover{background:#efe9fb}
-.sg-seg button.on{background:#7e57c2;color:#fff}
-.sg-seg button.has:not(.on)::after{content:'';position:absolute;right:3px;top:3px;width:5px;height:5px;border-radius:50%;background:#7e57c2}
-.sg-seg button.busy{opacity:.6;cursor:progress}
-.sg-why{color:#4a3a6a;flex:1;min-width:160px;line-height:1.35}
-.sg-why.err{color:#c62828}
+
 .td-eig .form{gap:6px 10px}.td-eig .form input,.td-eig .form select{padding:3px 6px;border-radius:calc(4px*var(--rk,1))}
 .td-eig [data-tdp="notiz"]{height:100%}.td-eig .td-notiz{font:inherit;width:100%;height:100%;min-height:200px;box-sizing:border-box;resize:none;padding:6px 8px;border:1px solid #b5b5b5;border-radius:calc(4px*var(--rk,1))}
 .td-eig .hint{margin-top:10px}
-.td-sgi{font-size:calc(var(--fs)*0.958);margin:2px 0 4px 2px;color:#444}
+
 .lv-sgrow td{background:#faf8fe!important;padding:2px 8px!important}
-.lv-sgrow .sg-bar{display:inline-flex;margin:3px 8px 3px 0}
+
 .mh.drag-h{cursor:move;user-select:none}
 body.dragging-dlg,body.dragging-dlg *{cursor:move!important;user-select:none!important}
 

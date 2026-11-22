@@ -55,8 +55,6 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
     // gemeinsame Kopfleiste der Bauplattform über der Leiste des Bauzeitenplans (App-Umschalter, KI, Abmelden)
     if (window.BPHead) {
       BPHead.mount({ app: 'gantt', name: 'Bauzeitenplan', parent: $('#app'), before: tb });
-      BPHead.ready.then(() => window.bpApplyKi && window.bpApplyKi());
-      BPHead.onKi(() => window.bpApplyKi && window.bpApplyKi());
       if (BPHead.beiProjektWahl) BPHead.beiProjektWahl(async (id) => {   // Projekt in der Kopfleiste gewählt: dessen Bauzeitenplan öffnen
         let l = []; try { l = await fetch('api/projects').then((r) => r.json()); } catch { /* egal */ }
         const plan = (l || []).find((x) => x.bt_id === id && !x.archived) || (l || []).find((x) => x.bt_id === id);
@@ -74,14 +72,6 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
     r.append(pres, link, ...[...tb.querySelectorAll('.ticon')], st);
     ($('#tabs') || tb).appendChild(r);
   }
-  /* KI-Auswahl der Kopfleiste auf den Positionsvorschlag übertragen (Intern = eingebauter Vorschlag) */
-  window.bpApplyKi = function () {
-    const S = window.AI_SETTINGS; if (!S || !window.BPHead || S.mode === 'off') return;
-    const k = BPHead.ki, pv = BPHead.provider();
-    if (k === 'intern' || !pv.ok) { S.mode = 'builtin'; S.provider = ''; }
-    else { S.mode = 'ai'; S.hasKey = true; S.provider = k; }
-    if (window.AssistCore && AssistCore.notifySoon) AssistCore.notifySoon();
-  };
 
   function showLink() {
     const el = $('#bpLink'); if (!el) return;

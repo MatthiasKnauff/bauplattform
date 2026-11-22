@@ -407,7 +407,6 @@ function taskDialog(i) {
       <label>Gewerk</label><input id="fGw" list="gwList" value="${esc(t.gw || '')}" placeholder="${esc(guessGw(t) ? 'Vorschlag: ' + guessGw(t) : 'z. B. Elektro')}">
       <label>Balkenfarbe</label><div class="ro colrow"><select id="fColM"><option value="">vom Gewerk</option><option value="own"${t.color ? ' selected' : ''}>eigene Farbe</option></select><input type="color" id="fCol" value="${t.color || effColor(t) || '#8db3e2'}"><span id="fGwC"></span></div>
       <label>Unternehmer:in</label><div class="full combo-wrap"><input id="fRes" value="${esc(t.res || '')}" placeholder="z. B. Firma Müller; Elektro Schmidt"></div>
-      ${!isS && window.AiPlace && AiPlace.enabled() ? '<div id="tdSg" style="grid-column:1 / span 4"></div>' : ''}
       <label>Gesamtpuffer</label><div class="ro">${isS ? '–' : fmtDur(CAL.slack[i])}${CAL.crit[i] ? ' · <b style="color:var(--critbd)">kritisch</b>' : ''}</div><span></span><span></span>
     </div>
     <div class="hint">Leeres Feld „Anfang nicht früher als“ = so früh wie möglich planen.</div></div>
@@ -481,35 +480,7 @@ function taskDialog(i) {
   attachCombo(bg.querySelector('#fName'), () => nameGroups(t.name), null);
   attachCombo(bg.querySelector('#fRes'), () => resGroups(bg.querySelector('#fGw').value.trim(), bg.querySelector('#fRes').value), null);   // nur die Bezeichnung – das Gewerk bleibt offen
   // Vorschlag: Gewerk, Dauer, Vorgänger und Nachfolger aus dem Plan – Eigene | Eingebaut | KI
-  let sucUids = [];
-  const sgBox = bg.querySelector('#tdSg');
-  if (sgBox) {
-    const st = SugBar.state(null), uidOf = (id) => +String(id).slice(1);
-    const nm = (u) => { const x = P.tasks.find((y) => y.uid === u); return x ? esc(x.name) : '?'; };
-    const draw = () => {
-      const r = st.cur !== 'own' && st.res[st.cur];
-      sgBox.innerHTML = SugBar.html(st, 'td-sg') + (r && (r.a.length || r.b.length) ? `<div class="td-sgi">${r.a.length ? `<span class="tip-pre">◀ Vorgänger:</span> ${r.a.map((x) => nm(uidOf(x))).join(', ')}` : ''}${r.b.length ? `${r.a.length ? ' · ' : ''}<span class="tip-suc">Nachfolger ▶</span> ${r.b.map((x) => nm(uidOf(x))).join(', ')} <small>(wird bei OK verknüpft)</small>` : ''}</div>` : '');
-      bg.querySelector('#pBody').innerHTML = predRows(); showC();
-    };
-    const o = {
-      text: () => bg.querySelector('#fName').value,
-      snap: () => { readPreds(bg); return { gw: bg.querySelector('#fGw').value, dur: bg.querySelector('#fDur').value, preds: preds.map((p) => ({ uid: p.uid, type: p.type, lag: p.lag })) }; },
-      fetch: (kind, force) => AiPlace.suggestInPlan(i, bg.querySelector('#fName').value, kind, force),
-      apply: (r) => {
-        const own = st.own || {};
-        if (!r) { bg.querySelector('#fGw').value = own.gw || ''; if (own.dur != null) bg.querySelector('#fDur').value = own.dur; preds = (own.preds || []).map((p) => ({ ...p })); sucUids = []; return; }
-        if (r.gw) bg.querySelector('#fGw').value = r.gw;
-        if (r.d && !segsEd) bg.querySelector('#fDur').value = fmtDur(r.d);
-        const add = r.a.map(uidOf).filter((u) => u !== t.uid && !(own.preds || []).some((p) => p.uid === u));
-        preds = [...(own.preds || []).map((p) => ({ ...p })), ...add.map((u) => ({ uid: u, type: 'FS', lag: 0 }))];
-        sucUids = r.b.map(uidOf).filter((u) => u !== t.uid);
-      },
-      redraw: () => { draw(); ldRecord(); },
-    };
-    st.text = (t.name || '').trim();
-    draw();
-    sgBox.addEventListener('click', (e) => SugBar.click(e, st, o));
-  }
+  let sucUids = [];   // Nachfolger, die der Dialog dazu anlegt (früher aus dem ✨-Vorschlag – entfernt 22.11.2026, K6-A)
   // Lokales Rückgängig: Zustand der Felder und Vorgänger nach jeder Änderung merken
   const ldSnap = () => {
     const vals = {}; bg.querySelectorAll('.bp-eigb input[id], .bp-eigb select[id], .bp-eigb textarea[id]').forEach((el) => { vals[el.id] = el.type === 'checkbox' ? el.checked : el.value; });

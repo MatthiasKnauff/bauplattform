@@ -32,6 +32,9 @@ export async function ganttHeftPruefen(browser, repo) {
     await p.evaluate(async () => { if (!P) await openProject(1); }); await p.waitForSelector('#gridBody .row, #gridBody [data-r], #gridBody > div', { timeout: 10000 });
     // Bearbeiten (GO 17.11.2026): Kopieren · Ausschneiden · Einfügen · Duplizieren in der Leiste; Duplizieren mit Verknüpfung und Vorschau
     { const kn = await p.evaluate(() => [...document.querySelectorAll('#leiste button')].map((b) => (b.title || b.getAttribute('aria-label') || b.textContent).trim()).join(' | '));
+      {   // K6-A (22.11.2026): kein ✨-Knopf mehr; neue Leistungen belegt der Textvergleich ohne KI vor (ai.js → LeistungVorschlag)
+        const v = await p.evaluate(() => ({ alt: !!window.AiPlace || !!window.SugBar, r: window.LeistungVorschlag && LeistungVorschlag.platz('Rauchwarnmelder montieren', { type: 'neubau_efh' }, '') }));
+        pruef(!v.alt && v.r && v.r.gw === 'Elektro' && v.r.a.length === 1, `Vorschlag ohne KI: ${JSON.stringify(v)}`); }
       pruef(['(Strg+C)', '(Strg+X)', '(Strg+V)', '(Strg+D)'].every((t) => kn.includes(t)), `Leiste: Bearbeiten-Knöpfe fehlen – ${kn}`);
       await p.evaluate(() => { sel = new Set([1]); cur.r = 0; updateSel(); duplizierenDialog(); });
       await p.waitForSelector('#kpVs svg', { timeout: 5000 });

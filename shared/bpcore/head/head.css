@@ -356,7 +356,6 @@ body.bph-gv-offen{overflow:hidden}   /* Ansicht offen: Seite dahinter ohne Scrol
 .bph-dr-bg.frei{background:none;pointer-events:none}.bph-dr-bg.frei .bph-dr{pointer-events:auto;position:fixed;border:0;max-width:100vw;max-height:100vh}
 .bph-dr-bg.frei .bph-drh{cursor:move;user-select:none}
 
-
 .bph-sktxt{position:absolute;transform:translateY(-100%);z-index:6;background:rgba(255,255,255,.85);border:1.5px dashed;border-radius:calc(4px*var(--rk,1));padding:0 .2em;font-weight:700;font-family:system-ui,sans-serif;min-width:6em;outline:none;line-height:1.15}
 
 .bph-frage .bph-dlg{animation:bph-pop .12s ease-out}@keyframes bph-pop{from{transform:scale(.97);opacity:0}to{transform:none;opacity:1}}

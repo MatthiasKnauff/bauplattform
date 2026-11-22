@@ -9,15 +9,14 @@ Die HTTP-Schnittstelle (/api/...) ist unverändert, damit die Oberfläche (publi
 - Pläne lassen sich mit einem Bautagebuch-Projekt verknüpfen (Sichtbarkeit richtet sich dann nach den Bauleitern).
 - Alte Daten (Docker-Volume der Gantt-App, eingebunden unter /legacy) werden beim ersten Start übernommen.
 """
-import json, math, os, re, secrets, time, urllib.error, urllib.request
+import json, math, os, re, secrets, time
 from datetime import date, datetime
 from urllib.parse import quote, urlsplit
 
 from flask import Flask, g, jsonify, redirect, request, send_from_directory
 
-from bpcore import SCHEMA, ai as bpai, dateien, db, head, nurlesen, papierkorb, platform, rechte, sso, tempo, versionen
+from bpcore import SCHEMA, dateien, db, head, nurlesen, papierkorb, platform, rechte, sso, tempo, versionen
 from bpcore import contacts as shared_contacts
-from bpcore import ki_verbrauch
 from bpcore import logo as bplogo
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -1196,170 +1195,9 @@ def catscope():
         return jsonify(o)
 
 
-# ---- Programmeinstellungen und KI-Vorschläge
-AI_MODELS = {"claude-haiku-5-5": "Claude Haiku 5.5 – schnell, günstig", "claude-sonnet-5-5": "Claude Sonnet 5.5 – genauer",
-             "claude-opus-5-5": "Claude Opus 5.5 – am gründlichsten"}
-
-
-def ai_conf(c):
-    a = (store_get(c, "settings", {}) or {}).get("ai") or {}
-    key = a.get("key") or os.environ.get("ANTHROPIC_API_KEY", "")
-    return {"mode": a.get("mode") if a.get("mode") in ("off", "builtin", "ai") else "builtin",
-            "model": a.get("model") if a.get("model") in AI_MODELS else "claude-haiku-5-5", "key": key,
-            "fromEnv": not a.get("key") and bool(os.environ.get("ANTHROPIC_API_KEY"))}
-
-
-def ai_public(c):
-    k = ai_conf(c)   # der Schlüssel verlässt den Server nie
-    return {"mode": k["mode"], "model": k["model"], "models": AI_MODELS, "hasKey": bool(k["key"]),
-            "keyHint": "…" + k["key"][-4:] if k["key"] else "", "fromEnv": k["fromEnv"]}
-
-
-@app.route("/api/settings", methods=["GET", "PUT"])
-def settings():
-    with db.tx() as c:
-        if request.method == "GET":
-            return jsonify(ai=ai_public(c))
-        if not g.user["is_admin"]:
-            return jsonify(error="KI-Einstellungen ändert die Verwaltung (Einstellungen → KI)."), 403
-        b = body()
-        st = store_get(c, "settings", {}) or {}
-        a = dict(st.get("ai") or {})
-        if isinstance(b.get("ai"), dict):
-            x = b["ai"]
-            if x.get("mode") in ("off", "builtin", "ai"):
-                a["mode"] = x["mode"]
-            if x.get("model") in AI_MODELS:
-                a["model"] = x["model"]
-            if x.get("clearKey"):
-                a.pop("key", None)
-            elif isinstance(x.get("key"), str) and x["key"].strip():
-                a["key"] = x["key"].strip()[:300]
-        st["ai"] = a
-        store_put(c, "settings", st, uname())
-        return jsonify(ai=ai_public(c))
-
-
-class AIError(Exception):
-    pass
-
-
-def call_claude(k, system, user, max_tokens=700, tool=None):
-    base = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com")
-    payload = {"model": k["model"], "max_tokens": max_tokens, "system": system, "messages": [{"role": "user", "content": user}]}
-    if tool:
-        payload.update(tools=[tool], tool_choice={"type": "tool", "name": tool["name"]})
-    req = urllib.request.Request(base + "/v1/messages", data=json.dumps(payload).encode(), method="POST",
-                                 headers={"content-type": "application/json", "x-api-key": k["key"], "anthropic-version": "2023-06-01"})
-    try:
-        with urllib.request.urlopen(req, timeout=45) as r:
-            d = json.loads(r.read().decode() or "{}")
-        ki_verbrauch.merke("claude", k["model"], d)   # Verbrauch je Dienst (Verwaltung → KI)
-    except urllib.error.HTTPError as e:
-        try:
-            d = json.loads(e.read().decode() or "{}")
-        except ValueError:
-            d = {}
-        msg = (d.get("error") or {}).get("message") or e.reason
-        raise AIError("API-Schlüssel ungültig" if e.code == 401 else "Modell nicht verfügbar: " + k["model"] if e.code == 404
-                      else "Zu viele Anfragen oder Guthaben aufgebraucht" if e.code == 429 else f"KI-Fehler {e.code}: {msg}")
-    except TimeoutError:
-        raise AIError("Zeitüberschreitung bei der KI")
-    except urllib.error.URLError as e:
-        raise AIError("KI nicht erreichbar: " + str(e.reason))
-    if tool:
-        u = next((x for x in d.get("content") or [] if x.get("type") == "tool_use"), None)
-        if u and u.get("input"):
-            return u["input"]
-    return "".join(x.get("text", "") for x in d.get("content") or [] if x.get("type") == "text")
-
-
-PLACE_SYS = """Du bist erfahrener Bauleiter und Terminplaner im deutschen Hochbau (Neubau, Sanierung, Umbau).
-Du ordnest eine neue Bauleistung in einen Bauzeitenplan ein. Du erhältst die Abschnitte (Reihenfolge) und die vorhandenen Leistungen mit ID, Abschnitt, Gewerk und Bezeichnung.
-Antworte ausschließlich über das Werkzeug „leistung_einordnen“.
-Regeln: "a" und "b" enthalten nur IDs aus der Liste, je höchstens zwei, "b" darf leer sein. sc "we" = je Wohnung/Einheit, "bau" = einmal für das Gebäude. Begründung auf Deutsch, fachlich, höchstens 25 Wörter."""
-PLACE_TOOL = {
-    "name": "leistung_einordnen",
-    "description": "Ordnet eine neue Bauleistung in den Bauzeitenplan ein.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "ph": {"type": "string", "description": "Schlüssel des Abschnitts aus der Liste"},
-            "gw": {"type": "string", "description": "Gewerk, möglichst eines der vorhandenen"},
-            "din": {"type": "string", "description": "ATV DIN-Nummer nach VOB/C, z. B. 18382, oder leer"},
-            "sc": {"type": "string", "enum": ["we", "bau", "gs"], "description": "we = je Wohnung/Einheit, bau = einmal für das Gebäude, gs = je Geschoss"},
-            "d": {"type": "integer", "description": "Dauer in Arbeitstagen"},
-            "a": {"type": "array", "items": {"type": "string"}, "description": "IDs der Leistungen, auf die sie folgt (höchstens 2)"},
-            "b": {"type": "array", "items": {"type": "string"}, "description": "IDs der Leistungen, vor denen sie fertig sein muss (höchstens 2, darf leer sein)"},
-            "craft": {"type": "string", "description": "übliche Unternehmerbezeichnung, z. B. Fliesenleger"},
-            "why": {"type": "string", "description": "ein kurzer Satz Begründung auf Deutsch, höchstens 25 Wörter"},
-        },
-        "required": ["ph", "gw", "sc", "d", "a", "b", "why"],
-    },
-}
-
-
-@app.post("/api/ai/place")
-def ai_place():
-    with db.tx() as c:
-        k = ai_conf(c)
-        aus = bpai.abgeschaltet(c)
-    b = body()
-    if (jstr(b.get("provider") or "") or "claude") in aus:   # vom Administrator abgeschaltet (ohne Angabe = Claude)
-        return jsonify(error=bpai.AUS_TEXT), 400
-    if not k["key"] and jstr(b.get("provider") or "") not in ("ollama", "gemini", "chatgpt"):
-        return jsonify(error="Kein API-Schlüssel hinterlegt (Programmeinstellungen)."), 400
-    text = jstr(b.get("text") or "")[:300]
-    if len(text.strip()) < 3:
-        return jsonify(error="Bezeichnung fehlt"), 400
-    phs = "\n".join(f"{jstr(p.get('k'))[:40]} = {jstr(p.get('n'))[:80]}" for p in (b.get("phases") if isinstance(b.get("phases"), list) else [])[:60] if isinstance(p, dict))
-    its = "\n".join(" | ".join(jstr(i.get(x) or "")[:90] for x in ("id", "ph", "gw", "n")) for i in (b.get("items") if isinstance(b.get("items"), list) else [])[:400] if isinstance(i, dict))
-    user = (f"Gebäudetyp: {jstr(b.get('type') or 'unbekannt')[:60]}\nAbschnitt, in dem die Nutzer:in gerade arbeitet: {jstr(b.get('ph') or '–')[:40]}\n\n"
-            f"Abschnitte (Schlüssel = Name, in Bauablauf-Reihenfolge):\n{phs}\n\nVorhandene Leistungen (ID | Abschnitt | Gewerk | Bezeichnung):\n{its}\n\nNeue Leistung: \"{text}\"")
-    prov = jstr(b.get("provider") or "")
-    if prov in ("ollama", "gemini", "chatgpt"):   # Auswahl in der Kopfleiste: anderer Anbieter, Antwort als JSON
-        sys_json = PLACE_SYS.replace("Antworte ausschließlich über das Werkzeug „leistung_einordnen“.",
-                                     "Antworte ausschließlich mit einem JSON-Objekt mit den Feldern ph, gw, din, sc, d, a, b, craft, why.")
-        try:
-            with db.tx() as c:
-                out = bpai.ask_json(prov, sys_json, user, 700, c)
-            return jsonify({**out, "model": prov})
-        except bpai.AIError as e:
-            return jsonify(error=str(e)), 502
-    try:
-        out = call_claude(k, PLACE_SYS, user, 1024, PLACE_TOOL)
-        if isinstance(out, str):
-            m = re.search(r"\{[\s\S]*\}", out)
-            try:
-                out = json.loads(m.group(0)) if m else None
-            except ValueError:
-                out = None
-            if not out:
-                raise AIError("Antwort der KI nicht lesbar")
-        return jsonify({**out, "model": k["model"]})
-    except AIError as e:
-        return jsonify(error=str(e)), 502
-
-
-@app.post("/api/ai/test")
-def ai_test():
-    try:
-        b = body()
-    except Exception:   # kein/kaputter JSON-Body: mit leeren Angaben testen
-        b = {}
-    with db.tx() as c:
-        k = dict(ai_conf(c))
-    if isinstance(b.get("key"), str) and b["key"].strip():
-        k["key"] = b["key"].strip()
-    if b.get("model") in AI_MODELS:
-        k["model"] = b["model"]
-    if not k["key"]:
-        return jsonify(error="Kein API-Schlüssel eingegeben."), 400
-    try:
-        t = call_claude(k, "Antworte nur mit dem Wort OK.", "Test", 10)
-        return jsonify(ok=True, model=k["model"], answer=t.strip()[:20])
-    except AIError as e:
-        return jsonify(error=str(e)), 502
+# ---- KI-Positionsvorschlag (✨, api/ai/place, api/settings, api/ai/test) entfernt am 22.11.2026 (Mock „Leistungskatalog: Abhängigkeiten“ K6-A):
+# er lief mit eigener Einstellung am KI-Schieber und an den Obergrenzen der Verwaltung vorbei; neue Leistungen belegt der Textvergleich
+# ohne KI vor (public/ai.js, LeistungVorschlag).
 
 
 # ---------------------------------------------------------------- Links zum Ansehen (links.py)

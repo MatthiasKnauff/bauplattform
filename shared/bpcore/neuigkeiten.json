@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-ki-weg",
+  "datum": "2026-11-22",
+  "app": "gantt",
+  "titel": "✨ KI-Vorschlag im Leistungskatalog entfernt",
+  "text": "Der ✨-Knopf im Leistungskatalog und bei „Neue Leistung“ ist weg. Abschnitt, Gewerk, Dauer und Vorgänger einer neuen Leistung belegt das Programm ohne KI aus dem Katalog vor – bitte prüfen.",
+  "ziel": "#libView"
+ },
+ {
   "id": "gm-ohne-maske",
   "datum": "2026-11-22",
   "app": "gebaeudemodell",

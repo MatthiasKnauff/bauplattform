@@ -10,7 +10,6 @@
 window.LIBRARY = [];
 let libLoaded = false, libSaveT = null, libQuery = '', libEk = LS.get('libEk', LS.get('libStd2', true) ? 0 : 1), libZu = new Set(LS.get('libZu', [])),   // Einklappen (GO 18.11.2026, EK-A1 B2): 0 alles · 1 nur eigene · 2 nur Abschnitte
    libDelAsk = null, libFocus = null;
-const libSg = {};   // Vorschlagsleisten je Katalog-Leistung
 let CATFIRMS = {}, catfSaveT = null;
 const newLibId = () => 'L' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const libPhases = () => CATALOG.phases;
@@ -162,8 +161,7 @@ function renderLib() {
         <td><select data-k="a"><option value="">automatisch – Ende des Abschnitts</option>${libPredOpts((x.a || [])[0], x.id)}</select></td>
         <td><select data-k="b"><option value="">–</option>${libPredOpts((x.b || [])[0], x.id)}</select></td>
         <td class="lv-rec">${profs.map((p) => `<button class="lv-pr${(x.rec || []).includes(p.k) ? ' on' : ''}" data-rec="${p.k}" title="${esc(p.n)}: ${(x.rec || []).includes(p.k) ? 'im Assistenten vorausgewählt (klicken = aus)' : 'nicht vorausgewählt (klicken = ein)'}">${p.ic}</button>`).join('')}</td>
-        <td class="lv-act">${window.AiPlace && AiPlace.enabled() ? `<button class="fv-x lv-ai" data-lai="${x.id}" title="${esc(AiPlace.label())}: Abschnitt, Gewerk, DIN, Dauer und Position vorschlagen">✨</button>` : ''}<button class="fv-x" data-lplan="${x.id}" title="In das geöffnete Projekt einfügen">＋ Plan</button><button class="fv-x" data-ldup="${x.id}" title="Duplizieren">⧉</button><button class="fv-x${libDelAsk === x.id ? ' sure' : ''}" data-ldel="${x.id}" title="Aus dem Katalog löschen">${libDelAsk === x.id ? 'Löschen?' : '✕'}</button></td></tr>`
-        + (libSg[x.id] && window.SugBar ? `<tr class="lv-sgrow" data-sgfor="${x.id}"><td colspan="12">${SugBar.html(libSg[x.id])}<button class="fv-x" data-sgclose="${x.id}" title="Vorschlagsleiste schließen">schließen</button></td></tr>` : '');
+        <td class="lv-act"><button class="fv-x" data-lplan="${x.id}" title="In das geöffnete Projekt einfügen">＋ Plan</button><button class="fv-x" data-ldup="${x.id}" title="Duplizieren">⧉</button><button class="fv-x${libDelAsk === x.id ? ' sure' : ''}" data-ldel="${x.id}" title="Aus dem Katalog löschen">${libDelAsk === x.id ? 'Löschen?' : '✕'}</button></td></tr>`;
     }
     for (const i of std) {
       h += `<tr class="lv-std"><td><div class="lv-n"><span class="gwdot" style="background:${gwColor(i.gw) || '#9e9e9e'}"></span><span>${esc(i.n)}</span></div></td><td>${esc(ph.n.split(' (')[0])}</td><td>${esc(i.gw)}</td><td>${esc(i.din || '')}</td>
@@ -386,35 +384,8 @@ $('#libView').addEventListener('change', (e) => {
   libUpd(id, f); renderLib();
 });
 $('#libView').addEventListener('input', (e) => { if (e.target.id === 'libQ') { libQuery = e.target.value; libFocus = '#libQ'; renderLib(); const q = $('#libQ'); if (q) { const n = q.value.length; q.setSelectionRange(n, n); } } });
-const LIB_SGKEYS = ['ph', 'gw', 'din', 'sc', 'd', 'a', 'b', 'craft'];
-// Original einer Kopie: Leistung des Standardkatalogs oder Kopiervorlage im eigenen Katalog
-function libSource(x) {
-  let std = x.from ? CATALOG.items.find((i) => i.id === x.from) : null;
-  if (!x.from && x.src === 'Standardkatalog') std = CATALOG.items.find((i) => i.n === x.n.replace(/ \(Kopie\)$/, ''));
-  if (std) return { label: 'wie Standardkatalog', vals: { ph: std.ph, gw: std.gw, din: std.din || '', sc: std.sc, d: std.d || 1, a: (std.a || []).map((z) => (Array.isArray(z) ? z[0] : z)).filter((z) => z !== 'start').slice(0, 1), b: [], craft: (typeof CRAFT !== 'undefined' && CRAFT[std.gw]) || '', why: `Werte aus dem Standardkatalog: „${std.n}“` } };
-  const own = x.from ? window.LIBRARY.find((y) => y.id === x.from) : null;
-  if (own) return { label: 'wie Kopiervorlage', vals: { ph: own.ph, gw: own.gw, din: own.din, sc: own.sc, d: own.d, a: (own.a || []).slice(), b: (own.b || []).slice(), craft: own.craft, why: `Werte der Kopiervorlage „${own.n}“` } };
-  return null;
-}
-function libSgOpts(id) {
-  const x = () => window.LIBRARY.find((y) => y.id === id) || {};
-  return {
-    text: () => x().n,
-    snap: () => Object.fromEntries(LIB_SGKEYS.map((k) => [k, Array.isArray(x()[k]) ? x()[k].slice() : x()[k]])),
-    fetch: (kind, force) => AiPlace.suggest(x().n, P && P.assist ? P.assist : { type: 'frei' }, (libSg[id].own || x()).ph, kind, force),
-    apply: (r) => {
-      const st = libSg[id]; if (!st) return;
-      if (!r) { libUpd(id, st.own || {}); return; }
-      const f = { ph: r.ph, gw: r.gw || x().gw, din: r.din || '', sc: r.sc, d: r.d, a: r.a.slice(0, 1), b: r.b.slice(0, 1) };
-      if (r.craft && !(st.own && st.own.craft)) f.craft = r.craft;
-      if (f.gw) gwColor(f.gw); libUpd(id, f);
-    },
-    redraw: () => renderLib(),
-  };
-}
 $('#libView').addEventListener('click', (e) => {
   const kl = e.target.closest && e.target.closest('[data-phklapp]'); if (kl) { libPhKlapp(kl.dataset.phklapp); return; }
-  { const row = e.target.closest('tr[data-sgfor]'); if (row && e.target.closest('[data-sgv]') && libSg[row.dataset.sgfor]) { SugBar.click(e, libSg[row.dataset.sgfor], libSgOpts(row.dataset.sgfor)); return; } }
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.phdel) {
     const k = b.closest('tr').dataset.phk;
@@ -432,17 +403,6 @@ $('#libView').addEventListener('click', (e) => {
     libDelAsk = null; libSet(window.LIBRARY.filter((y) => y.id !== b.dataset.ldel)); renderLib(); return;
   }
   if (b.dataset.lplan) { libToPlan(b.dataset.lplan); return; }
-  if (b.dataset.sgclose) { delete libSg[b.dataset.sgclose]; renderLib(); return; }
-  if (b.dataset.lai) {
-    const id = b.dataset.lai;
-    if (libSg[id]) { delete libSg[id]; renderLib(); return; }
-    libSg[id] = SugBar.state(null);
-    const src = libSource(window.LIBRARY.find((y) => y.id === id) || {});
-    if (src) { libSg[id].srcLabel = src.label; libSg[id].srcVals = src.vals; renderLib(); return; }   // Kopie: erst Leiste zeigen, Original ist eine Wahl
-    renderLib();
-    SugBar.run(libSg[id], AiPlace.preferred(), false, libSgOpts(id));
-    return;
-  }
 });
 function libToPlan(id) {
   if (!P) return;
@@ -504,7 +464,7 @@ loadLibrary();
 function leistungWizard(opt = {}) {
   const profs = CATALOG.profiles.filter((p) => p.k !== 'frei' && !p.hidden);
   const f = { n: '', ph: opt.ph || '', gw: '', din: '', d: 2, sc: 'we', a: '', b: '', rec: [...(opt.rec || [])] };
-  let step = 0, guessed = false, kiWhy = '', kiBusy = false;
+  let step = 0, guessed = false, why = '';
   const STEPS = ['Bezeichnung', 'Abschnitt und Gewerk', 'Dauer', 'Reihenfolge', 'Gebäudetypen'];
   const bg = document.createElement('div'); bg.className = 'modal-bg lw-bg';
   bg.innerHTML = `<div class="modal lw" role="dialog" aria-label="Neue Leistung"><div class="mh">Neue Leistung – Assistent<button type="button" class="mx" title="Schließen (Esc)" aria-label="Schließen">✕</button></div>
@@ -517,6 +477,8 @@ function leistungWizard(opt = {}) {
     if (!f.gw && sug) f.gw = sug.gw || '';
     if (!f.ph) f.ph = libGuessPh(f.n, f.gw);
     if (!f.din) f.din = libDinFor(f.gw, f.n);
+    const v = window.LeistungVorschlag ? LeistungVorschlag.platz(f.n.trim(), (typeof P !== 'undefined' && P && P.assist) || { type: 'frei' }, f.ph) : null;   // Textvergleich mit dem Katalog, ohne KI (K6-A)
+    if (v) { if (!f.a) f.a = (v.a || [])[0] || ''; if (!f.b) f.b = (v.b || [])[0] || ''; why = v.why || ''; }
     const sim = CATALOG.items.find((i) => i.gw === f.gw && i.ph === f.ph);
     if (sim) { f.sc = sim.sc || f.sc; if (sim.d) f.d = sim.d; }
     else f.sc = ['planung', 'vorb', 'abbruch', 'erd', 'rohbau', 'huelle', 'aussen'].includes(f.ph) ? 'bau' : 'we';   // Gebäude oder je Einheit
@@ -552,10 +514,9 @@ function leistungWizard(opt = {}) {
     else h = `<p class="lw-q">Bei welchen Gebäudetypen soll sie im Assistenten schon angehakt sein (empfohlen)?</p>
       <div class="lw-pr">${profs.map((p) => `<label class="chk"><input type="checkbox" data-lw="rec" value="${p.k}"${f.rec.includes(p.k) ? ' checked' : ''}> ${esc(p.ic || '')} ${esc(p.n)}</label>`).join('')}</div>
       <p class="lw-h">Bei den übrigen Typen steht sie unter „Weitere Leistungen“.</p>`;
-    if (kiWhy) h += `<p class="lw-ki">✨ ${esc(kiWhy)}</p>`;
+    if (why) h += `<p class="lw-ki">Vorschlag aus dem Katalog: ${esc(why)} – bitte prüfen.</p>`;
     bg.querySelector('.lw-b').innerHTML = h;
-    const ki = window.AiPlace && AiPlace.enabled();
-    bg.querySelector('.lw-f').innerHTML = `${step ? '<button class="btn" data-lwb="back">Zurück</button>' : ''}${ki ? `<button class="btn" data-lwb="ki"${f.n.trim() && !kiBusy ? '' : ' disabled'} title="Abschnitt, Gewerk, DIN, Dauer, Bezug und Reihenfolge vorschlagen lassen">${kiBusy ? '✨ überlegt …' : esc(AiPlace.label())}</button>` : ''}<span style="flex:1"></span>
+    bg.querySelector('.lw-f').innerHTML = `${step ? '<button class="btn" data-lwb="back">Zurück</button>' : ''}<span style="flex:1"></span>
       <button class="btn" data-lwb="x">Abbrechen</button>${step < STEPS.length - 1 ? '<button class="btn" data-lwb="next">Weiter</button>' : ''}<button class="btn primary" data-lwb="ok"${f.n.trim() ? '' : ' disabled'}>Fertig</button>`;
     const fi = bg.querySelector('.lw-b input, .lw-b select'); if (fi) { fi.focus(); if (fi.select && step === 0) fi.select(); }
   }
@@ -575,23 +536,9 @@ function leistungWizard(opt = {}) {
     else if (a === 'back') { read(); step--; draw(); }
     else if (a === 'next') { read(); if (!f.n.trim()) return; guess(); step++; draw(); }
     else if (a === 'ok') done();
-    else if (a === 'ki') kiVorschlag();
   });
-  async function kiVorschlag() {   // wie ✨ im Leistungskatalog: KI (oben gewählt) oder eingebauter Vorschlag
-    read(); if (!f.n.trim()) return;
-    kiBusy = true; draw();
-    try {
-      const r = await AiPlace.suggest(f.n.trim(), (typeof P !== 'undefined' && P && P.assist) || { type: 'frei' }, f.ph || '', AiPlace.preferred(), true);
-      if (r.ph) f.ph = r.ph; if (r.gw) f.gw = r.gw; f.din = r.din || f.din || libDinFor(f.gw, f.n);
-      if (r.sc) f.sc = r.sc; if (r.d) f.d = Math.max(1, Math.round(+r.d) || 1);
-      f.a = (r.a || [])[0] || ''; f.b = (r.b || [])[0] || '';
-      guessed = true; kiWhy = r.why || 'Vorschlag übernommen – bitte prüfen.';
-      if (!step) step = 1;
-    } catch (e) { kiWhy = 'Kein Vorschlag: ' + e.message; }
-    kiBusy = false; draw();
-  }
-  bg.addEventListener('input', (e) => { if (e.target.dataset.lw === 'n') { f.n = e.target.value; guessed = false; kiWhy = '';
-      const kb = bg.querySelector('[data-lwb="ki"]'); if (kb) kb.disabled = !f.n.trim(); f.gw = f.din = ''; if (!opt.ph) f.ph = ''; const ok = bg.querySelector('[data-lwb="ok"]'); if (ok) ok.disabled = !f.n.trim(); } });
+  bg.addEventListener('input', (e) => { if (e.target.dataset.lw === 'n') { f.n = e.target.value; guessed = false; why = '';
+      f.gw = f.din = ''; if (!opt.ph) f.ph = ''; const ok = bg.querySelector('[data-lwb="ok"]'); if (ok) ok.disabled = !f.n.trim(); } });
   bg.addEventListener('keydown', (e) => {
     e.stopPropagation();
     if (e.key === 'Escape') close();

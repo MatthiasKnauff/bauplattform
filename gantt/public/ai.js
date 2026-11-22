@@ -1,17 +1,10 @@
 'use strict';
 /* =====================================================================
-   Positionsvorschlag für neue Leistungen
-   - eingebaut: Textähnlichkeit zu den vorhandenen Leistungen + DIN-Schlagworte (offline)
-   - KI: Claude über den eigenen Server (api/ai/place); der API-Schlüssel bleibt auf dem Server
-   Einstellung (Aus / Eingebaut / KI) und Zugangsdaten: Programmeinstellungen.
+   Vorschlag für eine neue Leistung (Abschnitt, Gewerk, DIN, Bezug, Dauer, Vorgänger, Nachfolger) – NUR Textvergleich mit dem Katalog
+   und DIN-Schlagworte, offline, ohne KI (22.11.2026, Mock „Leistungskatalog: Abhängigkeiten“ K6-A: der ✨-Knopf mit eigener KI-Einstellung
+   am KI-Schieber vorbei ist weg). Benutzt beim Anlegen einer Leistung (library.js, Fenster „Neue Leistung“): belegt vor, änderbar.
+   LeistungVorschlag.platz(text, cfg, abschnitt) → { ph, gw, din, sc, d, a, b, why, names }
    ===================================================================== */
-window.AI_SETTINGS = { mode: 'builtin', model: 'claude-haiku-5-5', models: {}, hasKey: false, keyHint: '' };
-async function loadAiSettings() {
-  try { const s = await fetch('api/settings').then(j); if (s && s.ai) window.AI_SETTINGS = s.ai; } catch { /* Standard bleibt */ }
-  if (window.bpApplyKi) window.bpApplyKi();   // KI-Auswahl der Kopfleiste (gilt in allen Apps)
-  if (window.AssistCore) AssistCore.notifySoon();
-  if (!$('#libView').hidden && typeof renderLib === 'function') renderLib();
-}
 
 const AI_STOP = new Set(['und', 'oder', 'der', 'die', 'das', 'den', 'dem', 'des', 'für', 'mit', 'von', 'vom', 'zum', 'zur', 'inkl', 'bzw', 'nach', 'vor', 'aus', 'bei', 'ein', 'eine', 'einer', 'neu', 'neue', 'neuer', 'herstellen', 'einbauen', 'montieren', 'montage', 'arbeiten', 'liefern', 'erstellen', 'anbringen', 'setzen', 'verlegen']);
 const aiTok = (s) => String(s || '').toLowerCase().replace(/[^a-zäöüß0-9 ]+/g, ' ').split(/\s+/).filter((w) => w.length >= 3 && !AI_STOP.has(w));
@@ -69,108 +62,12 @@ function builtinPlace(text, items, curPh) {
   return { ph: best.ph, gw, din: gw === best.gw ? best.din || '' : din.din, sc: best.sc, d: Math.max(1, Math.round(best.d || 2)), a: [best.id], b: succ ? [succ.id] : [],
     why: `ähnlich wie „${best.n}“ – danach eingeplant${succ ? `, vor „${succ.n}“` : ''}`, src: 'eingebaut' };
 }
-async function aiServerPlace(text, items, cfg, curPh, phases) {
-  phases = phases || CATALOG.phases.map((p) => ({ k: p.k, n: p.n }));
-  const r = await fetch('api/ai/place', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ provider: window.AI_SETTINGS.provider || '', text, ph: curPh || '', type: (cfg && cfg.type) || '', phases, items: items.filter((i) => !i.ms).map((i) => ({ id: i.id, n: i.n, ph: i.ph, gw: i.gw })) }) });
-  const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(d.error || r.statusText);
-  const ids = new Set(items.map((i) => i.id)), phs = new Set(phases.map((p) => p.k));
-  const clean = (l) => (Array.isArray(l) ? l : [l]).map(String).filter((x) => ids.has(x)).slice(0, 2);
-  return { ph: phs.has(d.ph) ? d.ph : curPh || phases[0].k, gw: String(d.gw || '').slice(0, 80), din: String(d.din || '').replace(/^din\s*/i, '').slice(0, 40), sc: d.sc === 'bau' ? 'bau' : 'we',
-    d: Math.max(1, Math.min(999, Math.round(+d.d) || 2)), a: clean(d.a), b: clean(d.b), craft: String(d.craft || '').slice(0, 80), why: String(d.why || '').slice(0, 300), src: 'KI · ' + (d.model || '') };
-}
-const AI_CACHE = new Map();
-const aiAvail = () => (window.AI_SETTINGS.mode === 'off' ? [] : window.AI_SETTINGS.mode === 'ai' && window.AI_SETTINGS.hasKey ? ['builtin', 'ai'] : ['builtin']);
 function finish(r, items) {
-  if (!r) throw new Error('Kein Vorschlag möglich');
+  if (!r) return null;
   if (!r.craft && typeof CRAFT !== 'undefined') r.craft = CRAFT[r.gw] || '';
   r.names = Object.fromEntries([...r.a, ...r.b].map((id) => [id, (items.find((i) => i.id === id) || {}).n || id]));
   return r;
 }
-window.AiPlace = {
-  enabled: () => window.AI_SETTINGS.mode !== 'off',
-  variants: aiAvail,
-  preferred: () => (aiAvail().includes('ai') ? 'ai' : 'builtin'),
-  label: () => (window.AI_SETTINGS.mode === 'ai' && window.AI_SETTINGS.hasKey ? '✨ KI-Vorschlag' : '✨ Position vorschlagen'),
-  /* Vorschlag im Katalog-Zusammenhang (Assistent, Leistungskatalog).
-     kind: 'builtin' | 'ai' | undefined (= bevorzugt, bei KI-Fehler eingebaut); force: neu suchen statt Zwischenspeicher */
-  async suggest(text, cfg, curPh, kind, force) {
-    cfg = cfg || { type: 'frei' };
-    const items = AssistCore.items(cfg);
-    const k = kind || this.preferred(), key = [k, text.trim().toLowerCase(), cfg.type || '', curPh || '', CATALOG.phases.length, (window.LIBRARY || []).length].join('|');
-    if (!force && AI_CACHE.has(key)) return AI_CACHE.get(key);
-    let r;
-    if (k === 'ai') {
-      try { r = await aiServerPlace(text, items, cfg, curPh); }
-      catch (e) { if (kind) throw e; r = builtinPlace(text, items, curPh); if (r) r.why = 'KI nicht erreichbar (' + e.message + ') – eingebauter Vorschlag: ' + r.why; }
-    } else r = builtinPlace(text, items, curPh);
-    r = finish(r, items); AI_CACHE.set(key, r); return r;
-  },
-  /* Vorschlag für eine Leistung im geöffneten Plan: Gewerk, Dauer, Vorgänger und Nachfolger aus den Leistungen des Plans */
-  async suggestInPlan(i, text, kind, force) {
-    const t = P.tasks[i], items = [], phases = [], stack = [];
-    P.tasks.forEach((x, k) => {
-      const lvl = x.lvl || 0; stack.length = lvl;
-      const sum = k + 1 < P.tasks.length && (P.tasks[k + 1].lvl || 0) > lvl;
-      if (sum) { stack[lvl] = 'g' + x.uid; if (!phases.some((p) => p.k === 'g' + x.uid)) phases.push({ k: 'g' + x.uid, n: x.name }); return; }
-      if (k === i || isAncestor(k, i) || isAncestor(i, k)) return;
-      items.push({ id: 'u' + x.uid, n: x.name, gw: x.gw || '', ph: stack.filter(Boolean).slice(-1)[0] || 'g0', d: x.dur, sc: 'we', a: (x.preds || []).map((p) => 'u' + p.uid) });
-    });
-    if (!phases.length) phases.push({ k: 'g0', n: 'Projekt' });
-    const key = ['plan', kind, P.id, t.uid, text.trim().toLowerCase(), P.tasks.length].join('|');
-    if (!force && AI_CACHE.has(key)) return AI_CACHE.get(key);
-    let r;
-    if (kind === 'ai') r = await aiServerPlace(text, items, P.assist || { type: '' }, '', phases);
-    else {
-      const tk = aiTok(text), din = (AssistCore.dinSuggest(text) || [])[0] || null;
-      let best = null, bs = 0;
-      for (const it of items) { let sc = aiSim(tk, aiTok(it.n)); if (din && it.gw === din.gw) sc += 3; if (sc > bs) { bs = sc; best = it; } }
-      if (!best || bs < 2) { r = { gw: din ? din.gw : '', din: din ? din.din : '', d: t.dur || 1, a: [], b: [], why: din ? 'Gewerk nach DIN-Schlagwort, keine ähnliche Leistung im Plan' : 'keine ähnliche Leistung im Plan gefunden' }; }
-      else {
-        const succ = items.find((y) => y.a.includes(best.id));
-        r = { gw: din && din.gw !== best.gw && bs < 6 ? din.gw : best.gw, din: '', d: Math.max(1, best.d || 1), a: [best.id], b: succ ? [succ.id] : [], why: `ähnlich wie „${best.n}“ – danach eingeplant${succ ? `, vor „${succ.n}“` : ''}` };
-      }
-      r.src = 'eingebaut';
-    }
-    r = finish(r, items); AI_CACHE.set(key, r); return r;
-  },
+window.LeistungVorschlag = {
+  platz(text, cfg, curPh) { const items = AssistCore.items(cfg || { type: 'frei' }); return finish(builtinPlace(String(text || ''), items, curPh), items); },
 };
-
-/* ---------- Umschalter „Eigene | Eingebaut | KI“ ----------
-   Klick: Variante anzeigen (beim ersten Mal wird gesucht), Doppelklick: neu suchen.
-   st = { cur, own, res: { builtin, ai }, busy, err } */
-const SG_NAMES = { own: 'Eigene', builtin: 'Eingebaut', ai: 'KI' };   // dazu ggf. vorn: src = Original (Standardkatalog / Kopiervorlage)
-window.SugBar = {
-  html(st, cls = '') {
-    const v = [...(st.srcVals ? ['src'] : []), 'own', ...aiAvail()];
-    const r = st.cur !== 'own' && st.res[st.cur], why = st.busy ? (st.busy === 'ai' ? 'KI denkt nach …' : 'suche …') : st.err ? '✖ ' + st.err : r ? r.why : 'deine eigenen Angaben';
-    return `<div class="sg-bar ${cls}"><span class="sg-l">✨ Vorschlag</span><span class="sg-seg">${v.map((k) => `<button type="button" data-sgv="${k}" class="${st.cur === k ? 'on' : ''}${st.res[k] ? ' has' : ''}${st.busy === k ? ' busy' : ''}" title="${k === 'own' ? 'eigene Angaben wiederherstellen' : k === 'src' ? 'Werte des Originals übernehmen' : 'Klick: anzeigen · Doppelklick: neu suchen'}">${k === 'src' ? esc(st.srcLabel) : SG_NAMES[k]}</button>`).join('')}</span><span class="sg-why${st.err ? ' err' : ''}">${esc(why || '')}</span></div>`;
-  },
-  // o = { text(): Bezeichnung, fetch(kind, force) → Promise, apply(werte | null = eigene), snap() → eigene Werte, redraw() }
-  click(e, st, o) {
-    const b = e.target.closest('[data-sgv]'); if (!b) return false;
-    e.preventDefault();
-    const v = b.dataset.sgv;
-    clearTimeout(st.timer);
-    if (e.detail >= 2) this.run(st, v, true, o); else st.timer = setTimeout(() => this.run(st, v, false, o), 230);
-    return true;
-  },
-  async run(st, v, force, o) {
-    st.err = '';
-    const txt = String(o.text() || '').trim();
-    if (txt !== st.text) { st.res = st.res.src ? { src: st.res.src } : {}; st.text = txt; }   // Bezeichnung geändert: alte Vorschläge verwerfen
-    if (v === 'own') { if (st.cur !== 'own') { st.cur = 'own'; o.apply(null); } o.redraw(); return; }
-    if (v === 'src') { if (st.cur === 'own' && o.snap) st.own = o.snap(); st.res.src = st.srcVals; st.cur = 'src'; o.apply(st.srcVals); o.redraw(); return; }
-    if (txt.length < 3) { st.err = 'Bitte zuerst eine Bezeichnung eingeben.'; o.redraw(); return; }
-    if (st.cur === 'own' && o.snap) st.own = o.snap();
-    if (!force && st.res[v]) { st.cur = v; o.apply(st.res[v]); o.redraw(); return; }
-    st.busy = v; o.redraw();
-    try { const r = await o.fetch(v, force); st.res[v] = r; st.cur = v; o.apply(r); } catch (err) { st.err = err.message; }
-    st.busy = null; o.redraw();
-  },
-  state: (own) => ({ cur: 'own', own, res: {}, busy: null, err: '', timer: null, text: '' }),
-};
-
-
-loadAiSettings();

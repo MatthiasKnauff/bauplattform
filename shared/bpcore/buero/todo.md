@@ -263,7 +263,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Bauzeitenplan: Gruppen füllen sich wie die Balken (Mock SI2-2 A nachgezogen), „0 %“ im Balken~~ (22.11.2026)
 - ~~Gebäudemodell: Klick im Grundriss baute den Bereich rechts neu auf (Liste sprang nach oben), „undefined“ über dem Bauteil-Baum~~ (22.11.2026)
 - ~~Behörden als Art, Person in einer Zeile (Anrede · Titel · Name · Zusatz), Bauherr:in als Person, Projektnummern am Kontakt (Name aus dem Projektordner), Suche findet Stichwörter~~ (23.11.2026)
-- Adressen: Auswahl einzelner/mehrerer/aller gefilterten – Aktionen klären, dann Mock **ca. 1 h**
+- ~~Adressen: Auswahl einzelner/mehrerer/aller gefilterten (Mock AW-1 … AW-5 A) – Haken, Strg/Umschalt, Leiste unten, Mail an alle, Projekt, Ändern, Zusammenführen, Excel/Drucken, Papierkorb~~ (23.11.2026)
+- ~~Tests nach den Kontakt-Feldern (Amt, Zusatz, ist_firma) nachgezogen~~ (23.11.2026)
 - ~~Adressen-Karten schneller (70 → 30 ms bei 700 Adressen): Karten außerhalb des Bildes ohne Anordnung (`content-visibility`)~~ (23.11.2026)
 - ~~Adressen-Tabelle langsam (450 ms je Klick bei 700 Adressen): nur die Zeilen im Bild (`bpBaum.fenster`), keine Browser-Liste fürs Gewerk~~ (23.11.2026)
 - ~~Adressen-Tabelle: Spalten Stichwörter, Projekt, Tags, weitere Ansprechpartner/Nummern/E-Mails, Geändert~~ (22.11.2026)

@@ -13,7 +13,7 @@ from datetime import datetime
 
 from flask import jsonify, request
 
-from . import benachrichtigung, dateien, db, konto, mail, skizze, vorgang
+from . import benachrichtigung, contacts, dateien, db, konto, mail, skizze, vorgang
 
 # Arten, die über /api/bp/versand gehen (Name im Verlauf der Kommunikation) – weitere stehen in benachrichtigung.ARTEN
 ARTEN = {"auftrag": "Auftrag", "vergabe": "Vergabe (Zuschlag, Absage)", "rechnungspruefung": "Rechnungsprüfung", "bauantrag": "Bauantrag",
@@ -23,8 +23,8 @@ ARTEN = {"auftrag": "Auftrag", "vergabe": "Vergabe (Zuschlag, Absage)", "rechnun
 VORLAGEN_KEY = "kom:vorlagen"   # Textvorlagen fürs ganze Büro (früher nur in der Kommunikation)
 
 
-def empfaenger(raw):
-    """JSON-Liste [{email, name, contact_id}] → (Liste, None) oder (None, Fehlertext)."""
+def empfaenger(raw, hoechstens=20):
+    """JSON-Liste [{email, name, contact_id}] → (Liste, None) oder (None, Fehlertext). Einzeln gesendet (je Empfänger:in eine Mail) bis 200."""
     try:
         L = json.loads(raw or "[]") if isinstance(raw, str) else (raw or [])
     except ValueError:
@@ -39,9 +39,18 @@ def empfaenger(raw):
         if a.lower() not in [x["email"].lower() for x in out]:
             out.append({"email": a, "name": str(e.get("name") or "")[:200], "contact_id": e.get("contact_id") if isinstance(e.get("contact_id"), int) else None,
                         "cc": bool(e.get("cc"))})   # in Kopie (Cc)
-    if len(out) > 20:
-        return None, "Höchstens 20 Empfänger:innen."
+    if len(out) > hoechstens:
+        return None, f"Höchstens {hoechstens} Empfänger:innen{'' if hoechstens > 20 else ' – mehr nur mit „einzeln senden“'}."
     return out, None
+
+
+def anrede(c, x):
+    """Persönliche Anrede für eine:n Empfänger:in: aus dem Kontakt (Ansprechperson mit dieser Adresse), sonst allgemein."""
+    k = c.execute("SELECT * FROM contacts WHERE id=?", (x["contact_id"],)).fetchone() if x.get("contact_id") else None
+    for m in contacts.mail_adressen(k) if k else []:
+        if m["email"].lower() == x["email"].lower():
+            return contacts.anrede_von(m)
+    return "Sehr geehrte Damen und Herren,"
 
 
 def schicken(c, u, projektname, an, betreff, text, anh, kopie):
@@ -120,7 +129,7 @@ def routen(bp, _uid):
         f = request.form
         art = f.get("art") if f.get("art") in ARTEN or f.get("art") in benachrichtigung.ARTEN else "unterlagen"
         pid = f.get("pid", type=int)
-        an, err = empfaenger(f.get("an"))
+        an, err = empfaenger(f.get("an"), 200 if f.get("einzeln") == "1" else 20)
         if err or not an:
             return jsonify(error=err or "Bitte mindestens eine:n Empfänger:in wählen."), 400
         text = (f.get("text") or "").strip()[:20000]
@@ -138,14 +147,14 @@ def routen(bp, _uid):
             betreff = vorgang.betreff_mit_kuerzel(f.get("betreff") or "", pname) or ARTEN.get(art, "Unterlagen")
             if f.get("einzeln") == "1" and len(an) > 1:   # je Empfänger:in eine eigene Mail – niemand sieht die anderen (z. B. Terminplan an alle Firmen)
                 weg, fehler = None, []
-                for k, x in enumerate(an):
-                    w1, e1 = schicken(c, u, pname, [x], betreff, text, anh, f.get("kopie") == "1" and k == 0)
+                for k, x in enumerate(an):   # {anrede} = persönliche Anrede je Empfänger:in (Adressen: Mail an die Auswahl, AW-3)
+                    w1, e1 = schicken(c, u, pname, [x], betreff, text.replace("{anrede}", anrede(c, x)), anh, f.get("kopie") == "1" and k == 0)
                     weg = weg or w1
                     if e1:
                         fehler.append(f"{x['name'] or x['email']}: {e1}")
                 err = "; ".join(fehler)[:500] if fehler else None
             else:
-                weg, err = schicken(c, u, pname, an, betreff, text, anh, f.get("kopie") == "1")
+                weg, err = schicken(c, u, pname, an, betreff, text.replace("{anrede}", anrede(c, an[0]) if len(an) == 1 else "Sehr geehrte Damen und Herren,"), anh, f.get("kopie") == "1")
         with db.tx() as c:
             ids = benachrichtigung.protokoll(c, art, an, project_id=pid, projekt=pname, betreff=betreff,
                                              inhalt=text + (f"\n\nAnhänge: {', '.join(n for n, _, _ in anh)}" if anh else ""), von=wer,

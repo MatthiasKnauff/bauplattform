@@ -42,6 +42,16 @@ html.bp-handy .ct .acts a{font-size:1rem;padding:.5rem .8rem}   /* Handyansicht:
 .wrap.wide{max-width:none}
 .list[hidden],.tw[hidden]{display:none!important}
 /* rechts: Details des gewählten Kontakts (Mock „Adressen rechts“, 22.11.2026) */
+/* Auswahl (Mock „Adressen auswählen“, 23.11.2026, adressen-auswahl.js) */
+.adr-ck{width:1rem;height:1rem;margin:0;flex:none;accent-color:var(--y);cursor:pointer}.ct .hd .adr-ck{margin-top:.2rem}
+.tt td.nm{position:relative}.tt td.nm .adr-ck{position:absolute;left:.45rem;top:50%;transform:translateY(-50%)}.tt td.nm input[data-fk]{padding-left:1.9rem}
+.tt thead tr.h th .adr-ck{margin-right:.45rem;vertical-align:-2px}
+.ct.sel{background:color-mix(in srgb,var(--y) 7%,var(--card))}.tt tbody tr.sel td{background:color-mix(in srgb,var(--y) 12%,var(--card))}
+.adr-alle{display:inline-flex;gap:.35rem;align-items:center;font-size:.85rem;color:var(--mute);cursor:pointer}#pane.wide .adr-alle{display:none}
+html.bp-handy:not(.adr-wahl) .adr-ck,html.bp-handy:not(.adr-wahl) .adr-alle{display:none}
+#adrSel{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--bp-unten,0px) + 1rem);z-index:60;display:flex;flex-wrap:nowrap;white-space:nowrap;gap:.35rem .6rem;align-items:center;max-width:calc(100vw - 2rem);background:var(--card);border:1px solid var(--y);border-radius:calc(12px*var(--rk,1));padding:.45rem .7rem;box-shadow:var(--sh0,0 6px 24px rgba(0,0,0,.25));font-size:.88rem}
+#adrSel[hidden]{display:none}#adrSel .aw-sp{flex:1}#adrSel .aw-l{border:0;background:none;color:var(--y);font:inherit;font-size:.85rem;cursor:pointer;padding:0;text-decoration:underline}
+html.bp-handy #adrSel{left:.5rem;right:.5rem;transform:none;max-width:none;flex-wrap:wrap;bottom:calc(var(--bp-unten,0px) + .4rem)}
 #adrL{min-width:0}.ct.on{border-color:var(--y);box-shadow:0 0 0 2px color-mix(in srgb,var(--y) 30%,transparent)}.tt tbody tr.on td{background:color-mix(in srgb,var(--y) 9%,var(--card))}
 .adr-r{padding:.8rem .9rem;display:grid;gap:.55rem;font-size:.9rem}.adr-r h3{margin:0;font-size:1.05rem}
 .adr-z{display:grid;grid-template-columns:7.2rem minmax(0,1fr) auto;gap:.5rem;align-items:center}.adr-z>span:first-child{color:var(--mute);font-size:.8rem}.adr-z>span:nth-child(2){overflow-wrap:anywhere}
@@ -130,7 +140,7 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
   <section class="pane wrap bp-voll" id="pane">
   <!-- Befehlsleiste wie in allen Apps (befehle.js, 21.11.2026 – vorher eine eigene Knopfreihe, die am Handy über fünf Zeilen umbrach): Rückgängig · Neu · Ansicht · Liste · Datei · Verlauf -->
   <div class="bfl" id="bfl"></div>
-  <div class="kz"><span class="cnt" id="cnt"></span>
+  <div class="kz"><label class="adr-alle" id="adrAlle" title="alle gefilterten wählen (Strg+A)"><input type="checkbox" class="adr-ck" data-adrckall> alle</label><span class="cnt" id="cnt"></span>
     <div class="kb" id="kb" hidden><label for="ksort" class="mute">Sortieren</label><select id="ksort"></select><button class="btn sm" id="kdir" title="Reihenfolge umkehren"></button><button class="btn sm" id="kflt" aria-expanded="false"><i class="bp-kl" aria-hidden="true"></i>Filter je Feld</button></div></div>
   <div class="kf" id="kf" hidden></div>
   <div id="adrW"><div id="adrL"><div class="list" id="list"></div>
@@ -246,8 +256,8 @@ function render() {
   const rows = tableRows();
   $('#cnt').textContent = rows.length === ALL.length ? (ALL.length === 1 ? '1 Kontakt' : `${ALL.length} Kontakte`) : `${rows.length} von ${ALL.length} Kontakten`;
   renderKbar();
-  $('#list').innerHTML = rows.map((c) => `<div class="ct" tabindex="0" data-id="${c.id}">
-      <div class="hd"><b>${esc(c.name)}</b>${c.kind !== 'firma' ? `<span class="pill">${esc(KINDN[c.kind] || c.kind)}</span>` : ''}</div>
+  $('#list').innerHTML = rows.map((c) => `<div class="ct${awHat(c.id) ? ' sel' : ''}" tabindex="0" data-id="${c.id}">
+      <div class="hd"><input type="checkbox" class="adr-ck" data-adrck="${c.id}"${awHat(c.id) ? ' checked' : ''} aria-label="${esc(c.name)} auswählen"><b>${esc(c.name)}</b>${c.kind !== 'firma' ? `<span class="pill">${esc(KINDN[c.kind] || c.kind)}</span>` : ''}</div>
       ${c.trade ? `<div class="sub">${esc(c.trade)}</div>` : ''}
       ${c.contact_person ? `<div class="sub">${esc(c.contact_person)}${c.role ? ' · ' + esc(c.role) : ''}</div>` : ''}
       ${addr(c) ? `<div class="sub">${esc(addr(c))}</div>` : ''}
@@ -306,10 +316,10 @@ function renderTable() {
   $('#cnt').textContent = `${rows.length} von ${ALL.length} Kontakten · Zelle anklicken und tippen – gespeichert wird beim Verlassen des Feldes · Doppelklick öffnet den Kontakt`;
   const cw = (k, w) => TV.w[k] || w, total = cols.reduce((a, [k, , w], n) => a + (aus.has(n) ? 0 : cw(k, w)), 0) + 130;
   $('#tw').innerHTML = `<table class="tt" data-sp="adressen" data-spaus="${ausStd.join(',')}" style="width:${total}px;min-width:100%"><colgroup>${cols.map(([k, , w]) => `<col data-col="${k}" style="width:${cw(k, w)}px">`).join('')}<col style="width:130px"></colgroup>
-    <thead><tr class="h">${cols.map(([k, l]) => `<th data-sort="${k}" data-spname="${l}" title="Sortieren · Rand ziehen: Breite ändern · rechte Maustaste: Spalten wählen">${l}${TV.sort.k === k ? `<span class="ar">${TV.sort.d > 0 ? '▲' : '▼'}</span>` : ''}<span class="rz" data-rz="${k}" title="Ziehen: Spaltenbreite · Doppelklick: Standardbreite"></span></th>`).join('')}<th></th></tr>
+    <thead><tr class="h">${cols.map(([k, l]) => `<th data-sort="${k}" data-spname="${l}" title="Sortieren · Rand ziehen: Breite ändern · rechte Maustaste: Spalten wählen">${k === 'name' ? '<input type="checkbox" class="adr-ck" data-adrckall aria-label="alle gefilterten wählen" title="alle gefilterten wählen (Strg+A)">' : ''}${l}${TV.sort.k === k ? `<span class="ar">${TV.sort.d > 0 ? '▲' : '▼'}</span>` : ''}<span class="rz" data-rz="${k}" title="Ziehen: Spaltenbreite · Doppelklick: Standardbreite"></span></th>`).join('')}<th></th></tr>
     <tr class="f">${cols.map(([k, l]) => `<th>${fltField(k, l)}</th>`).join('')}<th>${anyFlt() ? '<button class="btn sm" data-clr="*" title="Alle Filter und die Suche löschen">✕ Alle</button>' : ''}</th></tr></thead>
-    <tbody>${rows.length ? bpBaum.fenster.html('adressen', rows.length, (n) => { const c = rows[n]; return `<tr data-id="${c.id}">${cols.map(([k, , , ro]) => ro ? `<td class="ro" title="${esc(cellVal(c, k))}">${esc(cellVal(c, k))}</td>`
-      : `<td><input data-fk="${c.id}:${k}" value="${esc(c[k] || '')}" aria-label="${esc(COLS.find((x) => x[0] === k)[1])} von ${esc(c.name)}" autocomplete="off"${k === 'trade' ? ' data-vs="adrGw"' : ''}></td>`).join('')}
+    <tbody>${rows.length ? bpBaum.fenster.html('adressen', rows.length, (n) => { const c = rows[n]; return `<tr data-id="${c.id}"${awHat(c.id) ? ' class="sel"' : ''}>${cols.map(([k, , , ro]) => ro ? `<td class="ro" title="${esc(cellVal(c, k))}">${esc(cellVal(c, k))}</td>`
+      : `<td${k === 'name' ? ' class="nm"' : ''}>${k === 'name' ? `<input type="checkbox" class="adr-ck" data-adrck="${c.id}"${awHat(c.id) ? ' checked' : ''} aria-label="${esc(c.name)} auswählen">` : ''}<input data-fk="${c.id}:${k}" value="${esc(c[k] || '')}" aria-label="${esc(COLS.find((x) => x[0] === k)[1])} von ${esc(c.name)}" autocomplete="off"${k === 'trade' ? ' data-vs="adrGw"' : ''}></td>`).join('')}
       <td class="act">${c.phone || c.mobile ? `<a href="tel:${esc(tel(c.mobile || c.phone))}" title="Anrufen">☎</a>` : ''}${c.email ? `<a href="mailto:${esc(c.email)}" data-mailwahl="${esc(c.email)}" data-firma="${esc(c.name)}" title="E-Mail – Outlook oder Schreiben aus der Plattform">✉</a>` : ''}<button class="btn sm" data-open="${c.id}" title="Alle Angaben, Visitenkarte, Löschen">Details</button></td></tr>`; }, { nachher: () => bpSpalten.anwenden($('#tw table')) })   /* nur die Zeilen im Bild (bpBaum.fenster) – 700 Adressen × 20 Spalten brauchten 450 ms je Klick (23.11.2026) */
       : `<tr><td colspan="${cols.length + 1}" class="ro" style="text-align:center;padding:1.5rem">Keine Treffer – links Filter entfernen (✕).</td></tr>`}</tbody></table>`;
   if (keep) { const n = document.querySelector(`[data-fk="${keep}"]`) || document.querySelector(`[data-flt="${keep}"]`); if (n) n.focus(); }
@@ -444,8 +454,8 @@ const adrXlsx = () => { if (!tableRows().length) return toast('Keine Kontakte in
 /* ---------- Duplikate: ähnliche Adressen finden, Werte wählen, zusammenführen (Verweise in Bautagebuch, Bauzeitenplan, AVA werden umgehängt) ---------- */
 const DF = [['name', 'Firma / Name'], ['trade', 'Gewerk'], ['contact_person', 'Ansprechpartner:in'], ['role', 'Funktion'], ['phone', 'Telefon'], ['mobile', 'Mobil'],
   ['email', 'E-Mail'], ['website', 'Internet'], ['street', 'Straße'], ['zip', 'PLZ'], ['city', 'Ort'], ['art', 'Art'], ['notes', 'Notizen']];
-async function duplikate() {
-  let G; try { G = await api('api/contacts/duplikate'); } catch (e) { toast(e.message, true); return; }
+async function duplikate(G0) {   // G0: vorgegebene Gruppe (Auswahl zusammenführen, adressen-auswahl.js)
+  let G = G0; if (!G) try { G = await api('api/contacts/duplikate'); } catch (e) { toast(e.message, true); return; }
   if (!G.length) { toast('Keine doppelten oder sehr ähnlichen Adressen gefunden.'); return; }
   let k = 0, ziel = null, wahl = {};
   const bg = modalBox('<div id="dupIn"></div>', async (m, bg, close) => {
@@ -509,5 +519,6 @@ window.bpAeltereStaende = () => () => BPHead.verlaufAlle({ teil: 'kontakt', tite
 <script src="static/adressen-rechts.js"></script>
 <script src="static/adressen-aufraeumen.js"></script>
 <script src="static/adressen-einlesen.js"></script>
+<script src="static/adressen-auswahl.js"></script>
 </body>
 </html>

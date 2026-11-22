@@ -22,11 +22,12 @@ def test_liste_und_bereinigen():
 
 
 def test_begriffe():
-    rows = [{"trade": "Dachdecker", "stichworte": "Gründach", "tags": "Stammfirma"}, {"trade": "dachdecker, Klempner", "stichworte": "", "tags": ""},
-            {"trade": "Klempner", "stichworte": "Gründach, Flachdach", "tags": "nicht mehr beauftragen"}]
+    rows = [{"trade": "Dachdecker", "stichworte": "Gründach", "tags": "Stammfirma", "extra": "{}"}, {"trade": "dachdecker, Klempner", "stichworte": "", "tags": "", "extra": None},
+            {"trade": "Klempner", "stichworte": "Gründach, Flachdach", "tags": "nicht mehr beauftragen", "extra": '{"firma": {"amt": "Bauordnungsamt"}}'}]
     B = C.begriffe(_C(rows))
     gleich(B["trade"][:2], [("Dachdecker", 2), ("Klempner", 2)], "Gewerke gezählt, Schreibweise der ersten")
     gleich([x for x, n in B["trade"] if x.lower() == "dachdecker"], ["Dachdecker"], "übliche Gewerke nicht doppelt")
     pruefe(("Rohbau", 0) in B["trade"] and ("Weihnachtskartenversand", 0) in B["tags"], "übliche Gewerke und Tags (Anzahl 0) hinter den vorhandenen (17.11.2026)")
     gleich(B["stichworte"][0], ("Gründach", 2), "Stichwörter: häufigste zuerst")
     gleich([x for x, n in B["tags"] if n], ["nicht mehr beauftragen", "Stammfirma"], "Tags")
+    gleich(B["amt"][:1], [("Bauordnungsamt", 1)], "Ämter der Behörden (BH-1)")

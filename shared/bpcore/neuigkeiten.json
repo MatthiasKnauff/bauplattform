@@ -1,5 +1,13 @@
 [
  {
+  "id": "adr-auswahl-2311",
+  "datum": "2026-11-23",
+  "app": "adressen",
+  "titel": "Adressen auswählen: einzeln, mehrere, alle gefilterten",
+  "text": "Vorn an jeder Zeile und Karte steht ein Haken. Strg+Klick nimmt dazu oder heraus, Umschalt+Klick wählt von … bis, der Haken im Tabellenkopf (oder Strg+A) alle gefilterten. Unten erscheint eine Leiste: Mail an alle (mit persönlicher Anrede), Projekt zuordnen, Gewerk/Stichwort/Tag/Art ändern, Zusammenführen, Excel und Drucken nur der Auswahl, Papierkorb – alles mit einem Rückgängig. Am Handy: lange tippen.",
+  "ziel": "#tw, #list"
+ },
+ {
   "id": "adr-behoerde-2311",
   "datum": "2026-11-23",
   "app": "adressen",

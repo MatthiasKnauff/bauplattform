@@ -417,6 +417,39 @@ def keine_duplikate():
     return jsonify(ok=True)
 
 
+# ---------------------------------------------------------------- Mehrere Kontakte auf einmal (Mock „Adressen auswählen“ AW-3 A, plattform/adressen_mehr.py)
+import adressen_mehr as MEHR
+
+
+@app.post("/api/contacts/mehr")
+def mehr_aendern():
+    """{ids, feld: trade|stichworte|tags|art|projektnr, op: dazu|weg|setzen, wert} → {alt} für das eine Rückgängig; {ids, op: "loeschen"} → Papierkorb."""
+    b = request.get_json(silent=True) or {}
+    try:
+        with db.tx() as c:
+            if b.get("op") == "loeschen":
+                pk, blockiert = MEHR.loeschen(c, b.get("ids"), g.user["name"])
+            else:
+                alt = MEHR.aendern(c, b.get("ids"), b.get("feld"), b.get("op"), b.get("wert"), g.user["name"])
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
+    if b.get("op") == "loeschen":
+        if pk:
+            C.audit(g.user["name"], "kontakte", "Kontakte in den Papierkorb gelegt", f"{len(pk)} Kontakte · Adressen")
+        return jsonify(ok=True, papierkorb=pk, blockiert=blockiert)
+    if alt:
+        C.audit(g.user["name"], "kontakte", "Kontakte gemeinsam geändert", f"{len(alt)} Kontakte · {MEHR.FELDER[b['feld']]}: {b.get('op')} {str(b.get('wert') or '')[:60]}")
+    return jsonify(ok=True, alt=alt, n=len(alt))
+
+
+@app.post("/api/contacts/mehr/zurueck")
+def mehr_zurueck():
+    b = request.get_json(silent=True) or {}
+    with db.tx() as c:
+        n = MEHR.zurueck(c, b.get("alt"), g.user["name"])
+    return jsonify(ok=True, n=n)
+
+
 @app.delete("/api/contacts/<int:i>")
 def delete_contact(i):
     with db.tx() as c:

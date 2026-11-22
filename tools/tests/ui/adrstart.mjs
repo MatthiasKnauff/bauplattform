@@ -130,7 +130,47 @@ export async function adrStartPruefen(browser, repo) {
       const e = gesendet.find((x) => x[0] === 'einlesen');
       pruef(e && e[1].kontakte.length === 2 && e[1].kontakte[1].aktion === 'ueberspringen', `Einlesen schickt die Kontakte mit Wahl: ${JSON.stringify(e && e[1].kontakte.map((k) => k.aktion))}`);
       await ctx.close(); }
-  } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
+    {   // Auswählen (GO 23.11.2026, Mock „Adressen auswählen“ AW-1 … AW-5 A): Haken, Strg = dazu/ab, Umschalt = von … bis, Kopf = alle gefilterten,
+        // Leiste unten schwebt (die Liste bewegt sich nicht), Auswahl bleibt beim Filtern, gemeinsames Ändern mit einem Rückgängig
+      const gesendet = [], K4 = [...KONT0, { id: 4, name: 'Zimmerei Holz', kind: 'firma', trade: 'Zimmerer', projects: [], site_of: '', email: 'h@holz.test' }];
+      const { ctx, p } = await lauf({ ohne_projekt: true, gefragt: true }, K4, (pf, q) => {
+        if (pf === 'api/contacts/mehr') { const d = JSON.parse(q.postData()); gesendet.push(d); return { ok: true, n: d.ids.length, alt: Object.fromEntries(d.ids.map((i) => [i, { trade: '' }])) }; }
+        if (pf === 'api/contacts/mehr/zurueck') { gesendet.push({ zurueck: JSON.parse(q.postData()) }); return { ok: true }; }
+        return null; });
+      await p.evaluate(() => setView('tabelle')); await p.waitForSelector('#tw tbody tr[data-id="1"]');
+      const reihe = await p.evaluate(() => tableRows().map((c) => c.id));
+      const y0 = await p.evaluate(() => document.querySelector('#tw tbody tr[data-id="1"]').getBoundingClientRect().top);
+      await p.click(`#tw tbody tr[data-id="${reihe[0]}"] [data-adrck]`);
+      await p.click(`#tw tbody tr[data-id="${reihe[2]}"] td.ro`, { modifiers: ['Shift'] });
+      let st = await p.evaluate(() => ({ S: [...AW.S].sort(), sel: document.querySelectorAll('#tw tbody tr.sel').length, leiste: !document.querySelector('#adrSel').hidden && /3 gewählt/.test(document.querySelector('#adrSel').textContent),
+        kopf: document.querySelector('#tw [data-adrckall]').indeterminate, y: document.querySelector('#tw tbody tr[data-id="1"]').getBoundingClientRect().top, rechts: (document.querySelector('.sr-r .adr-r h3') || {}).textContent || '' }));
+      pruef(st.S.length === 3 && st.sel === 3 && st.leiste && st.kopf && st.y === y0, `Haken + Umschalt = von … bis, Leiste schwebt, nichts springt: ${JSON.stringify(st)} (vorher y ${y0})`);
+      await p.click(`#tw tbody tr[data-id="${reihe[1]}"] td.ro`, { modifiers: ['Control'] });
+      pruef(await p.evaluate(() => AW.S.size) === 2, 'Strg+Klick nimmt heraus');
+      await p.click('#tw [data-adrckall]');
+      pruef(await p.evaluate(() => AW.S.size === 4 && document.querySelector('#tw [data-adrckall]').checked), 'Haken im Kopf = alle gefilterten');
+      await p.click('[data-adr="k:bauherr"]'); await p.waitForTimeout(200);
+      st = await p.evaluate(() => ({ n: AW.S.size, t: document.querySelector('#adrSel').textContent.replace(/\s+/g, ' ') }));
+      pruef(st.n === 4 && /3 davon gerade nicht zu sehen/.test(st.t), `Auswahl bleibt beim Filtern (AW-4): ${JSON.stringify(st)}`);
+      await p.click('#adrSel [data-aw="sicht"]');
+      pruef(await p.evaluate(() => [...AW.S].join()) === '3', '„nur sichtbare“');
+      await p.click('[data-adr="k:bauherr"]'); await p.waitForTimeout(200);
+      await p.click('#tw tbody'); await p.keyboard.press('Control+a');
+      pruef(await p.evaluate(() => AW.S.size) === 4, 'Strg+A = alle gefilterten');
+      await p.click('#adrSel [data-aw="aendern"]'); await p.click('.pickm .pm-o:has-text("Gewerk dazu")'); await p.waitForTimeout(100);
+      await p.click('.pickm .pm-o:has-text("Zimmerer")'); await p.waitForTimeout(400);
+      pruef(gesendet[0] && gesendet[0].feld === 'trade' && gesendet[0].op === 'dazu' && gesendet[0].wert === 'Zimmerer' && gesendet[0].ids.length === 4, `gemeinsam ändern in EINER Anfrage: ${JSON.stringify(gesendet[0])}`);
+      await p.evaluate(() => window.rueckgaengig && document.querySelector('.bf-undo button, .bph-uk button') && document.querySelector('.bf-undo button, .bph-uk button').click()); await p.waitForTimeout(400);
+      pruef(gesendet.some((x) => x.zurueck && x.zurueck.alt), `ein Rückgängig für alle: ${JSON.stringify(gesendet.slice(1))}`);
+      await p.click('#adrSel [data-aw="mail"]'); await p.waitForSelector('.bpv', { timeout: 5000 });
+      st = await p.evaluate(() => ({ an: document.querySelectorAll('.bpv .bph-skw').length, text: (document.querySelector('.bpv [data-text]') || {}).value || '', hin: /keine E-Mail-Adresse/.test(document.querySelector('.bpv').textContent) }));
+      pruef(st.an >= 1 && /^\{anrede\}/.test(st.text) && st.hin, `Mail an alle: gemeinsamer Versand, {anrede}, Hinweis auf Kontakte ohne Adresse – ${JSON.stringify(st)}`);
+      await p.screenshot({ path: process.env.AW_BILD || '/dev/null' }).catch(() => {});
+      await p.click('.bpv .bpv-x'); await p.waitForTimeout(200);
+      await p.keyboard.press('Escape'); await p.click('#tw tbody'); await p.keyboard.press('Escape');
+      pruef(await p.evaluate(() => AW.S.size === 0 && document.querySelector('#adrSel').hidden), 'Esc hebt die Auswahl auf');
+      await ctx.close(); }
+  } catch (e) { fehler.push("Prüfung bricht ab – " + String(e.message).split("\n").slice(0, 3).join(' | ')); }
   return fehler;
 }
 

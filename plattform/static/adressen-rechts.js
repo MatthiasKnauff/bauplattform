@@ -104,6 +104,7 @@ function adrNachRender() {   // nach jedem Zeichnen der Liste: Markierung wieder
   if (ADR_SEL != null && !adrC()) ADR_SEL = null;
   if (ADR_SEL != null) { const k = document.querySelector(`#list .ct[data-id="${ADR_SEL}"], #tw tbody tr[data-id="${ADR_SEL}"]`); if (k) k.classList.add('on'); }
   ADR_VL = { id: null, L: null }; adrAlleNeu(); const c = adrC(); if (c) adrZuletzt(c);
+  if (typeof awNach === 'function') awNach();   // Auswahl: Haken und Leiste (adressen-auswahl.js)
 }
 $('#list').addEventListener('dblclick', (e) => { if (e.target.closest('a')) return; const el = e.target.closest('.ct'); if (el) edit(ALL.find((c) => c.id === +el.dataset.id)); });
 $('#list').addEventListener('keydown', (e) => {   // ↑↓ blättert durch die Karten, Enter öffnet die Maske

@@ -57,7 +57,49 @@ function gmRaumBaum(C, L) {
   bpGruppen.an(C.querySelector('.gmr-grp'), { lies: () => GMR.grp, namen: GMR_GRUPPEN, aus: () => aus, setze: (G2) => { GMR.grp = G2.length ? G2 : ['geschoss']; gmrMerk('bp.gm.rgrp', GMR.grp); gmRaumBaum(C, L); } });
   if (window.bpSpaltBreite) bpSpaltBreite.an(C.querySelector('table.gmr-l'), 'gm.raeume');
   if (!C._gmr) gmrAn(C);
-  C._gmrL = L;
+  C._gmrL = L; GMR.C = C;
+  gmrKisten();
+}
+
+/* Räume als Kisten im 3D (GO 22.11.2026, R-B): nur solange der Reiter „Räume“ zu sehen ist; Farbe nach der ersten Gruppierung, gewählt =
+   violett, Gruppe der ersten Ebene zu (während andere offen sind) = blass. Umrisse aus dem Grundriss (bpcore/grundriss.py – derselbe Abruf wie
+   die Ansicht „Grundriss“, gemerkt in GR), Geschoss über den Namen wie im Netz. Klick/Rahmen/Doppelklick im 3D wählen die Zeilen hier. */
+const GMR_NUTZ = [[/wohn|ess|schlaf|kind|zimmer|arbeit|büro/i, '#4f9d5b'], [/bad|wc|dusch|sanit/i, '#3d7fc4'], [/küche|koch/i, '#d6a72a'], [/flur|diele|gang|treppe|vorraum|eingang/i, '#8d949b'],
+  [/technik|heiz|haus.?anschl|hwr|wasch|abstell|lager|keller/i, '#e07b2e'], [/garage|carport/i, '#7a6a5a']];
+const GMR_PAL = ['#3d7fc4', '#4f9d5b', '#e07b2e', '#a35fc4', '#c94f4f', '#2fa3a3', '#b58a2a', '#6a7bd0', '#8d949b'];
+let GMR_K = 0;
+async function gmrKisten() {
+  const D = G3 && G3.D3; if (!D || !D.kisten) return;
+  const sicht = G3.raE && G3.raE.isConnected && G3.raE.offsetParent !== null && GMR.C && GMR.C.isConnected;
+  if (!sicht) return D.kisten(null);
+  const n = ++GMR_K, st = BT ? BT.zustand() : {}, an = st.an ? st.an.id : null, rev = `${st.rev}|${an}`;
+  if (!GR.F || GR.rev !== rev) { try { GR.F = await api(`api/bp/modell/${PID}/grundriss${an ? `?planstand=${an}` : ''}`); GR.rev = rev; GR.N = G3.N || GR.N; } catch { return D.kisten(null); } }
+  if (n !== GMR_K || !G3.D3) return;   // inzwischen neuer Aufruf
+  const F = GR.F, NG = ((G3.N || GR.N || {}).geschosse) || [], E = GMR.liste, G = GMR.grp && GMR.grp.length ? GMR.grp : ['geschoss'], g0 = G[0];
+  const innen = (x, y, P) => { let d = false; for (let k = 0, j = P.length - 1; k < P.length; j = k++) { const [xi, yi] = P[k], [xj, yj] = P[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) d = !d; } return d; };
+  const werte = [...new Set(E.map((x) => x.w[g0]))], farbe = (w) => { if (g0 === 'nutzung') { const t = GMR_NUTZ.find(([re]) => re.test(w)); if (t) return t[1]; } return GMR_PAL[werte.indexOf(w) % GMR_PAL.length]; };
+  const offen = [...GMR.auf].some((k) => k.startsWith(`${G.join('>')}/`) && !k.slice(G.join('>').length + 1).includes('/'));
+  const K = [];
+  (F.flaechen || []).forEach((f) => {
+    const gn = ((F.geschosse || [])[f.g] || {}).n || '', [cx, cy] = f.mitte || f.umriss[0];
+    const x = E.find((y) => { const u = (y.r || y.p || {}).umriss; return u && u.length > 2 && innen(cx, cy, u); })
+      || (f.raum && E.find((y) => (f.raum.nr && y.nr === f.raum.nr) || (f.raum.name && y.name === f.raum.name && (!y.w.geschoss || y.w.geschoss === gn || y.w.geschoss === 'ohne Geschoss'))));
+    if (!x) return;   // Fläche ohne Raum: keine Kiste
+    const g = Math.max(0, NG.findIndex((y) => y.n === gn)), w = x.w[g0];
+    K.push({ key: x.key, g, umriss: f.umriss, z: f.z != null ? f.z : ((F.geschosse || [])[f.g] || {}).z || 0, h: f.hoehe || x.hoehe || 2.5, farbe: farbe(w),
+      blass: offen && !GMR.auf.has(`${G.join('>')}/${w}`), an: GMR.sel.has(x.key), text: `${x.nr} ${x.name} · ${gmZahl(x.flaeche)} m²`.trim() });
+  });
+  D.kisten(K, { legende: werte.map((w) => [farbe(w), w]),
+    wahl: (key, dazu) => { if (!key) { if (!dazu) GMR.sel.clear(); } else if (dazu) { GMR.sel.has(key) ? GMR.sel.delete(key) : GMR.sel.add(key); } else GMR.sel = new Set([key]); gmrZeigen(key); },
+    rahmen: (keys, ab) => { keys.forEach((k) => (ab ? GMR.sel.delete(k) : GMR.sel.add(k))); gmrZeigen(keys[0]); },
+    doppel: (key) => { GMR.sel = new Set([key]); gmrZeigen(key); if (GMR.C) gmrEigen(GMR.C, key); } });
+}
+function gmrZeigen(key) {   // aus dem 3D gewählt: Gruppen dieses Raums auf, Liste neu; nur wenn die Zeile nicht zu sehen ist, so wenig wie nötig rollen
+  const C = GMR.C; if (!C) return;
+  const x = key && GMR.liste.find((y) => y.key === key), G = GMR.grp && GMR.grp.length ? GMR.grp : ['geschoss'];
+  if (x) { let k = G.join('>'); G.forEach((g) => { k += `/${x.w[g]}`; GMR.auf.add(k); }); gmrMerk('bp.gm.rauf', [...GMR.auf]); }
+  gmRaumBaum(C, C._gmrL);
+  const tr = x && C.querySelector(`tr[data-gmrr="${CSS.escape(key)}"]`); if (tr) tr.scrollIntoView({ block: 'nearest' });
 }
 
 function gmrAn(C) {   // Klicks, Doppelklick, Kontextmenü – einmal je Platz

@@ -132,6 +132,19 @@ export async function gebaeudemodellPruefen(browser, repo) {
       {   // Räume als Baum (US-4 A): Klick wählt nur (kein Sprung in die Bauteile), Haken an der Gruppe, Gruppieren nach Nutzung, Doppelklick = Eigenschaften
         await p.click('.sr-r .gm-li-r tr[data-gmrr="r:0.01"] td:nth-child(2)'); await p.waitForTimeout(150);
         pruef(await p.evaluate(() => !!document.querySelector('.sr-r .gm-li-r tr.akt[data-gmrr="r:0.01"]') && !!document.querySelector('.sr-r .gm-li-r')?.offsetParent), 'Klick auf einen Raum wählt ihn – bleibt in den Räumen');
+        {   // Räume als Kisten im 3D (GO 22.11.2026, R-B): nur beim Reiter „Räume“, gewählte Zeile = violette Kiste, Klick auf die Kiste wählt die Zeile
+          await p.waitForFunction(() => +(document.querySelector('.gm-d3 canvas') || {}).dataset?.kisten > 0, null, { timeout: 6000 }).catch(() => {});
+          const k = await p.evaluate(() => ({ n: +document.querySelector('.gm-d3 canvas').dataset.kisten, an: +document.querySelector('.gm-d3 canvas').dataset.kistenan, leg: document.querySelector('.gm-d3 .b3-k').textContent }));
+          pruef(k.n === 1 && k.an === 1 && /EG/.test(k.leg), `Räume als Kisten: ${JSON.stringify(k)}`);
+          await p.evaluate(() => { GMR.sel.clear(); gmRaumBaum(GMR.C, GMR.C._gmrL); });
+          const xy = await p.evaluate(() => { const c = document.querySelector('.gm-d3 canvas').getBoundingClientRect(), q = G3.D3.proj([-2.5, 2, 1.25]); return q && [c.left + q[0], c.top + q[1]]; });
+          if (xy) await p.mouse.click(xy[0], xy[1]); await p.waitForTimeout(250);
+          pruef(await p.evaluate(() => !!document.querySelector('.sr-r .gm-li-r tr.akt[data-gmrr="r:0.01"]') && +document.querySelector('.gm-d3 canvas').dataset.kistenan === 1), 'Klick auf die Kiste im 3D wählt den Raum rechts');
+          await reiter('details'); await p.waitForTimeout(150);
+          pruef(await p.evaluate(() => +document.querySelector('.gm-d3 canvas').dataset.kisten === 0), 'unter „Bauteile“ keine Kisten');
+          await reiter('raeume'); await raeumeAuf();
+          await p.click('.sr-r .gm-li-r tr[data-gmrr="r:0.01"] td:nth-child(2)'); await p.waitForTimeout(150);
+        }
         await p.click('.sr-r .gm-li-r tr.gh [data-gmrg]'); await p.waitForTimeout(100);
         pruef(await p.evaluate(() => [...document.querySelectorAll('.sr-r .gm-li-r tr[data-gmrr]')].every((r) => r.classList.contains('akt'))), 'Haken an der Gruppe wählt alle Räume darin');
         await p.click('.sr-r .gm-li-r .gmr-grp [data-bpgplus]'); await p.waitForSelector('.pickm .pm-o'); await p.evaluate(() => [...document.querySelectorAll('.pickm .pm-o')].find((o) => /Nutzung/.test(o.textContent)).click()); await p.waitForTimeout(150);

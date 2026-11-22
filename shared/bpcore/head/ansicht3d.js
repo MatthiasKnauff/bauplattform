@@ -18,7 +18,12 @@
    21.11.2026 (Mock „Baukasten wie 3D“ A1 B3 C1 D2): derselbe Betrachter auch für den Gebäude-Baukasten (bp/gebaeudekasten.js) –
      kontext(e, punkte): Rechtsklick auf ein Bauteil → Punkte für das gemeinsame Kontextmenü (head.js, Ereignis bph:kontext) ·
      gezeichnet(): nach jedem Bild (Griffe nachführen) · zurück dazu: setzen(netz) – neue Geometrie, Blick bleibt · blick() → Richtung zum Auge · bei(x, y) → Element unter dem
-     Zeiger · ziel(ids) – grün (Stelle zum Ablegen) · proj([x, y, z]) → [x, y] im Feld (Meter → Bildpunkte), null hinter dem Auge · feld (Element). */
+     Zeiger · ziel(ids) – grün (Stelle zum Ablegen) · proj([x, y, z]) → [x, y] im Feld (Meter → Bildpunkte), null hinter dem Auge · feld (Element).
+
+   22.11.2026 (GO „Räume als Kisten“, R-B): kisten(K, opt) – Räume als halb durchsichtige Kisten über dem Modell; K = [{ key, g (Geschoss im Netz),
+     umriss: [[x, y] m], z, h (m), farbe '#rrggbb', blass, an (gewählt), text }] oder null = aus. Solange Kisten stehen, werden die Bauteile blass
+     (Durchsicht mindestens 65 %), Klick/Strg/Rahmen/Doppelklick treffen nur Kisten: opt.wahl(key | null, dazu), opt.rahmen(keys, ab), opt.doppel(key);
+     opt.legende [['#rrggbb', 'Text']]; beim Darüberfahren steht text an der Maus. */
 (function () {
   if (window.bp3d) return;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -42,6 +47,7 @@
 .b3-k i{display:inline-block;width:.75rem;height:.75rem;border-radius:2px;margin-right:.25rem;vertical-align:-.1rem}
 .b3-i{position:absolute;right:.5rem;bottom:2.6rem;max-width:min(320px,70%);background:rgba(255,255,255,.95);color:#23282b;border:1px solid #c9ced4;border-radius:8px;padding:.45rem .6rem;font-size:.82rem}
 .b3-i b{display:block}.b3-m{position:absolute;inset:0;display:grid;place-items:center;color:#59606a;font-size:.9rem;padding:1rem;text-align:center}
+.b3-tt{position:absolute;pointer-events:none;background:rgba(35,40,43,.9);color:#fff;font-size:.76rem;border-radius:4px;padding:.1rem .45rem;white-space:nowrap;transform:translate(10px,-130%)}
 .b3 [hidden]{display:none}.b3:focus{outline:none}.b3-l button[data-b3x]{border-color:#7b2ff7;color:#5b1fc4;font-weight:600}`;
 
   function mat(a, b) { const o = new Float32Array(16); for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + j] * b[i * 4 + k]; o[i * 4 + j] = s; } return o; }
@@ -53,6 +59,32 @@
   const kreuz = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
   const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
   const norm = (v) => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
+  function ohren(P) {   // einfaches Vieleck (auch L-Form) in Dreiecke – Ohren abschneiden; P gegen den Uhrzeigersinn
+    const I = P.map((_, k) => k), D = [], kr = (a, b, c) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+    const drin = (p, a, b, c) => kr(a, b, p) >= 0 && kr(b, c, p) >= 0 && kr(c, a, p) >= 0;
+    let n = 0;
+    while (I.length > 3 && n < 5000) {
+      n++; let ok = false;
+      for (let k = 0; k < I.length; k++) {
+        const a = P[I[(k + I.length - 1) % I.length]], b = P[I[k]], c = P[I[(k + 1) % I.length]];
+        if (kr(a, b, c) <= 1e-9) continue;
+        if (I.some((j) => P[j] !== a && P[j] !== b && P[j] !== c && drin(P[j], a, b, c))) continue;
+        D.push([a, b, c]); I.splice(k, 1); ok = true; break;
+      }
+      if (!ok) break;   // entartet: Rest als Fächer
+    }
+    for (let k = 1; k + 1 < I.length; k++) D.push([P[I[0]], P[I[k]], P[I[k + 1]]]);
+    return D;
+  }
+  function kisteNetz(x, k) {   // Kiste aus Umriss × Höhe → Dreiecke in cm wie das Netz (2 cm vom Boden, 2 cm unter der Decke)
+    let P = (x.umriss || []).map((p) => [+p[0], +p[1]]); if (P.length < 3) return null;
+    let A = 0; for (let i = 0, j = P.length - 1; i < P.length; j = i++) A += P[j][0] * P[i][1] - P[i][0] * P[j][1];
+    if (A < 0) P = P.reverse();
+    const z0 = ((+x.z || 0) + 0.02) * 100, z1 = ((+x.z || 0) + Math.max(0.3, (+x.h || 2.5) - 0.04)) * 100, v = [], c = (p) => [p[0] * 100, p[1] * 100];
+    ohren(P).forEach(([a, b, d]) => { const [A1, B1, D1] = [a, b, d].map(c); v.push(A1[0], A1[1], z1, B1[0], B1[1], z1, D1[0], D1[1], z1, A1[0], A1[1], z0, D1[0], D1[1], z0, B1[0], B1[1], z0); });
+    P.forEach((p, i) => { const q = P[(i + 1) % P.length], [a, b] = [c(p), c(q)]; v.push(a[0], a[1], z0, b[0], b[1], z0, b[0], b[1], z1, a[0], a[1], z0, b[0], b[1], z1, a[0], a[1], z1); });
+    return { i: -1 - k, t: 'k', g: x.g || 0, v, kiste: x, _q: [0, 0, 0, 0] };
+  }
 
   const ZUG = 9, SEIT = 4, TEIL = 8;   // höchstens: 9 m je Geschoss nach oben, Wände 4 m nach außen, Gebäudeteile 8 m auseinander (20.11.2026: „das dürfte ein bisschen mehr“)
   const VS = `attribute vec3 p;attribute vec3 n;attribute vec4 c;attribute float g;attribute vec4 q;uniform mat4 m;uniform float zug;uniform float seit;uniform float teil;varying vec4 vc;varying vec3 vn;void main(){vc=c;vn=n;gl_Position=m*vec4(p.x+q.x*seit+q.z*teil,p.y+q.y*seit+q.w*teil,p.z+g*zug,1.0);}`;   // g = Geschoss, zug = Meter je Geschoss; q.xy = Richtung der Wand nach außen (seit = Meter), q.zw = Richtung des Gebäudeteils (teil = Meter)
@@ -73,16 +105,18 @@
     const prog = (fs) => { const p = gl.createProgram(); [[gl.VERTEX_SHADER, VS], [gl.FRAGMENT_SHADER, fs]].forEach(([t, q]) => { const s = gl.createShader(t); gl.shaderSource(s, q); gl.compileShader(s); gl.attachShader(p, s); }); gl.linkProgram(p); return p; };
     const P = prog(FS), PP = prog(PS), PL = (() => { const p = gl.createProgram(); [[gl.VERTEX_SHADER, LV], [gl.FRAGMENT_SHADER, LF]].forEach(([t, q]) => { const x = gl.createShader(t); gl.shaderSource(x, q); gl.compileShader(x); gl.attachShader(p, x); }); gl.linkProgram(p); return p; })();
     const MODI = (o.modi || []).slice(), WAHL = new Set(), ZIEL = new Set();
-    const S = { N: null, zug: 0, seit: 0, teil: 0, spreiz: o.spreizen || 'alle', teile: 0, infoE: null, rahmen: false, durch: 0, farbe: o.start || 'massnahme', aus: new Set(), dach: true, yaw: -2.3, pitch: 0.5, dist: 30, ziel: [0, 0, 0], puf: null, mitte: [0, 0, 0] };
+    let KO = {};   // Kisten (Räume): Rückrufe der App
+    const S = { K: null, N: null, zug: 0, seit: 0, teil: 0, spreiz: o.spreizen || 'alle', teile: 0, infoE: null, rahmen: false, durch: 0, farbe: o.start || 'massnahme', aus: new Set(), dach: true, yaw: -2.3, pitch: 0.5, dist: 30, ziel: [0, 0, 0], puf: null, mitte: [0, 0, 0] };
     const zu = {};   // IFC-Objekt → Zeile der Checkliste (Status, Name, Nummer)
     (o.zeilen || []).forEach((z) => (z.ids || []).forEach((i, k) => { zu[i] = { z, nr: (z.nummern || [])[k] || '' }; }));
 
     let HV = null;   // hervorheben (z. B. die Objekte der markierten Zeile): alles andere blass
     const modus = () => MODI.find((m) => m.key === S.farbe);
     function farbe(e) {
+      if (e.kiste) { const x = e.kiste; return x.an ? [0.48, 0.18, 0.97, 0.55] : [...rgb(x.farbe || '#7aa6d6'), x.blass ? 0.1 : 0.35]; }
       if (ZIEL.has(e.i)) return [0.17, 0.62, 0.27, 1];   // Stelle zum Ablegen (Baukasten: Baustein hineinziehen)
       if (WAHL.has(e.i)) return [0.48, 0.18, 0.97, 1];   // angewählt: violett (hebt sich von Rot/Grün/Gelb der Färbungen ab)
-      const f0 = farbe0(e), f = S.durch ? [f0[0], f0[1], f0[2], f0[3] * (1 - S.durch)] : f0;   // Durchsicht (20.11.2026): alles außer dem Angewählten durchscheinend
+      const du = S.K ? Math.max(S.durch, 0.65) : S.durch, f0 = farbe0(e), f = du ? [f0[0], f0[1], f0[2], f0[3] * (1 - du)] : f0;   // mit Kisten: Bauteile blass   // Durchsicht (20.11.2026): alles außer dem Angewählten durchscheinend
       return HV && HV.size && !HV.has(e.i) ? [f[0] * 0.35 + 0.62, f[1] * 0.35 + 0.62, f[2] * 0.35 + 0.62, Math.min(f[3], 0.35)] : f;
     }
     function farbe0(e) {
@@ -120,10 +154,10 @@
       });
     }
     function bauen() {   // sichtbare Elemente → Puffer (undurchsichtig, durchsichtig) mit Normalen, Farben und Pick-Farben
-      const N = S.N, sicht = N.e.filter((e) => !S.aus.has(e.g) && (S.dach || e.t !== 'r'));
+      const N = S.N, sicht = N.e.filter((e) => !S.aus.has(e.g) && (S.dach || e.t !== 'r')).concat((S.K || []).filter((e) => !S.aus.has(e.g)));
       sicht.forEach(kasten); richtungen();
-      const teile = [[], []];
-      sicht.forEach((e, k) => { const c = farbe(e); teile[c[3] < 0.99 ? 1 : 0].push([e, c, k + 1]); });
+      const teile = [[], [], []];   // undurchsichtig · durchsichtig · Kisten (zuletzt; mit Kisten trifft ein Klick nur sie)
+      sicht.forEach((e, k) => { const c = farbe(e); teile[e.kiste ? 2 : c[3] < 0.99 ? 1 : 0].push([e, c, k + 1]); });
       S.sicht = sicht;
       S.puf = teile.map((T) => {
         let n = 0; T.forEach(([e]) => { n += e.v.length / 3; });
@@ -154,7 +188,7 @@
             Z.push(v[E.x] / 100 - m[0], v[E.x + 1] / 100 - m[1], v[E.x + 2] / 100 - m[2], v[E.y] / 100 - m[0], v[E.y + 1] / 100 - m[1], v[E.y + 2] / 100 - m[2]); });
           e._k = Z;
         }
-        const k = WAHL.has(e.i) ? 2 : HV && HV.size && !HV.has(e.i) ? 1 : 0, Z = L[k], G = LG[k], Q = LQ[k];
+        const k = e.kiste ? (e.kiste.an ? 2 : e.kiste.blass ? 1 : 0) : WAHL.has(e.i) ? 2 : HV && HV.size && !HV.has(e.i) ? 1 : 0, Z = L[k], G = LG[k], Q = LQ[k];
         for (let i = 0; i < e._k.length; i++) Z.push(e._k[i]);
         for (let i = 0; i < e._k.length / 3; i++) { G.push(e.g || 0); Q.push(e._q[0], e._q[1], e._q[2], e._q[3]); }
         if (k === 2) { const v = e.v, m = S.mitte; for (let i = 0; i < v.length; i += 3) { WF.push(v[i] / 100 - m[0], v[i + 1] / 100 - m[1], v[i + 2] / 100 - m[2]); WG.push(e.g || 0); WQ.push(e._q[0], e._q[1], e._q[2], e._q[3]); } }
@@ -181,8 +215,8 @@
       gl.uniformMatrix4fv(gl.getUniformLocation(pr, 'm'), false, M); gl.uniform1f(gl.getUniformLocation(pr, 'zug'), S.zug); gl.uniform1f(gl.getUniformLocation(pr, 'seit'), S.seit); gl.uniform1f(gl.getUniformLocation(pr, 'teil'), S.teil);
       if (!pick) gl.uniform3fv(gl.getUniformLocation(pr, 'l'), norm([-0.4, -0.7, 0.8]));
       S.puf.forEach((B, k) => {
-        if (!B.n) return;
-        if (k === 1 && !pick) { gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); } else { gl.disable(gl.BLEND); gl.depthMask(true); }
+        if (!B.n || (pick && S.K && k < 2)) return;   // mit Kisten: durch die Wände hindurch nur Kisten treffen
+        if (k >= 1 && !pick) { gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); } else { gl.disable(gl.BLEND); gl.depthMask(true); }
         attr(pr, 'p', B.p, 3); attr(pr, 'n', B.nn, 3); attr(pr, 'c', pick ? B.pc : B.c, 4); attr(pr, 'g', B.g, 1); attr(pr, 'q', B.q, 4);
         gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(1, 1);   // Flächen ein wenig zurück – die Randlinien liegen sichtbar darauf
         gl.drawArrays(gl.TRIANGLES, 0, B.n); gl.disable(gl.POLYGON_OFFSET_FILL);
@@ -191,7 +225,8 @@
         gl.useProgram(PL); gl.uniformMatrix4fv(gl.getUniformLocation(PL, 'm'), false, M); gl.uniform1f(gl.getUniformLocation(PL, 'zug'), S.zug); gl.uniform1f(gl.getUniformLocation(PL, 'seit'), S.seit); gl.uniform1f(gl.getUniformLocation(PL, 'teil'), S.teil); gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
         for (let i = 0; i < 8; i++) gl.disableVertexAttribArray(i);   // n, c der Flächen aus – die Linien haben nur p
         /* Durchsicht (21.11.2026): Kanten mit dem Schieber deutlich blasser – feiner als ein Bildpunkt zeichnet WebGL keine Linie */
-        S.lin.forEach((B, k) => { if (!B.n) return; gl.uniform4fv(gl.getUniformLocation(PL, 'f'), k === 2 ? [0.2, 0.0, 0.5, 1] : k ? [0.2, 0.22, 0.25, 0.18 * (1 - S.durch * 0.7)] : [0.05 + 0.3 * S.durch, 0.06 + 0.3 * S.durch, 0.08 + 0.3 * S.durch, 0.9 * (1 - S.durch * 0.85)]); attr(PL, 'p', B.b, 3); attr(PL, 'g', B.g, 1); attr(PL, 'q', B.q, 4); gl.drawArrays(gl.LINES, 0, B.n); });
+        const du = S.K ? Math.max(S.durch, 0.65) : S.durch;
+        S.lin.forEach((B, k) => { if (!B.n) return; gl.uniform4fv(gl.getUniformLocation(PL, 'f'), k === 2 ? [0.2, 0.0, 0.5, 1] : k ? [0.2, 0.22, 0.25, 0.18 * (1 - du * 0.7)] : [0.05 + 0.3 * du, 0.06 + 0.3 * du, 0.08 + 0.3 * du, 0.9 * (1 - du * 0.85)]); attr(PL, 'p', B.b, 3); attr(PL, 'g', B.g, 1); attr(PL, 'q', B.q, 4); gl.drawArrays(gl.LINES, 0, B.n); });
         /* Angewähltes scheint durch alles hindurch (20.11.2026: kleine oder verdeckte Bauteile wie eine Wand im Innenhof sah man sonst nicht leuchten) */
         if (S.wf) { gl.disable(gl.DEPTH_TEST); gl.uniform4fv(gl.getUniformLocation(PL, 'f'), [0.48, 0.18, 0.97, 0.22]); attr(PL, 'p', S.wf.b, 3); attr(PL, 'g', S.wf.g, 1); attr(PL, 'q', S.wf.q, 4); gl.drawArrays(gl.TRIANGLES, 0, S.wf.n);
           const B = S.lin[2]; if (B.n) { gl.uniform4fv(gl.getUniformLocation(PL, 'f'), [0.36, 0.1, 0.8, 0.75]); attr(PL, 'p', B.b, 3); attr(PL, 'g', B.g, 1); attr(PL, 'q', B.q, 4); gl.drawArrays(gl.LINES, 0, B.n); }
@@ -210,6 +245,7 @@
     }
     function antippen(x, y, dazu) {
       const e = bei(x, y), I = box.querySelector('.b3-i');
+      if (S.K) { if (KO.wahl) KO.wahl(e && e.kiste ? e.kiste.key : null, dazu); return; }   // Räume: die App wählt die Zeile
       if (o.wahl) {
         if (!e) { if (!dazu) { WAHL.clear(); HV = null; } } else if (dazu) { if (WAHL.has(e.i)) WAHL.delete(e.i); else WAHL.add(e.i); } else { const nur = WAHL.size === 1 && WAHL.has(e.i); WAHL.clear(); if (!nur) WAHL.add(e.i); }
         bauen(); if (o.onWahl) o.onWahl([...WAHL], e || null);
@@ -245,9 +281,9 @@
         + (S.teile > 1 ? `<label class="b3-z">⇔ Gebäudeteile <input type="range" min="0" max="100" value="${Math.round(S.teil / TEIL * 100)}" data-b3t aria-label="Gebäudeteile auseinanderziehen"></label>` : '');
       box.querySelector('.b3-l').innerHTML = haupt + (S.dar ? `<div class="b3-dar">${dar}</div>` : '');
       const k = box.querySelector('.b3-k'); k.replaceChildren();   // Farben per CSSOM (kein style-Attribut – CSP im Bauherrenportal)
-      const M = modus(), E = M ? (M.legende || []) : S.farbe === 'massnahme' ? Object.values(MASS) : [];
+      const M = modus(), E = S.K ? (KO.legende || []) : M ? (M.legende || []) : S.farbe === 'massnahme' ? Object.values(MASS) : [];
       E.forEach(([c, t]) => { const sp = document.createElement('span'), i = document.createElement('i'); i.style.background = c; sp.append(i, t); k.append(sp); });
-      if (o.wahl) { const sp = document.createElement('span'), i = document.createElement('i'); i.style.background = '#7b2ff7'; sp.append(i, 'angewählt'); k.append(sp); }
+      if (o.wahl || S.K) { const sp = document.createElement('span'), i = document.createElement('i'); i.style.background = '#7b2ff7'; sp.append(i, 'angewählt'); k.append(sp); }
       box.querySelector('.b3-k').hidden = !E.length;
       box.classList.toggle('rahmen', S.rahmen);
     }
@@ -277,14 +313,17 @@
     function rahmenBild(ab) { if (!RZ) { RD.hidden = true; return; } const r = box.getBoundingClientRect(); RD.hidden = false; RD.className = 'b3-r' + (RZ.x1 < RZ.x0 ? ' streif' : '') + (ab ? ' ab' : '');
       RD.style.left = Math.min(RZ.x0, RZ.x1) - r.left + 'px'; RD.style.top = Math.min(RZ.y0, RZ.y1) - r.top + 'px'; RD.style.width = Math.abs(RZ.x1 - RZ.x0) + 'px'; RD.style.height = Math.abs(RZ.y1 - RZ.y0) + 'px'; }
     function rahmenWahl(z, ab) {
+      const KK = S.K ? [] : null;
       const rc = cv.getBoundingClientRect(), M = mvp(), x0 = Math.min(z.x0, z.x1) - rc.left, x1 = Math.max(z.x0, z.x1) - rc.left, y0 = Math.min(z.y0, z.y1) - rc.top, y1 = Math.max(z.y0, z.y1) - rc.top, ganz = z.x1 >= z.x0, m = S.mitte;
       (S.sicht || []).forEach((e) => {
+        if (KK && !e.kiste) return;
         kasten(e);
         let a = 1e9, b = -1e9, c = 1e9, d = -1e9, ok = true; const B = e._b, hz = (e.g || 0) * S.zug, hx = e._q[0] * S.seit + e._q[2] * S.teil, hy = e._q[1] * S.seit + e._q[3] * S.teil;
         for (let k = 0; k < 8 && ok; k++) { const X = B[k & 1 ? 3 : 0] + hx, Y = B[k & 2 ? 4 : 1] + hy, Zz = B[k & 4 ? 5 : 2] + hz, w = M[3] * X + M[7] * Y + M[11] * Zz + M[15]; if (w <= 0) { ok = false; break; }
           const sx = ((M[0] * X + M[4] * Y + M[8] * Zz + M[12]) / w * 0.5 + 0.5) * rc.width, sy = (1 - ((M[1] * X + M[5] * Y + M[9] * Zz + M[13]) / w * 0.5 + 0.5)) * rc.height;
           if (sx < a) a = sx; if (sx > b) b = sx; if (sy < c) c = sy; if (sy > d) d = sy; }
-        if (ok && (ganz ? a >= x0 && b <= x1 && c >= y0 && d <= y1 : a <= x1 && b >= x0 && c <= y1 && d >= y0)) { if (ab) WAHL.delete(e.i); else WAHL.add(e.i); } });
+        if (ok && (ganz ? a >= x0 && b <= x1 && c >= y0 && d <= y1 : a <= x1 && b >= x0 && c <= y1 && d >= y0)) { if (KK) KK.push(e.kiste.key); else if (ab) WAHL.delete(e.i); else WAHL.add(e.i); } });
+      if (KK) { if (KO.rahmen) KO.rahmen(KK, ab); return; }
       bauen(); if (o.onWahl) o.onWahl([...WAHL], null);
     }
     function wahlWeg() { if (!WAHL.size && !HV) return; WAHL.clear(); HV = null; box.querySelector('.b3-i').hidden = true; bauen(); if (o.onWahl) o.onWahl([], null); }
@@ -292,8 +331,10 @@
     cv.addEventListener('pointerdown', () => box.focus({ preventScroll: true }));
     const P_ = new Map(); let weg = 0, abst = 0;
     cv.addEventListener('pointerdown', (e) => { cv.setPointerCapture(e.pointerId); P_.set(e.pointerId, [e.clientX, e.clientY]); weg = 0;
-      RZ = o.wahl && e.button === 0 && P_.size === 1 && !e.shiftKey && (S.rahmen ? !e.altKey : e.altKey) ? { x0: e.clientX, y0: e.clientY, x1: e.clientX, y1: e.clientY } : null; if (P_.size === 2) { const [a, b] = [...P_.values()]; abst = Math.hypot(a[0] - b[0], a[1] - b[1]); } });
+      RZ = (o.wahl || S.K) && e.button === 0 && P_.size === 1 && !e.shiftKey && (S.rahmen ? !e.altKey : e.altKey) ? { x0: e.clientX, y0: e.clientY, x1: e.clientX, y1: e.clientY } : null; if (P_.size === 2) { const [a, b] = [...P_.values()]; abst = Math.hypot(a[0] - b[0], a[1] - b[1]); } });
+    let TT = 0;
     cv.addEventListener('pointermove', (e) => {
+      if (S.K && !P_.size && !TT) { const x = e.clientX, y = e.clientY; TT = setTimeout(() => { TT = 0; tip(x, y); }, 70); }   // Name und Fläche der Kiste unter der Maus
       const alt = P_.get(e.pointerId); if (!alt) return;
       const dx = e.clientX - alt[0], dy = e.clientY - alt[1]; weg += Math.abs(dx) + Math.abs(dy); P_.set(e.pointerId, [e.clientX, e.clientY]);
       if (RZ && P_.size === 1) { RZ.x1 = e.clientX; RZ.y1 = e.clientY; return rahmenBild(e.ctrlKey || e.metaKey); }
@@ -306,8 +347,17 @@
     });
     const los = (e) => { const z = RZ; RZ = null; rahmenBild(); if (z && weg >= 6 && e.type === 'pointerup') rahmenWahl(z, e.ctrlKey || e.metaKey); else if (P_.size === 1 && weg < 6 && e.type === 'pointerup') antippen(e.clientX, e.clientY, e.ctrlKey || e.metaKey); P_.delete(e.pointerId); if (P_.size < 2) abst = 0; };
     cv.addEventListener('pointerup', los); cv.addEventListener('pointercancel', los);
-    if (o.doppel) cv.addEventListener('dblclick', (ev) => {   // o.doppel(e): Doppelklick auf ein Bauteil (Gebäudemodell: Eigenschaften-Fenster, 21.11.2026) – bleibt gewählt
+    function tip(x, y) {
+      let t = box.querySelector('.b3-tt'); const e = S.K ? bei(x, y) : null;
+      if (!e || !e.kiste || !e.kiste.text) { if (t) t.hidden = true; return; }
+      if (!t) { t = document.createElement('div'); t.className = 'b3-tt'; box.appendChild(t); }
+      const r = box.getBoundingClientRect(); t.hidden = false; t.textContent = e.kiste.text; t.style.left = x - r.left + 'px'; t.style.top = y - r.top + 'px';
+    }
+    cv.addEventListener('pointerleave', () => { const t = box.querySelector('.b3-tt'); if (t) t.hidden = true; });
+    cv.addEventListener('dblclick', (ev) => {   // o.doppel(e): Doppelklick auf ein Bauteil (Gebäudemodell: Eigenschaften-Fenster, 21.11.2026) – bleibt gewählt
       const e = bei(ev.clientX, ev.clientY); if (!e) return;
+      if (S.K) { if (e.kiste && KO.doppel) KO.doppel(e.kiste.key); return; }
+      if (!o.doppel) return;
       if (o.wahl && !(WAHL.size === 1 && WAHL.has(e.i))) { WAHL.clear(); WAHL.add(e.i); bauen(); if (o.onWahl) o.onWahl([...WAHL], e); }
       o.doppel(e);
     });
@@ -330,7 +380,14 @@
       const M = mvp(), X = p[0] - S.mitte[0], Y = p[1] - S.mitte[1], Z = p[2] - S.mitte[2], w = M[3] * X + M[7] * Y + M[11] * Z + M[15]; if (w <= 0) return null;
       return [((M[0] * X + M[4] * Y + M[8] * Z + M[12]) / w * 0.5 + 0.5) * cv.clientWidth, (1 - ((M[1] * X + M[5] * Y + M[9] * Z + M[13]) / w * 0.5 + 0.5)) * cv.clientHeight];
     }
-    return { feld: box, bei, proj, setzen: (N) => setzen(N, false), gespreizt: () => !!(S.zug || S.seit || S.teil),
+    function kisten(K, opt) {   // Räume als Kisten (R-B) – null = aus
+      KO = opt || {};
+      S.K = K && K.length ? K.map(kisteNetz).filter(Boolean) : null;
+      if (!S.K) { const t = box.querySelector('.b3-tt'); if (t) t.hidden = true; }
+      cv.dataset.kisten = S.K ? S.K.length : 0; cv.dataset.kistenan = S.K ? S.K.filter((e) => e.kiste.an).length : 0;   // für die Tests
+      if (S.N && S.N.e.length) { leiste(); bauen(); }
+    }
+    return { feld: box, bei, proj, kisten, setzen: (N) => setzen(N, false), gespreizt: () => !!(S.zug || S.seit || S.teil),
       blick: () => { const cp = Math.cos(S.pitch); return [cp * Math.cos(S.yaw), cp * Math.sin(S.yaw), Math.sin(S.pitch)]; },   // Richtung zum Auge (Griffe nur an zugewandten Seiten)
       ziel: (ids) => { const k = [...ZIEL].join(); ZIEL.clear(); (ids || []).forEach((i) => ZIEL.add(+i)); if (S.N && [...ZIEL].join() !== k) bauen(); },
       waehle: (ids) => { const vor = [...WAHL].join(); WAHL.clear(); (ids || []).forEach((i) => WAHL.add(+i));

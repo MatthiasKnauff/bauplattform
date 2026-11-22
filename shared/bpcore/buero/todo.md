@@ -254,6 +254,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Gebäudemodell: Räume als farbige, halb durchsichtige Kisten im 3D (R-B)~~ (22.11.2026)
 - ~~Wärmeschutz: Bauteile-Baum wie im Gebäudemodell, nur Hülle, ＋ in den Nachweis, „Nur im Nachweis“~~ (22.11.2026)
 - ~~Bauzeitenplan-Suche: Wortvervollständigung als Vorschlagsliste, ‹ › so groß wie das ✕~~ (22.11.2026)
 - ~~Räume als Baum mit Gruppieren, Haken an der Gruppe, Eigenschaften-Fenster Raum (Allgemein · Raumbuch · Maße), kein Sprung beim Klick (US-4)~~ (22.11.2026)

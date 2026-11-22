@@ -126,7 +126,7 @@ function g3Seite() {
   const R = form ? [{ id: 'koerper', titel: 'Baukörper', mount: (el) => { el.innerHTML = ''; if (G3.bkD) el.appendChild(G3.bkD); } }]
     : [{ id: 'details', titel: 'Bauteile', fenster: false, mount: (el) => { el.innerHTML = ''; el.appendChild(G3.btE); if (BT) requestAnimationFrame(() => BT.zeigen()); } }];
   R.push({ id: 'raeume', titel: 'Räume', fenster: false, mount: (el) => { el.innerHTML = ''; el.appendChild(G3.raE); g3Listen(true); } }, FRAGEN_R, seite.planung);
-  seite(WORK, 'gm', R, { start: form ? 'koerper' : 'details', w: 0.62, minL: 520, min: 340, planung: false });
+  seite(WORK, 'gm', R, { start: form ? 'koerper' : 'details', w: 0.62, minL: 520, min: 340, planung: false, wechsel: () => requestAnimationFrame(gmrKisten) });   // Räume als Kisten nur beim Reiter „Räume“ (R-B)
 }
 /* Räume und „Fenster & Türen einzeln“ rechts – gezeichnet, wenn ihr Platz zu sehen ist; bei „Gebäude bearbeiten“ an sind die Räume nur zu lesen (R-E) */
 async function g3Listen(jetzt) {
@@ -164,13 +164,13 @@ function g3Laden(feld, st) {
     eigenschaften: (ids) => {   // „Aufbau …“ beim Baukörper → Eigenschaften-Fenster der Zeile(n) dieser Bauteile
       const Z = [...new Set(ids.map((i) => (G3.zu.get(+i) || {}).z).filter(Boolean).map((z) => z.id))]; if (!Z.length || !BT) return toast('Zu diesem Bauteil gibt es noch keine Zeile – erst speichern lassen.', true);
       if (Z.length > 1) { BT.mehr(Z); BT.eigenschaften(null); } else BT.eigenschaften(Z[0]); },
-    d3: { ...D3O, geladen: (N) => { G3.N = N; if (G3.BK) G3.D3 = G3.BK.d3; if (BT && BT.zeigen) BT.zeigen(); }, onWahl: (ids) => { if (G3.bearb) { if (ids && ids.length && window.seiteReiter) seiteReiter('gm', 'koerper'); } else g3Ids(ids); } },
+    d3: { ...D3O, geladen: (N) => { G3.N = N; if (G3.BK) G3.D3 = G3.BK.d3; if (BT && BT.zeigen) BT.zeigen(); gmrKisten(); }, onWahl: (ids) => { if (G3.bearb) { if (ids && ids.length && window.seiteReiter) seiteReiter('gm', 'koerper'); } else g3Ids(ids); } },
     neu: !!G3.bkNeu, planung: G3.bkNeu === 'planung', bearbeiten: G3.bearb,   // an: Gewähltes unter „Baukörper“, aus: die Zeile im Baum
     nachher: () => { G3.bkNeu = false; if (BT && BT.laden) BT.laden(); } });
     return;
   }
   G3.D3 = bp3d.mount(feld, { ...D3O, url: `api/bp/modell/${PID}/netz${st.an ? '?planstand=' + st.an.id : ''}`, wahl: true,
-    geladen: (N) => { G3.N = N; if (G3.D3) G3.D3.farben(g3Modi()); if (BT && BT.zeigen) BT.zeigen(); },   // Geschosse je Bauteil sind jetzt da – Baum neu (einzelne Bauteile, Gruppe Geschoss)
+    geladen: (N) => { G3.N = N; if (G3.D3) G3.D3.farben(g3Modi()); if (BT && BT.zeigen) BT.zeigen(); gmrKisten(); },   // Geschosse je Bauteil sind jetzt da – Baum neu (einzelne Bauteile, Gruppe Geschoss)
     kontext: g3ArtPunkte, onWahl: (ids) => g3Ids(ids) });
 }
 function g3Extras(st) {   // Färbung merken, U-Werte nachladen – für Plan und Baukasten gleich

@@ -1,5 +1,13 @@
 [
  {
+  "id": "raumkisten-2026-11-22",
+  "datum": "2026-11-22",
+  "app": "gebaeudemodell",
+  "titel": "Räume als Kisten im 3D",
+  "text": "Ist rechts der Reiter „Räume“ offen, stehen die Räume im 3D als farbige, halb durchsichtige Kisten – Farbe nach der Gruppierung (z. B. Geschoss oder Nutzung). Klick auf eine Kiste wählt den Raum rechts, Doppelklick öffnet seine Eigenschaften, beim Darüberfahren stehen Name und Fläche da.",
+  "ziel": ".gm-d3"
+ },
+ {
   "id": "ws-baum-2026-11-22",
   "datum": "2026-11-22",
   "app": "waermeschutz",

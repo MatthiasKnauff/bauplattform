@@ -421,17 +421,13 @@ function exportQS() {
   if (f) p.set('filter', f);
   const s = p.toString(); return s ? '?' + s : '';
 }
-const adrPdf = () => { if (!tableRows().length) return toast('Keine Kontakte in der Liste.', true); openPdf('api/contacts/export.pdf' + exportQS()); };
-
-/* ---------- PDF ansehen: gemeinsame Ansicht der Plattform (BPHead.ansehen) – Zoom, Drucken, Teilen/Speichern, auch am Handy ---------- */
-async function openPdf(url) {
-  toast('PDF wird erzeugt …');
-  const r = await fetch(url);
-  if (r.status === 401) { const j = await r.json().catch(() => ({})); if (j.login) location.href = j.login; return; }
-  if (!r.ok) { const j = await r.json().catch(() => ({})); toast(j.error || 'Das PDF konnte nicht erzeugt werden.', true); return; }
-  const m = /filename\*?=(?:UTF-8'')?"?([^";]+)/i.exec(r.headers.get('Content-Disposition') || '');
-  BPHead.ansehen([{ url: URL.createObjectURL(await r.blob()), name: m ? decodeURIComponent(m[1]) : 'Adressen.pdf', typ: 'pdf' }]);
+/* Drucken über die gemeinsame Druckseite (bp/druck.js) im Druck-Layout „Adressverzeichnis“ (Verwaltung → Druck-Layouts) – wie LV und Kosten */
+function adrDruck(qs, n) {
+  bpDruck({ titel: 'Adressverzeichnis drucken', name: `Adressverzeichnis ${new Date().toLocaleDateString('de-DE')}`, merk: 'adressen', bereich: 'adressen',
+    hinweis: `${n} Kontakt${n === 1 ? '' : 'e'}`, url: () => 'api/contacts/export.pdf' + qs });
 }
+const adrPdf = () => { const n = tableRows().length; if (!n) return toast('Keine Kontakte in der Liste.', true); adrDruck(exportQS(), n); };
+
 const adrXlsx = () => { if (!tableRows().length) return toast('Keine Kontakte in der Liste.', true); location.assign('api/contacts/export.xlsx' + exportQS()); toast('Excel-Datei wird geladen …'); };
 
 (async () => {

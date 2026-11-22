@@ -481,15 +481,6 @@ def _sel():
     return [{k: (v if v is not None else "") for k, v in r.items()} for r in rows], (request.args.get("filter") or "").strip()[:200] or "alle Kontakte"
 
 
-def _office():
-    try:
-        with db.tx() as c:
-            r = c.execute("SELECT value FROM settings WHERE key='office_name'").fetchone()
-        return (r["value"] if r else "") or ""
-    except Exception:   # ohne Büronamen drucken – kein Grund abzubrechen
-        return ""
-
-
 @app.get("/api/contacts/export.xlsx")
 def export_xlsx():
     rows, label = _sel()
@@ -501,18 +492,14 @@ def export_xlsx():
 
 @app.get("/api/contacts/export.pdf")
 def export_pdf():
-    """Adressverzeichnis zum Drucken – gleiches Layout wie im Bautagebuch (ein Baustein in bpcore/contacts.py), hier mit Logo und Kurzname."""
-    from reportlab.lib.pagesizes import A4, landscape
-    from reportlab.lib.units import mm
+    """Adressverzeichnis zum Drucken im Druck-Layout „Adressverzeichnis“ (wie die anderen Ausdrucke; gewählt auf der Druckseite: layout.adressen, opt.adressen)."""
     rows, label = _sel()
-    office = _office()
     try:
-        with db.tx() as c:
-            kurz = C.kurzname(c) or office
-    except Exception:   # ohne Kurznamen: Büroname reicht für die Kopfzeile
-        kurz = office
-    logo = lambda cv: C.draw_logo(cv, landscape(A4)[0] - 12 * mm, landscape(A4)[1] - 6 * mm, 12 * mm, 50 * mm)
-    pdf = shared_contacts.export_pdf(rows, label, kopf=kurz, fuss="Adressen – Adressverzeichnis", logo=logo, top_mm=22)
+        extra = json.loads(request.args.get("opt.adressen") or "{}")
+    except ValueError:
+        extra = {}
+    with db.tx() as c:
+        pdf = shared_contacts.export_pdf(c, rows, label, C.full_name(g.user), request.args.get("layout.adressen") or None, extra if isinstance(extra, dict) else {})
     C.audit(g.user["name"], "export", "Adressverzeichnis als PDF exportiert", f"{len(rows)} Kontakte · {label} · Adressen")
     return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": f'inline; filename="Adressen_{datetime.now():%Y-%m-%d}.pdf"'})
 

@@ -136,6 +136,7 @@ export async function adrStartPruefen(browser, repo) {
       const { ctx, p } = await lauf({ ohne_projekt: true, gefragt: true }, K4, (pf, q) => {
         if (pf === 'api/contacts/mehr') { const d = JSON.parse(q.postData()); gesendet.push(d); return { ok: true, n: d.ids.length, alt: Object.fromEntries(d.ids.map((i) => [i, { trade: '' }])) }; }
         if (pf === 'api/contacts/mehr/zurueck') { gesendet.push({ zurueck: JSON.parse(q.postData()) }); return { ok: true }; }
+        if (pf === 'api/bp/layouts/adressen/wahl') return { bereich: 'adressen', vorgabe: 'v1', layouts: [{ id: 'v1', name: 'Startversion', format: 'A4 quer' }], werte: { v1: {} }, optionen: [{ key: 'notizen', name: 'Spalte Notizen', typ: 'bool', std: false }] };
         return null; });
       await p.evaluate(() => setView('tabelle')); await p.waitForSelector('#tw tbody tr[data-id="1"]');
       const reihe = await p.evaluate(() => tableRows().map((c) => c.id));
@@ -167,6 +168,11 @@ export async function adrStartPruefen(browser, repo) {
       pruef(st.an >= 1 && /^\{anrede\}/.test(st.text) && st.hin, `Mail an alle: gemeinsamer Versand, {anrede}, Hinweis auf Kontakte ohne Adresse – ${JSON.stringify(st)}`);
       await p.screenshot({ path: process.env.AW_BILD || '/dev/null' }).catch(() => {});
       await p.click('.bpv .bpv-x'); await p.waitForTimeout(200);
+      await p.evaluate(() => { const o0 = window.bpDruck; window.bpDruck = (o) => { window.__druck = o; return o0(o); }; });   // Drucken der Auswahl: gemeinsame Druckseite, Druck-Layout „Adressverzeichnis“ (23.11.2026)
+      await p.click('#adrSel [data-aw="mehr"]'); await p.click('.pickm .pm-o:has-text("Drucken")'); await p.waitForSelector('.bed-bar', { timeout: 5000 });
+      st = await p.evaluate(() => ({ b: window.__druck.bereich, u: decodeURIComponent(window.__druck.url([])), lay: !!document.querySelector('[data-layw] [data-opt="notizen"]') }));
+      pruef(st.b === 'adressen' && /export\.pdf\?ids=[\d,]+&filter=Auswahl/.test(st.u.replace(/%2C/g, ',')) && st.lay, `Drucken der Auswahl über bpDruck mit Layout: ${JSON.stringify(st)}`);
+      await p.click('.bed-bar [data-d="x"]'); await p.waitForTimeout(200);
       await p.keyboard.press('Escape'); await p.click('#tw tbody'); await p.keyboard.press('Escape');
       pruef(await p.evaluate(() => AW.S.size === 0 && document.querySelector('#adrSel').hidden), 'Esc hebt die Auswahl auf');
       await ctx.close(); }

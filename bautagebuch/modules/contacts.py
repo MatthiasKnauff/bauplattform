@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 from flask import Blueprint, Response, g, jsonify, request
-from core import audit, db, geo, settings
+from core import audit, db, geo
 from bpcore import contacts as shared_contacts
 
 bp = Blueprint("contacts", __name__)
@@ -148,8 +148,7 @@ def export_xlsx():
 @bp.get("/api/contacts/export.pdf")
 def export_pdf():
     rows = _rows()
-    with db.tx() as c:
-        office = settings.all(c).get("office_name") or ""
-    pdf = shared_contacts.export_pdf(rows, _label(), kopf=office, fuss="Bautagebuch – Adressverzeichnis")
+    with db.tx() as c:   # Druck-Layout „Adressverzeichnis“ wie in Adressen (bpcore/contacts.py)
+        pdf = shared_contacts.export_pdf(c, rows, _label(), g.user["name"])
     _log("PDF", len(rows))
     return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": f'inline; filename="Adressen_{datetime.now():%Y-%m-%d}.pdf"'})

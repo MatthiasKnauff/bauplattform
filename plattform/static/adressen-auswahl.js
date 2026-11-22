@@ -7,7 +7,7 @@
          Zusammenführen (Duplikat-Fenster) · Excel / Drucken nur die Auswahl · Papierkorb (nur unbenutzte) – je ein Rückgängig.
    AW-4  die Auswahl bleibt beim Ändern des Filters; „x davon gerade nicht zu sehen“ mit „nur sichtbare“, „alle N gefilterten wählen“.
    AW-5  am Handy: lange tippen beginnt die Auswahl, danach tippen = dazu/ab; Leiste über der Handyleiste.
-   Nutzt aus adressen.html: ALL, tableRows, load, edit, duplikate, openPdf, KINDN, KINDS, trades, liste, AF, TV; aus adressen-rechts.js: adrSchmal,
+   Nutzt aus adressen.html: ALL, tableRows, load, edit, duplikate, adrDruck, KINDN, KINDS, trades, liste, AF, TV; aus adressen-rechts.js: adrSchmal,
    adrOrdner, adrKuerzel. */
 const AW = { S: new Set(), anker: null, lang: false };
 const awHat = (id) => AW.S.has(id);
@@ -115,7 +115,7 @@ function awZusammen() {
 function awExport(art) {
   const ids = awSichtbar().filter((i) => AW.S.has(i)).concat([...AW.S].filter((i) => !awSichtbar().includes(i)));
   const qs = '?' + new URLSearchParams({ ids: ids.join(','), filter: `Auswahl (${ids.length} Kontakte)` });
-  if (art === 'pdf') openPdf('api/contacts/export.pdf' + qs); else { location.assign('api/contacts/export.xlsx' + qs); toast('Excel-Datei wird geladen …'); }
+  if (art === 'pdf') adrDruck(qs, ids.length); else { location.assign('api/contacts/export.xlsx' + qs); toast('Excel-Datei wird geladen …'); }
 }
 async function awWeg() {
   const G = awGewaehlt(), frei = G.filter((c) => !c.used && !c.site_of);

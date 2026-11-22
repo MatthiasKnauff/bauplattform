@@ -130,6 +130,10 @@ BEREICHE["honorarvertrag"] = {"name": "Architektenvertrag", "gruppe": "Honorar",
                               "variablen": {**AVA, "dokument": "„Architektenvertrag“", "auftraggeber": "Auftraggeber:in", "leistung": "beauftragte Leistung"}}
 BEREICHE["waermeschutz"] = {"name": "Wärmeschutznachweis (GModG)", "gruppe": "Wärmeschutz", "art": "ava",   # 19.11.2026 – plattform/waermeschutz_pdf.py
                             "variablen": {**AVA, "lv": "„Wärmeschutznachweis“", "untertitel": "Name des Nachweises"}}
+BEREICHE["adressen"] = {"name": "Adressverzeichnis", "gruppe": "Adressen", "art": "ava",   # 23.11.2026 – Adressen und Bautagebuch (bpcore/contacts.py export_pdf)
+                        "variablen": {k: v for k, v in AVA.items() if k in ("buero", "fusszeile", "datum", "bearbeiter", "seite")}
+                        | {"dokument": "„Adressverzeichnis“", "untertitel": "Stand, Zahl der Kontakte und Filter (z. B. „23 Kontakte · Gewerk: Dachdecker“)"},
+                        "optionen": [_o("person", "Ansprechpartner:in unter dem Namen", True), _o("notizen", "Spalte Notizen", False)]}
 # Blockvorlagen (bpcore/vorlage.py): je Ausdruck mit Listen die Vorlagen (Reiter im Layout-Editor), ihre Felder und die Vorgabe
 def _v(feld, x, y, w, h, **k):
     return {"id": uuid.uuid4().hex[:8], "feld": feld, "x": x, "y": y, "w": w, "h": h, **k}
@@ -258,6 +262,15 @@ def standard(bereich="maengelruege"):
 
 def _standard_ava(bereich):
     """Wie die AVA-Ausdrucke bisher aussehen: Überschrift + Logo oben, Fußzeile mit Seitenzahl, Inhalt dazwischen."""
+    if bereich == "adressen":   # A4 quer wie bisher; der Briefbogen (A4 hoch) passt nicht darunter – ab Werk ohne
+        return {"raster": 2.5, "format": "A4q", "folge_oben": 14, "bogen": "ohne", "elemente": [
+            _e("text", 12, 10, 220, 8, text="{dokument}", groesse=15, fett=True, name="Überschrift"),
+            _e("text", 12, 18, 220, 6, text="{buero} · {untertitel}", groesse=8.5, farbe="mute", name="Untertitel"),
+            _e("logo", 235, 8, 50, 12, name="Logo"),
+            _e("inhalt", 12, 28, 273, 168, name="Inhalt"),
+            _e("text", 12, 201, 180, 4, text="{dokument} · {buero}", groesse=7.5, farbe="mute", seiten="alle", name="Fußzeile"),
+            _e("text", 225, 201, 60, 4, text="Seite {seite} · {datum}", groesse=7.5, farbe="mute", ausrichtung="rechts", seiten="alle", name="Seitenzahl"),
+        ]}
     if bereich in ("preisspiegel", "tuerliste"):   # A4 quer
         return {"raster": 2.5, "format": "A4q", "folge_oben": 14, "elemente": [
             _e("text", 16, 12, 220, 8, text="{dokument}", groesse=16, fett=True, name="Überschrift"),
@@ -638,6 +651,32 @@ def eigene_werte(c, pid, extra=None):
     return out
 
 
+def logo_zeichner(c):
+    """logo_fn für zeichnen/platypus_seiten mit dem Büro-Logo aus dem Kern (bpcore/logo.py) – None ohne Logo."""
+    from . import logo
+    daten = logo.druck(c)
+    if not daten:
+        return None
+
+    def zeichne(cv, right, top, h, max_w):
+        import io
+        from reportlab.lib.utils import ImageReader
+        img = ImageReader(io.BytesIO(daten))
+        iw, ih = img.getSize()
+        w = min(max_w, h * iw / ih)
+        cv.drawImage(img, right - w, top - w * ih / iw, w, w * ih / iw, mask="auto")
+    return zeichne
+
+
+def buero_werte(c):
+    """Werte des Büros für jeden Ausdruck: buero, absender, fusszeile, datum (aus Verwaltung → Büro)."""
+    S = {r[0]: r[1] or "" for r in c.execute("SELECT key, value FROM settings WHERE key IN ('office_name','co_short','co_street','co_zip','co_city','co_phone','co_email','co_web')").fetchall()}
+    name, kurz = S.get("office_name") or S.get("co_short") or "", S.get("co_short") or S.get("office_name") or ""
+    ort = " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x)
+    return {"buero": name, "absender": ", ".join(x for x in (kurz, S.get("co_street"), ort) if x), "datum": datetime.now().strftime("%d.%m.%Y"),
+            "fusszeile": " · ".join(x for x in (kurz, S.get("co_street"), ort, S.get("co_phone"), S.get("co_email"), S.get("co_web")) if x)}
+
+
 def _buero_beispiel(c):
     """Büroname, Absender und Fußzeile für die Vorschau – aus Verwaltung → Büro, sonst neutrale Musterwerte (kein fest eingebautes Büro)."""
     S = {}
@@ -660,8 +699,8 @@ def beispiel(bereich, c=None):
         return {"buero": BN, "fusszeile": FUSS, "datum": datetime.now().strftime("%d.%m.%Y"),
                 "bearbeiter": "Max Mustermann", "projekt": "A497 Maybachstraße 15a, Essen", "bauvorhaben": "A497 Maybachstraße 15a, 45133 Essen", "bauherr": "Muster Wohnbau GmbH",
                 "dokument": {"lv": "Leistungsverzeichnis", "aufmass": "Massenermittlung – LV 03 Rohbauarbeiten", "rechnungspruefung": "Rechnungsprüfung – 2. Abschlagsrechnung",
-                             "rechnungsfreigabe": "Rechnungsfreigabe – 2. Abschlagsrechnung", "honorarvertrag": "Architektenvertrag"}.get(bereich, ""),
-                "untertitel": "A497 Maybachstraße 15a, Essen · LV 03 Rohbauarbeiten", "lv": "LV 03 Rohbauarbeiten", "gewerk": "Rohbau", "auftragnehmer": "Muster Bau GmbH", "grundstueck": "Gemarkung Altenessen, Flur 3, Flurstück 12/4", "gemarkung": "Altenessen", "flur": "3",
+                             "rechnungsfreigabe": "Rechnungsfreigabe – 2. Abschlagsrechnung", "honorarvertrag": "Architektenvertrag", "adressen": "Adressverzeichnis"}.get(bereich, ""),
+                "untertitel": "Stand " + datetime.now().strftime("%d.%m.%Y") + " · 57 Kontakte · Gewerk: Dachdecker" if bereich == "adressen" else "A497 Maybachstraße 15a, Essen · LV 03 Rohbauarbeiten", "lv": "LV 03 Rohbauarbeiten", "gewerk": "Rohbau", "auftragnehmer": "Muster Bau GmbH", "grundstueck": "Gemarkung Altenessen, Flur 3, Flurstück 12/4", "gemarkung": "Altenessen", "flur": "3",
                 "flurstueck": "12/4", "hoehe_nhn": "54,30",
                 "seite": "1", "rechnung": "2. Abschlagsrechnung", "re_nr": "RE-2026-117", "re_datum": "02.11.2026", "eingang": "04.11.2026"}
     return {"buero": BN, "absender": ABS, "fusszeile": FUSS,

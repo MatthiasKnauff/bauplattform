@@ -500,46 +500,44 @@ def export_xlsx(rows):
     return buf.getvalue()
 
 
-def export_pdf(rows, label, kopf="", fuss="Adressverzeichnis", logo=None, top_mm=14):
-    """Adressverzeichnis zum Drucken (PDF-Bytes, A4 quer). kopf: Büro-/Kurzname in der Unterzeile; fuss: Text links in der Fußzeile;
-    logo(canvas): zeichnet das Logo oben rechts (optional); top_mm: oberer Rand (mit Logo größer)."""
+def export_pdf(c, rows, label, wer="", vid=None, extra=None):
+    """Adressverzeichnis zum Drucken (PDF-Bytes) im Druck-Layout „Adressverzeichnis“ (Verwaltung → Druck-Layouts, ab Werk A4 quer) –
+    Kopf, Fuß, Logo, Briefbogen und Format wie bei allen Ausdrucken (bpcore/layout.py). vid/extra: gewähltes Layout und Inhaltseinstellungen
+    der Druckseite (bpDruck). Ein Baustein für Adressen und Bautagebuch."""
     import io
     from datetime import datetime
     from reportlab.lib import colors
-    from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib.styles import ParagraphStyle
-    from reportlab.lib.units import mm
-    from reportlab.platypus import LongTable, Paragraph, SimpleDocTemplate, TableStyle
+    from reportlab.platypus import BaseDocTemplate, LongTable, Paragraph, Spacer, TableStyle
     from xml.sax.saxutils import escape
-    from bpcore import layout as bplayout
-    buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=landscape(A4), leftMargin=12 * mm, rightMargin=12 * mm, topMargin=top_mm * mm, bottomMargin=14 * mm,
-                            title="Adressverzeichnis", author=kopf or "")
-    st = ParagraphStyle("c", fontName="Helvetica", fontSize=8, leading=10)
-    sh = ParagraphStyle("h", parent=st, fontName="Helvetica-Bold", textColor=colors.white)
-    esc = lambda v: escape(str(v or ""))
-    P = lambda t, s=st: Paragraph(t or "&nbsp;", s)
-    data = [[P(h, sh) for h in ("Firma / Name", "Gewerk", "Telefon", "E-Mail / Internet", "Adresse")]]
+    from . import briefbogen, layout, schrift
+    LAY = layout.aktiv(c, "adressen", vid)
+    O = layout.optionen(c, "adressen", vid, extra)
+    unter, frei, _roh = layout.bogen(c, LAY)
+    F = schrift.fuer(c)
+    W = {**layout.buero_werte(c), "bearbeiter": wer, "dokument": "Adressverzeichnis",
+         "untertitel": f"Stand {datetime.now():%d.%m.%Y} · {len(rows)} Kontakt{'e' if len(rows) != 1 else ''} · {label}"}
+    tpl, B = layout.platypus_seiten(LAY, W, F, logo_fn=layout.logo_zeichner(c), bogen=frei)
+    st = ParagraphStyle("c", fontName=F["n"], fontSize=8, leading=10)
+    sh = ParagraphStyle("h", parent=st, fontName=F["b"], textColor=colors.white)
+    esc = lambda v: escape(str(v or ""))   # noqa: E731
+    P = lambda t, s=st: Paragraph(t or "&nbsp;", s)   # noqa: E731
+    kopf = ["Firma / Name", "Gewerk", "Telefon", "E-Mail / Internet", "Adresse"] + (["Notizen"] if O.get("notizen") else [])
+    data = [[P(h, sh) for h in kopf]]
     for r in rows:
-        person = " · ".join(x for x in (r.get("contact_person"), r.get("role")) if x)
+        person = " · ".join(x for x in (r.get("contact_person"), r.get("role")) if x) if O.get("person") else ""
         tel = "<br/>".join(x for x in (esc(r.get("phone")), ("Mobil " + esc(r.get("mobile"))) if r.get("mobile") else "") if x)
         net = "<br/>".join(x for x in (esc(r.get("email")), esc(r.get("website"))) if x)
         adr = "<br/>".join(x for x in (esc(r.get("street")), esc(" ".join(y for y in (r.get("zip"), r.get("city")) if y))) if x)
-        data.append([P(f"<b>{esc(r.get('name'))}</b>" + (f"<br/>{esc(person)}" if person else "")), P(esc(r.get("trade"))), P(tel), P(net), P(adr)])
-    w = landscape(A4)[0] - 24 * mm
-    t = LongTable(data, colWidths=[w * .27, w * .14, w * .17, w * .24, w * .18], repeatRows=1)
-    t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(bplayout.TABELLE_KOPF)), ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                           ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f3f4f6")]),
-                           ("LINEBELOW", (0, 0), (-1, -1), .25, colors.HexColor("#d9dbe0")), ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
-    stitle = ParagraphStyle("t", fontName="Helvetica-Bold", fontSize=15, leading=19)
-    sub = ParagraphStyle("s", fontName="Helvetica", fontSize=8.5, textColor=colors.HexColor("#6b6f76"), spaceAfter=6 * mm)
-    story = [Paragraph("Adressverzeichnis", stitle),
-             Paragraph(f"{esc(kopf) + ' · ' if kopf else ''}Stand {datetime.now():%d.%m.%Y} · {len(rows)} Kontakte · {esc(label)}", sub), t]
-
-    def foot(cv, d):
-        cv.setFont("Helvetica", 7.5); cv.setFillColor(colors.HexColor("#6b6f76"))
-        cv.drawString(12 * mm, 8 * mm, fuss); cv.drawRightString(landscape(A4)[0] - 12 * mm, 8 * mm, f"Seite {d.page}")
-        if logo:
-            logo(cv)
-    doc.build(story, onFirstPage=foot, onLaterPages=foot)
-    return buf.getvalue()
+        data.append([P(f"<b>{esc(r.get('name'))}</b>" + (f"<br/>{esc(person)}" if person else "")), P(esc(r.get("trade"))), P(tel), P(net), P(adr)]
+                    + ([P(esc(r.get("notes")).replace("\n", "<br/>"))] if O.get("notizen") else []))
+    anteil = [.27, .14, .17, .24, .18] if not O.get("notizen") else [.22, .11, .14, .2, .15, .18]
+    t = LongTable(data, colWidths=[B * a for a in anteil], repeatRows=1)
+    t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(layout.TABELLE_KOPF)), ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                           ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor(layout.TABELLE_STREIFEN)]),
+                           ("LINEBELOW", (0, 0), (-1, -1), .25, colors.HexColor(layout.TABELLE_LINIE)), ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
+    buf = io.BytesIO()
+    doc = BaseDocTemplate(buf, pagesize=layout.seite_pt(LAY), title="Adressverzeichnis", author=W["buero"])
+    doc.addPageTemplates(tpl)
+    doc.build([t] if rows else [Spacer(1, 1)])
+    return briefbogen.unterlegen(buf.getvalue(), unter, seiten=1) if unter else buf.getvalue()

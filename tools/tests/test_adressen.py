@@ -311,7 +311,7 @@ def test_einlesen(ctx):
     datei = ("\n".join(";".join(z) for z in Z) + "\n").encode("utf-8")   # CSV – .xlsx prüft der Einheitentest im Container (openpyxl)
     ids = []
     try:
-        r = a.req("POST", "/adressen/api/contacts/einlesen/datei", dateien={"datei": ("liste.csv", datei, "text/csv")}).json()
+        r = a.req("POST", "/adressen/api/contacts/einlesen/datei", dateien={"datei": ("liste.csv", datei, "text/csv")}).json
         gleich(r["spalten"][1], "firma", "Firmenspalte ohne passende Überschrift"); gleich(r["spalten"][3], "", "„nicht eintragen“ bleibt frei")
         K = {k["name"]: k for k in r["kontakte"]}
         d = K[f"RT-Ein Dach {x} GmbH"]

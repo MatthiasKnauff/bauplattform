@@ -293,3 +293,46 @@ def test_aufraeumen(ctx):
         pruefe(not any(v["schluessel"] == g["schluessel"] for v in V), "„nicht ähnlich“ gemerkt")
     finally:
         _weg(ctx, i1, i2)
+
+
+def test_einlesen(ctx):
+    """Adressen einlesen (GO 22.11.2026, AE-1 … AE-7 A): Excel nur gelesen; Firmenspalte ohne passende Überschrift erkannt, zwei Zeilen
+    derselben Firma = ein Kontakt mit weiterer Person, „Bauherrin“ = Art Bauherr:in, Projektnummer T101 → beteiligt, unbekannte Nummer
+    → Stichwort, vorhandener Kontakt ergänzt (leere Felder), Rückgängig nimmt alles zurück. Daten erfunden."""
+    import openpyxl
+    a, x = ctx.admin, uuid.uuid4().hex[:6]
+    t101 = ctx.projekt("T101")
+    alt = _neu(ctx, name=f"RT-Ein Alt {x} GmbH", trade="Maler")
+    wb = openpyxl.Workbook(); ws = wb.active
+    ws.append(["Gewerk", "Irgendwas", "Anrede/Vorname Name (Ansprechpartner)", "Nachname (nicht eintragen)", "Adresse", "PLZ Ort", "Tel", "FAX", "Mobil", "Mail", "Webseite", "Projektnummer", "Notizen"])
+    ws.append(["Dachdecker", f"RT-Ein Dach {x} GmbH", "Hr. Max Beispiel", "Beispiel", "Weg 1", "45127 Essen", "0201 1", "0201 2", "", "a@ein.test", "", "T101", ""])
+    ws.append(["Dachdecker", f"RT-Ein Dach {x} GmbH", "Fr. Eva Muster", "Muster", "", "", "", "", "0172 9", "eva@ein.test", "", "Z999", "zweite Zeile"])
+    ws.append(["Bauherrin", "", f"Fr. Rita Probe{x}", "Probe", "Gasse 2", "45130 Essen", "", "", "", "", "", "", ""])
+    ws.append(["Maler", f"RT-Ein Alt {x} GmbH", "", "", "Straße 3", "45131 Essen", "0201 3", "", "", "", "", "", ""])
+    buf = io.BytesIO(); wb.save(buf)
+    ids = []
+    try:
+        r = a.req("POST", "/adressen/api/contacts/einlesen/datei", dateien={"datei": ("liste.xlsx", buf.getvalue(), "application/octet-stream")}).json()
+        gleich(r["spalten"][1], "firma", "Firmenspalte ohne passende Überschrift"); gleich(r["spalten"][3], "", "„nicht eintragen“ bleibt frei")
+        K = {k["name"]: k for k in r["kontakte"]}
+        d = K[f"RT-Ein Dach {x} GmbH"]
+        gleich((len(d["personen"]), [p["name"] for p in d["personen"]], d["zip"], d["city"]), (2, ["Max Beispiel", "Eva Muster"], "45127", "Essen"), "zwei Zeilen = ein Kontakt")
+        gleich(([p["id"] for p in d["projekte"]], d["stichworte"]), ([t101["id"]], ["Z999"]), "Projekt erkannt, unbekannte Nummer als Stichwort")
+        gleich(K[f"Rita Probe{x}"]["art"], "bauherr", "Bauherrin → Art")
+        gleich((K[f"RT-Ein Alt {x} GmbH"]["aktion"], K[f"RT-Ein Alt {x} GmbH"]["schon"]["id"]), ("ergaenzen", alt), "vorhandener Kontakt")
+        e = a.pj("/adressen/api/contacts/einlesen", {"kontakte": r["kontakte"]})
+        gleich((e["neu"], e["ergaenzt"]), (2, 1), "angelegt und ergänzt")
+        L = a.gj("/adressen/api/contacts")
+        ids = [c["id"] for c in L if c["name"] in (f"RT-Ein Dach {x} GmbH", f"Rita Probe{x}")]
+        dc = finde(L, name=f"RT-Ein Dach {x} GmbH")
+        gleich((dc["contact_person"], dc["email"], dc["stichworte"], t101["name"] in dc["projects"], [w["wert"] for w in dc["weitere"] if w["typ"] == "person"]),
+               ("Herr Max Beispiel", "a@ein.test", "Z999", True, ["Eva Muster"]), "Kontakt wie eingelesen")
+        gleich(finde(L, name=f"Rita Probe{x}")["kind"], "bauherr", "Art Bauherr:in")
+        gleich((_kontakt(ctx, alt)["street"], _kontakt(ctx, alt)["trade"]), ("Straße 3", "Maler"), "nur leere Felder gefüllt")
+        a.pj("/adressen/api/contacts/einlesen/zurueck", {})
+        L = a.gj("/adressen/api/contacts")
+        pruefe(not any(c["id"] in ids for c in L), "Rückgängig: neue Kontakte wieder weg")
+        gleich(_kontakt(ctx, alt)["street"], "", "Rückgängig: ergänzter wie vorher")
+        ids = []
+    finally:
+        _weg(ctx, alt, *ids)

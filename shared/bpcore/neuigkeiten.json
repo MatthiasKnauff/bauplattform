@@ -1,5 +1,13 @@
 [
  {
+  "id": "adr-einlesen-2211",
+  "datum": "2026-11-22",
+  "app": "adressen",
+  "titel": "Adressen aus Excel einlesen",
+  "text": "In der Befehlsleiste unter „Datei“ liest „Einlesen“ eine Excel- oder CSV-Liste ein: erst eine Vorschau (Spalten zuordnen, schon vorhandene ergänzen oder überspringen), dann ein Klick. Mehrere Zeilen derselben Firma werden ein Kontakt, Projektnummern verknüpfen mit dem Projekt. Ein Rückgängig nimmt alles zurück.",
+  "ziel": "#einlesen"
+ },
+ {
   "id": "adr-filter-sammeln-2211",
   "datum": "2026-11-22",
   "app": "adressen",

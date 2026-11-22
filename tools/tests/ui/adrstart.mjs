@@ -12,14 +12,15 @@ export async function adrStartPruefen(browser, repo) {
   const J = (o) => ({ contentType: 'application/json', body: JSON.stringify(o) });
   const KONT0 = [{ id: 1, name: 'Dach GmbH', kind: 'firma', trade: 'Dachdecker', projects: ['Haus Mustermann'], site_of: '' },
     { id: 2, name: 'Putz KG', kind: 'firma', trade: 'Putz', projects: [], site_of: '' }, { id: 3, name: 'Fam. Muster', kind: 'bauherr', trade: '', projects: [], site_of: '' }];
-  const lauf = async (start, kont = KONT0) => {
+  const lauf = async (start, kont = KONT0, extra = null) => {
     const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } }), p = await ctx.newPage(), puts = [];
-    p.on('pageerror', (e) => fehler.push('Fehler im Skript – ' + e.message));
+    p.on('pageerror', (e) => fehler.push('Fehler im Skript – ' + e.message + ' @ ' + String(e.stack).split('\n').slice(1,3).join(' | ')));
     await p.route('http://portal.test/**', (r) => { const u = new URL(r.request().url()), pf = u.pathname.replace(/^\/adressen\//, '');
       if (pf === '' ) return r.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(repo, 'plattform/static/adressen.html'), 'utf8') });
       if (pf === 'bp/baukasten.js') return r.fulfill({ contentType: 'text/javascript', body: baukasten });
       if (pf.startsWith('static/')) { const f = path.join(repo, 'plattform/static', pf.slice(7)); return fs.existsSync(f) ? r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); }   // eigene Skripte der Seite (adressen-rechts.js …)
       if (pf.startsWith('bp/')) { const f = path.join(KASTEN, pf.slice(3)); return fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); }
+      if (extra) { const x = extra(pf, r.request()); if (x) return r.fulfill(J(x)); }
       if (pf === 'api/ansicht/start') { const d = JSON.parse(r.request().postData() || '{}'); puts.push(d); return r.fulfill(J({ ohne_projekt: !!d.ohne_projekt, gefragt: !!d.gefragt })); }
       if (pf === 'api/me') return r.fulfill(J({ ok: true, id: 1, name: 'admin', is_admin: true, apps: [], start }));
       if (pf === 'api/platform') return r.fulfill(J({ apps: [], user: { name: 'admin' } }));
@@ -102,6 +103,28 @@ export async function adrStartPruefen(browser, repo) {
       await p.click('.adr-su[data-adrsu="g"]'); await p.keyboard.type('Flie', { delay: 40 }); await p.waitForSelector('.bp-vs-z', { timeout: 3000 }); await p.click('.bp-vs-z'); await p.waitForTimeout(300);
       st = await p.evaluate(() => ({ w: AF.werte('gewerk').join(), an: [...document.querySelectorAll('#navL .ni.on')].map((x) => x.dataset.adr).join(',') }));
       pruef(st.w === 'Fliesen' && /g:Fliesen/.test(st.an) && await zahl(p) === 1, `Vorschlag „Fliesen“ wird Filter und steht links als gewählt – ${JSON.stringify(st)}`);
+      await ctx.close(); }
+    {   // Adressen einlesen (GO 22.11.2026, AE-1 … AE-7 A): Datei → Vorschau mit Spalten und Kontakten, Spalte umstellen fragt den Server neu, Einlesen schickt die Kontakte
+      const gesendet = [], K1 = [{ name: 'Dach Eins GmbH', art: '', gewerke: ['Dachdecker'], zip: '45127', city: 'Essen', personen: [{ anrede: 'Herr', name: 'Max Beispiel' }, { anrede: 'Frau', name: 'Eva Muster' }], projekte: [], stichworte: [], aktion: 'neu', schon: null },
+        { name: 'Dach GmbH', art: '', gewerke: ['Dachdecker'], personen: [], projekte: [], stichworte: [], aktion: 'ergaenzen', schon: { id: 1, name: 'Dach GmbH' } }];
+      const { ctx, p } = await lauf({ ohne_projekt: true, gefragt: true }, KONT0, (pf, q) => {
+        if (pf === 'api/contacts/einlesen/datei') return { kopf: ['Gewerk', 'Müller'], zeilen: [['Dachdecker', 'Dach Eins GmbH']], spalten: ['gewerk', 'firma'], felder: { '': '– nicht einlesen –', gewerk: 'Gewerk', firma: 'Firma / Name', notiz: 'Notizen' }, kontakte: K1, summe: {} };
+        if (pf === 'api/contacts/einlesen/ordnen') { gesendet.push(['ordnen', JSON.parse(q.postData())]); return { kontakte: K1 }; }
+        if (pf === 'api/contacts/einlesen') { gesendet.push(['einlesen', JSON.parse(q.postData())]); return { ok: true, neu: 1, ergaenzt: 1 }; }
+        if (pf.startsWith('api/bp/aufraeumen/')) return { vorschlaege: [], werte: [] };   // danach öffnet „Aufräumen“ (AE-7)
+        if (pf === 'api/contacts/duplikate') return [];
+        return null; });
+      const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.click('#einlesen')]);
+      await fc.setFiles({ name: 'liste.xlsx', mimeType: 'application/octet-stream', buffer: Buffer.from('x') });
+      await p.waitForSelector('.ae-t tbody tr', { timeout: 5000 });
+      let st = await p.evaluate(() => ({ zeilen: document.querySelectorAll('.ae-t tbody tr').length, schon: !!document.querySelector('.ae-t tr.schon [data-aeakt]'), personen: /2 Personen/.test(document.querySelector('.ae-t').textContent), sum: document.querySelector('.ae-sum').textContent }));
+      pruef(st.zeilen === 2 && st.schon && st.personen && /1 Kontakte neu · 1 ergänzen/.test(st.sum), `Einlesen – Vorschau: ${JSON.stringify(st)}`);
+      await p.click('[data-aesp="1"]'); await p.click('.pickm [data-i="3"]'); await p.waitForTimeout(300);
+      pruef(gesendet[0] && gesendet[0][0] === 'ordnen' && gesendet[0][1].spalten[1] === 'notiz', `Spalte umgestellt → neu geordnet: ${JSON.stringify(gesendet[0])}`);
+      await p.click('.ae-t tr.schon [data-aeakt]'); await p.click('.pickm [data-i="1"]'); await p.waitForTimeout(150);   // überspringen
+      await p.click('.modal [data-m="ok"]'); await p.waitForTimeout(400);
+      const e = gesendet.find((x) => x[0] === 'einlesen');
+      pruef(e && e[1].kontakte.length === 2 && e[1].kontakte[1].aktion === 'ueberspringen', `Einlesen schickt die Kontakte mit Wahl: ${JSON.stringify(e && e[1].kontakte.map((k) => k.aktion))}`);
       await ctx.close(); }
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   return fehler;

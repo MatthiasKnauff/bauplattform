@@ -9,6 +9,7 @@ Dieselben Daten wie die Kontakte im Bautagebuch und das Firmen-Adressbuch im Bau
 /api/contacts/export.pdf  Drucken (Adressverzeichnis, wie im Bautagebuch)
 /api/contacts/export.xlsx Export für Excel
 /api/contacts/<id>.vcf  Visitenkarte (ins Handy übernehmen)
+/api/contacts/einlesen…  Excel/CSV einlesen (adressen_einlesen.py)
 /api/ansicht/start PUT {ohne_projekt, gefragt} – je Person: Adressen ohne Projektbezug beginnen (users.extra["adressen"]); gelesen über /api/me
 """
 import json, re
@@ -138,11 +139,12 @@ def _kind(r, site):
 _weitere = shared_contacts.weitere_bereinigen   # eine Prüfung für alle Apps (bpcore/contacts.py)
 
 
-def _out(r, used, site):
-    d = {k: (r[k] if k in r.keys() else "") or "" for k in FIELDS}
+def _out(r, used, site, pnamen=None):
+    d = {k: (r[k] if k in r.keys() else "") or "" for k in shared_contacts.FELDER}   # auch Stichwörter und Tags (fehlten in der Liste)
     d["weitere"] = _extra(r["extra"] if "extra" in r.keys() else "{}").get("weitere") or []
     d["firma"] = shared_contacts.firma(r)
     n, names = used.get(r["id"], (0, []))
+    names = names + [pnamen[p] for p in (_extra(r["extra"] if "extra" in r.keys() else "{}").get("projekte") or []) if pnamen and p in pnamen]   # beteiligt laut Einlesen (contacts.extra.projekte)
     d.update(id=r["id"], kind=_kind(r, site), used=n, projects=sorted(set(names)), site_of=site.get(r["id"], ""),
              updated=r["updated"] or "")
     return d
@@ -169,7 +171,8 @@ def _now():
 def list_contacts():
     with db.tx() as c:
         used, site = _usage(c)
-        rows = [_out(r, used, site) for r in c.execute("SELECT * FROM contacts ORDER BY name")]
+        pn = {r["id"]: r["name"] for r in c.execute("SELECT id, name FROM projects")}
+        rows = [_out(r, used, site, pn) for r in c.execute("SELECT * FROM contacts ORDER BY name")]
     return jsonify(rows)
 
 
@@ -256,6 +259,74 @@ def update_contact(i):
         return jsonify(error=DUP), 409
     C.audit(g.user["name"], "kontakte", "Kontakt geändert", f"{ch.get('name') or old['name']} · " + ", ".join(FIELDS[k][1] if k in FIELDS else "Weitere Angaben" for k in ch))
     return jsonify(ok=True)
+
+
+# ---------------------------------------------------------------- Einlesen (Mock „Adressen einlesen“ AE-1 … AE-7, plattform/adressen_einlesen.py)
+import adressen_einlesen as EIN
+
+
+@app.post("/api/contacts/einlesen/datei")
+def einlesen_datei():
+    f = request.files.get("datei")
+    if not f:
+        return jsonify(error="Keine Datei."), 400
+    try:
+        Z = EIN.lesen(f.filename, f.read(EIN.MAX_BYTES + 1))   # nur gelesen, nicht gespeichert
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
+    if len(Z) < 2:
+        return jsonify(error="In der Datei stehen keine Adressen."), 400
+    S = EIN.spalten(Z[0], Z[1:])
+    with db.tx() as c:
+        K, n = EIN.ordnen(c, Z[1:], S)
+    return jsonify(kopf=Z[0], zeilen=Z[1:], spalten=S, felder=EIN.FELDER, kontakte=K, summe=n)
+
+
+@app.post("/api/contacts/einlesen/ordnen")
+def einlesen_ordnen():
+    b = request.get_json(silent=True) or {}
+    Z, S = b.get("zeilen"), b.get("spalten")
+    if not isinstance(Z, list) or not isinstance(S, list) or len(Z) > EIN.MAX_ZEILEN:
+        return jsonify(error="Ungültige Angaben."), 400
+    Z = [[str(x)[:2000] for x in r] for r in Z if isinstance(r, list)]
+    S = [x if x in EIN.FELDER else "" for x in S]
+    with db.tx() as c:
+        K, n = EIN.ordnen(c, Z, S)
+    return jsonify(kontakte=K, summe=n)
+
+
+def _einlesen_key():
+    return f"kontakte:einlesen:{g.user['id']}"
+
+
+@app.post("/api/contacts/einlesen")
+def einlesen():
+    b = request.get_json(silent=True) or {}
+    L = b.get("kontakte")
+    if not isinstance(L, list) or len(L) > EIN.MAX_ZEILEN:
+        return jsonify(error="Ungültige Angaben."), 400
+    L = [k for k in L if isinstance(k, dict)]
+    try:
+        with db.tx() as c:
+            r = EIN.einlesen(c, L, g.user["name"])
+            c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, updated=EXCLUDED.updated",
+                      (_einlesen_key(), json.dumps(r["stand"]), _now(), g.user["name"]))   # Rückgängig nur für die eigene letzte Einlesung – die Kennungen bleiben auf dem Server
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
+    C.audit(g.user["name"], "kontakte", "Adressen eingelesen", f"{r['neu']} neu · {r['ergaenzt']} ergänzt")
+    return jsonify(ok=True, neu=r["neu"], ergaenzt=r["ergaenzt"])
+
+
+@app.post("/api/contacts/einlesen/zurueck")
+def einlesen_zurueck():
+    with db.tx() as c:
+        x = c.execute("SELECT data FROM bp_store WHERE key=?", (_einlesen_key(),)).fetchone()
+        if not x:
+            return jsonify(error="Es gibt nichts zurückzunehmen."), 409
+        r = EIN.zurueck(c, json.loads(x["data"]))
+        c.execute("DELETE FROM bp_store WHERE key=?", (_einlesen_key(),))
+    C.audit(g.user["name"], "kontakte", "Einlesen zurückgenommen", f"{r['weg']} entfernt" + (f", {r['blieb']} schon benutzt" if r["blieb"] else ""))
+    return jsonify(ok=True, **r)
 
 
 _KEINDUP = "kontakte:keine_duplikate"

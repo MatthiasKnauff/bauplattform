@@ -80,6 +80,23 @@ def test_planstaende(ctx):
     a.pj(f"{B}/planstand/{e2['entwurf']}", {"gilt": True})
     r = a.pj(f"{B}/bauteile/aufraeumen", {})
     pruefe(not any(z.get("entfaellt") for z in r["modell"]["bauteilliste"]["zeilen"]), "Aufräumen")
+    # Etappe 4 (22.11.2026, F4-A): Arbeitsstand festhalten → Version (Kopie, mit Netz); Version zurückholen → neuer Arbeitsstand, die Version bleibt
+    a.post(f"{B}/planstand/{e['entwurf']}", {"festhalten": "x"}, expect=400)   # nur der Arbeitsstand
+    v1 = a.pj(f"{B}/planstand/{e2['entwurf']}", {"festhalten": "Entwurf Bauherr"})
+    vid = v1["version"]
+    pruefe(vid and vid != e2["entwurf"] and v1["modell"]["bauteilliste"]["quelle"]["planstand"] == e2["entwurf"], f"Version festgehalten, Arbeitsstand bleibt: {vid}")
+    pruefe(a.get(f"{B}/netz?planstand={vid}").status == 200, "Version hat ihr 3D")
+    z0 = v1["modell"]["bauteilliste"]["zeilen"][0]
+    a.pj(f"{B}/bauteile/zeile", {"id": z0["id"], "berechnen": not z0["berechnen"]})   # am Arbeitsstand weiterbauen
+    vv = next(z for z in a.gj(f"{B}/planstand/{vid}")["liste"]["zeilen"] if z["id"] == z0["id"])
+    gleich(vv["berechnen"], z0["berechnen"], "die Version ändert sich nicht mit")
+    z1 = a.pj(f"{B}/planstand/{vid}", {"zurueckholen": True})
+    ak = z1["arbeitsstand"]
+    pruefe(ak not in (vid, e2["entwurf"]) and z1["modell"]["bauteilliste"]["quelle"]["planstand"] == ak and "zurückgeholt" in z1["modell"]["bauteilliste"]["quelle"]["name"], f"zurückgeholt als neuer Arbeitsstand: {z1['modell']['bauteilliste']['quelle']}")
+    pruefe(any(p["id"] == vid for p in z1["planstaende"]), "die Version bleibt")
+    a.pj(f"{B}/planstand/{e2['entwurf']}", {"gilt": True})
+    for x in (vid, ak):
+        a.post(f"{B}/planstand/{x}", {"loeschen": True})
     a.post(f"{B}/bauteile/lesen", {"quelle": "server", "pfad": "plan.dwg"}, expect=400)
     # alle Planstände löschen (17.11.2026): kein „Geist“ aus dem Plan (Fläche, Räume, Quelle), IFC ausgeben geht dann nicht
     pk = [a.post(f"{B}/planstand/{x}", {"loeschen": True}).json["papierkorb"] for x in (e["entwurf"], e2["entwurf"])]

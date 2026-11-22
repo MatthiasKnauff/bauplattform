@@ -11,7 +11,11 @@ Einlesen in zwei Schritten:
   2. übernehmen  mit der Zuordnung per Klick („entfällt“ ↔ „neu“ = dasselbe Bauteil → Antworten wandern mit). Entfallene Zeilen mit
              Antwort bleiben als „entfällt“ stehen (nicht berechnet), bis jemand aufräumt; ohne Antwort fallen sie weg.
 
-abgleich(alt, neu) · uebernehmen(alt, neu, zuordnung) · aufraeumen(liste) · lesen_datei(name, raw) · routen(bp, mit, lesen, schreiben)
+Arbeitsstand und Versionen (Etappe 4 „Gebäudemodell neu“, F4-A, 22.11.2026): der gültige Planstand ist der Arbeitsstand – nur er
+ändert sich; alle übrigen sind Versionen. festhalten() kopiert den Arbeitsstand als Version (von Hand oder beim Versand, gruppe „versand“),
+POST {zurueckholen} macht aus einer Version einen neuen Arbeitsstand (Kopie) – die Version selbst bleibt unverändert.
+
+abgleich(alt, neu) · uebernehmen(alt, neu, zuordnung) · aufraeumen(liste) · lesen_datei(name, raw) · festhalten(c, pid, m, name, wer, gruppe) · routen(bp, mit, lesen, schreiben)
 """
 import json
 import re
@@ -151,12 +155,34 @@ def dxf_zuordnung(c, neu=None, wer=""):
 # ------------------------------------------------------------------ Datenbank
 def _zeile(r):
     return {"id": r["id"], "name": r["name"], "datei": r["datei"], "pfad": r["pfad"], "art": r["art"], "wer": r["wer"], "erstellt": r["erstellt"],
-            "archiviert": bool(r["archiviert"])}
+            "archiviert": bool(r["archiviert"]), "gruppe": (r["gruppe"] if "gruppe" in r.keys() else "") or ""}
 
 
 def liste(c, pid):
-    return [_zeile(r) for r in c.execute("SELECT id, name, datei, pfad, art, wer, erstellt, archiviert FROM pm_planstand WHERE project_id=? AND entwurf=0 "
+    return [_zeile(r) for r in c.execute("SELECT id, name, datei, pfad, art, wer, erstellt, archiviert, gruppe FROM pm_planstand WHERE project_id=? AND entwurf=0 "
                                          "ORDER BY id", (pid,)).fetchall()]
+
+
+def _kopie(c, pid, sid, L, name, wer, gruppe=""):
+    """Neuer Planstand als Kopie von sid mit der Liste L (3D-Netz und IFC-Datei gehen mit – dieselbe Datei im Speicher, kein zweites Dokument)."""
+    P = holen(c, pid, sid)
+    nid = _neu(c, pid, name, P["datei"] if P else "", P["pfad"] if P else "", "", (P or {}).get("art") or "ifc", wer, {}, False)
+    L = dict(L, quelle=dict(L.get("quelle") or {}, planstand=nid, name=name[:120]))
+    c.execute("UPDATE pm_planstand SET daten=?, gruppe=? WHERE id=?", (json.dumps(L, ensure_ascii=False), gruppe[:12], nid))
+    c.execute("INSERT INTO pm_netz(planstand, daten, erstellt) SELECT ?, daten, erstellt FROM pm_netz WHERE planstand=?", (nid, sid))
+    c.execute("INSERT INTO pm_planstand_datei(planstand, name, daten, datei_ref) SELECT ?, name, daten, datei_ref FROM pm_planstand_datei WHERE planstand=?", (nid, sid))
+    return nid
+
+
+def festhalten(c, pid, m, name, wer, gruppe=""):
+    """Arbeitsstand als Version festhalten (Etappe 4, GN-D): Kopie des gültigen Planstands, die nichts mehr ändert – der Arbeitsstand
+    bleibt, wo er ist. gruppe „versand“ = von selbst beim Versand (modell.einfrieren, F5-A). → Nummer der Version (None ohne Planstand)."""
+    L = m.get("bauteilliste") or {}
+    sid = (L.get("quelle") or {}).get("planstand")
+    if not sid or not L.get("zeilen"):
+        return None
+    _sichern(c, pid, L, wer)
+    return _kopie(c, pid, sid, L, name or f"Version {datetime.now().strftime('%d.%m.%Y %H:%M')}", wer, gruppe)
 
 
 def holen(c, pid, sid):
@@ -415,6 +441,19 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                 if gilt and d["archiviert"]:
                     return jsonify(error="Der gültige Planstand kann nicht archiviert werden."), 400
                 c.execute("UPDATE pm_planstand SET archiviert=? WHERE id=?", (1 if d["archiviert"] else 0, sid))
+            if d.get("festhalten") is not None:   # Arbeitsstand als Version festhalten (Etappe 4)
+                if not gilt:
+                    return jsonify(error="Festhalten lässt sich nur der Arbeitsstand."), 400
+                nid = festhalten(c, pid, m, str(d.get("festhalten") or "").strip()[:120], wer)
+                return antwort(c, pid, version=nid)
+            if d.get("zurueckholen") and not gilt:   # Version als Arbeitsstand zurückholen: Kopie wird der Arbeitsstand – die Version bleibt, wie sie war
+                _sichern(c, pid, alt, wer)
+                L = B.sauber(P["daten"] if "zeilen" in P["daten"] else P["daten"].get("liste"))
+                nid = _kopie(c, pid, sid, L, f"{P['name']} (zurückgeholt)"[:120], wer)
+                if not (m.get("baukasten") or {}).get("koerper") and isinstance(P["daten"].get("_baukasten"), dict):
+                    m["baukasten"], m["korb"] = P["daten"]["_baukasten"], P["daten"].get("_korb") or {}
+                schreiben_modell(c, pid, anwenden(m, B.sauber(holen(c, pid, nid)["daten"])), wer)
+                return antwort(c, pid, arbeitsstand=nid)
             if d.get("gilt") and not gilt:
                 _sichern(c, pid, alt, wer)
                 if not (m.get("baukasten") or {}).get("koerper") and isinstance(P["daten"].get("_baukasten"), dict):   # mit dem Planstand gelöschter Baukasten kommt zurück

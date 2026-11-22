@@ -32,7 +32,7 @@ async function gmListe(art, fokus, ausBT) {   // ausBT: Reiterwechsel – das Mo
 function gmNurAnsehen(C, an) {   // derselbe Hinweis wie über den Bauteilen; Felder und Knöpfe der Liste gesperrt
   C.querySelectorAll('input,select,textarea,button').forEach((x) => { x.disabled = true; });
   const h = document.createElement('div'); h.className = 'gm-hin gm-ansehen';
-  h.innerHTML = `<span>Du siehst <b>${esc(an.name)}</b> – gilt nicht, nur zum Ansehen.</span><button type="button" class="btn" data-gman="zurueck">Zurück zum gültigen</button><button type="button" class="btn primary" data-gman="gilt">Diesen Planstand gelten lassen</button>`;
+  h.innerHTML = `<span>Du siehst die Version <b>${esc(an.name)}</b> – nur zum Ansehen.</span><button type="button" class="btn" data-gman="zurueck">Zurück zum Arbeitsstand</button><button type="button" class="btn primary" data-gman="gilt">Als Arbeitsstand zurückholen</button>`;
   C.prepend(h);
 }
 async function gmListeZeichnen(art, fokus, L, C, an) {

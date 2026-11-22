@@ -44,8 +44,9 @@ function leiste() {
   onPick: (v) => { if (v === 'ifc') { if (!BT || !st.ifc || st.an || !(st.zeilen || []).length) return toast('IFC ausgeben geht nur mit einem gültigen IFC-Planstand.', true); return BT.ausgeben(); }
     if (v === 'bh') { if (!bh) return toast('Das Bauherrenportal ist nicht eingerichtet.', true); return bauherr(); } } });
   befehle(LEISTE, [
-    { titel: 'Planstand', knoepfe: [{ t: 'Neuer Planstand …', ic: IC.lesen, fn: async () => { if (!BT) { SICHT = 'bauteile'; await zeichne(); } if (BT) BT.anfang(true); }, aus: !PID, tip: 'Wie willst du beginnen? Mit dem Baukasten, mit der Planung oder mit einer Datei (IFC, DXF, PDF)' },
-      { t: 'Gelten lassen', ic: IC.gilt, fn: () => BT.gelten(), aus: !st.an, tip: 'Den angesehenen Planstand gelten lassen – die Apps arbeiten dann damit' },
+    { titel: 'Stand', knoepfe: [{ t: 'Neuer Plan …', ic: IC.lesen, fn: async () => { if (!BT) { SICHT = 'bauteile'; await zeichne(); } if (BT) BT.anfang(true); }, aus: !PID, tip: 'Wie willst du beginnen? Mit dem Baukasten, mit der Planung oder mit einer Datei (IFC, DXF, PDF)' },
+      st.an ? { t: 'Zurückholen', ic: IC.gilt, fn: () => BT.gelten(), tip: 'Die angesehene Version als Arbeitsstand zurückholen – die Apps arbeiten dann damit, die Version bleibt' }
+        : { t: 'Version festhalten', ic: IC.gilt, fn: () => BT.festhalten(), aus: !st.gilt, tip: 'Den Arbeitsstand als Version festhalten – am Arbeitsstand geht es weiter' },
       ...(st.weg && !st.an ? [{ t: `${st.weg} entfallene entfernen`, ic: IC.weg, fn: () => BT.aufraeumen(), tip: 'Zeilen entfernen, die im gültigen Planstand nicht mehr vorkommen' }] : []),   // nur, wenn es etwas gibt (Mock „schlank“)
       { t: 'Ausgeben ▾', ic: IC.aus, fn: ausgeben, aus: !PID, tip: 'IFC mit Maßnahmen ausgeben · im Bauherrenportal zeigen' }] },
   ]);

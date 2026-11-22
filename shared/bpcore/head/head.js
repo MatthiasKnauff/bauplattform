@@ -1734,7 +1734,8 @@
   };
   /* Kompaktes Versionsmenü (ein Knopf „1 Version: Startversion ▾“ statt der breiten Leiste) – für alle Module gleich.
      H.versionsMenue({ in: Element, liste, aktuell, gueltig, onWahl, onNeu, onUmbenennen, onVerlauf, onVerwalten, onGueltig, extra, wahlHinweis,
-       wort ('Version' – z. B. 'Antrag'), neuText, giltText, fragen: false (beim Wechsel nicht nach „gilt“ fragen) })
+       wort ('Version' – z. B. 'Antrag'), neuText, giltText, fragen: false (beim Wechsel nicht nach „gilt“ fragen),
+       gruppen: {schlüssel: Überschrift} – Einträge mit gruppe stehen eingeklappt darunter (22.11.2026) })
      gueltig: die Version, die für Bautagebuch, Erinnerungen, To-dos … gilt (★); onGueltig(id) setzt sie. Erneut aufrufen zum Aktualisieren. */
   H.versionsMenue = function (o) {
     const box = o.in; if (!box) return null;
@@ -1773,13 +1774,14 @@
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape') zu(); });
     }
     el._o = o;
-    const L = o.liste || [], akt = L.find((x) => String(x.id) === String(o.aktuell)), aktiv = L.filter((x) => !x.archiviert), nr = (x) => aktiv.indexOf(x) + 1;
+    const L = o.liste || [], akt = L.find((x) => String(x.id) === String(o.aktuell)), aktiv = L.filter((x) => !x.archiviert && !x.gruppe), nr = (x) => aktiv.indexOf(x) + 1;
+    const GR = [...new Set(L.filter((x) => !x.archiviert && x.gruppe).map((x) => x.gruppe))];   // o.gruppen = {schlüssel: Überschrift} – eingeklappt (Gebäudemodell: „Versand“)
     const gilt = (x) => o.gueltig != null && String(x.id) === String(o.gueltig);
-    const zeile = (x) => `<button type="button" class="bph-vm-i${x === akt ? ' on' : ''}" data-vm="w" data-id="${esc(x.id)}" role="menuitem"><span class="n">${x.archiviert ? '🗄' : nr(x)}</span><span class="t">${esc(x.name || 'ohne Namen')}${gilt(x) ? ' <em title="Diese Version gilt">★ gilt</em>' : ''}</span><small>${esc(x.datum || '')}</small></button>`;
+    const zeile = (x) => `<button type="button" class="bph-vm-i${x === akt ? ' on' : ''}" data-vm="w" data-id="${esc(x.id)}" role="menuitem"><span class="n">${x.archiviert ? '🗄' : x.gruppe ? '·' : nr(x)}</span><span class="t">${esc(x.name || 'ohne Namen')}${gilt(x) ? ' <em title="Diese Version gilt">★ gilt</em>' : ''}</span><small>${esc(x.datum || '')}</small></button>`;
     const hinweis = akt && o.gueltig != null && !gilt(akt) && o.fragen !== false ? `<span class="bph-vm-ng" title="Bautagebuch, Erinnerungen und To-dos richten sich nach der gültigen Version">gilt nicht</span>` : akt && o.gueltig != null && gilt(akt) ? '<span class="bph-vm-g" title="Diese Version gilt – für Bautagebuch, Erinnerungen und To-dos">★</span>' : '';
     if (el._m && el._m.parentNode === document.body) el._m.remove();   // altes Menü (hing offen an <body>)
-    el.innerHTML = `<button type="button" class="bph-vm-b" data-vm="dd" aria-haspopup="menu" title="Version wechseln, neu anlegen, umbenennen …"${akt || L.length || o.onNeu ? '' : ' disabled'}><span class="n">${akt ? (akt.archiviert ? '🗄' : nr(akt)) : '–'}</span><span class="t">${esc(o.wort || 'Version')}: <b>${esc(akt ? akt.name || 'ohne Namen' : L.length ? '–' : 'noch keiner')}</b></span>${hinweis}<span class="c">▾</span></button>
-      <div class="bph-vm-m" role="menu" hidden>${aktiv.map(zeile).join('')}${L.some((x) => x.archiviert) ? '<div class="bph-vm-h">Archiviert</div>' + L.filter((x) => x.archiviert).map(zeile).join('') : ''}
+    el.innerHTML = `<button type="button" class="bph-vm-b" data-vm="dd" aria-haspopup="menu" title="Version wechseln, neu anlegen, umbenennen …"${akt || L.length || o.onNeu ? '' : ' disabled'}><span class="n">${akt ? (akt.archiviert ? '🗄' : akt.gruppe ? '·' : nr(akt)) : '–'}</span><span class="t">${esc(o.wort || 'Version')}: <b>${esc(akt ? akt.name || 'ohne Namen' : L.length ? '–' : 'noch keiner')}</b></span>${hinweis}<span class="c">▾</span></button>
+      <div class="bph-vm-m" role="menu" hidden>${aktiv.map(zeile).join('')}${GR.map((g) => { const X = L.filter((x) => !x.archiviert && x.gruppe === g); return `<details class="bph-vm-gr bp-klapp-aus"${akt && X.includes(akt) ? ' open' : ''}><summary class="bph-vm-h">${esc((o.gruppen || {})[g] || g)} (${X.length})</summary>${X.map(zeile).join('')}</details>`; }).join('')}${L.some((x) => x.archiviert) ? '<div class="bph-vm-h">Archiviert</div>' + L.filter((x) => x.archiviert).map(zeile).join('') : ''}
         <hr>${akt && o.onGueltig && !gilt(akt) ? `<button type="button" data-vm="gilt" class="bph-vm-pri">${esc(o.giltText || '★ Diese Version gilt ab jetzt …')}</button>` : ''}${o.onNeu && (akt || o.neuText) ? `<button type="button" data-vm="neu">${esc(o.neuText || `＋ Neue Version aus „${akt.name || ''}“ …`)}</button>` : ''}${(o.extra || []).map((x, i) => `<button type="button" data-vm="x" data-i="${i}">${esc(x.text)}</button>`).join('')}${akt && o.onUmbenennen ? '<button type="button" data-vm="ren">✎ Umbenennen …</button>' : ''}${o.onVerlauf ? '<button type="button" data-vm="ver">🕘 Verlauf …</button>' : ''}${akt && o.onVerwalten ? '<button type="button" data-vm="verw">🗄 Archivieren / löschen …</button>' : ''}</div>`;
     el._m = el.querySelector('.bph-vm-m'); el._m._el = el; el._m.addEventListener('click', el._klick);
     return el;

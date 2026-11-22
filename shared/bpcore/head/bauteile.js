@@ -191,14 +191,23 @@
     async function aendern(id, was, text) {
       try { neu(await (await J(`${basis}/planstand/${id}`, 'POST', was)).json()); if (was.gilt || was.loeschen) Z.an = null; zeichne(); if (text) sag(text); } catch (e) { sag(e.message, true); }
     }
-    function menue(box) {   // gemeinsames Versionsmenü (head.js) – „Planstand“ statt „Version“
+    /* Arbeitsstand und Versionen (Etappe 4 „Gebäudemodell neu“, F4-A/F5-A – 22.11.2026): der gültige Planstand ist der Arbeitsstand,
+       die übrigen sind festgehaltene Versionen; Versionen vom Versand eingeklappt in der Gruppe „Versand“. Zurückholen = Kopie wird Arbeitsstand. */
+    const ZURUECK = 'Die Version ist jetzt der Arbeitsstand – die Apps arbeiten damit. Die Version selbst bleibt, wie sie war.';
+    async function festhalten() {
+      const g = gilt(); if (!g) return sag('Noch kein Arbeitsstand.', true);
+      const n = await bpEingabe('Name der Version (z. B. „Entwurf Bauherr“):', ''); if (n == null) return;
+      await aendern(g, { festhalten: n.trim() }, 'Version festgehalten – am Arbeitsstand geht es weiter.');
+    }
+    function menue(box) {   // gemeinsames Versionsmenü (head.js)
       if (!H.versionsMenue || !box) return;
       const g = gilt(), akt = Z.an ? Z.an.id : g;
-      H.versionsMenue({ in: box, wort: 'Planstand', liste: Z.ps.map((x) => ({ id: x.id, name: x.name, datum: tag(x.erstellt), archiviert: x.archiviert })), aktuell: akt, gueltig: g,
-        wahlHinweis: 'Kosten, Ausschreibung, Termine und die anderen Apps arbeiten mit dem gültigen Planstand.',
-        neuText: '＋ Neuer Planstand …', giltText: '★ Dieser Planstand gilt ab jetzt …',
-        onWahl: (id, wird) => (wird ? null : ansehen(id)),
-        onGueltig: (id) => aendern(id, { gilt: true }, 'Der Planstand gilt jetzt – die Apps arbeiten damit.'),
+      H.versionsMenue({ in: box, wort: 'Stand', fragen: false, gruppen: { versand: 'Beim Versand festgehalten' },
+        liste: Z.ps.map((x) => ({ id: x.id, name: String(x.id) === String(g) ? `Arbeitsstand · ${x.name}` : x.name, datum: tag(x.erstellt), archiviert: x.archiviert, gruppe: String(x.id) === String(g) ? '' : x.gruppe || '' })), aktuell: akt, gueltig: g,
+        neuText: '＋ Neuer Plan / neu beginnen …', giltText: '↩ Als Arbeitsstand zurückholen …',
+        extra: g && String(akt) === String(g) ? [{ text: '📌 Version festhalten …', fn: festhalten }] : [],
+        onWahl: (id) => ansehen(id),
+        onGueltig: (id) => aendern(id, { zurueckholen: true }, ZURUECK),
         onNeu: () => anfang(true),
         onUmbenennen: async () => { const x = Z.ps.find((y) => String(y.id) === String(akt)); const n = await bpEingabe('Name des Planstands:', x ? x.name : ''); if (n && n.trim()) aendern(akt, { name: n.trim() }); },
         onVerwalten: async () => {   // jeder Planstand lässt sich löschen – auch der gültige (16.11.2026), immer über den Papierkorb mit Rückgängig
@@ -394,8 +403,8 @@
         : `<div class="bt-kopf"><span class="bt-ps">${stand ? 'Planstand: ' + stand : 'Noch kein Planstand eingelesen.'}${gm ? ` · <a href="${esc(H.appUrl(gm))}/#bauteile">${stand ? 'Neuen Planstand einlesen' : 'Plan einlesen'} → Gebäudemodell</a>` : ''}</span>
           ${ZZ.length ? `<span class="bt-z${offen ? ' rot' : ''}" title="noch offen">${offen ? offen + ' offen' : 'alles beantwortet'}</span>` : ''}
           <button type="button" class="btn" data-bthand title="Bauteil ohne Modell anlegen: Menge eintippen, Aufbau aus dem Baukasten">＋ Zeile von Hand</button></div><div class="bt-w"></div>`;
-      const an = Z.an ? `<div class="bt-an"><span>Du siehst <b>${esc(Z.an.name)}</b> – gilt nicht. Gegenüber dem gültigen: ${Z.an.abgleich.neu.length} neu · ${Z.an.abgleich.geaendert.length} geändert · ${Z.an.abgleich.entfaellt.length} entfällt.</span>
-        <button type="button" class="btn" data-btzurueck>Zurück zum gültigen</button><button type="button" class="btn primary" data-btgilt>Diesen Planstand gelten lassen</button></div>` : '';
+      const an = Z.an ? `<div class="bt-an"><span>Du siehst die Version <b>${esc(Z.an.name)}</b> – nur zum Ansehen. Gegenüber dem Arbeitsstand: ${Z.an.abgleich.neu.length} neu · ${Z.an.abgleich.geaendert.length} geändert · ${Z.an.abgleich.entfaellt.length} entfällt.</span>
+        <button type="button" class="btn" data-btzurueck>Zurück zum Arbeitsstand</button><button type="button" class="btn primary" data-btgilt>Als Arbeitsstand zurückholen</button></div>` : '';
       if (!ZZ.length) {   // ohne Modell (Z1, 17.11.2026): dieselbe Meldung wie überall – aus der Planung anlegen, Plan einlesen oder Zeile von Hand
         const A = (Z.d.modell || {}).assistent || {}, plan = !!A.type;
         el.innerHTML = `<div class="bt-l">${typeof bpLeer === 'function' ? bpLeer({ was: 'keine Bauteile', text: plan ? 'Aus der Planung lässt sich ein erster Stand anlegen – mit Vorschlagsmengen und Preisspanne aus den Baudaten. Oder einen Plan einlesen (IFC, DXF, PDF).' : 'Erst die Planung beginnen (Was wird gebaut, wie groß) – daraus entstehen die Bauteile. Oder einen Plan einlesen (IFC, DXF, PDF).',
@@ -627,7 +636,7 @@
       if (t.closest('[data-btplanung]')) { if (window.seiteReiterVon && seiteReiterVon(el, 'planung')) return; sag('Die Planung steht im Reiter „Planung“ rechts.'); return; }
       if (t.closest('[data-btki]')) return verfeinern();
       if (t.closest('[data-btzurueck]')) return ansehen(null);
-      if (t.closest('[data-btgilt]') && Z.an) return aendern(Z.an.id, { gilt: true }, 'Der Planstand gilt jetzt – die Apps arbeiten damit.');
+      if (t.closest('[data-btgilt]') && Z.an) return aendern(Z.an.id, { zurueckholen: true }, ZURUECK);
       if (t.closest('[data-btweg-alle]')) {
         if (!(await bpFrage('Alle Zeilen entfernen, die im gültigen Planstand nicht mehr vorkommen? Ihre Antworten gehen dabei verloren.', { ok: 'Aufräumen' }))) return;
         try { const d = await (await J(`${basis}/bauteile/aufraeumen`, 'POST', {})).json(); neu(d); sag(`${d.entfernt} Zeilen entfernt.`); zeichne(); } catch (er) { sag(er.message, true); }
@@ -747,8 +756,8 @@
     const ganzVerteilt = (z) => z.menge_basis != null && !z.anzahl && z.verteilt;
     function baumZeichnen() {
       const Li = L(), [ZZ, tw] = teilFilter((Li.zeilen || []).filter((z) => !ganzVerteilt(z))), nRw = ((Z.rw && Z.rw.vorschlaege) || []).length, leer = !ZZ.length;
-      const an = Z.an ? `<div class="bt-an"><span>Du siehst <b>${esc(Z.an.name)}</b> – gilt nicht. Gegenüber dem gültigen: ${Z.an.abgleich.neu.length} neu · ${Z.an.abgleich.geaendert.length} geändert · ${Z.an.abgleich.entfaellt.length} entfällt.</span>
-        <button type="button" class="btn" data-btzurueck>Zurück zum gültigen</button><button type="button" class="btn primary" data-btgilt>Diesen Planstand gelten lassen</button></div>` : '';
+      const an = Z.an ? `<div class="bt-an"><span>Du siehst die Version <b>${esc(Z.an.name)}</b> – nur zum Ansehen. Gegenüber dem Arbeitsstand: ${Z.an.abgleich.neu.length} neu · ${Z.an.abgleich.geaendert.length} geändert · ${Z.an.abgleich.entfaellt.length} entfällt.</span>
+        <button type="button" class="btn" data-btzurueck>Zurück zum Arbeitsstand</button><button type="button" class="btn primary" data-btgilt>Als Arbeitsstand zurückholen</button></div>` : '';
       const rwl = nRw && !Z.an ? `<div class="bt-rwl"><span>${nRw} Vorschl${nRw === 1 ? 'ag' : 'äge'} fürs Modell (aus den Apps${(Z.rw.vorschlaege || []).some((h) => h.daten && h.daten.extern) ? ' und der externen KI' : ''})</span><button type="button" class="btn sm" data-btrwzeig>ansehen</button></div>` : '';
       const nZ = !Z.an && Li.zeilen ? zeichnerListe().length : 0;
       const zl = nZ ? `<div class="bt-rwl"><span>${nZ} Hinweis${nZ === 1 ? '' : 'e'} an den Zeichner (Plan und Modell weichen ab, Kürzel fehlen)</span><button type="button" class="btn sm" data-btzeichner>ansehen</button></div>` : '';
@@ -974,7 +983,8 @@
     const api = {
       laden, menue, verfeinern, einlesen, anfang, ansehen,
       hand: () => tue('data-bthand'), aufraeumen: () => tue('data-btweg-alle'), ausgeben: () => tue('data-btaus'),
-      gelten: () => (Z.an ? aendern(Z.an.id, { gilt: true }, 'Der Planstand gilt jetzt – die Apps arbeiten damit.') : null),
+      gelten: () => (Z.an ? aendern(Z.an.id, { zurueckholen: true }, ZURUECK) : null),
+      festhalten: () => festhalten(),
       details(box) { Z.det = box; box.onclick = klick; box.onchange = wechsel; box.oninput = suchen; box.onkeydown = suchTaste; box.addEventListener('toggle', blkMerk, true); detailsZeichnen(); },
       zustand: () => ({ an: Z.an, planstaende: Z.ps.length, gilt: (G().quelle || {}).planstand || null, ifc: ifcDa(G().quelle || {}), plan: !!(G().quelle || {}).planstand && ((G().quelle || {}).art || 'ifc') !== 'hand', planart: (G().quelle || {}).art || '', zeilen: L().zeilen, weg: G().zeilen.filter((z) => z.entfaellt).length, extern: !!(Z.rw && Z.rw.extern), sel: Z.sel, modell: Z.d && Z.d.modell, rev: Z.d && Z.d.rev }),
       mehr(ids) { mwSetzen(ids || []); },   // im 3D mehrere gewählt (Zeilen-Kennungen)

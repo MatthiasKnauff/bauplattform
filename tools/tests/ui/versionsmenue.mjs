@@ -33,6 +33,14 @@ export async function versionsmenuePruefen(browser, repo) {
     pruef(await p.evaluate(() => W.join()) === '2', 'Klick auf einen Eintrag im Menü wirkt');
     await p.click('#box [data-vm="dd"]'); await p.click('.bph-vm-m [data-vm="neu"]');
     pruef(await p.evaluate(() => W.join()) === '2,neu', 'Befehl im Menü wirkt');
+    // Gruppen (22.11.2026, Gebäudemodell: Versionen vom Versand eingeklappt)
+    await p.evaluate(() => BPHead.versionsMenue({ in: document.getElementById('box'), gruppen: { versand: 'Beim Versand festgehalten' }, onWahl: (id) => W.push(id),
+      liste: [{ id: 1, name: 'Arbeitsstand' }, { id: 3, name: 'LV Rohbau', gruppe: 'versand' }, { id: 4, name: 'Bauantrag', gruppe: 'versand' }], aktuell: 1 }));
+    await p.click('#box [data-vm="dd"]');
+    const g = await p.evaluate(() => { const d = document.querySelector('.bph-vm-m:not([hidden]) details.bph-vm-gr'); return d && { zu: !d.open, t: d.querySelector('summary').textContent, n: d.querySelectorAll('[data-vm="w"]').length, oben: document.querySelectorAll('.bph-vm-m:not([hidden]) > [data-vm="w"]').length }; });
+    pruef(g && g.zu && /Versand festgehalten \(2\)/.test(g.t) && g.n === 2 && g.oben === 1, `Gruppe eingeklappt unter den übrigen: ${JSON.stringify(g)}`);
+    await p.click('.bph-vm-m details.bph-vm-gr summary'); await p.click('.bph-vm-m [data-vm="w"][data-id="4"]');
+    pruef(await p.evaluate(() => W.join()) === '2,neu,4', 'Eintrag in der Gruppe wählbar');
     await p.evaluate(() => BPHead.versionsMenue({ in: document.getElementById('box'), liste: [{ id: 1, name: 'A' }], aktuell: 1, onWahl: () => {} }));
     pruef(await p.evaluate(() => document.querySelectorAll('.bph-vm-m').length) === 1, 'neu gezeichnet: kein altes Menü bleibt an <body> hängen');
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }

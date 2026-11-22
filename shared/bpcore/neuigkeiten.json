@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-arbeitsstand",
+  "datum": "2026-11-22",
+  "app": "gebaeudemodell",
+  "titel": "Arbeitsstand und Versionen",
+  "text": "Im Gebäudemodell baust du immer am Arbeitsstand. „Version festhalten“ legt eine Kopie ab, die sich nicht mehr ändert; eine Version lässt sich ansehen und als Arbeitsstand zurückholen. Beim Versand (LV, Bauantrag, Bauherrenportal) hält das Modell von selbst eine Version fest – eingeklappt unter „Beim Versand festgehalten“.",
+  "ziel": ".gm-vm"
+ },
+ {
   "id": "bt-spaltbreite",
   "datum": "2026-11-22",
   "app": "gebaeudemodell",

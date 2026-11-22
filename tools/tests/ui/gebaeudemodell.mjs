@@ -81,7 +81,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
       tabelle: !!document.querySelector('#view table.bt-baum') }));
     // Mock „Gebäude bearbeiten“ (21.11.2026): links Gebäude › 3D · Grundriss, Verknüpfungen; Mitte nur Grafik (E1), rechts Bauteile · Räume · Fragen · Planung (C, R-A)
     pruef(a.nav.join('|') === '3D|Grundriss|Verknüpfungen', `Navigation: ${a.nav.join('|')}`);
-    pruef(a.bf.includes('Planstand') && !a.bf.includes('Ansicht') && !['Neu', 'KI', 'Ausgabe', 'Teilen'].some((g) => a.bf.includes(g)), `Befehlsleiste: ${a.bf.join('|')}`);
+    pruef(a.bf.includes('Stand') && !a.bf.includes('Ansicht') && !['Neu', 'KI', 'Ausgabe', 'Teilen'].some((g) => a.bf.includes(g)), `Befehlsleiste: ${a.bf.join('|')}`);
     pruef(!['3D', 'Grundriss', 'Tabelle'].some((t) => a.kn.some((k) => k.endsWith(t))) && !a.kn.some((k) => /Details|Aufräumen|entfallene/.test(k)), `Knöpfe: ${a.kn.join('|')}`);
     pruef(a.rk.join('|') === 'Alle Bauteile|Fenster & Türen einzeln', `über dem Baum rechts: ${a.rk.join('|')}`);
     pruef(a.tabs.join('|') === 'Bauteile|Räume|Fragen|Planung', `Reiter rechts: ${a.tabs.join('|')}`);
@@ -144,7 +144,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
       pruef(await p.evaluate(() => { const b = document.querySelector('.b3-l [data-gmbearb]'); return b && b.disabled; }), 'Plan aus einer Datei: Schalter „Gebäude bearbeiten“ grau');
       await zu('bauteile'); await p.waitForSelector('.sr-r table.bt-baum');
       // „Neuer Planstand …“ in der Befehlsleiste: Wie willst du beginnen? → Mit dem Baukasten = Erdgeschoss + Satteldach, eigener Planstand (gilt sofort)
-      await p.evaluate(() => [...document.querySelectorAll('#bfl button')].find((b) => /Neuer Planstand/.test(b.textContent)).click()); await p.waitForSelector('.bt-anf [data-m="baukasten"]');
+      await p.evaluate(() => [...document.querySelectorAll('#bfl button')].find((b) => /Neuer Plan/.test(b.textContent)).click()); await p.waitForSelector('.bt-anf [data-m="baukasten"]');
       await p.click('.bt-anf [data-m="baukasten"]'); await p.waitForFunction(() => !!document.querySelector('#view .gm-d3 .b3 canvas'), null, { timeout: 8000 }).catch(() => {});
       for (let i = 0; i < 40 && !S.bkPut; i++) await p.waitForTimeout(100);
       await p.waitForTimeout(1500);   // ein zweiter Baukasten (zwei Aufrufe gleichzeitig) hätte jetzt auch gespeichert
@@ -210,7 +210,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
       pruef(g.tab - g.leer < 60, `ohne Bauteile: Tabelle rutscht nach unten – ${JSON.stringify(g)}`);
       // 21.11.2026: einziger Planstand gelöscht – das Menü bleibt offen bar mit „noch keiner“ und „Neuen Planstand einlesen“
       S.keinPs = true; await zu('bauteile'); await p.waitForSelector('.gm-vm .bph-vm-b', { timeout: 8000 }); await p.waitForTimeout(300);
-      const vm = await p.evaluate(() => { const b = document.querySelector('.gm-vm .bph-vm-b'); b.click(); const m = document.querySelector('.bph-vm-m:not([hidden])'); return { aus: b.disabled, t: b.textContent, neu: !!(m && /Neuer Planstand/.test(m.textContent)) }; });
+      const vm = await p.evaluate(() => { const b = document.querySelector('.gm-vm .bph-vm-b'); b.click(); const m = document.querySelector('.bph-vm-m:not([hidden])'); return { aus: b.disabled, t: b.textContent, neu: !!(m && /Neuer Plan/.test(m.textContent)) }; });
       pruef(!vm.aus && /noch keiner/.test(vm.t) && vm.neu, `ohne Planstand: Menü gesperrt oder ohne „Neu“ – ${JSON.stringify(vm)}`);
       pruef(await p.evaluate(() => !document.querySelector('#view .gm-d3 .bkx') && !document.querySelector('#view .gm-d3 canvas') && !!document.querySelector('#view .gm-start [data-gmstart]')), 'ohne Planstand ist die Mitte leer bis auf „Wie willst du beginnen?“ – kein altes Gebäude, kein Baukasten von selbst');
       await p.keyboard.press('Escape'); S.keinPs = false; S.leer = false; }

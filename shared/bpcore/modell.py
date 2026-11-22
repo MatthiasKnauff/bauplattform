@@ -329,12 +329,15 @@ def alle_linien(c, pid, uebernahme, wer):
 
 
 def einfrieren(c, pid, app, stand_ref, stand_name, wer, kommentar=""):
-    """Etwas verlässt das Haus (LV versendet, Bauantrag eingereicht …): die Linie der App wird fest auf ihrem Stand und merkt sich den
-    gültigen Planstand des Modells (nr; None ohne Planstand)."""
+    """Etwas verlässt das Haus (LV versendet, Bauantrag eingereicht …): die Linie der App wird fest auf ihrem Stand und merkt sich die
+    Version des Modells, die dabei festgehalten wird (nr; None ohne Planstand)."""
     if app not in STANDARD:
         raise Ungueltig("Diese App gibt es auf der Karte nicht.")
     jetzt = link_wirksam(app, _zeilen(c, pid).get(app))
-    nr = ((lesen(c, pid)["modell"].get("bauteilliste") or {}).get("quelle") or {}).get("planstand")
+    m = lesen(c, pid)["modell"]
+    # F5-A (22.11.2026): beim Versand eine Version des Gebäudemodells festhalten (Gruppe „Versand“) – die App bleibt an ihr, auch wenn
+    # am Arbeitsstand weitergebaut wird; ohne Planstand wie bisher None
+    nr = planstand.festhalten(c, pid, m, f"{NAME[app]}: {stand_name or stand_ref}"[:120], wer, "versand")
     w = link_pruefen(app, jetzt, {"zustand": "fest", "stand_ref": stand_ref, "stand_name": stand_name, "modell_stand": nr})
     _aendern(c, pid, {app: w}, f"{NAME[app]}: fest (Stand {w['stand_name'] or w['stand_ref']})" + (f" · Planstand {nr}" if nr else ""), wer)
     return nr

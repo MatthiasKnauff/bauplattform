@@ -1,5 +1,13 @@
 [
  {
+  "id": "grundriss-kein-raum",
+  "datum": "2026-11-22",
+  "app": "gebaeudemodell",
+  "titel": "Grundriss: kein Raum oder Schacht",
+  "text": "Im Grundriss einen aus den Wänden ermittelten Raum anklicken und Entf drücken (oder Rechtsklick): „Kein Raum“ oder „Schacht“. Die Fläche wird grau und zählt nicht mehr bei Räumen, Böden und Raumbuch – auch nicht nach dem nächsten Einlesen. Ein Klick auf die graue Fläche macht sie wieder zum Raum.",
+  "ziel": "#view"
+ },
+ {
   "id": "ifc-allplan-schnitte",
   "datum": "2026-11-22",
   "app": "gebaeudemodell",

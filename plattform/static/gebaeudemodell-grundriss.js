@@ -3,8 +3,10 @@
    Fenster und Türen von oben (aus dem 3D-Netz des Plans) und die Flächen zwischen den Wänden (Kern bpcore/grundriss.py). Blau = Raum (aus dem
    Plan oder schon ermittelt) – Klick zeigt rechts die Zeile mit dem Raumbuch; gelb gestrichelt = Fläche ohne Raum – Klick nimmt sie als Raum an
    (Ergänzung neben dem Plan, PUT /plus, mit Rückgängig). Ohne Plan gibt es keinen Grundriss – dann steht der Weg zu den Räumen da.
+   Entf (oder Kontextmenü) am gewählten Raum (22.11.2026): ermittelt → „kein Raum“ oder „Schacht“ (PUT /raumweg, bleibt beim nächsten Einlesen),
+   ergänzt → aus den Ergänzungen; grau = keine Raumfläche, Klick nimmt sie wieder als Raum.
    Nutzt aus gebaeudemodell.js / -3d.js: PID, BT, G3, LS, api, toast, bpEingabe, seiteReiter. */
-const GR = { N: null, F: null, g: null, rev: null };
+const GR = { N: null, F: null, g: null, rev: null, sel: null };
 const grZ = (v) => bpZahl(v, 0, 2);
 
 async function gmGrundriss(box, neu) {
@@ -53,17 +55,56 @@ async function gmGrundriss(box, neu) {
     if (f.raum) return R.find((x) => (f.raum.nr && x.nr === f.raum.nr) || (f.raum.name && x.name === f.raum.name && (!x.geschoss || x.geschoss === gn))) || { nr: f.raum.nr, name: f.raum.name || f.raum.nr };
     return null;
   };
+  const W = st.an ? [] : (((st.modell || {}).bauteilliste || {}).raumweg || []);
+  const wegVon = (f) => { const [cx, cy] = f.mitte || f.umriss[0]; return W.find((w) => w.g === gn && innen(w.p[0], w.p[1], f.umriss)) || (W.find((w) => w.g === gn && innen(cx, cy, [[w.p[0] - 0.01, w.p[1] - 0.01], [w.p[0] + 0.01, w.p[1] - 0.01], [w.p[0] + 0.01, w.p[1] + 0.01], [w.p[0] - 0.01, w.p[1] + 0.01]])) || null); };
   const pad = 1.2, w = x1 - x0 + 2 * pad, h = y1 - y0 + 2 * pad, fs = Math.max(0.28, Math.min(w, h) / 45);
-  const fl = FL.map((f, k) => { const r = raumVon(f), pts = f.umriss.map(([x, y]) => `${x.toFixed(2)},${(-y).toFixed(2)}`).join(' '), [cx, cy] = f.mitte || f.umriss[0];
-    const t = r ? [r.nr, r.name].filter(Boolean).join(' ') : '＋ Raum', s2 = Math.min(fs, Math.sqrt(f.flaeche) * 0.14, Math.sqrt(f.flaeche) * 1.6 / Math.max(4, t.length));   // Schrift passt in kleine Räume
-    return `<g class="gr-f${r ? '' : ' frei'}" data-grf="${k}"><title>${esc(r ? t : 'Fläche ohne Raum – klicken nimmt sie als Raum an')} · ${grZ(f.flaeche)} m²</title><polygon points="${pts}"/><text x="${cx.toFixed(2)}" y="${(-cy).toFixed(2)}" font-size="${s2.toFixed(2)}">${esc(t)}</text><text class="gr-m" x="${cx.toFixed(2)}" y="${(-cy + s2 * 1.25).toFixed(2)}" font-size="${(s2 * 0.85).toFixed(2)}">${grZ(f.flaeche)} m²</text></g>`; }).join('');
-  const nFrei = FL.filter((f) => !raumVon(f)).length;
+  const fl = FL.map((f, k) => { const r = raumVon(f), wg = r ? null : wegVon(f), pts = f.umriss.map(([x, y]) => `${x.toFixed(2)},${(-y).toFixed(2)}`).join(' '), [cx, cy] = f.mitte || f.umriss[0];
+    const t = r ? [r.nr, r.name].filter(Boolean).join(' ') : wg ? (wg.art === 'schacht' ? 'Schacht' : 'kein Raum') : '＋ Raum', s2 = Math.min(fs, Math.sqrt(f.flaeche) * 0.14, Math.sqrt(f.flaeche) * 1.6 / Math.max(4, t.length));   // Schrift passt in kleine Räume
+    return `<g class="gr-f${r ? '' : wg ? ' weg' : ' frei'}${k === GR.sel ? ' an' : ''}" data-grf="${k}"><title>${esc(r ? t + ' – Entf: kein Raum / Schacht' : wg ? t + ' – klicken nimmt die Fläche wieder als Raum' : 'Fläche ohne Raum – klicken nimmt sie als Raum an')} · ${grZ(f.flaeche)} m²</title><polygon points="${pts}"/><text x="${cx.toFixed(2)}" y="${(-cy).toFixed(2)}" font-size="${s2.toFixed(2)}">${esc(t)}</text><text class="gr-m" x="${cx.toFixed(2)}" y="${(-cy + s2 * 1.25).toFixed(2)}" font-size="${(s2 * 0.85).toFixed(2)}">${grZ(f.flaeche)} m²</text></g>`; }).join('');
+  const nFrei = FL.filter((f) => !raumVon(f) && !wegVon(f)).length;
   box.innerHTML = `<div class="gr-k"><span class="gr-gs" role="tablist">${G.map((g, k) => `<button type="button" role="tab" aria-selected="${k === gi}" class="${k === gi ? 'on' : ''}" data-grg="${k}">${esc(g.n)}</button>`).join('')}</span>
       <span class="mute">${F.art === 'ifc' ? `${FL.length} Flächen zwischen den Wänden${nFrei && !an ? ` · <b>${nFrei} ohne Raum</b> – anklicken nimmt sie als Raum an` : ''}` : esc(F.hinweis || 'Flächen gibt es mit einem IFC-Plan.')}</span></div>
     <div class="gr-b"><svg viewBox="${(x0 - pad).toFixed(2)} ${(y0 - pad).toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)}" preserveAspectRatio="xMidYMid meet" aria-label="Grundriss ${esc(gn)}">
       ${fl}<path class="gr-w" d="${pfad.w}${pfad.x}"/><path class="gr-fe" d="${pfad.f}"/><path class="gr-tu" d="${pfad.d}"/></svg></div>`;
-  GR.fl = FL; GR.raumVon = raumVon; GR.gn = gn; GR.an = an;
+  GR.fl = FL; GR.raumVon = raumVon; GR.wegVon = wegVon; GR.gn = gn; GR.an = an; GR.box = box;
 }
+
+async function grRaumweg(f, art, text) {   // ermittelte Fläche: kein Raum / Schacht bzw. wieder Raum (art '') – mit Rückgängig
+  const d = { g: GR.gn, p: f.mitte || f.umriss[0], umriss: f.umriss }, box = GR.box, vorher = (GR.wegVon(f) || {}).art || '';
+  const setz = async (a) => { await api(`api/bp/modell/${PID}/raumweg`, 'PUT', { ...d, art: a }); GR.F = null; GR.sel = null; if (BT && BT.laden) await BT.laden(); if (box && box.isConnected) gmGrundriss(box); };
+  try { await setz(art); toast(text); if (window.rueckgaengig) rueckgaengig(text, () => setz(vorher), 10000, () => setz(art)); }
+  catch (er) { toast(er.message, true); }
+}
+
+async function grEntf(k) {   // Entf am gewählten Raum
+  const f = GR.fl && GR.fl[k]; if (!f) return;
+  if (GR.an) return toast('Nur zum Ansehen – dieser Planstand gilt nicht.');
+  const r = GR.raumVon(f); if (!r) return;
+  const nm = [r.nr, r.name].filter(Boolean).join(' ') || 'Raum';
+  if (r.ergaenzt) {   // Ergänzung neben dem Plan: aus der Liste der Ergänzungen
+    const D = await api(`api/bp/modell/${PID}`), alt = (((D.modell || {}).bauteilliste || {}).plus || {}).raeume || [], neu = alt.filter((x) => !(x.nr === r.nr && (x.geschoss || '') === (r.geschoss || '')));
+    const setz = async (L) => { await api(`api/bp/modell/${PID}/plus`, 'PUT', { raeume: L }); GR.F = null; GR.sel = null; if (BT && BT.laden) await BT.laden(); if (GR.box && GR.box.isConnected) gmGrundriss(GR.box); };
+    try { await setz(neu); toast(`„${nm}“ entfernt.`); if (window.rueckgaengig) rueckgaengig(`Raum „${nm}“ entfernt`, () => setz(alt), 10000, () => setz(neu)); } catch (er) { toast(er.message, true); }
+    return;
+  }
+  if (!r.ermittelt) return toast(`„${nm}“ steht so im Plan – bitte dort ändern und den Plan neu einlesen.`);
+  const a = await bpFrage(`„${nm}“ (${grZ(f.flaeche)} m²) ist kein Raum?\nDie Fläche zählt dann nicht mehr bei Räumen, Böden und Raumbuch – auch nicht, wenn der Plan neu eingelesen wird.`, { ok: 'Kein Raum', drei: 'Schacht', gefahr: true });
+  if (!a) return;
+  return grRaumweg(f, a === 'drei' ? 'schacht' : 'kein', `„${nm}“ ist ${a === 'drei' ? 'ein Schacht' : 'kein Raum'}`);
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Delete' || GR.sel == null || !GR.box || !GR.box.isConnected || GR.box.offsetParent === null) return;
+  if (window.bpTippt && bpTippt(e.target)) return;
+  if (e.target.closest && e.target.closest('input,textarea,select,[contenteditable="true"],.bp-eig,.bph-dlg')) return;
+  e.preventDefault(); grEntf(GR.sel);
+});
+document.addEventListener('bph:kontext', (e) => {
+  const t = e.detail && e.detail.ziel, g = t && t.closest && t.closest('[data-grf]'); if (!g || !GR.fl) return;
+  const k = +g.dataset.grf, f = GR.fl[k], r = GR.raumVon(f), wg = !r && GR.wegVon(f);
+  if (r) e.detail.punkte.push({ titel: [r.nr, r.name].filter(Boolean).join(' ') || 'Raum' }, { text: 'Kein Raum / Schacht …', k: 'Entf', gefahr: true, fn: () => grEntf(k) });
+  else if (wg) e.detail.punkte.push({ text: 'Doch ein Raum', fn: () => grRaumweg(f, '', 'Fläche ist wieder ein Raum') });
+});
 
 document.addEventListener('click', async (e) => {
   const gb = e.target.closest && e.target.closest('[data-grg]');
@@ -71,7 +112,9 @@ document.addEventListener('click', async (e) => {
   const f = e.target.closest && e.target.closest('[data-grf]'); if (!f || !GR.fl) return;
   const x = GR.fl[+f.dataset.grf], r = GR.raumVon(x);
   if (!r && GR.an) return toast('Nur zum Ansehen – dieser Planstand gilt nicht.');
-  if (r) {   // Raum gewählt: rechts die Zeile „Boden“ des Raums mit dem Raumbuch
+  if (!r && GR.wegVon(x)) return grRaumweg(x, '', 'Fläche ist wieder ein Raum');
+  if (r) {   // Raum gewählt (Entf: kein Raum / Schacht): rechts die Zeile „Boden“ des Raums mit dem Raumbuch
+    GR.sel = +f.dataset.grf; f.parentNode.querySelectorAll('.gr-f.an').forEach((g) => g.classList.remove('an')); f.classList.add('an');
     const Z = g3Zeilen(BT.zustand()).find((z) => z.id.startsWith('raum:boden:') && (z.mitglieder || []).includes(r.nr));
     if (Z) { BT.zeige(Z.id, false); if (window.seiteReiter) seiteReiter('gm', 'details'); } else toast(`${[r.nr, r.name].filter(Boolean).join(' ')} – ${grZ(x.flaeche)} m²`);
     return;

@@ -10,7 +10,9 @@ sauber(p)                 Eingaben prüfen
 anwenden(c, L, art, alt)  Ergänzungen der Liste L neu bilden (Antworten ergänzter Zeilen bleiben; alt = Liste, aus der sie kommen)
 treffer(alt, neu)         Ergänzungen, die der neue Planstand jetzt selbst enthält
 entfernen(L, weg)         {raeume: [k], elemente: [k]} aus den Ergänzungen nehmen
-routen()                  PUT /api/bp/modell/<pid>/plus
+raumweg_sauber(W), ist_weg(r, W)   Flächen, die aus den Wänden als Raum ermittelt wurden, aber keiner sind (22.11.2026): bauteilliste["raumweg"] =
+                          [{g: Geschoss, p: [x, y] Punkt in der Fläche, art: kein | schacht}] – der Punkt trifft die Fläche auch beim nächsten Einlesen
+routen()                  PUT /api/bp/modell/<pid>/plus · PUT /api/bp/modell/<pid>/raumweg
 """
 import re
 from collections import Counter
@@ -127,6 +129,39 @@ def entfernen(L, weg):
     return L
 
 
+RAUMWEG = {"kein": "kein Raum", "schacht": "Schacht"}
+
+
+def raumweg_sauber(W):
+    out = []
+    for w in (W if isinstance(W, list) else [])[:300]:
+        if not isinstance(w, dict) or w.get("art") not in RAUMWEG or not isinstance(w.get("p"), (list, tuple)) or len(w["p"]) != 2:
+            continue
+        try:
+            p = [round(float(w["p"][0]), 3), round(float(w["p"][1]), 3)]
+        except (TypeError, ValueError):
+            continue
+        out.append({"g": str(w.get("g") or "")[:40], "p": p, "art": w["art"]})
+    return out
+
+
+def _innen(x, y, P):
+    d = False
+    for k in range(len(P)):
+        (xi, yi), (xj, yj) = P[k], P[k - 1]
+        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+            d = not d
+    return d
+
+
+def ist_weg(r, W):
+    """Liegt ein Punkt aus W in der ermittelten Fläche r (gleiches Geschoss)? Nur ermittelte Räume – Räume aus dem Plan ändert man im Plan."""
+    U = r.get("umriss") or []
+    if not r.get("ermittelt") or len(U) < 3:
+        return None
+    return next((w for w in W if w["g"] == (r.get("geschoss") or "") and _innen(w["p"][0], w["p"][1], U)), None)
+
+
 def routen(bp, mit, lesen_modell, schreiben_modell):
     from flask import jsonify, request
     from . import anweisung, bauteilliste as B, planstand as P
@@ -150,5 +185,51 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                 return jsonify(error="Die Checkliste ist voll (400 Zeilen)."), 400
             anweisung.ableiten(c, L)
             schreiben_modell(c, pid, P.anwenden(m, L), wer)
+            return jsonify(lesen_modell(c, pid))
+        return mit(pid, tun)
+
+    @bp.put("/api/bp/modell/<int:pid>/raumweg")
+    def raumweg_setzen(pid):
+        """Eine aus den Wänden ermittelte Fläche ist kein Raum (oder ein Schacht) – bzw. doch wieder einer: {g, p: [x, y], art: kein | schacht | ""}.
+        Die Liste wird aus der gespeicherten IFC-Datei des gültigen Planstands neu gebildet (wie beim Einlesen, Antworten bleiben)."""
+        d = request.get_json(silent=True) or {}
+
+        def tun(c, wer):
+            from . import cadimport
+            m = lesen_modell(c, pid)["modell"]
+            L = m.get("bauteilliste") or B.leer()
+            Q = L.get("quelle") or {}
+            if not Q.get("planstand") or (Q.get("art") or "ifc") != "ifc":
+                return jsonify(error="Ermittelte Räume gibt es nur mit einem eingelesenen IFC-Plan."), 409
+            W = raumweg_sauber(L.get("raumweg"))
+            neu = raumweg_sauber([{"g": d.get("g"), "p": d.get("p"), "art": d.get("art")}])
+            if not neu and d.get("art"):
+                return jsonify(error="Angabe unvollständig."), 400
+            g = str(d.get("g") or "")[:40]
+            U = d.get("umriss") if isinstance(d.get("umriss"), list) else []
+            try:   # dieselbe Fläche: Punkte darin (Umriss der Fläche) bzw. derselbe Punkt
+                U = [[float(a[0]), float(a[1])] for a in U if isinstance(a, (list, tuple)) and len(a) == 2]
+            except (TypeError, ValueError):
+                U = []
+            W = [w for w in W if not (w["g"] == g and ((len(U) >= 3 and _innen(w["p"][0], w["p"][1], U)) or (neu and w["p"] == neu[0]["p"])))]
+            W += neu
+            datei = P.datei_lesen(c, pid, Q["planstand"])
+            if not datei:
+                return jsonify(error="Die IFC-Datei dieses Planstands liegt nicht vor – bitte den Plan noch einmal einlesen."), 409
+            R = cadimport.ifc_lesen(datei[1], bestand=True)
+            art = B.bauart(m)
+            alt = dict(L, raumweg=W)
+            N = B.zeilen_aus_ifc(c, R, alt, art)
+            L2 = P.uebernehmen(alt, N)
+            L2["quelle"] = Q
+            if W:
+                L2["raumweg"] = W
+            else:
+                L2.pop("raumweg", None)
+            if L2.get("plus"):
+                anwenden(c, L2, art, L)
+            anweisung.ableiten(c, L2)
+            P._sichern(c, pid, L2, wer)
+            schreiben_modell(c, pid, P.anwenden(m, L2), wer)
             return jsonify(lesen_modell(c, pid))
         return mit(pid, tun)

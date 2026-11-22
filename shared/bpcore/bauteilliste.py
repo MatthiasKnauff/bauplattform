@@ -205,8 +205,10 @@ def sauber(d):
             out["raeume"].append({"id": int(_z(r.get("id"), 0, 1e9)), "nr": _s(r.get("nr"), 20), "name": _s(r.get("name"), 200), "flaeche": _z(r.get("flaeche")),
                                   "umfang": _z(r.get("umfang")), "hoehe": _z(r.get("hoehe"), 0, 20), "geschoss": _s(r.get("geschoss"), 40),
                                   **({"teil": _s(r.get("teil"), 20)} if r.get("teil") else {}), **({"ergaenzt": True} if r.get("ergaenzt") else {}), **_ermittelt(r)})
+    from . import modell_plus
+    if d.get("raumweg"):   # ermittelte Flächen, die kein Raum sind (kein Raum / Schacht – modell_plus.raumweg_sauber)
+        out["raumweg"] = modell_plus.raumweg_sauber(d.get("raumweg"))
     if d.get("plus"):   # Ergänzungen neben dem Plan (Räume, Fenster, Türen – modell_plus.py)
-        from . import modell_plus
         pl = modell_plus.sauber(d.get("plus"))
         if pl:
             out["plus"] = pl
@@ -332,6 +334,10 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
     bei Bestand oder unbekannt fragt die Liste je Bauteil."""
     neubau = art == "neubau"
     rz = "neu" if neubau else "bestand"   # Räume, Küche/Bad, Fragen
+    from . import modell_plus
+    W = modell_plus.raumweg_sauber((alt or {}).get("raumweg"))
+    if W:   # aus den Wänden ermittelte Flächen, die kein Raum sind – bleiben es auch beim nächsten Einlesen (22.11.2026)
+        R = dict(R, raeume=[r for r in R["raeume"] if not modell_plus.ist_weg(r, W)])
     A = {z["id"]: z for z in ((alt or {}).get("zeilen") or [])}
     Z = []
     oeff_fl = {"aussen": 0.0, "innen": 0.0}
@@ -441,6 +447,8 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
         z["art_wahl"] = art_wahl(z)
     from . import elemente
     out = {"zeilen": Z, "raeume": raeume, "elemente": elemente.aus_ifc(R.get("elemente") or [], Z, raeume)}
+    if W:
+        out["raumweg"] = W
     RA = raumausbau(c, R.get("ausbau") or [], raeume)
     if RA:
         out["raumausbau"] = RA

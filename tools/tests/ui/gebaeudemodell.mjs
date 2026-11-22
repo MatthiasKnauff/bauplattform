@@ -14,7 +14,9 @@ export async function gebaeudemodellPruefen(browser, repo) {
   const zeile = (id, mehr) => ({ id, bereich: 'raum', art: 'Böden', kg: '353', name: 'Böden (0.01, 0.02)', menge: 36, einheit: 'm²', anzahl: 2, status: 'offen', berechnen: false, vorlage: '', wahl: [], kurz: '',
     erlaubt: ['bleibt', 'instandsetzen', 'erneuern', 'neu'], mitglieder: ['0.01', '0.02'], ids: [], nummern: [], ...mehr });
   const S = { zeile: [], anw: null, weg: 0 };
-  const L = () => ({ quelle: { name: 'Werkplanung', planstand: 1, ...(S.hand ? { art: 'hand' } : {}) }, raeume: [{ nr: '0.01', name: 'Wohnen', flaeche: 30, hoehe: 2.5, geschoss: 'EG' }, { nr: '0.02', name: 'Bad', flaeche: 6, hoehe: 2.5, geschoss: 'EG' }, { nr: 'EG.03', name: S.rn || 'Raum', flaeche: 12, hoehe: 2.5, geschoss: 'EG', ermittelt: true }],
+  const L = () => ({ quelle: { name: 'Werkplanung', planstand: 1, ...(S.hand ? { art: 'hand' } : {}) }, raeume: [{ nr: '0.01', name: 'Wohnen', flaeche: 30, hoehe: 2.5, geschoss: 'EG' }, { nr: '0.02', name: 'Bad', flaeche: 6, hoehe: 2.5, geschoss: 'EG' }, { nr: 'EG.03', name: S.rn || 'Raum', flaeche: 12, hoehe: 2.5, geschoss: 'EG', ermittelt: true },
+      ...(S.schacht === 'raum' ? [{ nr: 'EG.04', name: 'Raum', flaeche: 4.5, hoehe: 2.5, geschoss: 'EG', ermittelt: true, z: 0, umriss: [[0.2, 0.3], [4.8, 0.3], [4.8, 1.3], [0.2, 1.3]] }] : [])],
+    ...(S.schacht && S.schacht !== 'raum' ? { raumweg: [{ g: 'EG', p: [2.5, 0.8], art: S.schacht }] } : {}),
     elemente: [{ id: 11, nr: 'F 01', typ: 'Fenster', art: 'Fenster', geschoss: 'EG', raeume: ['0.01'], b: 1.26, h: 1.38, bruestung: 0.9, aussen: true },
       ...((S.plus || {}).elemente || []).map((e, k) => ({ id: 9500001 + k, nr: e.nr || 'F 02', typ: e.art, art: 'Fenster', geschoss: e.geschoss, raeume: [e.raum], b: e.b, h: e.h, bruestung: e.bruestung, aussen: true, quelle: 'plus' }))],
     ...(S.plus ? { plus: { raeume: S.plus.raeume || [], elemente: (S.plus.elemente || []).map((e) => ({ ...e, nr: e.nr || 'F 02' })) } } : {}),
@@ -47,6 +49,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
     if (pf === 'api/bp/modell/7/anweisung/anwenden') { const b = JSON.parse(q.postData() || '{}'); S.anwB = b; S.anw = b.text; return J({ id: 'a1', ...M() }); }
     if (pf === 'api/bp/modell/7/anweisung/a1' && q.method() === 'DELETE') { S.anw = null; S.weg++; return J(M()); }
     if (pf === 'api/bp/modell/7/plus' && q.method() === 'PUT') { const b = JSON.parse(q.postData() || '{}'); S.plusPut = b; S.plus = { ...(S.plus || {}), ...b }; return J(M()); }
+    if (pf === 'api/bp/modell/7/raumweg' && q.method() === 'PUT') { const b = JSON.parse(q.postData() || '{}'); S.rwPut = b; S.schacht = b.art || 'raum'; return J(M()); }
     if (pf === 'api/bp/modell/7/hand' && q.method() === 'PUT') { S.handPut = JSON.parse(q.postData() || '{}'); return J(M()); }
     if (pf === 'api/bp/modell/7/hand/vorschlag') return J({ quelle: 'assistent', raeume: [{ nr: 'EG.01', name: 'Wohnen', geschoss: 'EG', flaeche: 30, hoehe: 2.5 }], elemente: [{ nr: 'F 01', art: 'Fenster', geschoss: 'EG', raum: 'EG.01', b: 1.26, h: 1.38, bruestung: 0.9 }] });
     if (pf === 'api/bp/modell/7/raum') { const b = JSON.parse(q.postData() || '{}'); S.rn = b.name; return J(M()); }
@@ -238,7 +241,15 @@ export async function gebaeudemodellPruefen(browser, repo) {
       await p.click('#navL [data-pl="rgr"]'); await p.waitForSelector('#view .gr-f.frei', { timeout: 8000 });
       pruef(await p.evaluate(() => !!document.querySelector('#view .gr-w') && document.querySelectorAll('#view .gr-f').length === 2 && /Wohnen/.test(document.querySelector('#view .gr-b').textContent)), 'Grundriss: Wände und zwei Flächen, eine mit Raum aus dem Plan');
       await p.click('#view .gr-f.frei'); await p.waitForSelector('.bph-frage-in'); await p.fill('.bph-frage-in', 'Abstellraum'); await p.click('.bph-frage [data-f="ja"]'); await p.waitForTimeout(400);
-      pruef(S.plusPut && S.plusPut.raeume && S.plusPut.raeume[0].name === 'Abstellraum' && S.plusPut.raeume[0].flaeche === 4.5, `Fläche als Raum angenommen: ${JSON.stringify(S.plusPut)}`); S.plus = null; }
+      pruef(S.plusPut && S.plusPut.raeume && S.plusPut.raeume[0].name === 'Abstellraum' && S.plusPut.raeume[0].flaeche === 4.5, `Fläche als Raum angenommen: ${JSON.stringify(S.plusPut)}`); S.plus = null;
+      // Entf am ermittelten Raum (22.11.2026): kein Raum / Schacht – grau, Klick nimmt die Fläche wieder als Raum
+      S.schacht = 'raum'; await p.evaluate(() => BT.laden()); await p.evaluate(() => gmGrundriss(document.querySelector('#view .gm-gr') || GR.box, true)); await p.waitForFunction(() => document.querySelectorAll('#view .gr-f:not(.frei)').length === 2, null, { timeout: 8000 }).catch(() => {});
+      await p.click('#view .gr-f[data-grf="1"]'); await p.keyboard.press('Delete'); await p.waitForSelector('.bph-frage [data-f="drei"]', { timeout: 4000 }).catch(() => {});
+      await p.click('.bph-frage [data-f="drei"]').catch(() => {}); await p.waitForSelector('#view .gr-f.weg', { timeout: 6000 }).catch(() => {});
+      pruef(S.rwPut && S.rwPut.art === 'schacht' && S.rwPut.g === 'EG' && S.rwPut.p[0] === 2.5 && S.rwPut.umriss.length === 4, `Entf → Schacht: ${JSON.stringify(S.rwPut)}`);
+      pruef(await p.evaluate(() => /Schacht/.test((document.querySelector('#view .gr-f.weg') || {}).textContent || '')), 'Fläche grau als „Schacht“');
+      S.rwPut = null; await p.click('#view .gr-f.weg'); await p.waitForTimeout(500);
+      pruef(S.rwPut && S.rwPut.art === '', `Klick auf die graue Fläche nimmt sie wieder als Raum: ${JSON.stringify(S.rwPut)}`); S.schacht = null; }
     // 3D in der Mitte: nur zwei Färbungen, Klick im Baum wählt im Modell; „Darstellung ▾“ rechts, ⧉ abdocken
     { S.leer = false; S.mh = false; S.hand = false; S.plus = null;
       await p.click('#navL [data-pl="g3d"]'); await p.waitForSelector('#view .gm-d3 .b3 canvas', { timeout: 8000 });

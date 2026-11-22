@@ -97,3 +97,26 @@ def test_einheit_von_hand():
     o = B.hand_neu(L, "ohne Wahl")
     B.setzen(c, L, o["id"], {"vorlage": "334.15"})
     gleich(o["einheit"], "St", "ohne gewählte Einheit kommt sie weiter vom Aufbau")
+
+
+def test_ermittelte_flaeche_kein_raum():
+    """Grundriss (22.11.2026): eine aus den Wänden ermittelte Fläche ist kein Raum oder ein Schacht – sie fällt aus Räumen und Zeilen und bleibt
+    draußen, auch wenn der Plan neu eingelesen wird (Punkt in der Fläche, je Geschoss). Räume aus dem Plan selbst bleiben."""
+    c = _db()
+    RA, EA = H.sauber({"raeume": [{"nr": "0.01", "name": "Wohnen", "geschoss": "EG", "flaeche": 30}, {"nr": "0.02", "name": "Raum", "geschoss": "EG", "flaeche": 0.8}],
+                       "elemente": []})
+    R = H.R_aus(RA, EA, schaetzen=False)
+    R["raeume"][1].update(ermittelt=True, umriss=[[10, 0], [11, 0], [11, 0.8], [10, 0.8]], z=0)
+    voll = B.zeilen_aus_ifc(c, R, None, "")
+    W = M.raumweg_sauber([{"g": "EG", "p": [10.5, 0.4], "art": "schacht"}, {"g": "EG", "p": "x", "art": "kein"}, {"g": "EG", "p": [1, 1], "art": "quatsch"}])
+    gleich(W, [{"g": "EG", "p": [10.5, 0.4], "art": "schacht"}], "nur gültige Angaben")
+    pruefe(M.ist_weg(R["raeume"][1], W) and not M.ist_weg(R["raeume"][0], W), "Punkt trifft nur die ermittelte Fläche")
+    pruefe(not M.ist_weg(dict(R["raeume"][1], geschoss="OG"), W), "anderes Geschoss: nicht getroffen")
+    L = B.zeilen_aus_ifc(c, R, {"raumweg": W}, "")
+    gleich([r["nr"] for r in L["raeume"]], ["0.01"], "Schacht fällt aus den Räumen")
+    boden = lambda X: next(z for z in X["zeilen"] if z["id"].startswith("raum:boden"))
+    pruefe(boden(L)["menge"] < boden(voll)["menge"], f"Bodenfläche ohne den Schacht: {boden(L)['menge']} < {boden(voll)['menge']}")
+    gleich(B.sauber(L).get("raumweg"), W, "bleibt in der Liste")
+    L2 = B.zeilen_aus_ifc(c, R, B.sauber(L), "")   # neu eingelesen
+    gleich(([r["nr"] for r in L2["raeume"]], L2.get("raumweg")), (["0.01"], W), "auch beim nächsten Einlesen")
+    gleich(P.uebernehmen(L, L2).get("raumweg"), W, "über das Übernehmen eines Planstands hinweg")

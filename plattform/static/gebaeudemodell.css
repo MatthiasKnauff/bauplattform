@@ -35,6 +35,7 @@ main.pl .gm-work{flex:1;min-height:0;display:flex}main.pl .gm-work.sr-split{disp
 .gr-f{cursor:pointer}.gr-f polygon{fill:#e8f0fa;stroke:#9fb6d3;stroke-width:.04}.gr-f:hover polygon{fill:#d6e4f5}
 .gr-f.frei polygon{fill:#fdf5d3;stroke:#d7b84a;stroke-dasharray:.25 .15;stroke-width:.06}.gr-f.frei:hover polygon{fill:#fbeaa8}
 .gr-f text{text-anchor:middle;fill:#1c2733;font-family:inherit;pointer-events:none}.gr-f text.gr-m{fill:#5d6b7a}.gr-f.frei text{fill:#7a5d00}
+.gr-f.weg polygon{fill:#eef0f2;stroke:#b8bfc7;stroke-dasharray:.12 .12;stroke-width:.04}.gr-f.weg text{fill:#7d8792}.gr-f.an polygon{fill:#d9cdf3;stroke:#7a5bc7;stroke-width:.08}
 
 /* rechts (21.11.2026, Mocks „Gebäude bearbeiten“ und „Räume rechts“): Reiter „Bauteile“ = Baum, „Räume“ = Raumliste; Kopfzeile mit Umschalter und „＋“ */
 .gm-r{display:flex;flex-direction:column;gap:.4rem;min-height:0}

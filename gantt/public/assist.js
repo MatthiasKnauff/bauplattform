@@ -253,7 +253,10 @@
   }
   function presentMap() { ctx(P.assist); const m = {}; for (const t of P.tasks) if (t.cat && B(t.cat)) m[t.cat] = (m[t.cat] || 0) + 1; return m; }
   // Auswahl anwenden: Leistungen einfügen/entfernen, Dauern setzen, Verknüpfungen per Soll-Ist-Vergleich nachführen
+  // Vorschläge (Kette 🔗, kette.js): was dem Assistenten vorher folgte, folgt ihm auch nachher – von Hand Geändertes bleibt gelöst
+  const folgt = () => (window.GKette ? GKette.folgend(P.tasks) : null), vsNach = (F) => { if (F) GKette.merken(P.tasks, F); };
   function applySel(target, mutate, durIds, post) {
+    const F = folgt();
     const oldCfg = clone(P.assist), before = expectedLinks(P.tasks, oldCfg);
     if (mutate) mutate(P.assist);
     const cfg = P.assist; ctx(cfg);
@@ -268,6 +271,7 @@
     if (durIds) for (const t of P.tasks) if (t.cat && durIds.includes(t.cat)) t.dur = dur(t.cat, cfg);
     if (post) post(cfg);
     applyDiff(before, expectedLinks(P.tasks, cfg));
+    vsNach(F);
     sel = new Set();
   }
   const presentIds = () => Object.keys(presentMap());
@@ -382,7 +386,7 @@
     },
     async create(cfg, selArr, name) {
       cfg = clone(cfg); const b = build(cfg, clone(selArr));
-      cfg.start = snapWork(cfg.start);
+      cfg.start = snapWork(cfg.start); if (window.GKette) GKette.merken(b.tasks);
       await flushSave();
       const p = await planApi.create({ name: String(name || defName(cfg)), start: cfg.start, nextUid: b.nextUid, tasks: b.tasks, assist: cfg, trades: tradesFor(cfg, selArr) });
       await openProject(p.id); await refreshProjectList();
@@ -391,12 +395,22 @@
     },
     regenerate(cfg, selArr) {
       cfg = clone(cfg); selArr = clone(selArr); cfg.start = snapWork(cfg.start);
-      const ok = act(() => { const b = build(cfg, selArr); P.tasks = b.tasks; P.nextUid = b.nextUid; P.assist = cfg; P.start = cfg.start; P.trades = tradesFor(cfg, selArr, P.trades); sel = new Set();
+      let R = null;
+      const ok = act(() => { const b = build(cfg, selArr);
+        /* Abgleich statt Ersetzen (Mock BZ H1, 22.11.2026): was dem Assistenten folgt, bekommt den neuen Vorschlag; von Hand
+           Geändertes, eigene Leistungen, Firmen, Notizen, Fortschritt bleiben (kette.js planAbgleich) */
+        if (P.tasks.length && P.assist && window.GKette) {
+          let A = null; try { A = build(clone(P.assist), zuSel(clone(P.assist))).tasks; } catch (e) { A = null; }
+          R = GKette.planAbgleich(A, b.tasks, P.tasks, P.nextUid, (P.hand || {}).weg);
+          P.tasks = R.tasks; P.nextUid = R.nextUid;
+        } else { P.tasks = b.tasks; P.nextUid = b.nextUid; if (window.GKette) GKette.merken(P.tasks); }
+        P.assist = cfg; P.start = cfg.start; P.trades = tradesFor(cfg, selArr, P.trades); sel = new Set();
         if (window.ablaufUmzug) ablaufUmzug();
         if (window.ganttStufe && P.ablauf && P.ablauf.stufe) ganttStufe.anwenden();   // Gliederung grob · mittel · fein (GL-A1)   // Leistungen, die auf der Seite „Ablauf“ in einen anderen Teil gezogen wurden (UZ-A1)
         if (window.ablaufNachfuehren) ablaufNachfuehren(); });   // Pfeile der Seite „Ablauf“ bleiben (Gebäudeteile)
       if (ok && P.ablauf && P.ablauf.gruppe === 'phase' && window.ablaufGruppieren) ablaufGruppieren('phase');
       if (ok) { view.start = null; render(); refreshProjectList(); }
+      if (ok && R && typeof toast === 'function') toast(`Plan abgeglichen: ${R.neu} neu, ${R.weg} entfallen${R.behalten ? `, ${R.behalten} von Hand geänderte behalten (🔗 gelöst)` : ''}.`);
       return ok;
     },
     toggle(id, on, merge) {
@@ -515,14 +529,16 @@
       if (k === 'area' || k === 'erwArea' || k === 'fak' || k === 'fakPh') {
         let ch = 0, kept = 0;
         const ok = act(() => {
+          const F = folgt();
           P.assist[k] = v;
           for (const t of P.tasks) if (t.cat && B(t.cat) && !B(t.cat).ms) {
             if (t.dur === dur(t.cat, old)) { const nd = dur(t.cat, P.assist); if (nd !== t.dur) { t.dur = nd; ch++; } } else kept++;
           }
+          vsNach(F);
         });
         return ok ? { ch, kept } : false;
       }
-      if (k === 'takt') return act(() => { const before = expectedLinks(P.tasks, old); P.assist.takt = v; applyDiff(before, expectedLinks(P.tasks, P.assist)); });
+      if (k === 'takt') return act(() => { const F = folgt(), before = expectedLinks(P.tasks, old); P.assist.takt = v; applyDiff(before, expectedLinks(P.tasks, P.assist)); vsNach(F); });
       if (k === 'naming' || k === 'names') {
         return act(() => {
           const on = unitNames(old); P.assist[k] = v; const nn = unitNames(P.assist);
@@ -539,7 +555,7 @@
       const cur = Math.max(1, +P.assist.units || 1);
       if (!isLive() || n === cur || P.tasks.some((t) => t.cat === '_teil')) return false;
       return act(() => {
-        const old = clone(P.assist);
+        const old = clone(P.assist), F = folgt();
         const before = expectedLinks(P.tasks, old);
         if (n < cur) {
           for (let b = cur - 1; b >= n; b--) { const u = P.tasks.findIndex((t) => t.cat === '_unit' && t.blk === b); if (u >= 0) P.tasks.splice(u, blockEnd(u) - u + 1); }
@@ -561,6 +577,7 @@
         const U = new Set(P.tasks.map((t) => t.uid));
         P.tasks.forEach((t) => { t.preds = (t.preds || []).filter((p) => U.has(p.uid)); });
         applyDiff(before, expectedLinks(P.tasks, P.assist));
+        vsNach(F);
         if (window.ganttStufe && P.ablauf && P.ablauf.stufe) ganttStufe.anwenden();
         sel = new Set();
       });

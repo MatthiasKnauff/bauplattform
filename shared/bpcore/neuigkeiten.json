@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-kette-abgleich",
+  "datum": "2026-11-22",
+  "app": "gantt",
+  "titel": "Plan neu: deine Änderungen bleiben",
+  "text": "„Plan neu aus den Angaben“ ersetzt den Plan nicht mehr, sondern gleicht ab: Was dem Assistenten folgt, bekommt den neuen Vorschlag – was du von Hand geändert hast (Dauer, Vorgänger, Name), eigene Leistungen, Firmen, Notizen und Fortschritt bleiben; gelöschte Leistungen kommen nicht wieder. Vor jeder Leistung aus dem Assistenten steht die Kette 🔗 wie im LV: grau = von Hand geändert, der Hinweis nennt den neuen Vorschlag; Klick holt den Vorschlag zurück bzw. löst die Leistung.",
+  "ziel": "#gridBody"
+ },
+ {
   "id": "gantt-putz-heizestrich",
   "datum": "2026-11-22",
   "app": "gantt",

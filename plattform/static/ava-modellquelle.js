@@ -13,7 +13,7 @@ const MQ = { d: null, pid: null, laed: false, fehler: '', sel: new Set(), zu: bp
 const modPos = (x) => !!(x && x.typ === 'pos' && x.mod);
 const modLinie = () => (L && L.mod && L.mod.linie) || (MQ.d && MQ.d.linie) || 'lebendig';
 const modKette = (x) => { const fest = modLinie() !== 'lebendig', los = !!x.mod_los || fest;   // Zeichen in der LV-Zeile (ava-lv.js)
-  return `<i class="lv-mod${los ? ' los' : ''}${x.mod_weg ? ' weg' : ''}" data-modkette title="${fest ? `Linie „Ausschreibung“ ist ${modLinie()} – nichts folgt dem Gebäudemodell (Gebäudemodell → Verknüpfungen)` : x.mod_weg ? 'aus dem Gebäudemodell – das Bauteil oder diese Schicht gibt es dort nicht mehr' : x.mod_los ? 'aus dem Gebäudemodell, gelöst – Klick: wieder verknüpfen' : 'verknüpft mit dem Gebäudemodell: Menge, Text und Preis folgen – Klick: lösen'}">🔗</i>`; };
+  return `<i class="bp-kette lv-mod${los ? ' los' : ''}${x.mod_weg ? ' weg' : ''}" data-modkette title="${fest ? `Linie „Ausschreibung“ ist ${modLinie()} – nichts folgt dem Gebäudemodell (Gebäudemodell → Verknüpfungen)` : x.mod_weg ? 'aus dem Gebäudemodell – das Bauteil oder diese Schicht gibt es dort nicht mehr' : x.mod_los ? 'aus dem Gebäudemodell, gelöst – Klick: wieder verknüpfen' : 'verknüpft mit dem Gebäudemodell: Menge, Text und Preis folgen – Klick: lösen'}">🔗</i>`; };
 
 async function mqLaden(neu) {
   const p = (L && L.project_id) || pid; if (!p) { MQ.d = null; return; }

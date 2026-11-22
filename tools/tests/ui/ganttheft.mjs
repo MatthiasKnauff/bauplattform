@@ -53,6 +53,12 @@ export async function ganttHeftPruefen(browser, repo) {
         const out = { k3: C.es[k(3)], o4e: C.ef[i(4)], abst: [1, 2, 3, 4].map((m) => C.es[k(m)] - C.es[k(1)]), orig: [1, 2, 3, 4].map((m) => C.es[i(m)] - C.es[i(1)]) };
         P.tasks = alt; return out; });
       pruef(r.k3 === r.o4e && JSON.stringify(r.abst) === JSON.stringify(r.orig), `Duplizieren eigene Verknüpfung: Block verformt – ${JSON.stringify(r)}`); }
+    {   // Kette 🔗 (Mock BZ H2, 22.11.2026): folgt dem Assistenten / von Hand geändert – Klick holt den Vorschlag zurück
+      const k = await p.evaluate(() => { const t = P.tasks[0], alt = t.cat; t.cat = 'putz'; GKette.merken([t]); const d0 = t.dur; t.dur = d0 + 3; render();
+        const los = !!document.querySelector('#gridBody [data-r="0"] [data-kette].los'); document.querySelector('#gridBody [data-r="0"] [data-kette]').click();
+        const r = { los, zurueck: t.dur === d0, verbunden: !!document.querySelector('#gridBody [data-r="0"] [data-kette]:not(.los)'), eigene: !document.querySelector('#gridBody [data-r="1"] [data-kette]') };
+        t.cat = alt; delete t.vs; render(); return r; });
+      pruef(k.los && k.zurueck && k.verbunden && k.eigene, `Kette im Bauzeitenplan: ${JSON.stringify(k)}`); }
     {   // Leistungsinformationen im gemeinsamen Eigenschaften-Fenster (22.11.2026): Reiter, ↑ ↓ ✕, OK übernimmt
       await p.evaluate(() => taskDialog(0)); await p.waitForSelector('.bp-eig.td-eig', { timeout: 5000 });
       const a = await p.evaluate(() => ({ reiter: [...document.querySelectorAll('.td-eig [data-eigt]')].map((b) => b.textContent), kopf: !!document.querySelector('.td-eig .bp-eigk [data-m="next"]'), alt: !!document.querySelector('.modal .mh-tools'),

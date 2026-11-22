@@ -310,3 +310,6 @@ span.bp-zl>input[data-zl-z]::-webkit-inner-spin-button,span.bp-zl>input[data-zl-
 .bp-paar,tr.bp-paar>td{background:var(--hov,rgba(47,111,179,.10))!important}
 .bp-paar:not(tr){box-shadow:inset 3px 0 0 var(--af,#2f6fb3)}
 tr.bp-paar>td:first-child{box-shadow:inset 3px 0 0 var(--af,#2f6fb3)}
+
+/* Kette: folgt einer Quelle (Gebäudemodell, Türliste, Planungsassistent) – gelöst = von Hand geändert (LV, Bauzeitenplan; 22.11.2026) */
+i.bp-kette{font-style:normal;margin:0 .25rem 0 0;font-size:.8rem;cursor:pointer;flex:none}i.bp-kette.los{filter:grayscale(1);opacity:.45}

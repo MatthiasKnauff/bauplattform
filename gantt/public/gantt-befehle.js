@@ -131,6 +131,7 @@ function deleteSel(mode) {
       const f = P.tasks.find((x) => x.uid === +from), tt = P.tasks.find((x) => x.uid === to); if (!f || !tt) continue;
       if (segList(tt)) tt.segs[tt.segs.length - 1].d += f.dur; tt.dur += f.dur;
     }
+    if (window.GKette) GKette.geloescht([...del].map((k) => P.tasks[k]));   // „Plan neu“ bringt sie nicht wieder (kette.js)
     if (autoLink) bridgeDeleted(del); P.tasks = P.tasks.filter((t, k) => !del.has(k)); sel.clear();
   });
   flashLinkMsg();

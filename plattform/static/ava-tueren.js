@@ -627,7 +627,7 @@ function tlHerkunft(x) {
 }
 /* Kette in der LV-Zeile (21.11.2026): EIN Zeichen für „verknüpft / gelöst“ – dasselbe wie an Positionen aus dem Gebäudemodell (modKette, ava-modellquelle.js);
    das frühere ⇄ hinter der Menge gibt es nicht mehr. Klick löst bzw. verbindet wieder. */
-const tlKette = (x) => `<i class="lv-mod${x.tl_los ? ' los' : ''}" data-tlkette title="${x.tl_los ? 'aus der Fenster- & Türliste, gelöst – Klick: wieder verbinden' : 'verknüpft mit der Fenster- & Türliste: Menge und Ausführung folgen – Klick: lösen'}">🔗</i>`;
+const tlKette = (x) => `<i class="bp-kette lv-mod${x.tl_los ? ' los' : ''}" data-tlkette title="${x.tl_los ? 'aus der Fenster- & Türliste, gelöst – Klick: wieder verbinden' : 'verknüpft mit der Fenster- & Türliste: Menge und Ausführung folgen – Klick: lösen'}">🔗</i>`;
 async function tlLosSetzen(x, los) {
   if (!L || !!x.tl_los === los) return;
   const tun = async (l) => { await flush(); L = await api(`api/lv/${L.id}/tueren/los`, 'POST', { pos: x.id, los: l }); render(); };

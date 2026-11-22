@@ -1041,4 +1041,4 @@ table.lv input[data-f="menge"][readonly]{background:transparent;color:var(--mute
 .mq .mq-t td{overflow-wrap:anywhere;vertical-align:middle}.mq .mq-t td.r,.mq .mq-t th.r{text-align:right;white-space:nowrap}.mq .mq-t .bz{display:flex;align-items:center;gap:.35rem;white-space:normal;min-width:0}
 .mq tr[data-mq]{cursor:grab}.mq tr.on td{background:color-mix(in srgb,var(--y) 14%,var(--card))}.mq tr.mq-b td{font-weight:600}.mq tr.mq-im td{color:var(--mute)}
 .mq .mq-in{border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:0 .4rem;font-size:var(--fs-s2);white-space:nowrap}.mq .mq-fest{padding:.2rem 0}
-i.lv-mod{font-style:normal;margin:0 .25rem 0 0;font-size:.8rem;cursor:pointer;flex:none}i.lv-mod.los{filter:grayscale(1);opacity:.45}i.lv-mod.weg{outline:1px dashed #c0392b;border-radius:3px}
+i.lv-mod.weg{outline:1px dashed #c0392b;border-radius:3px}

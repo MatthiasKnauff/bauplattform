@@ -45,23 +45,34 @@
       return `<button type="button" class="ni${an ? ' on' : ''}" data-${a}="${esc(p.id)}"${p.farbe ? ` style="--kf:${esc(p.farbe)}"` : ''}${an ? ' aria-current="page"' : ''}${mitText ? '' : ` title="${esc(p.text)}${p.zahl ? ' (' + esc(p.zahl) + ')' : ''}"`}>${svg(p)}${mitText ? `${esc(p.text)}${p.zahl ? `<small${p.zahlTip ? ` title="${esc(p.zahlTip)}"` : ''}>${esc(p.zahl)}</small>` : ''}` : ''}</button>`; };
     const G = o.gruppen || [];
     if (m === 'oben') {
-      el.innerHTML = GRIFF + `<div class="nv-davor">${o.davor || ''}</div>` + G.map((g, k) => {
+      fuellen(el, o, GRIFF, G.map((g, k) => {
         if (g.href) return `<a class="ni" href="${esc(g.href)}"${g.tip ? ` title="${esc(g.tip)}"` : ''}>${esc(g.titel)} ↗</a>`;
         const P = g.punkte || [];
         const u = (p) => (p.id === o.aktiv && p.unter ? p.unter : '');   // „＋ Neu …“ auch oben
         if (P.length === 1) return ni(P[0]) + u(P[0]);
         const an = P.some((p) => p.id === o.aktiv);
         return `<span class="nt"><button type="button" class="ni ntb${an ? ' on' : ''}" data-ntg="${k}">${esc(g.titel)} ▾</button><div class="npop" hidden>${P.map((p) => ni(p) + u(p)).join('')}</div></span>`;
-      }).join('') + '<span class="nsp"></span><div class="nv-ende"></div>';   // oben: davor (z. B. Version) links, nv-ende rechts für die App (Suche, Speicherstand)
+      }).join('') + '<span class="nsp"></span><div class="nv-ende"></div>', m);   // oben: davor (z. B. Version) links, nv-ende rechts für die App (Suche, Speicherstand)
     } else {
-      el.innerHTML = (o.kopf || o.lage ? `<div class="nk">${o.lage ? GRIFF : ''}<b>${esc(o.kopf ? o.kopf.titel : '')}</b>${o.kopf && o.kopf.klein ? `<small>${esc(o.kopf.klein)}</small>` : ''}${o.lage ? PIN(m === 'links') : ''}</div>` : '') + `<div class="nv-davor">${o.davor || ''}</div>`
-        + G.map((g) => { const ZU = g.klapp && zuGet().has(g.klapp), P = (g.punkte || []).filter((p) => !ZU || p.id === o.aktiv);
+      fuellen(el, o, (o.kopf || o.lage ? `<div class="nk">${o.lage ? GRIFF : ''}<b>${esc(o.kopf ? o.kopf.titel : '')}</b>${o.kopf && o.kopf.klein ? `<small>${esc(o.kopf.klein)}</small>` : ''}${o.lage ? PIN(m === 'links') : ''}</div>` : ''),
+        G.map((g) => { const ZU = g.klapp && zuGet().has(g.klapp), P = (g.punkte || []).filter((p) => !ZU || p.id === o.aktiv);
           const kopf = g.href ? `<a class="nh" href="${esc(g.href)}"${g.tip ? ` title="${esc(g.tip)}"` : ''}>${esc(g.titel)} <span>↗</span></a>`
             : g.klapp ? `<button type="button" class="nh nhk" data-nzu="${esc(g.klapp)}" aria-expanded="${!ZU}" title="${ZU ? 'Aufklappen' : 'Einklappen'}">${esc(g.titel)}<span>${ZU ? `${(g.punkte || []).length} ` : ''}${bpKlapp(!ZU)}</span></button>` : `<div class="nh">${esc(g.titel)}</div>`;
           return `<div class="ng${g.klasse ? ' ' + esc(g.klasse) : ''}${(g.punkte || []).some((p) => p.id === o.aktiv) ? ' an' : ''}${ZU ? ' zu' : ''}">${kopf}${P.map((p) => ni(p) + (p.id === o.aktiv && p.unter ? p.unter : '')).join('')}</div>`; }).join('')
-        + (o.fuss || '');
+        + (o.fuss || ''), m);
     }
     if (o.nachher) o.nachher(el, m);
+  }
+  /* Neuzeichnen ohne den Platz „davor“ anzufassen (22.11.2026): bleibt sein Inhalt gleich, wird nur ersetzt, was davor und danach steht –
+     ein Suchfeld darin (bp/filter.js) bleibt in der Seite und behält Fokus, Eingabe und Lage; nichts springt, nichts muss zurückgeholt werden */
+  function fuellen(el, o, vor, nach, m) {
+    const dv = el.querySelector(':scope > .nv-davor'), d = o.davor || '';
+    if (dv && el._bpDavor === d && el._bpLage === m) {
+      const alt = [...el.childNodes].filter((c) => c !== dv);   // erst das Neue einsetzen, dann das Alte weg – die Höhe schrumpft nie, die Rollposition bleibt
+      const vorn = document.createRange().createContextualFragment(vor), hinten = document.createRange().createContextualFragment(nach);
+      el.insertBefore(vorn, el.firstChild); el.appendChild(hinten); alt.forEach((c) => c.remove());
+    } else el.innerHTML = vor + `<div class="nv-davor">${d}</div>` + nach;
+    el._bpDavor = d; el._bpLage = m;
   }
   const zu = (el, ausser) => el.querySelectorAll('.npop').forEach((x) => { if (x !== ausser) x.hidden = true; });
   function lageSetzen(l) {

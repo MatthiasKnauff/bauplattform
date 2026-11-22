@@ -71,12 +71,16 @@ export async function adrStartPruefen(browser, repo) {
     {   // Video 22.11.2026: Gewerk weiter unten in der Navigation anklicken, während das Suchfeld den Fokus hatte – die Navigation rollte nach oben
       const { ctx, p } = await lauf({ ohne_projekt: true, gefragt: true });
       await p.setViewportSize({ width: 1400, height: 360 }); await p.waitForTimeout(200);
+      await p.click('[data-adr="g:Dachdecker"]'); await p.waitForTimeout(200);   // wie im Video: ein Gewerk ist schon gewählt (Kasten oben steht), dann ein anderes weiter unten
       await p.click('.adr-flt .bpf-in');
       const y0 = await p.evaluate(() => { let s = document.querySelector('[data-adr="g:Putz"]'); while (s && !(s.scrollHeight > s.clientHeight + 4 && /auto|scroll/.test(getComputedStyle(s).overflowY))) s = s.parentElement;
         if (!s) return -1; s.scrollTop = s.scrollHeight; return s.scrollTop > 0 ? document.querySelector('[data-adr="g:Putz"]').getBoundingClientRect().top : -1; });
       await p.click('[data-adr="g:Putz"]'); await p.waitForTimeout(300);
       const y1 = await p.evaluate(() => document.querySelector('[data-adr="g:Putz"]').getBoundingClientRect().top);   // der angeklickte Punkt bleibt, wo er war
       pruef(y0 > 0 && Math.abs(y1 - y0) < 2 && await zahl(p) === 1, `Gewerk unten in der Navigation: Navigation bleibt stehen, Filter greift – vorher ${y0}, nachher ${y1}, ${await zahl(p)} Treffer`);
+      await p.click('.adr-flt .bpf-in'); await p.keyboard.type('Mus', { delay: 60 }); await p.waitForTimeout(300);   // Tippen zeichnet die Navigation neu – das Feld behält Fokus und Text (ohne Merk-Krücke)
+      const tp = await p.evaluate(() => ({ fokus: document.activeElement && document.activeElement.classList.contains('bpf-in'), wert: document.querySelector('.adr-flt .bpf-in').value }));
+      pruef(tp.fokus && tp.wert === 'Mus', `Tippen im Filterfeld: Fokus und Text bleiben – ${JSON.stringify(tp)}`);
       await ctx.close(); }
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   return fehler;

@@ -27,6 +27,7 @@
 .zp .zk{display:flex;font-size:.72rem;color:var(--zm);font-weight:400}.zp .zk span{flex:none;border-left:1px solid var(--zl);padding:0 .25rem;overflow:hidden;white-space:nowrap}
 .zp .bar{position:absolute;top:8px;height:14px;border-radius:3px;background:#9aa3ad}
 .zp .bar i{position:absolute;left:0;top:0;bottom:0;background:rgba(0,0,0,.28);border-radius:3px 0 0 3px}
+.zp .bar.pf::before{content:"";position:absolute;inset:0;background:#fff;opacity:.68;border-radius:3px}.zp .bar.pf i{background:inherit;z-index:1}   /* wie im Bauzeitenplan: offen hell, erledigt kräftig (SI2-2 A) */
 .zp .bar.g{top:11px;height:7px;background:var(--zg);border-radius:0}.zp .bar.g::before,.zp .bar.g::after{content:"";position:absolute;bottom:-5px;border:5px solid transparent;border-top-color:var(--zg)}.zp .bar.g::before{left:-5px}.zp .bar.g::after{right:-5px}
 .zp .ms{position:absolute;top:8px;width:13px;height:13px;background:var(--zg);transform:rotate(45deg);margin-left:-6px}
 .zp .bl{position:absolute;top:6px;font-size:.72rem;color:var(--zm);white-space:nowrap}
@@ -84,7 +85,7 @@
       const P = !!D.fortschritt;
       const rows = vis.map((i, k) => { const x = Z[i], s = tag(x.s), f = tag(x.f), p = Math.min(100, Math.max(0, +x.p || 0));
         const bal = x.m ? `<div class="ms" data-x="${X(s)}" title="${esc(x.n)} · ${de(x.s)}"></div>`
-          : `<div class="bar${x.g ? ' g' : ''}" data-x="${X(s)}" data-w="${Math.max(2, Math.round((f - s + 1) * ppd))}"${x.g ? '' : ` data-c="${esc(x.c || '')}"`} title="${esc(x.n)} · ${de(x.s)} – ${de(x.f)}${P ? ' · ' + p + ' %' : ''}">${P && !x.g && p ? `<i data-p="${p}"></i>` : ''}</div>`;
+          : `<div class="bar${x.g ? ' g' : P ? ' pf' : ''}" data-x="${X(s)}" data-w="${Math.max(2, Math.round((f - s + 1) * ppd))}"${x.g ? '' : ` data-c="${esc(x.c || '')}"`} title="${esc(x.n)} · ${de(x.s)} – ${de(x.f)}${P ? ' · ' + p + ' %' : ''}">${P && !x.g && p ? `<i data-p="${p}"></i>` : ''}</div>`;
         const lab = !x.g && x.r ? `<span class="bl" data-x="${X(f + 1) + 6}">${esc(x.r)}</span>` : '';
         return `<tr class="${x.g ? 'grp' : ''}" data-i="${i}"><td class="fix c-nr">${k + 1}</td><td class="fix c-n" data-l="${x.l || 0}"${x.g ? ' title="auf-/zuklappen"' : ''}>${x.g ? `<span class="car">${ZU.has(i) ? '▸' : '▾'}</span>` : ''}${esc(x.n)}</td>
           <td class="c-d">${de(x.s)}</td><td class="c-d${P ? '' : ' c-last'}">${de(x.f)}</td>${P ? `<td class="c-p c-last">${p} %</td>` : ''}<td class="bal"><div class="zeit" data-w="${W}">${we}${heute}${bal}${lab}</div></td></tr>`; }).join('');

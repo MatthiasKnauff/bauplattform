@@ -69,8 +69,8 @@ export async function katalogNetzPruefen(browser, repo) {
     // K7: später fertig – Verlängerung am Balken (seit ÜF-3 V1 orange), Grund wählen
     await p.evaluate(() => { showTab('plan'); P.tasks[1].ueber = { at: 3, grund: 'wetter' }; P.tasks[1].pct = 100; render(); }); await warte(300);
     pruef(await p.evaluate(() => !!document.querySelector('.bar rect.ue')), 'überzogen: Verlängerung am Balken');
-    await p.evaluate(() => ueberGrund(0, 2, document.querySelector('.bar'))); await p.waitForSelector('.pickm'); await p.click('.pickm .pm-o:has-text("liegt an der Leistung")'); await warte(200);
-    pruef(await p.evaluate(() => P.tasks[0].ueber.at === 2 && P.tasks[0].ueber.grund === 'leistung'), 'Grund gewählt: fertig 2 AT später, zählt fürs Lernen (Fortschritt bleibt, wie er war – ÜF-1 A)');
+    await p.evaluate(() => zsPop(0)); await p.waitForSelector('.zs-pop [data-zs="ue"]'); await p.fill('.zs-pop [data-zs="ue"]', '2'); await p.press('.zs-pop [data-zs="ue"]', 'Enter'); await warte(200); await p.keyboard.press('Escape');
+    pruef(await p.evaluate(() => P.tasks[0].ueber.at === 2 && P.tasks[0].ueber.grund === 'leistung'), 'Feld am Balken: fertig 2 AT später, Grund „liegt an der Leistung“ zählt fürs Lernen');
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n').slice(0, 2).join(' / ')); }
   await ctx.close();
   return fehler;

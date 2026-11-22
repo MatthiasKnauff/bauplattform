@@ -252,6 +252,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Bauzeitenplan: Soll, Ist und Fortschritt (Mock SI2-1 … SI2-6): Balken füllt sich mit Zahl, Soll grau darunter, Punkt „heute“ mit Verzug, Klick auf den Balken = Feld „Zeit und Stand“, im Eigenschaften-Fenster ein Block~~ (22.11.2026)
 - ~~Dateispeicher Etappe 2: Anhänge, Dokumente und Fotos (Kommunikation, To-dos, LV-Dokumente, Nachträge, Bürgschaften, Positionsbilder, Vergabe-PDFs, Architektenverträge, Fachplaner-Rechnungen, Bauherrenportal) liegen als Datei statt in der Datenbank; die Dienste ziehen den Bestand um~~ (22.11.2026)
 - ~~pdf.js nur noch einmal im Repo (Kern, `bp/pdfjs/`) statt je in Plattform und Bautagebuch – 1,9 MB weniger~~ (22.11.2026)
 - ~~Bauzeitenplan: Änderungssätze im Reiter „Fragen“ („Malerarbeiten 5 Tage länger“, „… auf 8 AT“, „… 1 Woche später“, „A nach B“, „… 50 % fertig“) mit Vorschau~~ (22.11.2026)

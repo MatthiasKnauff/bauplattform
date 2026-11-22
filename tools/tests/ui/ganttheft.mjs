@@ -76,17 +76,21 @@ export async function ganttHeftPruefen(browser, repo) {
       await p.evaluate(() => taskDialog(0)); await p.waitForSelector('.td-eig'); await p.click('.td-eig .bp-eigk [data-m="next"]'); await p.waitForTimeout(400);
       pruef(await p.evaluate(() => ((document.querySelector('.td-eig .bp-eigk b') || {}).textContent || '') === 'Leistungsinformationen – ' + P.tasks[vis[1]].name), 'Blättern ↓ öffnet die nächste Leistung');
       await p.keyboard.press('Escape'); await p.waitForTimeout(100); pruef(!(await p.$('.td-eig')), 'Esc schließt');
-      // überzogen (K7) auch im Eigenschaften-Fenster: Tage und Grund
-      await p.evaluate(() => taskDialog(0)); await p.waitForSelector('.td-eig #fUe'); await p.fill('.td-eig #fUe', '3');
-      await p.click('.td-eig #fUeG'); await p.waitForTimeout(150);   // Auswahl „Grund“: die eigene Liste (bp/wahl.js), nicht die des Browsers
+      // Zeit und Stand (SI2-6 A): Dauer, Fortschritt, später fertig und Grund als ein Block unter der Bezeichnung
+      await p.evaluate(() => taskDialog(0)); await p.waitForSelector('.td-eig .zs [data-zs="ue"]');
+      const zl = await p.evaluate(() => { const f = document.querySelector('.td-eig .form'), z = f.querySelector('.zs'), n = f.querySelector('#fName').closest('div');
+        return { unter: !!(n.compareDocumentPosition(z) & Node.DOCUMENT_POSITION_FOLLOWING), vier: ['dur', 'ue', 'ueg'].every((k) => z.querySelector(`[data-zs="${k}"]`)) && !!z.querySelector('.bp-pz'), alt: !!document.querySelector('.td-eig #fPct, .td-eig #fUe') }; });
+      pruef(zl.unter && zl.vier && !zl.alt, `Block „Zeit und Stand“ im Fenster: ${JSON.stringify(zl)}`);
+      await p.click('.td-eig .zs [data-zsp][data-p="75"]'); await p.fill('.td-eig .zs [data-zs="ue"]', '3');
+      await p.click('.td-eig .zs [data-zs="ueg"]'); await p.waitForTimeout(150);   // Auswahl „Grund“: die eigene Liste (bp/wahl.js), nicht die des Browsers
       pruef(await p.evaluate(() => !!document.querySelector('.bph-wahl') && !!window.bpWahl), 'Auswahlliste im Eigenschaften-Fenster ist die eigene Liste');
       await p.evaluate(() => [...document.querySelectorAll('.bph-wahl .bph-wahl-o')].find((o) => /Wetter/i.test(o.textContent)).click()); await p.waitForTimeout(80);
-      pruef(await p.inputValue('.td-eig #fUeG') === 'wetter', 'Grund aus der eigenen Liste übernommen');
+      pruef(/jetzt fertig/.test(await p.textContent('.td-eig .zs [data-zs="erg"]')), 'Ergebniszeile zeigt „jetzt fertig …“');
       await p.click('.td-eig .bp-eigf [data-m="ok"]'); await p.waitForTimeout(200);
       const ue = await p.evaluate(() => ({ u: P.tasks[0].ueber, pct: P.tasks[0].pct }));
-      pruef(ue.u && ue.u.at === 3 && ue.u.grund === 'wetter' && ue.pct !== 100, `Überzogen im Eigenschaften-Fenster – Fortschritt bleibt (ÜF-1 A): ${JSON.stringify(ue)}`);
-      await p.evaluate(() => taskDialog(0)); await p.waitForSelector('.td-eig #fUe'); await p.fill('.td-eig #fUe', '0'); await p.click('.td-eig .bp-eigf [data-m="ok"]'); await p.waitForTimeout(200);
-      pruef(await p.evaluate(() => !P.tasks[0].ueber), '0 AT nimmt die Überziehung weg'); }
+      pruef(ue.u && ue.u.at === 3 && ue.u.grund === 'wetter' && ue.pct === 75, `Später fertig und Fortschritt im Eigenschaften-Fenster: ${JSON.stringify(ue)}`);
+      await p.evaluate(() => taskDialog(0)); await p.waitForSelector('.td-eig .zs [data-zs="ue"]'); await p.fill('.td-eig .zs [data-zs="ue"]', '0'); await p.click('.td-eig .bp-eigf [data-m="ok"]'); await p.waitForTimeout(200);
+      pruef(await p.evaluate(() => !P.tasks[0].ueber && P.tasks[0].pct === 75), '0 AT nimmt die Überziehung weg, Fortschritt bleibt'); }
     const sicht = () => p.evaluate(() => { const b = document.querySelector('.bf-heft'), g = document.querySelector('#gridPane'); return { da: !!b, tabs: !!document.querySelector('#tabs').offsetParent, such: !!document.querySelector('#leiste .gs-box'),
       leiste: !document.querySelector('#leiste').classList.contains('bf-zu'), pinR: b && Math.round(b.getBoundingClientRect().right), planR: Math.round(document.querySelector('#links').getBoundingClientRect().right), pinO: b && Math.round(b.getBoundingClientRect().top), planO: Math.round(g.getBoundingClientRect().top) }; });
     let v = await sicht();
@@ -139,28 +143,28 @@ export async function ganttHeftPruefen(browser, repo) {
       await p.keyboard.press('Escape'); await p.keyboard.press('Escape'); await p.evaluate(() => document.activeElement.blur());
       await p.setViewportSize({ width: 1600, height: 900 }); await p.waitForTimeout(300);
     }
-    {   // Fortschritt mit der Maus ziehen (22.11.2026): der Balken füllt sich beim Ziehen mit, nicht nur die Zahl im Tooltip
-      await p.evaluate(() => { P.tasks = [fillTask({ uid: 1, name: 'A', dur: 10, lvl: 0, preds: [] })]; CAL = schedule(); render(); });
-      const r = await p.evaluate(() => { const b = document.querySelector('#chartBody .bar[data-i="0"] rect.b').getBoundingClientRect(), h = document.querySelector('#chartBody .bar[data-i="0"] .ph').getBoundingClientRect(); return { x1: b.left, w: b.width, hx: h.left + h.width / 2, hy: h.top + h.height / 2 }; });
-      await p.mouse.move(r.hx, r.hy); await p.mouse.down(); await p.mouse.move(r.x1 + r.w * 0.3, r.hy, { steps: 4 }); await p.mouse.move(r.x1 + r.w * 0.6, r.hy, { steps: 4 });
-      const z = await p.evaluate(() => { const g = document.querySelector('#chartBody .bar[data-i="0"]'), b = g.querySelector('rect.b').getBoundingClientRect(), f = g.querySelector('rect.p').getBoundingClientRect(), h = g.querySelector('.ph').getBoundingClientRect(); return { f: f.width / b.width, spitze: (h.left + h.width / 2 - b.left) / b.width }; });
-      await p.mouse.up(); await p.waitForTimeout(200);
-      const pct = await p.evaluate(() => P.tasks[0].pct);
-      pruef(Math.abs(z.f - 0.6) < 0.06 && Math.abs(z.spitze - z.f) < 0.03 && pct === 60, `Fortschritt ziehen: Füllung ${z.f.toFixed(2)}, Spitze ${z.spitze.toFixed(2)}, danach ${pct} %`);
-    }
-    {   // Überzug und Fortschritt getrennt (Mock „Überzug und Fortschritt“ ÜF-1 A … ÜF-4 A, 22.11.2026)
-      await p.evaluate(() => { P.tasks = [fillTask({ uid: 1, name: 'A', dur: 4, lvl: 0, preds: [] }), fillTask({ uid: 2, name: 'B', dur: 2, lvl: 0, preds: [{ uid: 1, type: 'FS', lag: 0 }] })]; P.tasks[0].pct = 50; CAL = schedule(); render(); });
-      const r = await p.evaluate(() => { const g = document.querySelector('#chartBody .bar[data-i="0"]'), b = g.querySelector('rect.b').getBoundingClientRect(), u = g.querySelector('.uh').getBoundingClientRect(); return { b, ux: u.left + u.width / 2, uy: u.top + u.height / 2, es: CAL.es[1] }; });
-      await p.mouse.move(r.ux, r.uy); await p.mouse.down(); await p.mouse.move(r.ux + r.b.width * 0.75, r.uy, { steps: 5 }); await p.mouse.up();
-      await p.waitForSelector('.pickm .pm-o', { timeout: 3000 });
-      await p.evaluate(() => [...document.querySelectorAll('.pickm .pm-o')].find((b) => /Wetter/.test(b.textContent)).click());
-      await p.waitForTimeout(250);
+    {   // Mock „Soll, Ist und Fortschritt“ (GO 22.11.2026): Klick auf den Balken = Feld „Zeit und Stand“ (SI2-4 A); der ganze Balken füllt sich (SI2-2 A)
+      await p.evaluate(() => { P.tasks = [fillTask({ uid: 1, name: 'A', dur: 4, lvl: 0, preds: [] }), fillTask({ uid: 2, name: 'B', dur: 2, lvl: 0, preds: [{ uid: 1, type: 'FS', lag: 0 }] })]; CAL = schedule(); render(); });
+      const r = await p.evaluate(() => { const b = document.querySelector('#chartBody .bar[data-i="0"] rect.b').getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2, es: CAL.es[1] }; });
+      await p.mouse.click(r.x, r.y); await p.waitForSelector('.zs-pop .bp-pz', { timeout: 3000 });
+      pruef(await p.evaluate(() => !document.querySelector('#chartBody .ph, #chartBody .uh')), 'keine Griffe mehr für Fortschritt und „später fertig“');
+      await p.click('.zs-pop [data-zsp][data-p="50"]'); await p.waitForTimeout(150);
+      const f = await p.evaluate(() => { const g = document.querySelector('#chartBody .bar[data-i="0"]'), b = g.querySelector('rect.b').getBoundingClientRect(), q = g.querySelector('rect.p').getBoundingClientRect(), t = g.querySelector('text.pt');
+        return { pct: P.tasks[0].pct, f: q.width / b.width, h: q.height / b.height, txt: t && t.textContent, offen: !!document.querySelector('.zs-pop') }; });
+      pruef(f.pct === 50 && Math.abs(f.f - 0.5) < 0.05 && f.h > 0.95 && f.txt === '50 %' && f.offen, `Fortschritt im Feld: Balken halb gefüllt in voller Höhe, „50 %“ im Balken – ${JSON.stringify(f)}`);
+      await p.fill('.zs-pop [data-zs="ue"]', '2'); await p.press('.zs-pop [data-zs="ue"]', 'Enter'); await p.waitForTimeout(200);
       const z = await p.evaluate(() => { const t = P.tasks[0], g = document.querySelector('#chartBody .bar[data-i="0"]'), b = g.querySelector('rect.b').getBoundingClientRect(), ue = g.querySelector('rect.ue'), P2 = [...g.querySelectorAll('rect.p')].reduce((s, x) => s + x.getBoundingClientRect().width, 0);
-        return { u: t.ueber, pct: t.pct, nach: CAL.es[1], plan: b.width, ue: ue ? ue.getBoundingClientRect().width : 0, prog: P2, ut: !!g.querySelector('rect.ut') }; });
-      pruef(z.u && z.u.at >= 1 && z.u.grund === 'wetter' && z.pct === 50 && z.nach === r.es + z.u.at && z.ut, `Überzug oben am Balkenende: Fortschritt bleibt, Nachfolger rückt (${JSON.stringify(z)})`);
-      pruef(Math.abs(z.prog - (z.plan + z.ue) * 0.5) < 3, `unteres Bälkchen = 50 % der ganzen Zeit (${z.prog.toFixed(1)} von ${(z.plan + z.ue).toFixed(1)})`);
-      await p.evaluate(() => taskDialog(0)); await p.waitForSelector('.td-eig #fUe'); await p.fill('.td-eig #fUe', '0'); await p.click('.td-eig .bp-eigf [data-m="ok"]'); await p.waitForTimeout(200);
-      pruef(await p.evaluate(() => !P.tasks[0].ueber && P.tasks[0].pct === 50), 'Eigenschaften: 0 AT nimmt den Überzug weg, Fortschritt bleibt');
+        return { u: t.ueber, pct: t.pct, nach: CAL.es[1], plan: b.width, ue: ue ? ue.getBoundingClientRect().width : 0, ueh: ue ? ue.getBoundingClientRect().height / b.height : 0, prog: P2, alt: !!g.querySelector('rect.ut, rect.zt'), st: (document.querySelector('text.bst[data-st="0"]') || {}).textContent || '' }; });
+      pruef(z.u && z.u.at === 2 && z.u.grund === 'leistung' && z.pct === 50 && z.nach === r.es + 2 && z.ueh > 0.95 && !z.alt && /\+2 AT · liegt an der Leistung/.test(z.st), `Später fertig im Feld: volle Höhe, Nachfolger rückt, Stand rechts (${JSON.stringify(z)})`);
+      pruef(Math.abs(z.prog - z.plan * 0.75) < 3, `Fortschritt zählt den Überzug mit: 50 % von 4 + 2 AT = 3 AT = ¾ des geplanten Balkens (${z.prog.toFixed(1)} von ${z.plan.toFixed(1)})`);
+      await p.keyboard.press('Escape'); pruef(!(await p.$('.zs-pop')), 'Esc schließt das Feld');
+      await p.evaluate(() => doUndo()); pruef(await p.evaluate(() => !P.tasks[0].ueber && P.tasks[0].pct === 50), 'Rückgängig nimmt „später fertig“ zurück, Fortschritt bleibt');
+      // SI2-3 A: begonnen, aber nichts eingetragen → roter Punkt „heute“, „… AT im Verzug“
+      const vz = await p.evaluate(() => { P.tasks = [fillTask({ uid: 1, name: 'A', dur: 20, lvl: 0, preds: [] })]; P.start = snapWork(todayN() - 30); P.tasks[0].cons = snapWork(todayN() - 14); CAL = schedule(); render();
+        const g = document.querySelector('#chartBody .bar[data-i="0"]'); return { rot: !!g.querySelector('circle.vz.rot'), st: (document.querySelector('text.bst[data-st="0"]') || {}).textContent || '' }; });
+      pruef(vz.rot && /AT im Verzug/.test(vz.st), `Verzug: roter Punkt und Text – ${JSON.stringify(vz)}`);
+      const gr = await p.evaluate(() => { P.tasks[0].pct = 90; CAL = schedule(); render(); const g = document.querySelector('#chartBody .bar[data-i="0"]'); return { gruen: !!g.querySelector('circle.vz:not(.rot)'), st: document.querySelector('text.bst[data-st="0"]').textContent }; });
+      pruef(gr.gruen && !/Verzug/.test(gr.st), `voraus: grüner Punkt, kein Verzug – ${JSON.stringify(gr)}`);
     }
     {   // Soll und Ist (Mock „Soll und Ist“, 22.11.2026): Überziehung schiebt die Nachfolger (SI-3); das Soll liegt darunter, „Soll aus“ (SI-2)
       const T0 = [{ uid: 1, name: 'A', dur: 2, lvl: 0, preds: [] }, { uid: 2, name: 'B', dur: 3, lvl: 0, preds: [{ uid: 1, type: 'FS', lag: 0 }] }];
@@ -169,14 +173,14 @@ export async function ganttHeftPruefen(browser, repo) {
       pruef(v.nach === v.vor + 2 && v.ende === 4, `Überziehung schiebt den Nachfolger: ${JSON.stringify(v)}`);
       SOLL = { id: 's1', name: 'Bauvertrag', created: '2026-03-15T10:00:00Z', by: 'X', frueher: 0, data: { start: 20773, nextUid: 3, tasks: T0 } };
       await p.evaluate(() => GVGL.laden()); await p.waitForSelector('#vgBand:not(.vg-aus)', { timeout: 5000 });
-      const b = await p.evaluate(() => ({ t: document.querySelector('#vgBand').textContent, alt: document.querySelectorAll('#vgl .vg-alt').length, menue: document.body.textContent.includes('Vergleichen mit anderer Version') }));
+      const b = await p.evaluate(() => ({ t: document.querySelector('#vgBand').textContent, alt: document.querySelectorAll('#vgl .vg-soll').length, unter: (() => { const a = document.querySelector('#vgl .vg-soll'), b = document.querySelector('#chartBody .bar[data-i="0"] rect.b'); return a && b ? a.getBoundingClientRect().top >= b.getBoundingClientRect().bottom - 0.5 : false; })(), st: [...document.querySelectorAll('text.bst .st-sp, text.bst .st-fr')].map((x) => x.textContent), menue: document.body.textContent.includes('Vergleichen mit anderer Version') }));
       const hz = await p.evaluate(() => { const h = document.querySelector('.bf-heft').getBoundingClientRect(), v = document.querySelector('#vgBand').getBoundingClientRect(); return { h: h.top, band: v.bottom }; });
       pruef(hz.h >= hz.band - 1, `Heftzwecke liegt auf dem Soll-Band statt darunter am Arbeitsbereich (${JSON.stringify(hz)})`);
-      pruef(/Soll vom 15\.03\.2026/.test(b.t) && /Bauvertrag/.test(b.t) && b.alt >= 1 && !b.menue, `Soll unter dem Plan: ${JSON.stringify(b)}`);
+      pruef(/Soll vom 15\.03\.2026/.test(b.t) && /Bauvertrag/.test(b.t) && b.alt >= 1 && b.unter && b.st.some((x) => /^[+-]\d+ T$/.test(x)) && !b.menue, `Soll grau unter dem Ist-Balken, Abweichung rechts (SI2-1 A): ${JSON.stringify(b)}`);
       await p.click('#vgBand [data-vgende]'); await p.waitForSelector('#vgBand.vg-aus', { timeout: 3000 });
       pruef(await p.evaluate(() => !document.querySelector('#vgl') && /Soll zeigen/.test(document.querySelector('#vgBand').textContent)), '„Soll aus“ blendet das Soll aus, „Soll zeigen“ bleibt');
-      await p.click('#vgBand [data-sollan]'); await p.waitForSelector('#vgl .vg-alt', { timeout: 3000 }).catch(() => {});
-      pruef(await p.evaluate(() => !!document.querySelector('#vgl .vg-alt')), '„Soll zeigen“ legt es wieder darunter');
+      await p.click('#vgBand [data-sollan]'); await p.waitForSelector('#vgl .vg-soll', { timeout: 3000 }).catch(() => {});
+      pruef(await p.evaluate(() => !!document.querySelector('#vgl .vg-soll')), '„Soll zeigen“ legt es wieder darunter');
     }
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();

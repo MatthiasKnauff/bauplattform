@@ -176,6 +176,7 @@ function gwColor(g) {
 }
 function hslHex(h, s, l) { s /= 100; l /= 100; const k = (n) => (n + h / 30) % 12, a = s * Math.min(l, 1 - l); const f = (n) => Math.round(255 * (l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1)))).toString(16).padStart(2, '0'); return '#' + f(0) + f(8) + f(4); }
 function shade(hex, f) { const n = parseInt(hex.slice(1), 16); const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => Math.round(v * f)); return '#' + c.map((v) => v.toString(16).padStart(2, '0')).join(''); }
+function hell(hex, f) { const n = parseInt(hex.slice(1), 16); const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => Math.round(v + (255 - v) * f)); return '#' + c.map((v) => v.toString(16).padStart(2, '0')).join(''); }   // aufhellen: offener Teil eines Balkens (SI2-2 A)
 const effColor = (t) => (t && t.color) || gwColor(t && t.gw);
 const allGw = () => [...new Set(P.tasks.map((t) => t.gw).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
 function updateGwList() {

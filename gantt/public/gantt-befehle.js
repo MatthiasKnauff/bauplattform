@@ -389,6 +389,7 @@ function modal(title, body, buttons) {
 }
 
 function taskDialog(i) {
+  if (window.zsZu) zsZu();   // das Feld am Balken weicht dem Fenster
   const t = P.tasks[i], isS = CAL.summ[i];
   let preds = t.preds.map((p) => ({ ...p }));
   const opts = (u) => '<option value="">– auswählen –</option>' + P.tasks.map((x, j) => (j === i || isAncestor(j, i) || isAncestor(i, j)) ? '' : `<option value="${x.uid}"${x.uid === u ? ' selected' : ''}>${j + 1} – ${esc(x.name)}</option>`).join('');
@@ -400,12 +401,10 @@ function taskDialog(i) {
   const mitAbs = !isS && t.dur > 1;
   const body = `<div data-tdp="allg"><div class="form">
       <label>Bezeichnung</label><div class="full combo-wrap"><input id="fName" value="${esc(t.name)}"></div>
-      <label>Dauer</label><input id="fDur" value="${fmtDur(CAL.dur[i])}" ${isS ? 'disabled' : ''}>
-      <label>% Abgeschlossen</label><input id="fPct" type="number" min="0" max="100" value="${Math.round(CAL.pct[i])}" ${isS ? 'disabled' : ''}>
+      ${isS ? `<label>Dauer</label><div class="ro">${fmtDur(CAL.dur[i])}</div><label>% Abgeschlossen</label><div class="ro">${Math.round(CAL.pct[i])} %</div>`
+    : `<div class="zs-wrap">${zsHtml(i, { dlg: true })}</div>`}
       <label>Anfang nicht früher als</label><input id="fCons" type="date" value="${t.cons != null ? isoD(t.cons) : ''}">
       <label>Berechnet</label><div class="ro">${fmtD(CAL.sd[i])} – ${fmtD(CAL.fd[i])}</div>
-      ${isS ? '' : `<label>Später fertig als geplant</label><div class="ro colrow"><input id="fUe" type="number" min="0" max="365" value="${(t.ueber && t.ueber.at) || 0}"><span>AT</span></div>
-      <label>Grund</label><select id="fUeG">${Object.entries(UEBER_GRUND).map(([k, n]) => `<option value="${k}"${t.ueber && t.ueber.grund === k ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`}
       <label>Gewerk</label><input id="fGw" list="gwList" value="${esc(t.gw || '')}" placeholder="${esc(guessGw(t) ? 'Vorschlag: ' + guessGw(t) : 'z. B. Elektro')}">
       <label>Balkenfarbe</label><div class="ro colrow"><select id="fColM"><option value="">vom Gewerk</option><option value="own"${t.color ? ' selected' : ''}>eigene Farbe</option></select><input type="color" id="fCol" value="${t.color || effColor(t) || '#8db3e2'}"><span id="fGwC"></span></div>
       <label>Unternehmer:in</label><div class="full combo-wrap"><input id="fRes" value="${esc(t.res || '')}" placeholder="z. B. Firma Müller; Elektro Schmidt"></div>
@@ -427,10 +426,7 @@ function taskDialog(i) {
     return act(() => {
       t.name = v('#fName').trim(); nameHistAdd(t.name); if (t.name && window.BPHead && BPHead.wiki) BPHead.wiki('warnung', t.name, { worte: [t.gw] });
       if (!isS) {
-        const d = parseDur(v('#fDur')); if (d == null) throw new UErr('Ungültige Dauer.'); t.dur = d;
-        t.pct = Math.max(0, Math.min(100, Math.round(+v('#fPct') || 0)));
-        const ue = Math.max(0, Math.min(365, Math.round(+v('#fUe') || 0)));   // Überzug – unabhängig vom Fortschritt (ÜF-1 A), wie der Griff oben am Balkenende
-        if (ue) t.ueber = { at: ue, grund: v('#fUeG') }; else delete t.ueber;
+        zsSetzen(t, zsLesen(bg.querySelector('.zs')));   // Zeit und Stand (SI2-6 A): Dauer, Fortschritt, später fertig, Grund
       }
       const cs = v('#fCons'); t.cons = cs ? snapWork(parseDate(cs)) : null;
       t.res = v('#fRes').trim(); t.notes = v('#fNotes');
@@ -468,6 +464,7 @@ function taskDialog(i) {
     },
     zu: () => gridBody.focus({ preventScroll: true }) });
   const bg = E.f; E.body.innerHTML = body; zeigeTab();
+  if (!isS) zsAn(bg.querySelector('.zs'));
   bg.querySelector('[data-m="prev"]').title = 'Änderungen übernehmen und zur vorherigen Leistung (↑, Bild↑, Alt+↑)';
   bg.querySelector('[data-m="next"]').title = 'Änderungen übernehmen und zur nächsten Leistung (↓, Bild↓, Alt+↓)';
   bg.addEventListener('keydown', (e) => {   // Tastenkürzel des Plans gelten nicht im Fenster; Enter im Feld = OK

@@ -1,7 +1,7 @@
 /* Soll und Ist im Plan (Bauzeitenplan, Mock „Soll und Ist“ SI-1 … SI-7, GO 22.11.2026): das festgehaltene Soll (eine Version mit
    meta.soll, Server /api/projects/<id>/soll) liegt immer unter dem laufenden Plan (Ist) – der Plan bleibt bearbeitbar, der Vergleich
    rechnet nach jedem Zeichnen neu. Den Vergleich mit beliebigen alten Versionen gibt es nicht mehr (SI-1).
-   – Termin geändert: Soll-Balken bunt-blass und gestrichelt, etwas schräg (rechts oben) versetzt; Pfeil zum neuen Ende, „+7 T“
+   – Soll: schmaler grauer Balken unter jedem Ist-Balken (Mock „Soll, Ist und Fortschritt“ SI2-1 A), Abweichung „+7 T“ rechts im Stand
    – neu: Zeile grün getönt, „neu“
    – entfallen: rote gestrichelte Linie an der alten Stelle zwischen den Zeilen (Tabelle und Diagramm)
    – an andere Stelle gerückt: violette gestrichelte Linie an der alten Stelle, Pfeil in der schmalen Spalte zwischen Tabelle und
@@ -59,7 +59,7 @@
     b.innerHTML = `<b>Soll vom ${esc(S.tag)}</b><span class="vg-chip" title="${esc(S.note || '')}">„${esc(S.name || 'Soll')}“${S.by ? ' · ' + esc(S.by) : ''}</span>
       <span>Projektende ${fmtD(V.C2.peDay)} → <b>${fmtD(CAL.peDay)}</b> <b class="${dE > 0 ? 'vg-sp' : dE < 0 ? 'vg-fr' : 'vg-gl'}">${dE ? kurz(dE).replace(' T', ' KT') : 'unverändert'}</b></span>
       <span>${D.nZeit} Termin geändert · <b class="vg-fr">${D.nNeu} neu</b> · <b class="vg-sp">${D.nWeg} entfallen</b> · <b class="vg-ort">${D.nOrt} an anderer Stelle</b></span>
-      <span class="vg-lg"><i class="vg-lg-alt"></i>Soll <i class="vg-lg-pf"></i>verschoben</span><span class="vg-sp0"></span>
+      <span class="vg-lg"><i class="vg-lg-alt"></i>Soll unter dem Balken · <b class="vg-sp">+7 T</b> später als im Soll</span><span class="vg-sp0"></span>
       <button type="button" class="btn sm" data-vgende>Soll aus</button>${neu}`;
   }
 
@@ -88,16 +88,20 @@
   function diagramm() {
     const svg = chartBody.querySelector('svg'); if (!svg || !V || !D) return;
     const ppd = ZOOMS[zoom].ppd;
-    let s = '<defs><marker id="vgmr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0 0L6 3L0 6z" fill="#c0392b"/></marker>'
-      + '<marker id="vgmg" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0 0L6 3L0 6z" fill="#2e8b57"/></marker></defs>';
+    /* SI2-1 A (GO 22.11.2026): das Soll als schmaler grauer Balken unter dem Ist-Balken in derselben Zeile, die Abweichung rechts im Stand
+       (text.bst aus gantt-diagramm.js, vor „später fertig“ und Verzug) – kein versetzter Balken, kein Pfeil mehr */
+    let s = '';
+    const stand = (i, g, y, cls, txt) => {
+      const t = svg.querySelector(`text.bst[data-st="${i}"]`), sp = `<tspan class="${cls}" dx="10">${esc(txt)}</tspan>`;
+      if (t) t.insertAdjacentHTML('afterbegin', sp); else s += `<text class="bst" x="${g.x2 + 4}" y="${y + 16}">${sp}</text>`;
+    };
     vis.forEach((i, r) => {
       const x = D.R[i], g = geo[i]; if (!x || !g) return; const y = r * RH;
-      if (x.k === 'neu') { s += `<rect class="vg-neub" x="0" y="${y}" width="100%" height="${RH}"/><text class="vg-t vg-fr" x="${g.x2 + 6}" y="${y + 9}">neu</text>`; return; }
-      if (x.o.summ || (x.k === 'gleich' && !x.ort)) return;
-      const ox = X(x.o.sd) + 4, ow = x.o.ms ? 8 : Math.max(4, X(x.o.fd + 1) - X(x.o.sd)), f = x.ort ? '#8e6bd6' : effColor(P.tasks[i]) || '#8db3e2';
-      s += `<rect class="vg-alt" x="${ox}" y="${y + 2}" width="${ow}" height="12" rx="2" style="fill:${f}40;stroke:${f}"/>`;
-      if (x.d) s += `<path class="vg-pf" d="M${ox + ow} ${y + 8}L${g.x2 - 3} ${y + 12}" style="stroke:${x.d > 0 ? '#c0392b' : '#2e8b57'}" marker-end="url(#vgm${x.d > 0 ? 'r' : 'g'})"/>`
-        + `<text class="vg-t ${x.d > 0 ? 'vg-sp' : 'vg-fr'}" x="${Math.max(g.x2, ox + ow) + 6}" y="${y + 9}">${kurz(x.d)}</text>`;
+      if (x.k === 'neu') { s += `<rect class="vg-neub" x="0" y="${y}" width="100%" height="${RH}"/>`; stand(i, g, y, 'st-neu', 'neu'); return; }
+      if (x.o.summ) return;
+      const ox = X(x.o.sd), ow = x.o.ms ? 6 : Math.max(3, X(x.o.fd + 1) - X(x.o.sd));
+      s += `<rect class="vg-soll${x.ort ? ' vg-ortb' : ''}" x="${x.o.ms ? ox - 3 : ox}" y="${y + 19.5}" width="${ow}" height="3.5" rx="1.5"><title>Soll: ${fmtD(x.o.sd)} – ${fmtD(x.o.fd)}</title></rect>`;
+      if (x.d) stand(i, g, y, x.d > 0 ? 'st-sp' : 'st-fr', kurz(x.d));
     });
     alteStellen().forEach((l) => { const y = l.r * RH, ox = X(l.o.sd); s += `<line class="vg-lin" x1="0" y1="${y}" x2="100%" y2="${y}" style="stroke:${l.f}"/>`
       + `<text class="vg-t" x="${Math.max(4, ox)}" y="${y - 3}" style="fill:${l.f}">${esc(l.t)}</text>`; });

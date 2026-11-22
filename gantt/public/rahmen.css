@@ -78,8 +78,7 @@ body.g-zl-linie .selband{fill:none;stroke:#e0393e;stroke-width:1.5;stroke-dashar
 #vgBand.vg-aus{border-color:var(--line);background:var(--card)}
 #vgBand .vg-chip{border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:.05rem .6rem;background:var(--card)}#vgBand .vg-sp0{flex:1}
 #vgBand .vg-lg{display:flex;align-items:center;gap:.35rem;color:var(--mute);font-size:var(--fs-s)}
-.vg-lg-alt{display:inline-block;width:20px;height:9px;border:1px dashed var(--mute);background:color-mix(in srgb,var(--mute) 25%,transparent);border-radius:2px}
-.vg-lg-pf{display:inline-block;width:18px;height:0;border-top:1.5px solid #c0392b;margin-left:.4rem}
+.vg-lg-alt{display:inline-block;width:22px;height:4px;background:#9aa3ae;border-radius:2px}
 .vg-sp{color:#c0392b}.vg-fr{color:#2e8b57}.vg-ort{color:#8e6bd6}.vg-gl{color:var(--mute)}
 .c-name .vg-z{margin-left:auto;display:flex;gap:.3rem;align-items:center;padding-left:.3rem;flex:none}
 .vg-d{font-style:normal;font-weight:600;font-size:calc(var(--fs)*.9);font-variant-numeric:tabular-nums}
@@ -87,7 +86,7 @@ body.g-zl-linie .selband{fill:none;stroke:#e0393e;stroke-width:1.5;stroke-dashar
 .vg-m-neu{color:#2e8b57}.vg-m-ort{color:#8e6bd6}
 .row.vg-neu .c{background:color-mix(in srgb,#2e8b57 9%,var(--card))}.row.vg-ort .c{background:color-mix(in srgb,#8e6bd6 7%,var(--card))}
 .vg-li{position:absolute;left:0;right:0;height:0;border-top:1.5px dashed;pointer-events:none;z-index:3}.vg-li span{position:absolute;left:44px;top:-.6rem;background:var(--card);padding:0 .3rem;font-size:calc(var(--fs)*.8);font-style:italic}
-#vgl .vg-alt{stroke-dasharray:3 2;stroke-width:1}#vgl .vg-pf{stroke-width:1.5;fill:none}#vgl .vg-t{font-size:calc(var(--fs)*.8);font-weight:600}#vgl .vg-t.vg-sp{fill:#c0392b}#vgl .vg-t.vg-fr{fill:#2e8b57}
+#vgl .vg-soll{fill:#9aa3ae}#vgl .vg-soll.vg-ortb{fill:#8e6bd6}#vgl .vg-t{font-size:calc(var(--fs)*.8);font-weight:600}
 #vgl .vg-lin{stroke-width:1.5;stroke-dasharray:5 4}#vgl .vg-neub{fill:color-mix(in srgb,#2e8b57 8%,transparent)}
 #vgRinne{width:30px;flex:none;position:relative;overflow:hidden;background:color-mix(in srgb,#8e6bd6 4%,var(--card));border-left:1px solid var(--line)}
 #vgRinne .vg-rk{position:relative;z-index:2;height:44px;display:flex;align-items:center;justify-content:center;color:#8e6bd6;background:var(--hdr);border-bottom:1px solid var(--line)}

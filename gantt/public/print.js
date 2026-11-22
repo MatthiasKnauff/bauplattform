@@ -232,15 +232,17 @@ function printChart(L) {
     } else if (t.dur === 0) {
       body += `<path fill="${cr ? red : '#262626'}" d="M${q.cx},${y + 5}L${q.cx + 7},${y + 12}L${q.cx},${y + 19}L${q.cx - 7},${y + 12}Z"/>`;
     } else {
-      const gc = effColor(t);
-      const fill = gc || (cr ? '#ec9b9b' : '#8db3e2'), stroke = cr ? red : gc ? shade(gc, 0.7) : '#4f7fb8';
-      let done = t.dur * (t.pct || 0) / 100;
+      const gc = effColor(t);   // wie im Diagramm (SI2-2 A): offen hell, erledigt kräftig, Zahl im Balken; später fertig orange
+      const fill = gc || (cr ? '#ec9b9b' : '#8db3e2'), stroke = cr ? red : gc ? shade(gc, 0.7) : '#4f7fb8', F = pctTeile(q, t.pct || 0);
       q.segs.forEach((sg, k) => {
-        const w = Math.max(2, sg.x2 - sg.x1), f = Math.max(0, Math.min(1, done / sg.d)); done -= sg.d;
+        const w = Math.max(2, sg.x2 - sg.x1);
         if (k) body += `<line x1="${q.segs[k - 1].x2}" y1="${y + 12}" x2="${sg.x1}" y2="${y + 12}" stroke="#555" stroke-width="1.2" stroke-dasharray="2 3"/>`;
-        body += `<rect x="${sg.x1}" y="${y + 6}" width="${w}" height="12" fill="${fill}" stroke="${stroke}" stroke-width="${cr && gc ? 2 : 1}"/>`;
-        if (f > 0) body += `<rect x="${sg.x1}" y="${y + 10}" width="${w * f}" height="4" fill="${gc ? shade(gc, 0.42) : cr ? '#7a0000' : navy}"/>`;
+        body += `<rect x="${sg.x1}" y="${y + 6}" width="${w}" height="12" fill="${hell(fill, 0.7)}" stroke="${stroke}" stroke-width="${cr && gc ? 2 : 1}"/>`;
+        if (F.w[k] > 0) body += `<rect x="${sg.x1}" y="${y + 6}" width="${F.w[k]}" height="12" fill="${fill}"/>`;
       });
+      if (q.ue) { body += `<rect x="${q.xp}" y="${y + 6}" width="${Math.max(2, q.x2 - q.xp)}" height="12" fill="#fff3ea" stroke="#e8590c" stroke-dasharray="3 2"/>`;
+        if (F.w[q.segs.length] > 0) body += `<rect x="${q.xp}" y="${y + 6}" width="${F.w[q.segs.length]}" height="12" fill="${fill}"/>`; }
+      if (!barLbl.m && t.pct > 0 && q.x2 - q.x1 >= 30) body += `<text x="${q.x1 + 4}" y="${y + 15.5}" font-size="10" font-weight="600" fill="${F.px - q.x1 >= 36 ? textOn(fill) : '#333'}">${t.pct >= 100 ? (q.x2 - q.x1 >= 62 ? '✓ fertig' : '✓') : Math.round(t.pct) + ' %'}</text>`;
     }
     body += inl(barLabels(i, q, y));
   });

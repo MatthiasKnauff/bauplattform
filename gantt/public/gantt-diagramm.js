@@ -235,10 +235,10 @@ function renderChart() {
     if (!imFenster(r)) return;
     const t = T[i], g = geo[i], y = g.y, cr = showCrit && c.crit[i];
     const sf = c.summ[i] && window.ganttStufe ? ganttStufe.summeFarbe(i) : null;   // zugeklappte Gruppe farbig (Gewerk) statt grau
-    if (sf) {
+    if (sf) {   // zugeklappte Gruppe: offen hell, erledigt kräftig (SI2-2 A)
       const { x1 } = g, x2 = Math.max(g.x2, x1 + 8), pw = (x2 - x1) * c.pct[i] / 100;
-      bars += `<g class="bar sum zu${cr ? ' crit' : ''}" data-i="${i}"><rect class="b" x="${x1}" y="${y + 6}" width="${x2 - x1}" height="12" style="fill:${sf};stroke:${cr ? '#c00000' : shade(sf, 0.7)};stroke-width:${cr ? 2 : 1}"/>`
-        + (pw > 0 ? `<rect class="p" x="${x1}" y="${y + 10}" width="${pw}" height="4" style="fill:${shade(sf, 0.42)}"/>` : '') + `<circle class="lkdot" cx="${x2 + 7}" cy="${y + 12}" r="3.5"/></g>`;
+      bars += `<g class="bar sum zu${cr ? ' crit' : ''}" data-i="${i}"><rect class="b" x="${x1}" y="${y + 6}" width="${x2 - x1}" height="12" style="fill:${hell(sf, 0.7)};stroke:${cr ? '#c00000' : shade(sf, 0.7)};stroke-width:${cr ? 2 : 1}"/>`
+        + (pw > 0 ? `<rect class="p" x="${x1}" y="${y + 6}" width="${pw}" height="12" style="fill:${sf}"/>` : '') + `<circle class="lkdot" cx="${x2 + 7}" cy="${y + 12}" r="3.5"/></g>`;
     } else if (c.summ[i]) {
       const { x1 } = g, x2 = Math.max(g.x2, x1 + 8);
       const pw = (x2 - x1) * c.pct[i] / 100;
@@ -247,29 +247,38 @@ function renderChart() {
     } else if (t.dur === 0) {
       bars += `<g class="bar${cr ? ' crit' : ''}" data-i="${i}"><path class="ms" d="M${g.cx},${y + 5}L${g.cx + 7},${y + 12}L${g.cx},${y + 19}L${g.cx - 7},${y + 12}Z"/><circle class="lkdot" cx="${g.cx + 13}" cy="${y + 12}" r="3.5"/></g>`;
     } else {
-      const gc = effColor(t);
-      const bst = gc ? ` style="fill:${gc};stroke:${cr ? '#c00000' : shade(gc, 0.7)};stroke-width:${cr ? 2 : 1}"` : '';
-      const pst = gc ? ` style="fill:${shade(gc, 0.42)}"` : '';
-      /* Überzug (Mock „Überzug und Fortschritt“, 22.11.2026: ÜF-1 A … ÜF-4 A, Farben V1): der Balken läuft schraffiert orange weiter bis zum neuen Ende;
-         im Balken zwei Bälkchen – oben die Zeit (geplant hell, Überzug orange), unten der Fortschritt. Ohne Überzug wie bisher ein Fortschrittsstreifen. */
-      const F = pctTeile(g, t.pct || 0), py = g.ue ? y + 12 : y + 10, ph = g.ue ? 3 : 4; let h = '', px = F.px;
+      /* Mock „Soll, Ist und Fortschritt“ (GO 22.11.2026, SI2-2 A · SI2-3 A · SI2-5 A): der ganze Balken füllt sich – offen hell, erledigt
+         kräftig in der Gewerkfarbe, die Zahl im Balken; „später fertig“ läuft in voller Höhe orange schraffiert weiter, der Fortschritt füllt
+         auch ihn. Eingetragen wird über das Feld „Zeit und Stand“ (stand.js) – gezogen werden nur Lage und Dauer. */
+      const gc = effColor(t), pct = t.pct || 0;
+      const bst = gc ? ` style="fill:${hell(gc, 0.7)};stroke:${cr ? '#c00000' : shade(gc, 0.7)};stroke-width:${cr ? 2 : 1}"` : '';
+      const pst = gc ? ` style="fill:${gc}"` : '';
+      const F = pctTeile(g, pct); let h = '';
       g.segs.forEach((sg, k) => {
         const w = Math.max(2, sg.x2 - sg.x1);
         if (k) h += `<line class="segc" x1="${g.segs[k - 1].x2}" y1="${y + 12}" x2="${sg.x1}" y2="${y + 12}"/>`;
         h += `<g class="sg" data-seg="${k}"><rect class="b" data-seg="${k}" x="${sg.x1}" y="${y + 6}" width="${w}" height="12"${bst}/>`
-          + (g.ue ? `<rect class="zt" x="${sg.x1 + 1}" y="${y + 8}" width="${Math.max(0, w - 1)}" height="3"/>` : '')
-          + `<rect class="p" x="${sg.x1}" y="${py}" width="${F.w[k]}" height="${ph}"${pst}/></g>`;   // auch bei 0 %: das Ziehen am Fortschritt füllt sie
+          + (F.w[k] > 0 ? `<rect class="p" x="${sg.x1}" y="${y + 6}" width="${F.w[k]}" height="12"${pst}/>` : '') + '</g>';
       });
       if (g.ue) { const w = Math.max(2, g.x2 - g.xp);
         h += `<g class="ueg"><rect class="ue" x="${g.xp}" y="${y + 6}" width="${w}" height="12"><title>Fertig ${t.ueber.at} AT später als geplant – ${esc(UEBER_GRUND[t.ueber.grund] || t.ueber.grund)}</title></rect>`
-          + `<rect class="ut" x="${g.xp}" y="${y + 8}" width="${Math.max(0, w - 1)}" height="3"/><rect class="p" x="${g.xp}" y="${py}" width="${F.w[g.segs.length]}" height="${ph}"${pst}/></g>`; }
+          + (F.w[g.segs.length] > 0 ? `<rect class="p ueP" x="${g.xp}" y="${y + 6}" width="${F.w[g.segs.length]}" height="12"${pst}/>` : '') + '</g>'; }
+      if (!barLbl.m && pct > 0 && g.x2 - g.x1 >= 30) {   // Zahl im Balken: auf der Füllung hell, sonst dunkel
+        const txt = pct >= 100 ? (g.x2 - g.x1 >= 62 ? '✓ fertig' : '✓') : `${Math.round(pct)} %`;
+        h += `<text class="pt" x="${g.x1 + 4}" y="${y + 15.5}" style="fill:${F.px - g.x1 >= 36 ? textOn(gc || '#8db3e2') : '#333'}">${txt}</text>`;
+      }
+      const vz = verzug(i, g), st = [];   // SI2-3 A: Punkt „hier müsste der Fortschritt heute stehen“, rot = im Verzug
+      if (vz && vz.soll > 0) h += `<circle class="vz${vz.at >= 0.5 ? ' rot' : ''}" cx="${pctTeile(g, vz.soll * 100).px}" cy="${y + 12}" r="3.5"><title>Heute müssten ${Math.round(vz.soll * 100)} % fertig sein – eingetragen ${Math.round(pct)} %</title></circle>`;
+      if (g.ue) st.push(`<tspan class="st-ue" dx="10">+${t.ueber.at} AT · ${esc(UEBER_GRUND[t.ueber.grund] || t.ueber.grund || '')}</tspan>`);
+      if (vz && vz.at >= 1) st.push(`<tspan class="st-vz" dx="10">${Math.round(vz.at)} AT im Verzug</tspan>`);
       const sp = g.segs.length > 1;   // unterbrochen: jedes Abschnittsende anfassbar, jeder Abschnitt verknüpfbar (13.11.2026)
       bars += `<g class="bar${cr ? ' crit' : ''}${sp ? ' split' : ''}" data-i="${i}">${h}`
         + (sp ? g.segs.map((sg, k) => `<rect class="lh" data-seg="${k}" x="${sg.x1 - 3}" y="${y + 4}" width="7" height="16"/><rect class="rh" data-seg="${k}" x="${sg.x2 - 5}" y="${y + 4}" width="8" height="16"/>`
           + (k < g.segs.length - 1 ? `<circle class="lkdot" data-seg="${k}" cx="${sg.x2 + 4}" cy="${y + 3}" r="3"/>` : '')).join('')
           : `<rect class="lh" x="${g.x1 - 3}" y="${y + 4}" width="7" height="16"/><rect class="rh" x="${(g.xp || g.x2) - 5}" y="${y + 4}" width="8" height="16"/>`)
-        + `<rect class="uh" x="${g.x2 - 5}" y="${y + 4}" width="8" height="8"/>`   // ÜF-4 A: oben am Balkenende ziehen = später fertig (Überzug)
-        + `<path class="ph" d="M${px},${y + 17}l4,5h-8z"/><circle class="lkdot" cx="${g.x2 + 7}" cy="${y + 12}" r="3.5"/></g>`;
+        + `<circle class="lkdot" cx="${g.x2 + 7}" cy="${y + 12}" r="3.5"/></g>`;
+      const R = barLbl.r ? lblVal(i, barLbl.r) : '';   // Stand rechts hinter der Beschriftung – vergleich.js setzt das Soll davor
+      bars += `<text class="bst" data-st="${i}" x="${Math.max(g.x2, g.x1 + 8) + 4 + (R ? 10 + String(R).length * 6.6 : 0)}" y="${y + 16}">${st.join('')}</text>`;
     }
     bars += barLabels(i, g, y);
   });
@@ -277,6 +286,7 @@ function renderChart() {
   chartBody.className = 'lk-' + linkMode + (typeof splitMode !== 'undefined' && splitMode ? ' splitting' : '');
   chartBody.innerHTML = s + '<rect id="hovband" x="0" y="-100" width="100%" height="' + RH + '"/>' + links + bars + '</svg>';
   updateSelBands(); markLinks();
+  if (window.zsLage) zsLage();   // Feld „Zeit und Stand“ bleibt am Balken
   // Scrollposition stabil halten, wenn sich der Anfang der Zeitachse verschiebt
   if (old != null && oldPpd === ppd && old !== view.start) chartPane.scrollLeft += (old - view.start) * ppd;
 }
@@ -288,6 +298,16 @@ function pctTeile(g, pct) {
   const T = g.ue ? [...g.segs, { x1: g.xp, x2: g.x2, d: g.ue }] : g.segs, ges = T.reduce((s, x) => s + x.d, 0);
   let rest = ges * pct / 100, px = g.x1; const w = T.map((sg) => { const b = Math.max(2, sg.x2 - sg.x1), f = Math.max(0, Math.min(1, rest / sg.d)); rest -= sg.d; if (f > 0) px = sg.x1 + b * f; return b * f; });
   return { w, px };
+}
+/* Stand heute (SI2-3 A): wie viel müsste laut Plan heute fertig sein? soll 0…1 (geplante Arbeitstage bis heute ÷ ganze Zeit einschließlich
+   Überzug), at = Rückstand in Arbeitstagen (negativ = voraus). null = noch nicht begonnen oder fertig. */
+function verzug(i, g) {
+  const t = P.tasks[i], p = t.pct || 0, tot = (t.dur || 0) + (g.ue || 0);
+  if (p >= 100 || !tot || CAL.summ[i] || todayN() < CAL.sd[i]) return null;
+  const tw = toW(todayN()); let el = 0;
+  CAL.segS[i].forEach((s0, k) => { el += Math.max(0, Math.min(tw, CAL.segE[i][k]) - s0); });
+  const soll = Math.min(1, el / tot);
+  return { soll, at: (soll - p / 100) * tot };
 }
 function barGeo(i, y, Xf, ppd) {
   const c = CAL, t = P.tasks[i];

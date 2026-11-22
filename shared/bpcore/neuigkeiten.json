@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-sollist-2026-11-22",
+  "datum": "2026-11-22",
+  "app": "gantt",
+  "titel": "Soll, Ist und Fortschritt besser sichtbar",
+  "text": "Der ganze Balken füllt sich mit dem Fortschritt, die Zahl steht im Balken. Das Soll liegt als schmaler grauer Balken darunter, die Abweichung steht rechts. Ein Punkt an der Linie „heute“ zeigt, ob eine Leistung im Verzug ist. Ein Klick auf den Balken öffnet ein kleines Feld für Fortschritt und „später fertig“ – im Eigenschaften-Fenster stehen Dauer, Fortschritt, später fertig und Grund jetzt zusammen.",
+  "ziel": "#chartBody"
+ },
+ {
   "id": "gantt-saetze-2026-11-22",
   "datum": "2026-11-22",
   "app": "gantt",

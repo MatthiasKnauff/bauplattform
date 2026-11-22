@@ -114,10 +114,14 @@ button{font:inherit}
 .pstart{stroke:#2b7a3d;stroke-width:1;stroke-dasharray:2 3}
 .selband{fill:#e2edf9}
 .bar{cursor:move}
-.bar .b{fill:var(--bar);stroke:var(--barbd);stroke-width:1}
-.bar .p{fill:var(--prog);pointer-events:none}
-.bar.crit .b{fill:var(--crit);stroke:var(--critbd)}
-.bar.crit .p{fill:#7a0000}
+.bar .b{fill:color-mix(in srgb,var(--bar) 30%,#fff);stroke:var(--barbd);stroke-width:1}
+.bar .p{fill:var(--bar);pointer-events:none}
+.bar.crit .b{fill:color-mix(in srgb,var(--crit) 30%,#fff);stroke:var(--critbd)}
+.bar.crit .p{fill:var(--crit)}
+/* Soll, Ist und Fortschritt (GO 22.11.2026): Zahl im Balken, Punkt „heute“, Stand rechts */
+.bar .pt{font-size:11px;font-weight:600;pointer-events:none}
+.bar .vz{fill:#2e8b57;stroke:#fff;stroke-width:1.2}.bar .vz.rot{fill:#c0392b}
+.bst{font-size:11.5px;font-weight:600;pointer-events:none}.bst .st-ue{fill:#e8590c}.bst .st-vz,.bst .st-sp{fill:#c0392b}.bst .st-fr{fill:#2e8b57}.bst .st-neu{fill:#2e8b57;font-style:italic}
 .bar .rh{cursor:ew-resize;fill:transparent}
 .bar.sum{cursor:pointer}
 .sumbar{fill:#262626}
@@ -261,9 +265,8 @@ button{font:inherit}
 /* Unterbrechungen, Beschriftung, Mausbedienung */
 .segc{stroke:#555;stroke-width:1.2;stroke-dasharray:2 3}
 .bar .lh{cursor:ew-resize;fill:transparent}
-.bar .ph{fill:#333;cursor:ew-resize;opacity:0;transition:opacity .12s}
 .bar .lkdot{fill:#fff;stroke:#2e6db4;stroke-width:1.5;cursor:crosshair;opacity:0;transition:opacity .12s}
-.bar:hover .ph,.bar:hover .lkdot{opacity:1}
+.bar:hover .lkdot{opacity:1}
 .bar.split .b{cursor:move}
 .bar .sg{cursor:move}
 .blabel.inbar{font-weight:500;pointer-events:none}
@@ -842,8 +845,8 @@ html[data-theme="dunkel"] .kp-chip{border-color:#555;color:#bbb}html[data-theme=
 .ab-gr{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.6rem;font-size:.82rem}.ab-gr[hidden]{display:none}
 .ab-gh{font-size:.8rem;margin:.6rem 0 0}
 /* Fortschritt über 100 % (K7, 22.11.2026): fertig später – rote Verlängerung hinter dem geplanten Ende */
-.bar rect.ue{fill:url(#ueSchraff);stroke:#e8590c;stroke-dasharray:3 2}#ueSchraff .ue-s{fill:#e8590c}#ueSchraff .ue-h{fill:#fff3ea}
-.bar rect.ut{fill:#e8590c;pointer-events:none}.bar rect.zt{fill:#fff;opacity:.75;pointer-events:none}.bar .uh{cursor:ew-resize;fill:transparent}
+.bar rect.ue{fill:url(#ueSchraff);stroke:#e8590c;stroke-dasharray:3 2}#ueSchraff .ue-s{fill:#e8590c88}#ueSchraff .ue-h{fill:#fff3ea}
+
 /* Leistungskatalog: Abhängigkeiten, Büro-Abweichungen, Lernen (Mock LK, 22.11.2026) */
 .lv-modus{margin-left:auto}
 .kn-seg{display:inline-flex;border:1px solid var(--line,#d5d9de);border-radius:999px;padding:2px;background:var(--card,#fff)}.kn-seg button{border:0;background:none;font:inherit;padding:2px 12px;border-radius:999px;cursor:pointer;color:inherit}.kn-seg button.on{background:var(--sel,#e7edf7);font-weight:600}
@@ -864,3 +867,18 @@ html[data-theme="dunkel"] .kp-chip{border-color:#555;color:#bbb}html[data-theme=
 .zr{max-height:min(60vh,520px);overflow:auto;min-width:min(560px,90vw)}
 .zr-z{display:flex;gap:8px;align-items:baseline;padding:3px 0;cursor:pointer}.zr-z s{color:#888}
 .zr-weg span{color:var(--danger,#b8432f)}
+
+/* Zeit und Stand (Mock „Soll, Ist und Fortschritt“ SI2-4 A, SI2-6 A): ein Block im Eigenschaften-Fenster und im Feld am Balken */
+.zs-wrap{grid-column:1/-1}
+.zs{border:1px solid var(--bd);border-radius:calc(8px*var(--rk,1));padding:8px 10px;background:var(--hdr);display:grid;gap:6px}
+.zs-k{font-weight:600}
+.zs-z{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.zs-z label{display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+.zs-z input[data-zs="ue"]{width:4.5em}.zs-z input[data-zs="dur"]{width:7em}
+.zs-l{min-width:5.5em}
+.zs-e{color:var(--mut);font-size:var(--fs-s,12px)}.zs-e .zs-sp{color:#e8590c}
+.zs-pop{position:fixed;z-index:60;background:var(--card,#fff);border:1px solid var(--bd);border-radius:calc(10px*var(--rk,1));box-shadow:0 6px 22px #0003;padding:8px 10px;display:grid;gap:6px;width:min(400px,calc(100vw - 16px))}
+.zs-pop .zs{border:0;padding:0;background:none}.zs-pop .zs-k{display:none}
+.zs-kopf{display:flex;align-items:center;gap:8px}.zs-kopf b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zs-x{all:unset;cursor:pointer;width:24px;height:24px;display:grid;place-items:center;border-radius:6px}.zs-x:hover{background:var(--hov,#eef1f5)}
+.zs-fuss{color:var(--mut);font-size:var(--fs-s,12px)}

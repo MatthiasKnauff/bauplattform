@@ -266,3 +266,16 @@ test('Dach rechnet über seine Fläche (22.11.2026: Leistungswerte standen im Ko
   assert.ok(gross > klein, `großes Dach dauert länger: ${klein} → ${gross}`);
   assert.match(K.durWeg('zimmer', { type: 'neubau_efh', area: 400, floors: 1, dg: 'aus' }), /Dachfläche/);
 });
+
+test('Innenputz trocknen und Heizestrich (Mock BZ P1, P2 – 22.11.2026)', () => {
+  const ctx = nurKern(), C = ctx.CATALOG, K = ctx.PlanKern, B = (id) => C.items.find((x) => x.id === id);
+  const pt = B('putz_tr');
+  assert.ok(pt && pt.w && pt.fix && pt.req === 'putz' && pt.a.includes('putz'), 'Wartezeit „Innenputz trocknen“ nach dem Putz');
+  for (const id of ['maler', 'spachtel_wd', 'tapete', 'fliesen']) assert.ok(B(id).a.includes('putz_tr'), `${id} wartet auf das Trocknen`);
+  assert.ok(!B('estrich').a.includes('putz_tr'), 'Estrich darf schon während des Trocknens');
+  const opt = C.choices.find((g) => g.k === 'innenwand').opts;
+  assert.ok(opt.find((o) => o.k === 'putz').on.includes('putz_tr') && !opt.find((o) => o.k === 'tb').on.includes('putz_tr'), 'nur mit Innenputz');
+  const cfg = (wv) => ({ type: 'neubau_efh', area: 140, floors: 2, dg: 'kalt', choice: { waermevert: wv, estrichart: 'ze' } });
+  assert.equal(K.dur('estr_tr', cfg('fbh')), 30, 'Heizestrich 30 AT');
+  assert.equal(K.dur('estr_tr', cfg('hk')), 20, 'ohne Fußbodenheizung 20 AT');
+});

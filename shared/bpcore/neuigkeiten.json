@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-putz-heizestrich",
+  "datum": "2026-11-22",
+  "app": "gantt",
+  "titel": "Innenputz trocknen, Heizestrich",
+  "text": "Neue Wartezeit „Innenputz trocknen“ (10 Arbeitstage) vor Spachteln, Streichen, Tapezieren und Fliesen – der Estrich darf schon währenddessen. Mit Fußbodenheizung dauert „Estrich trocknen“ jetzt 30 statt 20 Arbeitstage (Funktions- und Belegreifheizen). Gilt für neue Pläne und „Plan neu aus den Angaben“.",
+  "ziel": "#gridBody"
+ },
+ {
   "id": "gantt-takt-trocknen",
   "datum": "2026-11-22",
   "app": "gantt",

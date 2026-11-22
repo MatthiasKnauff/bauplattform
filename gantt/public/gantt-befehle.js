@@ -361,7 +361,7 @@ function makeDraggable(box, handle, key) {
 }
 function modal(title, body, buttons) {
   const bg = document.createElement('div'); bg.className = 'modal-bg';
-  bg.innerHTML = `<div class="modal" role="dialog" aria-label="${esc(title)}"><div class="mh">${esc(title)}<button class="mx" title="Schließen">×</button></div><div class="mb">${body}</div><div class="mf"></div></div>`;
+  bg.innerHTML = `<div class="modal" role="dialog" aria-label="${esc(title)}"><div class="mh">${esc(title)}<button type="button" class="mx" title="Schließen (Esc)" aria-label="Schließen">✕</button></div><div class="mb">${body}</div><div class="mf"></div></div>`;
   const close = () => { bg.remove(); gridBody.focus({ preventScroll: true }); };
   const mf = bg.querySelector('.mf');
   const run = (b) => { if (b.fn && b.fn(bg) === false) return; close(); };
@@ -684,19 +684,19 @@ function projectDialog(teil = 'info') {   // 'info': Name, Anfang, Ende · 'kale
       <label>Kalender</label><div class="ro full">${esc((WEEKS.find(([v]) => v === +cal.week) || [0, ''])[1])} · ${esc((STATES.find(([v]) => v === calLand(cal)) || [0, ''])[1])} · ${(cal.free || []).length} eigene freie Zeiträume <button type="button" class="btn sm" id="pZurKal" style="margin-left:6px">Arbeitszeit &amp; Feiertage …</button></div>
     </div>
     <div${teil === 'kalender' ? '' : ' style="display:none"'}>
-    <div class="sec" style="margin-top:0">Arbeitszeit und Feiertage</div>
+    <div class="g-sec" style="margin-top:0">Arbeitszeit und Feiertage</div>
     <div class="form">
       <label>Arbeitswoche</label><div class="full kchips" id="pWeek" data-v="${+cal.week || 5}">${WEEKS.map(([v, l]) => `<button type="button" class="kchip${+cal.week === v ? ' on' : ''}" data-kw="${v}">${l}</button>`).join('')}</div>
       <label>Feiertage</label><div class="full" id="pLand">${landSchild(cal)}</div><label></label><div class="full kchips kchips-l" id="pState" data-v="${esc(calLand(cal))}"${cal.state_hand ? ' data-hand="1"' : ''}>${STATES.map(([v, l]) => `<button type="button" class="kchip${calLand(cal) === v ? ' on' : ''}" data-ks="${v}">${l}</button>`).join('')}</div>
     </div>
-    <div class="sec">Eigene freie Tage</div>
+    <div class="g-sec">Eigene freie Tage</div>
     <div class="frwrap"><table class="ptab"><thead><tr><th style="width:130px">Von</th><th style="width:130px">Bis</th><th>Bezeichnung</th><th style="width:48px" title="jedes Jahr wiederholen">jährl.</th><th></th></tr></thead><tbody id="frBody">${freeRows()}</tbody></table></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
       <button type="button" class="btn sm" id="frAdd">+ freie Tage</button>
       <button type="button" class="btn sm" data-q="xmas">+ Weihnachtsferien 24.12.–01.01. (jährlich)</button>
       <button type="button" class="btn sm" data-q="eve">+ Heiligabend und Silvester (jährlich)</button>
     </div>
-    <div class="sec">Freie Tage im Projektzeitraum</div><div id="frPrev" class="frprev"></div>
+    <div class="g-sec">Freie Tage im Projektzeitraum</div><div id="frPrev" class="frprev"></div>
     </div>`;
   const read = (bg) => {
     bg.querySelectorAll('[data-fr]').forEach((el) => { const f = free[+el.dataset.k]; if (!f) return; f[el.dataset.fr] = el.type === 'checkbox' ? el.checked : el.value; });

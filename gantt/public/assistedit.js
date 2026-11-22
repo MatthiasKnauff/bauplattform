@@ -96,7 +96,7 @@
     if (bg) { bg.querySelector('.modal').focus(); return; }
     CFG_D = norm(clone(CFG)); dirty = false; UNDO = []; REDO = []; tab = 'typen'; selP = selP || (C.profiles[0] || {}).k; selG = selG || (C.choices[0] || {}).k; VORL = null;
     bg = document.createElement('div'); bg.className = 'modal-bg ae-bg';
-    bg.innerHTML = `<div class="modal ae" role="dialog" aria-label="Assistent einrichten" tabindex="-1"><div class="mh">Assistent einrichten<button class="mx" title="Schließen">×</button></div>
+    bg.innerHTML = `<div class="modal ae" role="dialog" aria-label="Assistent einrichten" tabindex="-1"><div class="mh">Assistent einrichten<button type="button" class="mx" title="Schließen (Esc)" aria-label="Schließen">✕</button></div>
       <div class="ae-tabs"></div><div class="mb ae-body"></div>
       <div class="mf"><span class="ae-hint">Gilt für alle Benutzer:innen und neue Planungen. Bestehende Pläne bleiben, wie sie sind.</span><span class="ae-dirty" hidden>Nicht gespeichert</span><button class="btn" data-ae="undo" title="Letzte Änderung rückgängig (Strg+Z)" disabled>↶ Rückgängig</button><button class="btn" data-ae="redo" title="Wiederholen (Strg+Y)" disabled>↷</button><button type="button" class="btn" data-bph-verlauf="gs:assistcfg" title="Frühere gespeicherte Einrichtungen ansehen und wiederherstellen">Verlauf</button><button class="btn" data-ae="cancel">Abbrechen</button><button class="btn primary" data-ae="save">Speichern</button></div></div>`;
     document.body.appendChild(bg);

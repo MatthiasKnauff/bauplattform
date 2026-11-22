@@ -19,7 +19,7 @@ html[data-theme="dunkel"]{--green:#ef6b58;--green-d:#d85a48;--accent:#e8604c;--p
   --top-bg:#46423f;--top-card:#57524e;--top-cardbd:#625c57;--top-fg:#fff;--top-ic:#ef6b58;
   --tab-bg:#2b2c2e;--tab-bd:#1d1e20;--tab-fg:#b5b5b5;--tab-act:#fff;--sel:#33415a;--sel-nr:#3b4a66}
 html[data-theme="dunkel"] body{background:#232427}
-html[data-theme="dunkel"] .btn.primary,html[data-theme="dunkel"] .mh,html[data-theme="dunkel"] .as h4>span:first-child{color:#fff}
+html[data-theme="dunkel"] .btn.primary,html[data-theme="dunkel"] .as h4>span:first-child{color:#fff}
 html[data-theme="dunkel"] .bar .b{stroke:#9fbbe0}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;font:var(--fs) "Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--text);background:#fff;overflow:hidden}
@@ -151,11 +151,13 @@ button{font:inherit}
 
 /* Dialoge */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding-top:8vh}
-.modal{background:#fff;border:1px solid #888;box-shadow:var(--sh0,0 8px 30px rgba(0,0,0,.3));min-width:420px;max-width:96vw;max-height:94vh;display:flex;flex-direction:column}
-.mh{background:var(--green);color:#fff;padding:7px 12px;font-size:calc(var(--fs)*1.083);display:flex;align-items:center}
-.mh .mx{margin-left:auto;background:none;border:0;color:#fff;font-size:calc(var(--fs)*1.5);cursor:pointer;line-height:1}
-.mb{padding:14px 16px;overflow:auto;flex:1;min-height:0}
-.mf{display:flex;justify-content:flex-end;gap:8px;padding:10px 16px;border-top:1px solid #e5e5e5;background:#fafafa}
+.modal{background:var(--card,#fff);border:1px solid var(--line,#d5d9de);border-radius:calc(8px*var(--rk,1));box-shadow:var(--sh0,0 8px 30px rgba(0,0,0,.3));min-width:420px;max-width:96vw;max-height:94vh;display:flex;flex-direction:column}
+/* Kopf und Fuß wie das gemeinsame Eigenschaften-Fenster (bp/eigenschaften.js – LV, Gebäudemodell; 22.11.2026): grauer Kopf, ✕ als Knopf, grauer Fuß */
+.mh{display:flex;align-items:center;gap:.3rem;padding:.35rem .45rem .35rem .75rem;border-bottom:1px solid var(--line,#d5d9de);background:var(--tabs,#eef1f5);color:var(--ink,#1f2630);font-weight:600}
+.mh .mx{all:unset;box-sizing:border-box;cursor:pointer;margin-left:auto;min-width:1.7rem;text-align:center;padding:.05rem .4rem;border:1px solid var(--line,#d5d9de);border-radius:calc(6px*var(--rk,1));background:var(--card,#fff);color:var(--mute,#6b7380);font-weight:400;line-height:1.35}
+.mh .mx:hover{color:var(--ink,#1f2630);border-color:var(--y,#3b5a8f)}
+.mb{padding:.6rem .75rem;overflow:auto;flex:1;min-height:0}
+.mf{display:flex;justify-content:flex-end;align-items:center;gap:.4rem;flex-wrap:wrap;padding:.4rem .6rem;border-top:1px solid var(--line,#d5d9de);background:var(--tabs,#eef1f5)}
 .btn{border:1px solid #adadad;background:#fdfdfd;padding:4px 16px;cursor:pointer;border-radius:calc(6px*var(--rk,1));min-width:80px}
 .btn:hover{background:#e5f1fb;border-color:#0078d4}
 .btn.primary{border-color:var(--accent);background:var(--accent);color:#fff}
@@ -163,12 +165,12 @@ button{font:inherit}
 .btn.danger{color:#b00020}
 .btn.sm{min-width:0;padding:1px 7px}
 .form{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:8px 10px;align-items:center}
-.form label{color:#444;white-space:nowrap}
+.form label{color:var(--mute,#444);white-space:nowrap}
 .form input,.form select,.form textarea,.ptab select,.ptab input{font:inherit;padding:3px 5px;border:1px solid #b5b5b5;border-radius:calc(2px*var(--rk,1));width:100%}
 .form textarea{resize:vertical;min-height:60px}
 .form .full{grid-column:2 / span 3}
 .form .ro{color:#555;padding:3px 0}
-.sec{margin:14px 0 6px;font-weight:600;color:var(--green);border-bottom:1px solid #e0e0e0;padding-bottom:3px}
+.g-sec{margin:14px 0 6px;font-weight:600;color:var(--ink,#1f2630);border-bottom:1px solid var(--line,#d5d9de);padding-bottom:3px}   /* Abschnitt in einem Fenster – nicht „.sec“: das ist im Stil eine Fläche mit Rahmen und Verlauf (head.css) */
 .ptab{width:100%;border-collapse:collapse}
 .ptab th{text-align:left;font-weight:600;background:var(--hdr);border:1px solid #ddd;padding:3px 5px}
 .ptab td{border:1px solid #ddd;padding:2px}
@@ -292,7 +294,7 @@ button{font:inherit}
 .holh{fill:#f8d4d4}
 .tb.ho{fill:#b00020;font-weight:600}
 .frprev{max-height:140px;overflow:auto;display:flex;flex-wrap:wrap;gap:4px}
-.frday{background:#fdecec;border:1px solid #f3c6c6;border-radius:calc(10px*var(--rk,1));padding:1px 8px;font-size:calc(var(--fs)*0.917);white-space:nowrap}
+.frday{background:color-mix(in srgb,#e0453a 12%,var(--card,#fff));border:1px solid color-mix(in srgb,#e0453a 35%,var(--card,#fff));color:var(--ink,#1f2630);border-radius:calc(10px*var(--rk,1));padding:1px 8px;font-size:calc(var(--fs)*0.917);white-space:nowrap}
 .ptab input[type=date]{width:100%}
 /* Versionshistorie */
 .vh td{vertical-align:top;padding:4px 5px}
@@ -698,10 +700,8 @@ html.mobil #tabs .tb-r #saveState{display:none}
 
 /* Dialoge: kompakt, Schrift wie die übrige App (Grundgröße --fs, einstellbar) */
 .modal{font-size:var(--fs);line-height:1.4}
-.modal .mh{font-size:calc(var(--fs)*1.1);font-weight:600;padding:7px 12px}
-.modal .mb{padding:10px 14px}
 .modal .form{gap:5px 10px}
-.modal .form label{color:#333}
+.modal .form label{color:var(--ink,#333)}
 .modal .form input,.modal .form select,.modal .form textarea{padding:3px 6px;border-radius:calc(4px*var(--rk,1))}
 .modal .mf .btn{padding:4px 14px;font-size:var(--fs)}
 

@@ -524,7 +524,7 @@ function leistungWizard(opt = {}) {
   let step = 0, guessed = false, kiWhy = '', kiBusy = false;
   const STEPS = ['Bezeichnung', 'Abschnitt und Gewerk', 'Dauer', 'Reihenfolge', 'Gebäudetypen'];
   const bg = document.createElement('div'); bg.className = 'modal-bg lw-bg';
-  bg.innerHTML = `<div class="modal lw" role="dialog" aria-label="Neue Leistung"><div class="mh">Neue Leistung – Assistent<button class="mx" title="Schließen">×</button></div>
+  bg.innerHTML = `<div class="modal lw" role="dialog" aria-label="Neue Leistung"><div class="mh">Neue Leistung – Assistent<button type="button" class="mx" title="Schließen (Esc)" aria-label="Schließen">✕</button></div>
     <div class="lw-steps"></div><div class="mb lw-b"></div><div class="mf lw-f"></div></div>`;
   document.body.appendChild(bg);
   const close = () => bg.remove();
@@ -638,8 +638,8 @@ async function kstListe() {
   const html = () => `<div class="hint" style="margin:0 0 6px">Jetzt: ${kstZ(D.jetzt)}</div>
     <div class="kst-l">${D.staende.map((x) => `<div class="kst${x.fest ? ' fest' : ''}" data-sid="${x.id}"><div><b>${x.fest ? '⭐ ' : ''}${esc(x.name)}</b><small>${kstDe(x.am)} · ${esc(x.von || '')} · ${kstZ(x.zahlen)}</small><div class="kst-d" hidden></div></div>
       <div class="kst-a"><button type="button" class="btn sm" data-kv>Vergleichen</button>${D.admin ? `<button type="button" class="btn sm" data-kz>Zurückholen …</button><button type="button" class="btn sm" data-kf title="${x.fest ? 'Schutz aufheben' : 'Schützen – wird nie automatisch weggeräumt'}">${x.fest ? '☆' : '⭐'}</button>${x.fest ? '' : '<button type="button" class="btn sm" data-kx title="Löschen">✕</button>'}` : ''}</div></div>`).join('') || '<div class="hint">Noch kein gesicherter Stand.</div>'}</div>
-    <div class="sec">Automatisch bei jeder Änderung</div><div style="display:flex;gap:6px;flex-wrap:wrap">${vb('gs:library', 'Leistungen')}${vb('gs:phases', 'Abschnitte')}${vb('gs:catfirms', 'Firmen-Vorgaben')}${vb('gs:catscope', 'Bezug')}</div>
-    <div class="sec">Als Datei</div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><a class="btn sm" href="api/katalog/datei" download>⬇ Herunterladen</a>${D.admin ? '<label class="btn sm">⬆ Datei einlesen<input type="file" accept=".json,application/json" data-kdatei hidden></label><span class="hint">Eingelesene Dateien erscheinen oben als Stand – zurückgeholt wird erst auf Wunsch.</span>' : ''}</div>`;
+    <div class="g-sec">Automatisch bei jeder Änderung</div><div style="display:flex;gap:6px;flex-wrap:wrap">${vb('gs:library', 'Leistungen')}${vb('gs:phases', 'Abschnitte')}${vb('gs:catfirms', 'Firmen-Vorgaben')}${vb('gs:catscope', 'Bezug')}</div>
+    <div class="g-sec">Als Datei</div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><a class="btn sm" href="api/katalog/datei" download>⬇ Herunterladen</a>${D.admin ? '<label class="btn sm">⬆ Datei einlesen<input type="file" accept=".json,application/json" data-kdatei hidden></label><span class="hint">Eingelesene Dateien erscheinen oben als Stand – zurückgeholt wird erst auf Wunsch.</span>' : ''}</div>`;
   const bg = modal('Leistungskatalog – Stände & Verlauf', `<div id="kstBox">${html()}</div>`, [{ label: 'Schließen', cls: 'primary', primary: true }]);
   bg.querySelector('.modal').style.width = 'min(820px, 96vw)';
   const neu = (d) => { if (d && d.staende) D.staende = d.staende; bg.querySelector('#kstBox').innerHTML = html(); };

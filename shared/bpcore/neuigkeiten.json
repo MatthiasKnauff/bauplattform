@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-fenster-standard",
+  "datum": "2026-11-22",
+  "app": "gantt",
+  "titel": "Alle Fenster im neuen Aussehen",
+  "text": "Alle Fenster des Bauzeitenplans (Arbeitszeit & Feiertage, Projektinformationen, Drucken, Katalog …) haben jetzt den grauen Kopf und Fuß wie die Eigenschaften im LV und im Gebäudemodell. Die farbigen Verläufe hinter den Abschnittstiteln sind weg.",
+  "ziel": "#leiste"
+ },
+ {
   "id": "gantt-eigenschaften",
   "datum": "2026-11-22",
   "app": "gantt",

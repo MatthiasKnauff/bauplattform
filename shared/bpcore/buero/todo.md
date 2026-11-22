@@ -255,6 +255,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Bauzeitenplan: alle Fenster im Aussehen des Eigenschaften-Fensters, Abschnittstitel ohne Farbverlauf (`.sec` → `.g-sec`)~~ (22.11.2026)
 - ~~Bauzeitenplan: Leistungsinformationen im gemeinsamen Eigenschaften-Fenster (Reiter, ↑ ↓, feste Größe)~~ (22.11.2026)
 - ~~Grundriss: Entf am ermittelten Raum → „kein Raum“ / „Schacht“, bleibt beim nächsten Einlesen; graue Fläche anklicken = wieder Raum~~ (22.11.2026)
 - ~~Allplan-IFC ohne Mengen: Dach (IfcRoof mit eigener Geometrie), Wände ohne Material, lange Schnittketten und Öffnungen aus mehreren Körpern – nichts fällt mehr als „ohne Menge“ heraus, 3D nicht mehr grau~~ (22.11.2026)

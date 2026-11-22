@@ -44,6 +44,7 @@ C1–C4 holen Bauteile oder Angaben (grün), C5 und C6 ein abgelegtes Ergebnis (
 - **V Planstand „IFC“ gilt** – Aufbau und Ausführungseinheiten wandern mit. C1–C3 sehen nur geänderte Mengen als Hinweis, C4 bleibt stehen, der alte Planstand bleibt zum Zurückspringen.
 
 ## Stand
+- 22.11.2026: I–V Skizze → Plan – ohne Plan im Grundriss: Innenwände als Linie, Treppen als Rechteck, Räume ergeben sich aus den Wänden.
 - 22.11.2026: B Gebäudemodell – ein Arbeitsstand, festgehaltene Versionen (ansehen, zurückholen); beim Versand hält das Modell von selbst eine Version fest, an die sich die App bindet.
 - 22.11.2026: B Gebäudemodell – Bauteiltypen (AW-01, FE-01 …): der Aufbau steht einmal am Typ und gilt für alle seine Bauteile mit bauender Antwort; der Baum ist nach Typ gruppiert, im Eigenschaften-Fenster neuer Typ, zusammenlegen, umbenennen.
 - 21.11.2026: B Gebäudemodell – Mitte nur noch 3D oder Grundriss; rechts der Bauteil-Baum (auch nach Material gruppiert) und die Räume als eigener Reiter; Schalter „Gebäude bearbeiten“ im Baukasten: an = Form ändern, aus = Aufbauten belegen.

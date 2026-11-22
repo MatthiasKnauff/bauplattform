@@ -22,7 +22,7 @@ async function gmGrundriss(box, neu) {
   }
   const N = GR.N, F = GR.F;
   if (!N || !(N.e || []).length) {
-    box.innerHTML = `<div class="gm-hin"><span>Den Grundriss gibt es mit einem eingelesenen Plan (IFC). Ohne Plan: das Gebäude in „3D“ mit dem Baukasten bauen, Räume in der Tabelle unter „Räume“ eintragen.</span>
+    box.innerHTML = `<div class="gm-hin"><span>Den Grundriss gibt es mit einem eingelesenen Plan (IFC) oder mit dem Baukasten. Noch kein Gebäude: in „3D“ mit dem Baukasten beginnen.</span>
       <button type="button" class="btn" data-gmtr="raeume">Räume</button></div>`;
     return;
   }
@@ -67,6 +67,7 @@ async function gmGrundriss(box, neu) {
     <div class="gr-b"><svg viewBox="${(x0 - pad).toFixed(2)} ${(y0 - pad).toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)}" preserveAspectRatio="xMidYMid meet" aria-label="Grundriss ${esc(gn)}">
       ${fl}<path class="gr-w" d="${pfad.w}${pfad.x}"/><path class="gr-fe" d="${pfad.f}"/><path class="gr-tu" d="${pfad.d}"/></svg></div>`;
   GR.fl = FL; GR.raumVon = raumVon; GR.wegVon = wegVon; GR.gn = gn; GR.an = an; GR.box = box;
+  if (F.art === 'baukasten' && !an && typeof grBk === 'function') grBk(box, F, fk);   // ohne Plan: Wände, Treppen, Räume hier (gebaeudemodell-grundriss-bk.js, Etappe 5)
 }
 
 async function grRaumweg(f, art, text) {   // ermittelte Fläche: kein Raum / Schacht bzw. wieder Raum (art '') – mit Rückgängig
@@ -79,6 +80,7 @@ async function grRaumweg(f, art, text) {   // ermittelte Fläche: kein Raum / Sc
 async function grEntf(k) {   // Entf am gewählten Raum
   const f = GR.fl && GR.fl[k]; if (!f) return;
   if (GR.an) return toast('Nur zum Ansehen – dieser Planstand gilt nicht.');
+  if (GR.F && GR.F.art === 'baukasten') return toast('Räume ergeben sich aus den Wänden – eine Innenwand entfernen oder neu ziehen.');
   const r = GR.raumVon(f); if (!r) return;
   const nm = [r.nr, r.name].filter(Boolean).join(' ') || 'Raum';
   if (r.ergaenzt) {   // Ergänzung neben dem Plan: aus der Liste der Ergänzungen

@@ -41,7 +41,8 @@
 .bkx .korb{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 6px;align-items:center;border:1px solid var(--linie);border-radius:7px;padding:5px 7px}
 .bkx .korb.an{border-color:var(--wahl);background:var(--wahl-hell)}.bkx .korbn{grid-column:1/-1;text-align:left;font:inherit;font-size:.88rem;background:none;border:0;padding:0;cursor:pointer;color:var(--text)}
 .bkx .korbn small{display:block;color:var(--leise);font-size:.78rem}.bkx .korb select{font-size:.8rem;padding:2px 4px}`;
-  const ID0 = 9600000, OID = ID0 + 900000, GID = ID0 + 800000;   // wie bpcore/baukasten.ID0 – Nummern der Zeilen (rohbau) treffen das Netz
+  const ID0 = 9600000, OID = ID0 + 900000, GID = ID0 + 800000, IWID = ID0 + 700000, TRID = ID0 + 600000;   // wie bpcore/baukasten.ID0 (IWID/TRID: baukasten_innen) – Nummern der Zeilen (rohbau) treffen das Netz
+  const INNEN = 0.115;   // Innenwand ohne Typ im Korb (wie baukasten_innen.INNEN)
   const SEITEN = { xp: [1, 0], xm: [-1, 0], yp: [0, 1], ym: [0, -1] }, SK = Object.keys(SEITEN), SNAME = { xp: 'rechts', xm: 'links', yp: 'hinten', ym: 'vorne' }   // wie beim ersten Blick (von vorn links);
   const DICKE = { wand: 0.365, decke: 0.22, boden: 0.25, dach: 0.30, flach: 0.35 };   // E1: ohne Aufbau übliche Werte (m)
   const RAHMEN = ['Holz', 'Kunststoff', 'Holz-Alu', 'Alu'], UW = { Holz: [1.3, 0.9], Kunststoff: [1.2, 0.85], 'Holz-Alu': [1.2, 0.8], Alu: [1.5, 1.0] };
@@ -93,7 +94,7 @@
     const dicke = (id, std) => { const e = KORB[id], b = e && BIB[e.art].find((y) => y[0] === e.von); return (b && b[3]) || std; };   // E1: Summe der Schichten, sonst üblich
 
     /* Modell: Körper (Geschosse) mit Lage und Maßen, Dach auf einem Körper, Gauben auf einer Dachfläche, Fenster/Türen auf einer Wand */
-    const M = { koerper: [], dach: {}, gauben: [], oeff: [], n: 0, teile: { h: 'Hauptgebäude' } };
+    const M = { koerper: [], dach: {}, gauben: [], oeff: [], innen: [], treppen: [], rnamen: [], n: 0, teile: { h: 'Hauptgebäude' } };   // innen/treppen/rnamen: aus dem Grundriss (Etappe 5)
     let SEL = null, MEHR = [], PALAUF = true;   // Symbolreihe „Hineinziehen“: offen, bis man sie selbst zuklappt (21.11.2026 – vorher klappte sie beim Bearbeiten zu); gemerkt je Browser
     try { PALAUF = localStorage.getItem('bp.bk.pal') !== 'zu'; } catch { /* ohne Speicher: offen */ }
     const gleichS = (a, b) => a && b && a.art === b.art && a.id === b.id && (a.seite || '') === (b.seite || '');
@@ -306,6 +307,16 @@
         const t0 = o.u - o.b / 2 / L, t1 = o.u + o.b / 2 / L, z0 = k.z + (o.art === 'fenster' ? 0.9 : 0), at = (t, zz) => [E4[0][0] + (E4[1][0] - E4[0][0]) * t + nx * 0.03, E4[0][1] + (E4[1][1] - E4[0][1]) * t + ny * 0.03, zz];
         const i = OID + n; E.push({ i, t: o.art === 'tuer' ? 'd' : 'f', g: gv(k.z), c: o.art === 'tuer' ? '#9d7c5c' : '', a: 0, h: ID0 + b * 20 + SK.indexOf(o.seite), v: flaeche([at(t0, z0), at(t1, z0), at(t1, z0 + o.h), at(t0, z0 + o.h)], []) });
         REF.set(i, { art: 'oeff', id: o.id }); });
+      /* Innenwände und Treppen aus dem Grundriss (Etappe 5, G2-A Stufen, G3-A Dicke aus dem Typ) */
+      M.innen.forEach((w, n) => { const k = kz(w.k); if (!k) return; const dx = w.b[0] - w.a[0], dy = w.b[1] - w.a[1], L = Math.hypot(dx, dy) || 1, t = dicke(w.korb, INNEN) / 2, nx = -dy / L * t, ny = dx / L * t, i = IWID + n;
+        E.push({ i, t: 'w', g: gv(k.z), c: '#e6dfd2', a: 0, v: prisma([[w.a[0] + nx, w.a[1] + ny], [w.b[0] + nx, w.b[1] + ny], [w.b[0] - nx, w.b[1] - ny], [w.a[0] - nx, w.a[1] - ny]], k.z, k.z + k.h) }); REF.set(i, { art: 'innen', id: w.id }); });
+      M.treppen.forEach((t, n) => { const k = kz(t.k); if (!k) return; const st = t.stg || Math.max(2, Math.round((k.h + 0.2) / 0.175)), sh = (k.h + 0.2) / st, v = [], i = TRID + n;
+        const lang = t.r === 'xp' || t.r === 'xm', L = lang ? t.w : t.l, Q = lang ? t.l : t.w;   // w = Ausdehnung in x, l = in y; Lauf in Richtung r
+        for (let s = 0; s < st - 1; s++) { const a0 = (s / (st - 1)) * L, a1 = ((s + 1) / (st - 1)) * L, zt = k.z + (s + 1) * sh, z0 = Math.max(k.z, zt - sh - 0.06);
+          const [u0, u1] = t.r === 'xp' || t.r === 'yp' ? [a0, a1] : [L - a1, L - a0];
+          const F = lang ? [[t.x + u0, t.y], [t.x + u1, t.y], [t.x + u1, t.y + Q], [t.x + u0, t.y + Q]] : [[t.x, t.y + u0], [t.x + Q, t.y + u0], [t.x + Q, t.y + u1], [t.x, t.y + u1]];
+          prisma(F, z0, zt, v); }
+        E.push({ i, t: 's', g: gv(k.z), c: '#b9a58a', a: 0, v }); REF.set(i, { art: 'treppe', id: t.id }); });
       M.gauben.forEach((gb, n) => { const G = gaubeGeo(gb), k = kz(gb.k); if (!G) return; const g = gv(k.z), i = GID + n * 4;
         E.push({ i, t: 'w', g, c: '#ece4d8', a: 0, v: flaeche(G.front, []) }); E.push({ i: i + 3, t: 'w', g, c: '#ece4d8', a: 0, v: flaeche(G.W[1], flaeche(G.W[0], [])) }); E.push({ i: i + 1, t: 'r', g, c: '#a65f46', a: 0, v: flaeche(G.D1, G.D2 ? flaeche(G.D2, []) : []) });
         E.push({ i: i + 2, t: 'f', g, c: '', a: 0, h: i, v: flaeche(G.fen.map((p) => [p[0], p[1], p[2]]), []) });
@@ -626,7 +637,7 @@
     }
     function daten() {
       return { baukasten: { koerper: M.koerper.map((k) => ({ id: k.id, teil: k.teil, x: k.x, y: k.y, z: k.z, w: k.w, d: k.d, h: k.h, wand: k.wand, boden: k.boden, seiten: k.seiten || {}, ...(k.staffel ? { staffel: true } : {}) })),
-        dach: M.dach, gauben: M.gauben, oeff: M.oeff, teile: M.teile, raeume: RM },
+        dach: M.dach, gauben: M.gauben, oeff: M.oeff, teile: M.teile, raeume: RM, innen: M.innen, treppen: M.treppen, rnamen: M.rnamen },
       korb: Object.fromEntries(Object.values(KORB).map((e) => [e.id, { art: e.art, vorlage: e.von, name: e.name, eigen: !!e.eigen }])) };
     }
     function spaeter() { if (LADEN) return; const s = JSON.stringify(daten()); if (s === STAND) return; clearTimeout(TS); TS = setTimeout(() => speichern(s), 700); }
@@ -659,6 +670,10 @@
       OB.forEach((x, id) => { const o = OA.get(id), n = ON[x.art] || 'Fenster'; if (!o) T.push(`${n} eingesetzt`); else if (JSON.stringify(o) !== JSON.stringify(x)) T.push(`${n}: ${o.b !== x.b || o.h !== x.h ? `${dm(x.b)} × ${dm(x.h)} m` : o.u !== x.u ? 'verschoben' : 'Rahmen, Verglasung, Uw'}`); });
       OA.forEach((x, id) => { if (!OB.has(id)) T.push(`${ON[x.art] || 'Fenster'} entfernt`); });
       if (!!A.raeume !== !!B.raeume) T.push(`Räume je Geschoss ${B.raeume ? 'an' : 'aus'}`);
+      const nI = (B.innen || []).length - (A.innen || []).length, nT = (B.treppen || []).length - (A.treppen || []).length;   // Grundriss (Etappe 5)
+      if (nI > 0) T.push('Innenwand gezogen'); else if (nI < 0) T.push('Innenwand entfernt'); else if (JSON.stringify(A.innen || []) !== JSON.stringify(B.innen || [])) T.push('Innenwand geändert');
+      if (nT > 0) T.push('Treppe eingesetzt'); else if (nT < 0) T.push('Treppe entfernt'); else if (JSON.stringify(A.treppen || []) !== JSON.stringify(B.treppen || [])) T.push('Treppe geändert');
+      if (JSON.stringify(A.rnamen || []) !== JSON.stringify(B.rnamen || [])) T.push('Raum benannt');
       if (JSON.stringify(A.teile) !== JSON.stringify(B.teile) && !T.length) T.push('Gebäudeteil umbenannt');
       if (!T.length && JSON.stringify(a.korb) !== JSON.stringify(b.korb)) T.push('Korb: Aufbau geändert');
       const U = [...new Set(T)]; return U.length ? U[0] + (U.length > 1 ? ` (+${U.length - 1})` : '') : 'Baukasten geändert';
@@ -690,20 +705,32 @@
         const [d] = await Promise.all([J(`${basis}/baukasten${NEU ? '?neu=1' + (OPT.planung ? '&planung=1' : '') : ''}`), bib(), skript('ansicht3d.js', 'bp3d')]), bk = d.baukasten || {};
         Object.keys(KORB).forEach((k) => delete KORB[k]); KN = 0;
         Object.entries(d.korb || {}).forEach(([id, e]) => { const b = BIB[e.art].find((y) => y[0] === e.vorlage); KORB[id] = { id, art: e.art, von: e.vorlage, name: e.name || (b && b[1]) || e.vorlage, u: null, eigen: e.eigen }; KN = Math.max(KN, +id.slice(1) || 0); });
-        M.koerper = (bk.koerper || []).map((k) => ({ ...k, seiten: { ...(k.seiten || {}) } })); M.dach = bk.dach || {}; M.gauben = bk.gauben || []; M.oeff = bk.oeff || [];
+        M.koerper = (bk.koerper || []).map((k) => ({ ...k, seiten: { ...(k.seiten || {}) } })); M.dach = bk.dach || {}; M.gauben = bk.gauben || []; M.oeff = bk.oeff || []; M.innen = bk.innen || []; M.treppen = bk.treppen || []; M.rnamen = bk.rnamen || [];
         M.teile = bk.teile || { h: 'Hauptgebäude' }; RM = !!bk.raeume; PLAN = d.plan; RAEUME = d.raeume || [];
         M.koerper.forEach((k) => { if (!KORB[k.wand]) k.wand = korbHol('wand', VOR.wand);
           if (!KORB[k.boden]) k.boden = korbHol('boden', k.z <= Math.min(...M.koerper.filter((q) => q.teil === k.teil).map((q) => q.z)) + 0.01 ? VOR.boden : VOR.decke); });
         Object.entries(M.dach).forEach(([kid, D]) => { const k = kz(kid); if (k && !D.first) D.first = k.w >= k.d ? 'x' : 'y';   // ältere Stände: First wie bisher gezeigt, ab jetzt fest
           if (!KORB[D.aufbau]) D.aufbau = korbHol('dach', D.form === 'flach' ? VOR.flach : VOR.dach); if (D.fl) { Object.keys(D.fl).forEach((i) => { if (!KORB[D.fl[i]]) delete D.fl[i]; }); if (!Object.keys(D.fl).length) delete D.fl; } });
-        M.n = 20 + Math.max(0, ...[...M.koerper, ...M.gauben, ...M.oeff].map((x) => +String(x.id).replace(/\D/g, '') || 0));
+        M.n = 20 + Math.max(0, ...[...M.koerper, ...M.gauben, ...M.oeff, ...M.innen, ...M.treppen].map((x) => +String(x.id).replace(/\D/g, '') || 0));
         SEL = null; MEHR = []; LADEN = false; STAND = NEU ? '' : JSON.stringify(daten()); bild(true); seitlich();
         tippe(PLAN === 'ifc' ? 'Es gilt ein Plan (IFC): Bauteile und 3D kommen aus dem Plan; was du hier änderst, bleibt im Baukasten.' : d.herkunft === 'baukasten' ? 'Änderungen speichern sich von selbst und führen den Planstand nach.' : 'Ein Vorschlag – mit der ersten Änderung entsteht der Planstand.');
         if (NEU || d.geaendert) spaeter();   // geaendert: die Planung hat Geschosse, Dach, Keller oder Teile geändert – gleich in den Planstand (21.11.2026)
       } catch (e) { LADEN = false; tippe(e.message); }
     }
     laden();
-    return { neu: () => { NEU = false; return laden(); }, daten, get d3() { return D3; }, weg: () => { clearTimeout(TS); TS = 0; NEU = false; },
+    /* Grundriss (Etappe 5): Innenwand ziehen, Treppe als Rechteck, Raum benennen – die Seite ruft, der Baukasten rechnet Netz und speichert (mit Rückgängig) */
+    const nid = (v) => v + (++M.n);
+    const geaendert = () => { bild(); spaeter(); };
+    const grundriss = {
+      innenNeu: (k, a, b, korb) => { M.innen.push({ id: nid('iw'), k, a, b, ...(korb ? { korb } : {}) }); geaendert(); },
+      innenWeg: (id) => { M.innen = M.innen.filter((w) => w.id !== id); geaendert(); },
+      treppeNeu: (k, t) => { const id = nid('tr'); M.treppen.push({ id, k, form: 'gerade', mat: 'stahlbeton', stg: 0, ...t }); geaendert(); return id; },
+      treppeSetzen: (id, w) => { const t = M.treppen.find((x) => x.id === id); if (t) { Object.assign(t, w); geaendert(); } },
+      treppeWeg: (id) => { M.treppen = M.treppen.filter((t) => t.id !== id); geaendert(); },
+      raum: (k, p, w) => { const r = M.rnamen.find((x) => x.k === k && Math.hypot(x.p[0] - p[0], x.p[1] - p[1]) < 0.01) || (M.rnamen.push({ k, p }), M.rnamen[M.rnamen.length - 1]); Object.assign(r, w); M.rnamen = M.rnamen.filter((x) => x.name || x.offen); geaendert(); },
+      jetzt: () => ({ innen: M.innen, treppen: M.treppen, rnamen: M.rnamen, korb: Object.values(KORB) }),
+    };
+    return { neu: () => { NEU = false; return laden(); }, daten, grundriss, get d3() { return D3; }, weg: () => { clearTimeout(TS); TS = 0; NEU = false; },
       bearbeiten: (an) => { BEARB = !!an; ZG = null; griffeSetzen(); } };
   }
   window.bpBaukasten = { mount };

@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-grundriss-bk",
+  "datum": "2026-11-22",
+  "app": "gebaeudemodell",
+  "titel": "Innenwände und Treppen im Grundriss",
+  "text": "Ohne Plan zeichnest du jetzt im Grundriss: „／ Wand“ – Linie ziehen = Innenwand (rechtwinklig, rastet an den Wänden ein), „▭ Treppe“ – Rechteck ziehen, dann Form, Material und Steigungen. Die Räume ergeben sich aus den Wänden; Doppelklick in einen Raum gibt ihm einen Namen, Rechtsklick: „offen bis unters Dach“.",
+  "ziel": ".gr-wz"
+ },
+ {
   "id": "gm-massnahme",
   "datum": "2026-11-22",
   "app": "gebaeudemodell",

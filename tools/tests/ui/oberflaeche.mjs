@@ -82,6 +82,7 @@ import { nachverfolgenPruefen } from './nachverfolgen.mjs';
 import { modellquellePruefen } from './modellquelle.mjs';
 import { kuerzelPruefen } from './kuerzel.mjs';
 import { bautypenPruefen } from './bautypen.mjs';
+import { grundrissBkPruefen } from './grundrissbk.mjs';
 
 const { chromium, devices } = createRequire(import.meta.url)('playwright');   // auch global installiert (NODE_PATH) auffindbar
 
@@ -452,6 +453,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await bautypenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Bauteiltypen:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Bauteiltypen'); } else { ok++; console.log('  ok      Bauteiltypen'); } }
+// Grundriss im Baukasten (Etappe 5): Wand ziehen, Treppe, Entf, Raumname – siehe grundrissbk.mjs
+{ let f = [];
+  try { f = await grundrissBkPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Grundriss im Baukasten:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Grundriss im Baukasten'); } else { ok++; console.log('  ok      Grundriss im Baukasten'); } }
 // Kosten aus Bauteilen (plattform/static/baukosten.js): Band, Übernehmen, Stufe, Preis von Hand, DIN 276 – siehe kosten.mjs
 { let f = [];
   try { f = await kostenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

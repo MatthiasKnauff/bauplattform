@@ -186,13 +186,13 @@ function g3Abdocken() {
 }
 function g3Zurueck() { if (!G3.ab) return; G3.ab = null; G3.abF = null; if (!V.querySelector('.gm-d3')) return; g3Neu(G3.bk, G3.an); g3Mitte('3d'); }
 /* Mitte: 3D · Grundriss (links in der Navigation, E1 21.11.2026 – keine Tabelle mehr) – gemerkt je Person; erzwungen = vom Zustand gewählt, nicht gemerkt */
-async function g3Mitte(w, erzwungen) {
+async function g3Mitte(w, erzwungen) {   // Grundriss im Baukasten (Etappe 5): auch dann den Baukasten aufbauen – er rechnet und speichert, wenn das 3D verdeckt ist
   const d = V.querySelector('.gm-d3'), g = V.querySelector('.gm-gr'); if (!d || !g) return;
   if (w !== 'grundriss') w = '3d';
   if (w === '3d' && g3Ab()) { try { G3.ab.focus(); } catch { /* egal */ } w = 'grundriss'; }   // abgedockt: das Fenster nach vorn, die Mitte zeigt den Grundriss
   G3.mitte = w; d.hidden = w !== '3d'; g.hidden = w !== 'grundriss';
   if (!erzwungen) LS.set('mitte', w);
-  if ((w === '3d' || g3Ab()) && !G3.D3 && !G3.BK && !G3.baut && BT) { const st = BT.zustand(); if (G3.bk || g3Zeilen(st).length) {
+  if ((w === '3d' || g3Ab() || (w === 'grundriss' && G3.bk)) && !G3.D3 && !G3.BK && !G3.baut && BT) { const st = BT.zustand(); if (G3.bk || g3Zeilen(st).length) {
     /* „wird aufgebaut“ VOR dem Nachladen vermerken: zwischen Prüfen und Aufbauen liegt das Warten auf die Bausteine – ohne Vermerk kam ein
        zweiter Aufruf (Bauteile geladen, während „Neuer Planstand“ lief) ebenfalls durch, es entstanden zwei Baukästen und zwei Planstände (21.11.2026) */
     G3.baut = true; try { await Promise.all([baustein('ansicht3d.js', 'bp3d'), G3.bk ? baustein('gebaeudekasten.js', 'bpBaukasten') : null]); g3Laden(g3Feld(), BT.zustand()); } finally { G3.baut = false; } if (g3Ab()) seiteFenster.stil(G3.ab); } }

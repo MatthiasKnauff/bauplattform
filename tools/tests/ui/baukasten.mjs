@@ -71,6 +71,13 @@ export async function baukastenPruefen(browser, repo) {
     { const xm = N && N.e.find((e) => e.i === 9600001), xs = xm ? xm.v.filter((_, i) => i % 3 === 0) : [];   // Wand links (xm) des EG: 0 … 33,5 cm
       pruef(xs.length && Math.min(...xs) === 0 && Math.max(...xs) === 34, `Wand links 33,5 cm dick (cm gerundet): ${Math.min(...xs)}–${Math.max(...xs)}`); }
     pruef(N && N.e.some((e) => e.i === 9600005) && N.e.some((e) => e.i === 9600020 + 6), 'Nummern wie im Kern: Boden EG, Dachfläche des OG');
+    {   // Grundriss (Etappe 5, 22.11.2026): Innenwand und Treppe – im Netz mit den Nummern des Kerns (IWID, TRID), Treppe als Stufen (G2-A)
+      const n = S.puts.length;
+      await p.evaluate(() => { BKH.grundriss.innenNeu('k1', [4, 0.365], [4, 7.635]); BKH.grundriss.treppeNeu('k1', { x: 1, y: 1, w: 4.2, l: 1, r: 'xp' }); });
+      await warte(n + 1);
+      const P = S.puts[S.puts.length - 1], E = (P && P.netz && P.netz.e) || [], tr = E.find((e) => e.i === 10200000);
+      pruef(P && P.baukasten.innen.length === 1 && P.baukasten.treppen.length === 1 && E.some((e) => e.i === 10300000) && tr && tr.v.length >= 16 * 108,
+        `Innenwand und Treppe im Netz: ${P && JSON.stringify({ i: P.baukasten.innen, t: P.baukasten.treppen, n: tr && tr.v.length })}`); }
     {   // First bleibt fest (21.11.2026) und lässt sich drehen – Rechtsklick aufs Dach des EG-Teils
       const d = await punkt([5, 2.5, 5.8 + 1.2]); const P3 = await kontext(d), n = S.puts.length;
       pruef(P3.includes('First drehen'), `Rechtsklick aufs Satteldach: „First drehen“ – ${P3.join(' · ')}`);

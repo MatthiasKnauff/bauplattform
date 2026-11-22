@@ -254,6 +254,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Gebäudemodell neu, Etappe 5 (Teil 1–2): Innenwände, Treppen, Räume aus den Wänden im Grundriss des Baukastens~~ (22.11.2026)
 - ~~Bauteile: „Antwort“ heißt jetzt „Maßnahme“~~ (22.11.2026)
 - ~~Gebäudemodell neu, Etappe 4: Arbeitsstand + Versionen, Version beim Versand~~ (22.11.2026)
 - ~~Spaltenbreite ziehen als gemeinsamer Baustein (LV, Bauteile)~~ (22.11.2026)

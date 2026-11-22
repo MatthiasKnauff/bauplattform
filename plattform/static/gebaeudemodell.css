@@ -51,3 +51,10 @@ main.pl .gm-work{flex:1;min-height:0;display:flex}main.pl .gm-work.sr-split{disp
 .b3-bearb:disabled{opacity:.5;cursor:not-allowed}
 .gm-start{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6rem;pointer-events:none}.gm-start>*{pointer-events:auto}
 #view.gm-bt>.gm-d3{position:relative}
+/* Grundriss im Baukasten (Etappe 5): Werkzeuge, Innenwände, Treppen, Ziehen */
+.gr-wz{display:inline-flex;gap:.25rem;margin-left:auto}.gr-wz .btn.on{border-color:var(--af,#3b5a8f);font-weight:600}
+.gr-b svg.gr-zieh{cursor:crosshair;touch-action:none}
+.gr-iw line{stroke:#3a4450;stroke-width:.115;stroke-linecap:square}.gr-iw{cursor:pointer}.gr-iw:hover line,.gr-iw.an line{stroke:#7a5bc7;stroke-width:.2}
+.gr-tr rect{fill:#f3ece0;stroke:#9d7c5c;stroke-width:.05}.gr-tr text{text-anchor:middle;dominant-baseline:middle;fill:#6b5236;pointer-events:none}.gr-tr{cursor:pointer}.gr-tr.an rect{stroke:#7a5bc7;stroke-width:.1}
+line.gr-neu{stroke:#7a5bc7;stroke-width:.115;stroke-dasharray:.25 .15}rect.gr-neu{fill:rgba(122,91,199,.15);stroke:#7a5bc7;stroke-width:.05}
+.gr-trf{display:grid;gap:.7rem}.gr-ch{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.25rem}.gr-trz input{width:5rem}.gr-trh{margin:0;padding:.35rem .5rem;border-radius:6px;background:#eaf5ee}.gr-trh.rot{background:#fdecea}

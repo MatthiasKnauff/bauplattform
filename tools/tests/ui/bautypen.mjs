@@ -19,6 +19,7 @@ export async function bautypenPruefen(browser, repo) {
       window.BT = bpBauteile.mount(document.getElementById('feld'), 7, { baum: true, einzeln: true, elementInfo: (i) => ({ 7: { g: 'EG', gi: 0 }, 8: { g: 'OG', gi: 1 }, 1: { g: 'EG', gi: 0 } })[i], element: (i) => { window.EL = i; }, artJe: (ids, kg) => { window.AJ = [ids, kg]; }, e3: () => [7] }); BT.details(document.getElementById('det'))</script>` });
     if (u.endsWith('/typen')) { const d = r.request().postDataJSON(); S.put.push(d);
       if (d.aktion === 'neu_aus') { S.L.typen['AW-03'] = { ...S.L.typen[d.typ], k: 'AW-03', name: d.name }; S.L.zeilen.forEach((z) => { if (d.zeilen.includes(z.id)) z.typ = 'AW-03'; }); return J({ ...alles(), typ: 'AW-03' }); }
+      if (d.aktion === 'zuweisen') { S.L.zeilen.forEach((z) => { if (d.zeilen.includes(z.id)) z.typ = d.typ; }); return J({ ...alles(), typ: '' }); }
       if (d.aktion === 'stand') { S.L.typen = d.stand.typen; S.L.zeilen.forEach((z) => { if (d.stand.zeilen[z.id]) z.typ = d.stand.zeilen[z.id].typ; }); return J({ ...alles(), typ: '' }); }
       return J(alles()); }
     if (u.endsWith('/bauteile/vorlagen')) return J([{ id: '331.01', kg: '331', name: 'AW', einheit: 'm²', schichten: [] }]);
@@ -101,6 +102,26 @@ export async function bautypenPruefen(browser, repo) {
       pruef(z.n === 1 && z.ids && z.ids.length >= 2 && z.b.filter((x) => !x).length === z.ids.length, `Gruppe umschalten: ${JSON.stringify(z)}`);
       await q.evaluate(() => U[U.length - 1][1]()); await q.waitForTimeout(200);
       pruef(S.zl.length === 2 && S.L.zeilen.every((x) => x.berechnen), `Rückgängig der Gruppe: eine Anfrage, alle zählen wieder (${S.zl.length})`); }
+    {   // Umsortieren (Mock „Umsortieren und Räume gruppieren“ US-1 … US-3, 22.11.2026)
+      await q.evaluate(() => { localStorage.setItem('bp.bt.grp3', JSON.stringify(['art', 'typ'])); localStorage.removeItem('bp.bt.klapp'); }); await q.reload(); await q.waitForSelector('.bt-baum tr.bt-bh');
+      const auf = async (n) => { await q.evaluate((n) => { const z = [...document.querySelectorAll('.bt-baum tr.bt-bh')][n]; if (z.querySelector('.car.zu')) z.querySelector('[data-zu]').click(); }, n); await q.waitForTimeout(80); };
+      await auf(0); await auf(1); await q.waitForSelector('.bt-baum tr[data-btz="a"]');
+      // US-3: Haken an der Gruppe wählt alle darin, halb = einige
+      await q.click('.bt-baum tr.bt-bh [data-btgw^="g:art>typ/Außenwände/"]'); await q.waitForTimeout(80);
+      const h = await q.evaluate(() => ({ mw: BT.mehrfach().sort().join(), aussen: document.querySelector('.bt-baum tr.bt-bh [data-btgw="g:art>typ/Außenwände"]').indeterminate }));
+      pruef(h.mw === 'a,b' && h.aussen, `Gruppe AW-01 per Haken gewählt, Außenwände halb – ${JSON.stringify(h)}`);
+      // US-1: die zwei auf die Zeile von AW-02 ziehen → Typ AW-02
+      S.put = S.put.filter((x) => x.aktion !== 'zuweisen');
+      await q.dragAndDrop('.bt-baum tr[data-btz="a"] .bt-tn, .bt-baum tr[data-btz="a"] td:nth-child(2)', '.bt-baum tr[data-btz="c"] td:nth-child(2)'); await q.waitForTimeout(250);
+      const z = S.put.find((x) => x.aktion === 'zuweisen');
+      pruef(z && z.typ === 'AW-02' && z.zeilen.slice().sort().join() === 'a,b', `Ziehen auf AW-02: beide bekommen den Typ – ${JSON.stringify(z)}`);
+      // US-2: Strg+X / Strg+V und das Kontextmenü
+      for (let n = 0; n < 4; n++) { const zu = await q.$('.bt-baum tr.bt-bh .car.zu'); if (!zu) break; await zu.click(); await q.waitForTimeout(80); }
+      await q.evaluate(() => { BT.zeige('c'); document.querySelector('.bt-baum').dispatchEvent(new KeyboardEvent('keydown', { key: 'x', ctrlKey: true, bubbles: true })); }); await q.waitForTimeout(60);
+      pruef(await q.evaluate(() => !!document.querySelector('.bt-baum tr.bt-cut[data-btz="c"]')), 'Strg+X: Zeile als ausgeschnitten markiert');
+      const km = await q.evaluate(() => { const P = [], z = document.querySelector('.bt-baum tr[data-btz="c"] td:nth-child(2)'); document.dispatchEvent(new CustomEvent('bph:kontext', { detail: { punkte: P, ziel: z } })); return P.map((x) => x.text || '').join(' | '); });
+      pruef(/Ausschneiden/.test(km) && /Kopieren/.test(km) && /Hier einfügen/.test(km) && /Aufbau und Maßnahme einfügen/.test(km) && /Alle der Gruppe wählen/.test(km), `Kontextmenü: ${km}`);
+    }
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n').slice(0, 3).join(' / ')); }
   await q.close();
   return fehler;

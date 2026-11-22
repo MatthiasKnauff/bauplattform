@@ -1,5 +1,13 @@
 [
  {
+  "id": "umsortieren-2211",
+  "datum": "2026-11-22",
+  "app": "gebaeudemodell",
+  "titel": "Bauteile umsortieren",
+  "text": "Bauteile in eine andere Gruppe ziehen – sie bekommen deren Typ, Art, Aufbau oder Maßnahme. Ebenso Strg+X und Strg+V (auch im Kontextmenü), Strg+Umschalt+V überträgt nur Aufbau und Maßnahme. Der Haken an einer Gruppenzeile wählt alle darin.",
+  "ziel": ".bt-baum"
+ },
+ {
   "id": "ueberzug-2211",
   "datum": "2026-11-22",
   "app": "gantt",

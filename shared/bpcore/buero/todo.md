@@ -254,6 +254,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Bauteile umsortieren: Ziehen, Strg+X/C/V, Kontextmenü, Haken an der Gruppenzeile (US-1 … US-3)~~ (22.11.2026)
 - ~~Gebäudemodell: Art je Bauteil ändern in Millisekunden statt Sekunden – IFC wird einmal gelesen (pm_elemente), danach nur neu geordnet; Rückgängig eine Anfrage, kein Nachladen~~ (22.11.2026)
 - ~~Bauteile: „zählt“ an der Gruppe und alles für mehrere Zeilen geht in EINER Anfrage – kein „teils“ mehr unterwegs; Zurückroll-Trick nach dem Ändern einer Zeile entfernt~~ (22.11.2026)
 - ~~Bauzeitenplan: Überzug und Fortschritt getrennt (zwei Bälkchen im Balken, orange schraffiert, Griff oben am Balkenende); Heftzwecke nicht mehr auf dem Soll-Band~~ (22.11.2026)

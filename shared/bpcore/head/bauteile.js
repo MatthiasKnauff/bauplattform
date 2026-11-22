@@ -103,7 +103,9 @@ table.bt-baum{table-layout:fixed;width:100%}table.bt-baum th:nth-child(2){width:
 .bt-mwl{position:sticky;bottom:0;z-index:3;box-shadow:0 -4px 12px rgba(0,0,0,.08);display:flex;flex-wrap:wrap;gap:.4rem .8rem;align-items:center;background:color-mix(in srgb,#7b2ff7 9%,var(--card,#fff));border:1px solid color-mix(in srgb,#7b2ff7 45%,transparent);border-radius:calc(8px*var(--rk,1));padding:.35rem .6rem;font-size:.86rem}
 .bt-mwg{display:inline-flex;flex-wrap:wrap;gap:.25rem;align-items:center}.bt-mwl button:not(.btn),.bt-mwd .bt-o button{font:inherit;font-size:.82rem;border:1px solid var(--line,#d6dce3);background:var(--card,#fff);color:inherit;border-radius:12px;padding:.1rem .55rem;cursor:pointer}
 .bt-mwl button.on,.bt-mwd .bt-o button.on{background:#7b2ff7;border-color:#7b2ff7;color:#fff}.bt-mwl select,.bt-mwd select{font:inherit;font-size:.84rem;max-width:22rem}.bt-mwv{color:#8a5a00;font-style:italic;font-size:.82rem}
-.bt-mwb{display:inline-flex;gap:.3rem;align-items:center}.bt-mwt{margin:0;font-size:1rem}.bt-mwh{margin:0 .35rem 0 0;vertical-align:-2px}tr.bt-mwz>td{background:color-mix(in srgb,#7b2ff7 8%,transparent)}
+.bt-mwb{display:inline-flex;gap:.3rem;align-items:center}.bt-mwt{margin:0;font-size:1rem}.bt-mwh{margin:0 .35rem 0 0;vertical-align:-2px}tr.bt-ziel>td{background:color-mix(in srgb,#2f6fd6 12%,transparent);box-shadow:inset 0 0 0 1px #2f6fd6}tr.bt-nein>td{opacity:.55}tr.bt-cut>td{opacity:.5}
+.bt-geist{position:fixed;left:-999px;top:0;background:#fff;border:1px solid #2f6fd6;color:#2f6fd6;border-radius:6px;padding:3px 9px;font:600 12px system-ui,sans-serif;box-shadow:0 6px 16px rgba(30,60,120,.18)}
+tr.bt-mwz>td{background:color-mix(in srgb,#7b2ff7 8%,transparent)}
 .bt-rwl{display:flex;gap:.6rem;align-items:center;border:1px solid var(--y,#2f6fb3);border-radius:calc(8px*var(--rk,1));padding:.3rem .6rem;font-size:.86rem}.bt-rwl span{flex:1}
 .bt-el{width:100%;font-size:.82rem;border-collapse:collapse}.bt-el th{text-align:left;opacity:.7;font-weight:600}.bt-el td,.bt-el th{padding:.2rem .35rem;border-top:1px solid var(--line,#d5d9de)}.bt-el .r{text-align:right;white-space:nowrap}
 .bt-rs{display:flex;flex-wrap:wrap;gap:.3rem .9rem;font-size:.8rem;opacity:.8;align-items:center}.bt-rs label{display:flex;gap:.3rem;align-items:center;cursor:pointer}
@@ -626,6 +628,10 @@ table.bt-baum{table-layout:fixed;width:100%}table.bt-baum th:nth-child(2){width:
         if (Z.mw.length) { Z.mw = []; if (opt.mehr) opt.mehr([]); } Z.sel = Z.auf = id; Z.selE = +eR.dataset.bte; zeichne();
         if (opt.element) opt.element(Z.selE); return; }
       if (t.closest('[data-btmw]') && id) return mwUm(id, true);
+      const gw = t.closest('[data-btgw]'); if (gw) {   // US-3 A: alle der Gruppe dazu bzw. (alle schon gewählt) wieder heraus
+        const I = Z.grpIds[gw.dataset.btgw] || [], A = new Set(Z.mw.length ? Z.mw : Z.sel && Z.sel !== '__rw' ? [Z.sel] : []), alle = I.every((x) => A.has(x));
+        I.forEach((x) => (alle ? A.delete(x) : A.add(x))); Z.selG = gw.dataset.btgw; if (!A.size) Z.sel = Z.auf = null; return mwSetzen([...A]); }
+      { const bh = t.closest('tr.bt-bh[data-btgk]'); Z.selG = bh ? bh.dataset.btgk : null; }   // zuletzt angeklickte Gruppe: Ziel für Strg+V
       if (t.closest('[data-btschnell]') && id) {   // E3: schnelle Aufbau-Wahl in der Zeile; im Gebäudemodell darunter die einzelnen Bauteile
         const auf = Z.schnell === id || Z.elAuf === id; Z.schnell = auf ? null : id; Z.elAuf = auf ? null : id; Z.sel = Z.auf = id; return zeichne(); }
       if (t.closest('[data-btpop]') && id) return eigenschaften(id);
@@ -768,6 +774,10 @@ table.bt-baum{table-layout:fixed;width:100%}table.bt-baum th:nth-child(2){width:
        Optionen rechts unter „Details“ (details(box)); die Knöpfe stehen in der Befehlsleiste der App (api unten). */
     const KL = window.bpBaum ? bpBaum.klapp({ key: 'gm.bauteile.' + pid }) : null;
     const ganzVerteilt = (z) => z.menge_basis != null && !z.anzahl && z.verteilt;
+    const ort = (z) => z.bereich !== 'hand' ? z.bereich : /^3[2-6]/.test(z.kg || '') ? 'rohbau' : /^41/.test(z.kg || '') ? 'ausbau' : 'hand';   // „＋ Zeile“ in einer Gruppe: die Zeile steht dort
+    const artVon = (z) => { if (ort(z) === 'rohbau') { const g = ROHG.find((x) => x[3](z)); return g ? g[1] : 'Sonstiges'; } return (BEREICH.find(([b]) => b === ort(z)) || [, 'Sonstiges'])[1]; };
+    const wert = (z, k) => (k === 'bereich' ? (BEREICH.find(([b]) => b === ort(z)) || [, 'Sonstiges'])[1] : k === 'teil' ? z.teil || 'ohne Gebäudeteil' : k === 'art' ? artVon(z)
+      : k === 'aufbau' ? z.kurz || 'ohne Aufbau' : k === 'mat' ? material(z) || 'Material offen' : k === 'typ' ? typName(z.typ) : (z.bereich === 'frage' ? WORT_FRAGE : WORT)[z.status] || z.status || '–');
     function baumZeichnen() {
       const Li = L(), [ZZ, tw] = teilFilter((Li.zeilen || []).filter((z) => !ganzVerteilt(z))), nRw = ((Z.rw && Z.rw.vorschlaege) || []).length, leer = !ZZ.length;
       const an = Z.an ? `<div class="bt-an"><span>Du siehst die Version <b>${esc(Z.an.name)}</b> – nur zum Ansehen. Gegenüber dem Arbeitsstand: ${Z.an.abgleich.neu.length} neu · ${Z.an.abgleich.geaendert.length} geändert · ${Z.an.abgleich.entfaellt.length} entfällt.</span>
@@ -791,7 +801,7 @@ table.bt-baum{table-layout:fixed;width:100%}table.bt-baum th:nth-child(2){width:
           : nur ? (mn != null ? `${zahl(mn)}&nbsp;${esc(z.einheit)}` : `<span title="${nur.length} von ${(z.ids || []).length} Bauteilen dieser Zeile">${nur.length}/${(z.ids || []).length}</span>`) : `${zahl(z.menge)}&nbsp;${esc(z.einheit)}`;
         const einz = !!(opt.einzeln && (z.ids || []).length && !fr && !Z.an), elOffen = einz && (Z.elAuf === z.id || Z.schnell === z.id);
         const sn = Z.schnell === z.id && !Z.an && z.bereich !== 'frage';
-        return `<tr data-btz="${esc(z.id)}" class="${Z.sel === z.id ? 'akt' : ''}${Z.mw.includes(z.id) ? ' bt-mwz' : ''}${z.status === 'offen' ? ' offen' : ''}${z.entfaellt ? ' weg' : ''}${z.ergaenzt ? ' bt-erg' : ''}">${bpBaum.zelle({ tiefe: t, auf: Z.an || z.bereich === 'frage' ? undefined : sn || elOffen, car: ` data-btschnell title="${sn || elOffen ? 'zuklappen' : einz ? 'Einzelne Bauteile und Aufbau schnell wählen – Doppelklick: alle Eigenschaften' : 'Aufbau schnell wählen – Doppelklick: alle Eigenschaften'}"`, html: `${Z.an ? '' : `<input type="checkbox" class="bt-mwh" data-btmw${Z.mw.includes(z.id) || (!Z.mw.length && Z.sel === z.id) ? ' checked' : ''} title="Mehrere Zeilen wählen und gemeinsam ändern" aria-label="${esc(z.name)} wählen">`}${titel ? `<b class="bt-tn">${esc(titel)}</b> <small class="bt-nr">${esc(mitTeil(z))}${einz ? ` · ${(nur || z.ids).length}` : ''}</small>` : `<span class="bt-tn">${esc(mitTeil(z))}</span>`}${z.einordnung && !titel ? `<small class="bt-nr"> ${esc(z.einordnung)}</small>` : ''}${typeof bpWk === 'function' ? bpWk([z.name, z.material]) : ''}${(z.nummern || []).length && t < 2 ? `<small class="bt-nr"> ${esc(z.nummern.length > 6 ? z.nummern[0] + ' … ' + z.nummern[z.nummern.length - 1] : z.nummern.join(' · '))}</small>` : ''}` })}
+        return `<tr data-btz="${esc(z.id)}"${Z.an ? '' : ' draggable="true"'} class="${Z.sel === z.id ? 'akt' : ''}${Z.mw.includes(z.id) ? ' bt-mwz' : ''}${Z.clip && Z.clip.cut && Z.clip.ids.includes(z.id) ? ' bt-cut' : ''}${z.status === 'offen' ? ' offen' : ''}${z.entfaellt ? ' weg' : ''}${z.ergaenzt ? ' bt-erg' : ''}">${bpBaum.zelle({ tiefe: t, auf: Z.an || z.bereich === 'frage' ? undefined : sn || elOffen, car: ` data-btschnell title="${sn || elOffen ? 'zuklappen' : einz ? 'Einzelne Bauteile und Aufbau schnell wählen – Doppelklick: alle Eigenschaften' : 'Aufbau schnell wählen – Doppelklick: alle Eigenschaften'}"`, html: `${Z.an ? '' : `<input type="checkbox" class="bt-mwh" data-btmw${Z.mw.includes(z.id) || (!Z.mw.length && Z.sel === z.id) ? ' checked' : ''} title="Mehrere Zeilen wählen und gemeinsam ändern" aria-label="${esc(z.name)} wählen">`}${titel ? `<b class="bt-tn">${esc(titel)}</b> <small class="bt-nr">${esc(mitTeil(z))}${einz ? ` · ${(nur || z.ids).length}` : ''}</small>` : `<span class="bt-tn">${esc(mitTeil(z))}</span>`}${z.einordnung && !titel ? `<small class="bt-nr"> ${esc(z.einordnung)}</small>` : ''}${typeof bpWk === 'function' ? bpWk([z.name, z.material]) : ''}${(z.nummern || []).length && t < 2 ? `<small class="bt-nr"> ${esc(z.nummern.length > 6 ? z.nummern[0] + ' … ' + z.nummern[z.nummern.length - 1] : z.nummern.join(' · '))}</small>` : ''}` })}
           <td class="r">${z.bereich === 'hand' && !z.menge ? '<span class="bt-chip gelb" title="Menge fehlt – die Zeile wird mit 0 gerechnet. Eintragen rechts unter „Details“.">Menge fehlt</span>' : menge}</td><td><span class="bt-chip${z.status === 'offen' ? ' bt-ext' : ''}">${esc(w)}</span>${z.ergaenzt ? ' <span class="bt-chip gelb" title="Neben dem Plan ergänzt">ergänzt</span>' : ''}${z.entfaellt ? ' <span class="bt-chip">entfällt</span>' : ''}${z.kuerzel && !z.bestaetigt && !z.entfaellt ? ' <span class="bt-chip gelb" title="Aufbau aus dem Kürzel im Plan – bitte bestätigen">bestätigen</span>' : ''}</td>
           <td class="bt-kz" title="${esc(z.kurz || '')}">${esc(z.kurz || (z.berechnen ? 'kein Aufbau' : ''))}</td><td class="r" data-btu="${esc(z.id)}"></td><td class="c">${Z.an ? (z.berechnen ? 'zählt' : '–') : berKnopf(z)}</td></tr>`
           + (sn ? `<tr class="bt-snz" data-btz="${esc(z.id)}"><td colspan="6"><div class="bt-sn" style="${'padding-left:' + (1.2 * (t + 1) + 1) + 'rem'}">${schnellHtml(z)}</div></td></tr>` : '')
@@ -806,9 +816,10 @@ table.bt-baum{table-layout:fixed;width:100%}table.bt-baum th:nth-child(2){width:
         const zu = R.length && KL && (g ? !KL.zu(kk) : KL.zu(k)), offen = R.filter((z) => z.status === 'offen' && !z.entfaellt).length;
         const B = R.filter((z) => z.status !== 'offen'), nb = B.filter((z) => z.berechnen).length; Z.grpIds[k] = R.map((z) => z.id);
         const gs = B.length && !Z.an ? `<button type="button" class="bt-zl${nb === B.length ? ' an' : nb ? ' teils' : ''}" data-btberg="${esc(k)}" title="für alle ${B.length} Zeilen dieser Gruppe umschalten">${nb === B.length ? 'zählt' : nb ? 'teils' : 'zählt nicht'}</button>` : '';
-        return [zu, `<tr class="bt-bh">${bpBaum.zelle({ tiefe, auf: R.length ? !zu : null, klapp: R.length ? kk : null, html: `<b>${esc(t)}</b> <small class="bt-nr">${R.length}${offen ? ` · <span class="bt-ro">${offen} offen</span>` : ''}</small>${extra || ''}` })}<td colspan="4"></td><td class="c">${gs}</td></tr>`];
+        const nw = R.filter((z) => Z.mw.includes(z.id) || (!Z.mw.length && Z.sel === z.id)).length;   // US-3 A: Haken an der Gruppe wählt alle darin (halb = einige)
+        const hk = R.length && !Z.an ? `<input type="checkbox" class="bt-mwh" data-btgw="${esc(k)}"${nw && nw === R.length ? ' checked' : ''}${nw && nw < R.length ? ' data-teil' : ''} title="Alle ${R.length} dieser Gruppe wählen" aria-label="${esc(t)}: alle wählen">` : '';
+        return [zu, `<tr class="bt-bh" data-btgk="${esc(k)}">${bpBaum.zelle({ tiefe, auf: R.length ? !zu : null, klapp: R.length ? kk : null, html: `${hk}<b>${esc(t)}</b> <small class="bt-nr">${R.length}${offen ? ` · <span class="bt-ro">${offen} offen</span>` : ''}</small>${extra || ''}` })}<td colspan="4"></td><td class="c">${gs}</td></tr>`];
       };
-      const ort = (z) => z.bereich !== 'hand' ? z.bereich : /^3[2-6]/.test(z.kg || '') ? 'rohbau' : /^41/.test(z.kg || '') ? 'ausbau' : 'hand';   // „＋ Zeile“ in einer Gruppe: die Zeile steht dort
       const PLUS = { ausbau: '412', hand: '300' };
       const elInfo = (i) => (opt.elementInfo && opt.elementInfo(i)) || {}, GR_RANG = new Map();
       const geschVon = (x) => {   // Geschoss je Bauteil aus dem Plan; eine Zeile über mehrere Geschosse steht in jedem mit ihrem Teil
@@ -822,22 +833,19 @@ table.bt-baum{table-layout:fixed;width:100%}table.bt-baum th:nth-child(2){width:
         Z.grpAus = {};
         for (const k of Object.keys(GRUPPEN)) if (!(k === 'geschoss' ? viele((z) => ((z.ids || []).length ? z.ids.map((i) => elInfo(i).g || '') : [z.geschoss || ''])) : viele(aw(k)))) Z.grpAus[k] = 'unterscheidet in diesem Projekt nichts';
       }
-      let body = ''; Z.gk = []; Z.grpIds = {};
+      let body = ''; Z.gk = []; Z.grpIds = {}; Z.grpZiel = {};
       const G = Z.grp.includes('typ') && (leer || !Object.keys(Li.typen || {}).length) ? ['bereich'] : Z.grp, gewohnt = G.length === 1 && G[0] === 'bereich';   // noch keine Typen (leer, nur von Hand): der Standardbaum
       if (!gewohnt) {   // Ebenen aus der Leiste oben, außen vor innen – je Ebene klappbar
-        const artVon = (z) => { if (ort(z) === 'rohbau') { const g = ROHG.find((x) => x[3](z)); return g ? g[1] : 'Sonstiges'; } return (BEREICH.find(([b]) => b === ort(z)) || [, 'Sonstiges'])[1]; };
-        const wert = (z, k) => (k === 'bereich' ? (BEREICH.find(([b]) => b === ort(z)) || [, 'Sonstiges'])[1] : k === 'teil' ? z.teil || 'ohne Gebäudeteil' : k === 'art' ? artVon(z)
-          : k === 'aufbau' ? z.kurz || 'ohne Aufbau' : k === 'mat' ? material(z) || 'Material offen' : k === 'typ' ? typName(z.typ) : (z.bereich === 'frage' ? WORT_FRAGE : WORT)[z.status] || z.status || '–');
-        const ebene = (X, i, pfad) => {   // X = [{ z, nur }] – nur: Teil der Bauteile einer Zeile (Gruppe Geschoss), sonst null
+        const ebene = (X, i, pfad, W) => {   // X = [{ z, nur }] – nur: Teil der Bauteile einer Zeile (Gruppe Geschoss), sonst null; W = Weg [[Ebene, Wert], …] bis hier
           if (i >= G.length) { body += X.map((x) => zeilenHtml(x.z, i, null, x.nur)).join(''); return; }
           const M = new Map(), dazu = (w, x) => (M.get(w) || M.set(w, []).get(w)).push(x);
           X.forEach((x) => { if (G[i] === 'geschoss') geschVon(x).forEach(([w, nur]) => dazu(w, { z: x.z, nur })); else dazu(wert(x.z, G[i]), x); });
           const ART = [...ROHG.map((x) => x[1]), ...BEREICH.map((x) => x[1])], rang = (w) => (G[i] === 'art' && ART.includes(w) ? ART.indexOf(w) : G[i] === 'geschoss' && GR_RANG.has(w) ? GR_RANG.get(w) : 999);   // Bauteilart in der Reihenfolge des Baus, Geschosse von unten
           [...M.entries()].sort((a, b) => rang(a[0]) - rang(b[0]) || a[0].localeCompare(b[0], 'de', { numeric: true })).forEach(([w, XX]) => {
             if (G[i] === 'typ' && i === G.length - 1 && XX.length === 1 && w !== 'ohne Typ') { body += zeilenHtml(XX[0].z, i, w, XX[0].nur); return; }   // eine Zeile je Typ: die Zeile ist der Typ (darunter die einzelnen Bauteile)
-            const k = `g:${pfad}/${w}`; Z.gk.push(k); const [zu, h] = kopfZ(XX.map((x) => x.z), w, k, i); body += h; if (!zu) ebene(XX, i + 1, `${pfad}/${w}`); });
+            const k = `g:${pfad}/${w}`, W2 = [...W, [G[i], w]]; Z.gk.push(k); Z.grpZiel[k] = W2; const [zu, h] = kopfZ(XX.map((x) => x.z), w, k, i); body += h; if (!zu) ebene(XX, i + 1, `${pfad}/${w}`, W2); });
         };
-        ebene(ZZ.map((z) => ({ z, nur: null })), 0, G.join('>'));
+        ebene(ZZ.map((z) => ({ z, nur: null })), 0, G.join('>'), []);
       }
       for (const [b, t] of gewohnt ? BEREICH : []) {
         const R = ZZ.filter((z) => ort(z) === b);
@@ -849,7 +857,7 @@ table.bt-baum{table-layout:fixed;width:100%}table.bt-baum th:nth-child(2){width:
         const rest = new Set(R);   // Rohbau nach Bauteilen (A1, 17.11.2026): Gründung, Außenwände, Innenwände, Treppen, Decken, Dach, Sonstiges
         for (const [g, tg, kgg, fn] of ROHG) {
           const RG = R.filter((z) => rest.has(z) && fn(z)); RG.forEach((z) => rest.delete(z));
-          const [zg, kg] = kopfZ(RG, tg, 'r:' + g, 1, plus(kgg, tg)); body += kg; if (!zg) body += RG.map((z) => zeilenHtml(z, z.abgeleitet ? 3 : 2)).join('');
+          Z.grpZiel['r:' + g] = [['art', tg]]; const [zg, kg] = kopfZ(RG, tg, 'r:' + g, 1, plus(kgg, tg)); body += kg; if (!zg) body += RG.map((z) => zeilenHtml(z, z.abgeleitet ? 3 : 2)).join('');
         }
         if (rest.size) { const RS = [...rest], [zs, ks] = kopfZ(RS, 'Sonstiges', 'r:so', 1); body += ks; if (!zs) body += RS.map((z) => zeilenHtml(z, z.abgeleitet ? 3 : 2)).join(''); }
       }
@@ -860,6 +868,7 @@ table.bt-baum{table-layout:fixed;width:100%}table.bt-baum th:nth-child(2){width:
       el.innerHTML = `<div class="bt-bl">${an}${rwl}${zl}${tw}${meldung}<div class="bt-w"></div>${grp}<div class="bt-bw"><table class="bp-baum bt-baum${leer ? ' bt-gerust' : ''}"><thead><tr><th>Bauteil</th><th class="r">Menge</th><th>Maßnahme</th><th>Aufbau</th><th class="r" title="U-Wert aus dem gewählten Aufbau, W/(m²K) – Farbe nach GModG (Neubau: Referenzgebäude, Bestand: Anlage 7)">U</th><th class="c" title="wird berechnet">in Kosten/LV</th></tr></thead><tbody>${body}</tbody></table></div>${mwl}
         <input type="file" accept=".ifc,.dxf,.pdf" data-btdatei hidden></div>`;
       el.querySelector('.bt-bw').scrollTop = y; Z.selAuf = false;
+      el.querySelectorAll('[data-btgw][data-teil]').forEach((x) => { x.indeterminate = true; });
       if (window.bpSpaltBreite && !leer) bpSpaltBreite.an(el.querySelector('.bt-baum'), 'bauteile');   // Spaltenbreiten ziehen wie im LV (22.11.2026)
       const gb = el.querySelector('.bt-grp');
       if (gb) bpGruppen.an(gb, { lies: () => Z.grp, namen: GRUPPEN, aus: () => Z.grpAus || {}, setze: (G2) => { Z.grp = G2.length ? G2 : GRP0; try { localStorage.setItem('bp.bt.grp3', JSON.stringify(Z.grp)); } catch { /* egal */ } baumZeichnen(); } });
@@ -937,12 +946,43 @@ table.bt-baum{table-layout:fixed;width:100%}table.bt-baum th:nth-child(2){width:
       bpBaum.klappbar(el, { klapp: () => KL, neu: () => baumZeichnen(), alle: () => BEREICH.map(([b]) => 'b:' + b).concat(ROHG.map(([g]) => 'r:' + g), ['r:so'], Z.gk) });
       bpBaum.tasten({ wurzel: '.bt-baum > tbody', zeilen: 'tr[data-btz]', waehle: (z) => z.querySelector('td').click(), loesche: (tr) => handWeg(tr.dataset.btz) });
       /* Zeilen von Hand auch im Baum ändern (20.11.2026: „lassen sich weder bearbeiten noch löschen“ – ging nur rechts in den Details): Kontextmenü, F2, Entf */
-      KONTEXT = (e) => { const tr = e.detail.ziel.closest && e.detail.ziel.closest('tr[data-btz]'); if (!tr || !el.contains(tr) || Z.an) return;
-        const z = L().zeilen.find((x) => x.id === tr.dataset.btz); if (!z) return;
+      KONTEXT = (e) => { const zi = e.detail.ziel.closest && e.detail.ziel.closest('tr[data-btz], tr.bt-bh[data-btgk]'); if (!zi || !el.contains(zi) || Z.an) return;
+        const ein = Z.clip ? [{ text: `Hier einfügen (verschieben${Z.clip.ids.length > 1 ? `: ${Z.clip.ids.length} Bauteile` : ''})`, k: 'Strg+V', fn: () => einfuegen(zi) }] : [];
+        if (!zi.dataset.btz) { const k = zi.dataset.btgk; e.detail.punkte.push({ titel: (Z.grpZiel[k] || []).map((x) => x[1]).pop() || 'Gruppe' }, ...ein,   // Gruppenzeile
+          { text: 'Alle der Gruppe wählen', fn: () => mwSetzen(Z.grpIds[k] || []) }); return; }
+        const tr = zi, z = L().zeilen.find((x) => x.id === tr.dataset.btz); if (!z) return;
+        if (!Z.mw.includes(z.id) && Z.sel !== z.id) { Z.mw = []; Z.sel = Z.auf = z.id; zeichne(); }   // Rechtsklick auf eine andere Zeile: sie gilt
         const n = Z.mw.length > 1 && Z.mw.includes(z.id) ? Z.mw.length : 1;   // Eigenschaften für die Auswahl (22.11.2026) – wie der Doppelklick
-        e.detail.punkte.push({ titel: n > 1 ? `${n} Bauteile` : z.name }, { text: n > 1 ? `Eigenschaften der ${n} gewählten …` : 'Eigenschaften …', k: 'Doppelklick', fn: () => eigenschaften(z.id) });
+        e.detail.punkte.push({ titel: n > 1 ? `${n} Bauteile` : z.name }, { text: n > 1 ? `Eigenschaften der ${n} gewählten …` : 'Eigenschaften …', k: 'Doppelklick', fn: () => eigenschaften(z.id) },
+          { titel: '' }, { text: 'Ausschneiden', k: 'Strg+X', fn: () => ablage(true) }, { text: 'Kopieren', k: 'Strg+C', fn: () => ablage(false) }, ...ein,
+          ...(Z.clip ? [{ text: 'Aufbau und Maßnahme einfügen', k: 'Strg+Umschalt+V', fn: () => aufbauEinfuegen() }] : []),
+          { text: 'Alle der Gruppe wählen', k: 'Strg+A', fn: () => { const g = gruppeVon(z.id); if (g) mwSetzen(g[1]); } });
         if (HAND.includes(z.bereich) && n === 1) e.detail.punkte.push({ text: 'Umbenennen …', k: 'F2', fn: () => handName(z.id) }, { text: 'Entfernen', k: 'Entf', gefahr: true, fn: () => handWeg(z.id) }); };   // ein Lauscher für die Seite (unten), immer der zuletzt aufgebaute Baum
       el.addEventListener('keydown', (e) => { if (e.key !== 'F2' || !Z.sel || Z.an || (window.bpTippt && bpTippt(e.target))) return; e.preventDefault(); handName(Z.sel); });
+      el.addEventListener('keydown', (e) => {   // US-2 A: Strg+X/C/V, Strg+Umschalt+V, Strg+A im Baum (nicht beim Tippen)
+        if (!(e.ctrlKey || e.metaKey) || e.altKey || Z.an || (window.bpTippt && bpTippt(e.target)) || !e.target.closest('.bt-baum, .bt-bw')) return;
+        const k = e.key.toLowerCase();
+        if (k === 'x' || k === 'c') { if (!auswahlIds().length) return; e.preventDefault(); ablage(k === 'x'); }
+        else if (k === 'v' && Z.clip) { e.preventDefault(); if (e.shiftKey) aufbauEinfuegen(); else einfuegen(Z.selG ? el.querySelector(`tr.bt-bh[data-btgk="${CSS.escape(Z.selG)}"]`) : Z.sel && el.querySelector(`tr[data-btz="${CSS.escape(Z.sel)}"]`)); }
+        else if (k === 'a' && Z.sel) { const g = gruppeVon(Z.sel); if (g) { e.preventDefault(); mwSetzen(g[1]); } }
+      });
+      /* Ziehen (US-1 A): die gewählten (oder die eine Zeile) auf eine Gruppe oder Zeile – blau gestrichelt = hier ablegen, grau = geht nicht */
+      const zielTr = (e) => e.target.closest && e.target.closest('tr.bt-bh[data-btgk], tr[data-btz]:not(.bt-el):not(.bt-snz)');
+      const markeWeg = () => el.querySelectorAll('.bt-ziel, .bt-nein').forEach((x) => x.classList.remove('bt-ziel', 'bt-nein'));
+      el.addEventListener('dragstart', (e) => {
+        const tr = e.target.closest && e.target.closest('tr[data-btz][draggable]'); if (!tr) return;
+        const id = tr.dataset.btz; Z.zieh = Z.mw.includes(id) ? [...Z.mw] : [id];
+        const g = document.createElement('div'); g.className = 'bt-geist'; g.textContent = Z.zieh.length === 1 ? (L().zeilen.find((x) => x.id === id) || {}).name || '1 Bauteil' : `${Z.zieh.length} Bauteile`;
+        document.body.appendChild(g); e.dataTransfer.setDragImage(g, 12, 12); setTimeout(() => g.remove(), 0);
+        e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', g.textContent);
+      });
+      el.addEventListener('dragover', (e) => {
+        if (!Z.zieh) return; const tr = zielTr(e); markeWeg(); if (!tr || (tr.dataset.btz && Z.zieh.includes(tr.dataset.btz))) return;
+        const P = umPlan(Z.zieh, zielWeg(tr)); tr.classList.add(P.ok ? 'bt-ziel' : 'bt-nein'); tr.title = P.ok ? `Hier ablegen: ${P.schritte.map((s) => s.w).join(' · ')}` : P.grund;
+        if (P.ok) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+      });
+      el.addEventListener('drop', (e) => { const tr = zielTr(e), ids = Z.zieh; markeWeg(); Z.zieh = null; if (!tr || !ids) return; e.preventDefault(); umsortieren(ids, zielWeg(tr)); });
+      el.addEventListener('dragend', () => { Z.zieh = null; markeWeg(); });
       el.addEventListener('click', (e) => { if (e.detail !== 2) return; const r = e.target.closest('tr[data-btz]'); if (!r || !el.contains(r) || e.target.closest('input,button,select,[data-btschnell]')) return; e.preventDefault(); e.stopPropagation(); clearTimeout(Z.klT); eigenschaften(r.dataset.btz); }, true);   // Doppelklick = Eigenschaften wie im LV – als zweiter Klick (detail 2) vor dem Neuzeichnen: der erste Klick zeichnet die Zeile neu, dann käme kein dblclick an
     }
     const ladeJs = (n, da) => (da() ? Promise.resolve() : new Promise((ok) => { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + n + v; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); }));
@@ -1021,6 +1061,69 @@ table.bt-baum{table-layout:fixed;width:100%}table.bt-baum th:nth-child(2){width:
       sag(`${R.length} Bauteile geändert.`);
       if (window.rueckgaengig) rueckgaengig(`${R.length} Bauteile: ${wasText(neu)}`, () => lauf(alt), 10000, () => lauf(R.map((z) => [z.id, neu])));
     }
+    /* Umsortieren (Mock „Umsortieren und Räume gruppieren“ US-1 A, US-2 A – 22.11.2026): Bauteile in eine andere Gruppe ziehen bzw. ausschneiden
+       und dort einfügen = sie übernehmen die Eigenschaft der Gruppe – Typ, Bauteilart, Aufbau, Maßnahme. Was aus dem Plan kommt (Geschoss,
+       Gebäudeteil, Bereich, Material), lässt sich so nicht ändern – das Ziel ist grau. Strg+Umschalt+V überträgt nur Aufbau und Maßnahme. */
+    const ART_KG = { 'Außenwände': { 341: '331', 342: '332', 331: '331', 332: '332' }, 'Innenwände': { 331: '341', 332: '342', 341: '341', 342: '342' },
+      'Gründung · Bodenplatte': { x: '322' }, Decken: { x: '351' }, Dach: { x: '361' } };
+    const artKg = (z, w) => { const M = ART_KG[w]; if (!M) return null; const k = M[z.kg] || M.x; return k && artWahl(z).some((a) => a[0] === k) ? k : null; };
+    const zielWeg = (tr) => {   // [[Ebene, Wert], …] der Gruppe bzw. der Zeile, auf die gezogen wird
+      if (!tr) return null;
+      if (tr.dataset.btgk) return Z.grpZiel[tr.dataset.btgk] || null;
+      const z = L().zeilen.find((x) => x.id === tr.dataset.btz); if (!z) return null;
+      const G = Z.grp.filter((k) => k !== 'geschoss'); return G.length === 1 && G[0] === 'bereich' ? [['art', artVon(z)]] : G.map((k) => [k, wert(z, k)]);
+    };
+    function umPlan(ids, W) {   // → { ok, grund, schritte: [{ was, … }] }
+      const R = ids.map((id) => L().zeilen.find((x) => x.id === id)).filter(Boolean);
+      if (!R.length || !W) return { ok: false, grund: '' };
+      const schritte = [];
+      for (const [k, w] of W) {
+        if (R.every((z) => wert(z, k) === w)) continue;
+        if (k === 'art') { const K = R.map((z) => artKg(z, w)); if (K.some((x) => !x)) return { ok: false, grund: `${R.length === 1 ? 'Dieses Bauteil kann' : 'Diese Bauteile können'} nicht ${w} werden` }; schritte.push({ was: 'art', kg: K, w }); continue; }
+        if (k === 'typ') { const T = Object.values(L().typen || {}).find((t) => typName(t.k) === w); if (!T) return { ok: false, grund: 'ohne Typ' };
+          const art = L().zeilen.find((x) => x.typ === T.k); if (art && R.some((z) => artVon(z) !== artVon(art) && !W.some(([kk]) => kk === 'art'))) return { ok: false, grund: `${T.k} ist ${artVon(art)}` };
+          schritte.push({ was: 'typ', typ: T.k, w }); continue; }
+        if (k === 'mass') { const st = Object.keys(WORT).find((x) => WORT[x] === w) || Object.keys(WORT_FRAGE).find((x) => WORT_FRAGE[x] === w);
+          if (!st || R.some((z) => (z.erlaubt || []).length && !z.erlaubt.includes(st))) return { ok: false, grund: `„${w}“ passt nicht zu allen` }; schritte.push({ was: 'mass', status: st, w }); continue; }
+        if (k === 'aufbau') { const q = L().zeilen.find((x) => x.kurz === w && x.vorlage); if (!q) return { ok: false, grund: 'ohne Aufbau' };
+          schritte.push({ was: 'aufbau', neu: { vorlage: q.vorlage, wahl: [...(q.wahl || [])], dicken: q.dicken || {}, ausf: q.ausf || {} }, w }); continue; }
+        return { ok: false, grund: `${GRUPPEN[k] || k} kommt aus dem Plan – lässt sich so nicht ändern` };
+      }
+      return { ok: schritte.length > 0, grund: schritte.length ? '' : 'steht schon dort', schritte, R };
+    }
+    async function umsortieren(ids, W) {
+      const P = umPlan(ids, W); if (!P.ok) { if (P.grund) sag(P.grund, true); return false; }
+      let R = P.R;
+      const elIds = new Set(R.flatMap((z) => z.ids || []));
+      const nachher = () => { R = elIds.size ? L().zeilen.filter((z) => (z.ids || []).some((i) => elIds.has(i))) : R.map((z) => L().zeilen.find((x) => x.id === z.id)).filter(Boolean); };
+      for (const s of P.schritte) {
+        if (s.was === 'art') {   // Bauart je Bauteil (IFC: die Bauteile wandern in die Zeile ihrer neuen Art) bzw. die Zeile von Hand
+          const je = new Map(); R.forEach((z, i) => { const k = s.kg[i]; (je.get(k) || je.set(k, []).get(k)).push(z); });
+          for (const [kg, RR] of je) { const I = RR.flatMap((z) => z.ids || []);
+            if (opt.artJe && I.length && ifcDa(G().quelle || {}) && ((G().quelle || {}).art || 'ifc') === 'ifc') await opt.artJe(I, kg); else await mwAendern({ kg }, RR); }
+          nachher();
+        } else if (s.was === 'typ') await typAktion({ aktion: 'zuweisen', typ: s.typ, zeilen: R.map((z) => z.id) }, `${R.length === 1 ? R[0].name : R.length + ' Bauteile'} → Typ ${s.typ}`, [...new Set(R.map((z) => z.typ).filter(Boolean)), s.typ]);
+        else if (s.was === 'mass') await mwAendern({ status: s.status }, R);
+        else if (s.was === 'aufbau') await mwAendern(s.neu, R);
+        nachher();
+      }
+      sag(`${ids.length === 1 ? 'Bauteil' : ids.length + ' Bauteile'} → ${P.schritte.map((s) => s.w).join(' · ')}`);
+      return true;
+    }
+    const auswahlIds = () => (Z.mw.length ? [...Z.mw] : Z.sel && Z.sel !== '__rw' ? [Z.sel] : []);
+    function ablage(cut) { const ids = auswahlIds(); if (!ids.length) return; Z.clip = { ids, cut, von: ids[0] }; zeichne();
+      sag(`${ids.length === 1 ? '1 Bauteil' : ids.length + ' Bauteile'} ${cut ? 'ausgeschnitten' : 'kopiert'} – Strg+V in eine Zeile oder Gruppe verschiebt dorthin, Strg+Umschalt+V überträgt Aufbau und Maßnahme`); }
+    async function einfuegen(ziel) {   // Strg+V (US-2 A): verschieben wie Ziehen
+      if (!Z.clip || !ziel) return; const W = zielWeg(ziel); if (await umsortieren(Z.clip.ids, W) && Z.clip.cut) { Z.clip = null; zeichne(); } }
+    async function aufbauEinfuegen() {   // Strg+Umschalt+V: Aufbau und Maßnahme der kopierten Zeile auf die markierten
+      const q = Z.clip && L().zeilen.find((x) => x.id === Z.clip.von), R = auswahlIds().map((id) => L().zeilen.find((x) => x.id === id)).filter((z) => z && z.id !== (q || {}).id);
+      if (!q || !R.length) return;
+      const auf = q.vorlage ? { vorlage: q.vorlage, wahl: [...(q.wahl || [])], dicken: q.dicken || {}, ausf: q.ausf || {} } : {};
+      const mit = R.filter((z) => !(z.erlaubt || []).length || z.erlaubt.includes(q.status)), ohne = R.filter((z) => !mit.includes(z));
+      if (mit.length) await mwAendern({ status: q.status, ...auf }, mit);
+      if (ohne.length && q.vorlage) await mwAendern(auf, ohne);
+    }
+    const gruppeVon = (id) => Object.entries(Z.grpIds || {}).filter(([, I]) => I.includes(id)).sort((a, b) => a[1].length - b[1].length)[0];
     const handZ = (id) => { const z = L().zeilen.find((x) => x.id === id); return z && HAND.includes(z.bereich) && !Z.an ? z : null; };
     async function handWeg(id) { const z = handZ(id); if (!z) return sag('Nur Zeilen von Hand lassen sich entfernen – Bauteile aus dem Plan entfallen mit dem nächsten Planstand.'); const alt = { ...z, wahl: [...(z.wahl || [])] };
       await zeile(id, { loeschen: true }); if (Z.sel === id) { Z.sel = Z.auf = null; zeichne(); if (opt.auswahl) opt.auswahl(null); } sag(`„${z.name}“ entfernt.`);

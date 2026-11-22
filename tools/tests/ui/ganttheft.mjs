@@ -174,12 +174,17 @@ export async function ganttHeftPruefen(browser, repo) {
         const a2 = await p.evaluate(() => { const t = P.tasks[0], a = document.querySelector('.g-det [data-zs="ue"]'), b = document.querySelector('.g-det [data-zs="ueg"]'); const ra = a && a.getBoundingClientRect(), rb = b && b.getBoundingClientRect();
           return { u: t.ueber, st: (document.querySelector('text.bst[data-st="0"]') || {}).textContent || '' }; });
         pruef(a1 === 25 && a2.u && a2.u.at === 1 && a2.u.grund === 'Lieferverzug Fenster' && /Lieferverzug Fenster/.test(a2.st), `Details: Zeit und Stand, eigener Grund – ${JSON.stringify({ a1, ...a2 })}`); }
-      // SI2-3 A: begonnen, aber nichts eingetragen → roter Punkt „heute“, „… AT im Verzug“
+      // 23.11.2026: ohne festgehaltenes Soll kein Verzug – ein neuer Plan in der Vergangenheit ist ein Entwurf, kein Urteil am Balken
+      const ohne = await p.evaluate(() => { window.__soll = GVGL.soll; GVGL.soll = () => null; P.tasks = [fillTask({ uid: 1, name: 'A', dur: 20, lvl: 0, preds: [] })]; P.start = snapWork(todayN() - 30); P.tasks[0].cons = snapWork(todayN() - 14); CAL = schedule(); render();
+        const g = document.querySelector('#chartBody .bar[data-i="0"]'); const r = { punkt: !!g.querySelector('circle.vz'), st: (document.querySelector('text.bst[data-st="0"]') || {}).textContent || '' }; GVGL.soll = () => ({ data: {} }); return r; });
+      pruef(!ohne.punkt && !/Verzug/.test(ohne.st), `ohne Soll kein Verzug – ${JSON.stringify(ohne)}`);
+      // SI2-3 A: mit Soll begonnen, aber nichts eingetragen → roter Punkt „heute“, „… AT im Verzug“
       const vz = await p.evaluate(() => { P.tasks = [fillTask({ uid: 1, name: 'A', dur: 20, lvl: 0, preds: [] })]; P.start = snapWork(todayN() - 30); P.tasks[0].cons = snapWork(todayN() - 14); CAL = schedule(); render();
         const g = document.querySelector('#chartBody .bar[data-i="0"]'); return { rot: !!g.querySelector('circle.vz.rot'), st: (document.querySelector('text.bst[data-st="0"]') || {}).textContent || '' }; });
       pruef(vz.rot && /AT im Verzug/.test(vz.st), `Verzug: roter Punkt und Text – ${JSON.stringify(vz)}`);
       const gr = await p.evaluate(() => { P.tasks[0].pct = 90; CAL = schedule(); render(); const g = document.querySelector('#chartBody .bar[data-i="0"]'); return { gruen: !!g.querySelector('circle.vz:not(.rot)'), st: document.querySelector('text.bst[data-st="0"]').textContent }; });
       pruef(gr.gruen && !/Verzug/.test(gr.st), `voraus: grüner Punkt, kein Verzug – ${JSON.stringify(gr)}`);
+      await p.evaluate(() => { GVGL.soll = window.__soll; });
     }
     {   // Soll und Ist (Mock „Soll und Ist“, 22.11.2026): Überziehung schiebt die Nachfolger (SI-3); das Soll liegt darunter, „Soll aus“ (SI-2)
       const T0 = [{ uid: 1, name: 'A', dur: 2, lvl: 0, preds: [] }, { uid: 2, name: 'B', dur: 3, lvl: 0, preds: [{ uid: 1, type: 'FS', lag: 0 }] }];

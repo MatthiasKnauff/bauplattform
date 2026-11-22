@@ -308,9 +308,9 @@ function pctTeile(g, pct) {
 }
 /* Stand heute (SI2-3 A): wie viel müsste laut Plan heute fertig sein? soll 0…1 (geplante Arbeitstage bis heute ÷ ganze Zeit einschließlich
    Überzug), at = Rückstand in Arbeitstagen (negativ = voraus). null = noch nicht begonnen oder fertig. */
-function verzug(i, g) {
+function verzug(i, g) {   // Verzug erst, wenn der Plan ein festgehaltenes Soll hat (23.11.2026) – vorher ist er ein Entwurf ohne Urteil am Balken
   const t = P.tasks[i], p = t.pct || 0, tot = (t.dur || 0) + (g.ue || 0);
-  if (p >= 100 || !tot || CAL.summ[i] || todayN() < CAL.sd[i]) return null;
+  if (!(window.GVGL && GVGL.soll()) || p >= 100 || !tot || CAL.summ[i] || todayN() < CAL.sd[i]) return null;
   const tw = toW(todayN()); let el = 0;
   CAL.segS[i].forEach((s0, k) => { el += Math.max(0, Math.min(tw, CAL.segE[i][k]) - s0); });
   const soll = Math.min(1, el / tot);

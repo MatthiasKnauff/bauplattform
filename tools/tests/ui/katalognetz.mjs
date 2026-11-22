@@ -51,11 +51,11 @@ export async function katalogNetzPruefen(browser, repo) {
     pruef(await p.evaluate(() => /2 Vorschläge/.test(document.querySelector('.lv-lern summary').textContent)), 'Lern-Vorschläge stehen da');
     await p.evaluate(() => { document.querySelector('.lv-lern').open = true; }); await p.click('.lv-lern [data-lern="ja:0"]'); await warte(500);
     pruef(((letzt('api/catbuero') || {}).estrich || {}).d === 3, `gelernte Richtdauer übernommen (2 × 1,5): ${JSON.stringify(letzt('api/catbuero'))}`);
-    // K7: Fortschritt über 100 % – rote Verlängerung am Balken, Grund wählen
+    // K7: später fertig – Verlängerung am Balken (seit ÜF-3 V1 orange), Grund wählen
     await p.evaluate(() => { showTab('plan'); P.tasks[1].ueber = { at: 3, grund: 'wetter' }; P.tasks[1].pct = 100; render(); }); await warte(300);
-    pruef(await p.evaluate(() => !!document.querySelector('.bar rect.ue')), 'überzogen: rote Verlängerung am Balken');
+    pruef(await p.evaluate(() => !!document.querySelector('.bar rect.ue')), 'überzogen: Verlängerung am Balken');
     await p.evaluate(() => ueberGrund(0, 2, document.querySelector('.bar'))); await p.waitForSelector('.pickm'); await p.click('.pickm .pm-o:has-text("liegt an der Leistung")'); await warte(200);
-    pruef(await p.evaluate(() => P.tasks[0].pct === 100 && P.tasks[0].ueber.at === 2 && P.tasks[0].ueber.grund === 'leistung'), 'Grund gewählt: fertig 2 AT später, zählt fürs Lernen');
+    pruef(await p.evaluate(() => P.tasks[0].ueber.at === 2 && P.tasks[0].ueber.grund === 'leistung'), 'Grund gewählt: fertig 2 AT später, zählt fürs Lernen (Fortschritt bleibt, wie er war – ÜF-1 A)');
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n').slice(0, 2).join(' / ')); }
   await ctx.close();
   return fehler;

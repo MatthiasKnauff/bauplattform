@@ -922,7 +922,7 @@ def ifc_ordnen(S, art_je=None):
     AJ_ist, gruppen, bestand = {}, {}, S["bestand"]
     for e in S["els"]:
         i, gid, kg, art, aussen, tragend = e["i"], e["gid"], e["kg"], e["art"], e["aussen"], e["tragend"]
-        k_hand = AJ.get(gid) or AJ.get(f"#{i}") if AJ else None
+        k_hand = AJ.get(f"#{i}") or AJ.get(gid) if AJ else None   # „#Nummer“ kommt aus der Änderung gerade (z. B. Rückgängig) – geht vor dem gemerkten Wert
         if k_hand and ((kg in WAENDE and k_hand in WAENDE) or (kg in PLATTEN and k_hand in PLATTEN)):   # Art von Hand berichtigt (gleiche Familie)
             kg = k_hand
             if kg in WAENDE:

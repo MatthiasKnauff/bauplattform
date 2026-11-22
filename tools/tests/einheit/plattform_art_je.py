@@ -55,3 +55,9 @@ def test_zwei_stufen():
     for aj in (None, {"#10": "341"}, {GID: "342"}):
         A, N = cadimport.ifc_lesen(IFC, bestand=True, art_je=aj), cadimport.ifc_ordnen(S, aj)
         gleich(json.dumps(N, sort_keys=True, default=sorted), json.dumps(A, sort_keys=True, default=sorted), f"ordnen aus dem gespeicherten Stand = lesen ({aj})")
+
+
+def test_aenderung_geht_vor_dem_gemerkten():
+    """Rückgängig (22.11.2026): die Art aus der Änderung gerade („#Nummer“) geht vor der gemerkten (GlobalId)."""
+    R = cadimport.ifc_lesen(IFC, bestand=True, art_je={GID: "342", "#10": "331"})
+    gleich(next(g for g in R["bauteile"] if 10 in g.get("ids", []))["kg"], "331", "zurück auf Außenwand")

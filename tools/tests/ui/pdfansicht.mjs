@@ -26,7 +26,7 @@ export async function pdfAnsichtPruefen(browser, repo) {
       if (pf === '') return r.fulfill({ contentType: 'text/html', body: html });
       if (pf === 'bp/baukasten.js') return r.fulfill({ contentType: 'text/javascript', body: baukasten });
       if (/^d\d\.pdf$/.test(pf)) return r.fulfill({ contentType: 'application/pdf', body: pdf(+pf[1]) });
-      const f = pf.startsWith('bp/') ? path.join(KASTEN, pf.slice(3)) : pf.startsWith('static/') ? path.join(STAT, pf.slice(7)) : null;
+      const f = pf.startsWith('bp/pdfjs/') ? path.join(repo, 'shared/bpcore/vendor/pdfjs', pf.slice(9)) : pf.startsWith('bp/') ? path.join(KASTEN, pf.slice(3)) : pf.startsWith('static/') ? path.join(STAT, pf.slice(7)) : null;
       if (f) return fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' });
       return r.fulfill({ contentType: 'application/json', body: pf === 'api/me' ? '{"ok":true,"id":1,"name":"admin"}' : '{}' }); });
     await p.goto('http://pa.test/'); await p.waitForFunction(() => window.BPHead && BPHead.ansehen, null, { timeout: 20000 });

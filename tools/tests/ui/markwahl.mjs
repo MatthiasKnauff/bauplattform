@@ -31,7 +31,7 @@ export async function markWahlPruefen(browser, repo) {
     if (pf === 'bp/baukasten.js') return r.fulfill({ contentType: 'text/javascript', body: baukasten });
     if (pf === 'd2.pdf' || pf === 'api/bp/skizze/s1/datei') return r.fulfill({ contentType: 'application/pdf', body: pdf(2) });
     if (pf.startsWith('static/')) { const f = path.join(repo, 'plattform', pf); return fs.existsSync(f) ? r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); }
-    if (pf.startsWith('bp/')) { const f = path.join(KASTEN, pf.slice(3)); return fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); }
+    if (pf.startsWith('bp/')) { const f = pf.startsWith('bp/pdfjs/') ? path.join(repo, 'shared/bpcore/vendor/pdfjs', pf.slice(9)) : path.join(KASTEN, pf.slice(3)); return fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); }
     if (pf === 'api/me') return J({ ok: true, id: 1, name: 'admin' });
     if (pf === 'api/bp/skizze') return J({ id: 's1' });
     if (pf === 'api/bp/skizze/s1/strich') { const d = r.request().postDataJSON(), id = ++K.n; K.striche.push({ ...d, id, uid: 1, name: 'admin' }); delete K.striche[K.striche.length - 1].tmp; K.neu.push(d); K.seq++; return J({ id, seq: K.seq }); }

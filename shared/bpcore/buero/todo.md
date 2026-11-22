@@ -262,6 +262,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Bauzeitenplan „Zeit und Stand“: Grund auch als eigener Text, Block auch rechts unter Details, Felder bündig, Meilenstein ohne Fortschritt/Überzug~~ (22.11.2026)
 - ~~Bauzeitenplan: Gruppen füllen sich wie die Balken (Mock SI2-2 A nachgezogen), „0 %“ im Balken~~ (22.11.2026)
 - ~~Gebäudemodell: Klick im Grundriss baute den Bereich rechts neu auf (Liste sprang nach oben), „undefined“ über dem Bauteil-Baum~~ (22.11.2026)
+- ~~Handy: lange Punkte in der Navigationszeile oben brechen um (Adressen ragte 63 px heraus)~~ (22.11.2026)
 - ~~Adressen: Filter sammeln – Klick links setzt Filter (UND/ODER), lange Gruppen mit Suchfeld~~ (22.11.2026)
 - ~~Handyansicht Etappe 2: Startseite (Suchfeld oben, „Zu tun“ zuerst), Navigation als Zeile oben, Adressen mit 🧭 Route~~ (22.11.2026)
 - ~~Handyansicht Etappe 1: Rahmen bp/handy.js – Leiste unten (je Person einstellbar), „nur Ansicht“ mit „Link an mich senden“~~ (22.11.2026)

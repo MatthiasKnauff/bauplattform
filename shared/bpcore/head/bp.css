@@ -182,7 +182,7 @@ html[data-bewegung="aus"] .bp-nav .npin svg{transition:none}
 .bp-nav-zone.hot{background:color-mix(in srgb,var(--y) 34%,transparent)}
 .bp-nav-zieht,.bp-nav-zieht *{cursor:grabbing!important;user-select:none!important}
 .bp-nav.oben{width:auto!important;display:flex;align-items:center;flex-wrap:wrap;gap:.15rem .25rem;overflow:visible;border-right:0;border-bottom:1px solid var(--line);padding:.25rem .45rem}
-.bp-nav.oben .ni{width:auto;padding:.3rem .65rem;white-space:nowrap}.bp-nav.oben .ni small{margin-left:.4rem}
+.bp-nav.oben .ni{width:auto;max-width:100%;padding:.3rem .65rem;white-space:nowrap}.bp-nav.oben .ni:not(.ntb){white-space:normal;text-align:left}   /* lange Namen (z. B. „Beteiligte <Projekt>“) brechen um statt die Seite breiter zu machen (Handy, 22.11.2026) */.bp-nav.oben .ni small{margin-left:.4rem}
 .bp-nav.oben .nt{position:relative}
 .bp-nav.oben .npop{position:absolute;left:0;top:calc(100% + 3px);z-index:60;min-width:14rem;background:var(--card);border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));box-shadow:var(--sh0,0 8px 24px rgba(0,0,0,.35));padding:.3rem}
 .bp-nav.oben .npop .ni{width:100%}

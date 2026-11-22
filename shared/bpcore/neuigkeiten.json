@@ -1,5 +1,13 @@
 [
  {
+  "id": "ifc-allplan-schnitte",
+  "datum": "2026-11-22",
+  "app": "gebaeudemodell",
+  "titel": "Allplan-IFC: Dach und Wände vollständig",
+  "text": "Wände mit vielen Öffnungen, Wände ohne Material und Dächer mit eigener Geometrie aus Allplan kommen jetzt mit Menge in die Bauteile – im 3D sind sie nicht mehr grau. Bereits eingelesene Pläne rechnet das 3D beim nächsten Öffnen neu; für die Bauteilliste den Plan bitte noch einmal einlesen.",
+  "ziel": "#view"
+ },
+ {
   "id": "planung-aufgeraeumt-2111",
   "datum": "2026-11-21",
   "app": "gebaeudemodell",

@@ -22,7 +22,7 @@ TYP = {"IFCWALL": "w", "IFCWALLSTANDARDCASE": "w", "IFCWALLELEMENTEDCASE": "w", 
        "IFCCOVERING": "x", "IFCCOLUMN": "x", "IFCCOLUMNSTANDARDCASE": "x", "IFCBEAM": "x", "IFCBEAMSTANDARDCASE": "x", "IFCSTAIR": "x", "IFCSTAIRFLIGHT": "x",
        "IFCRAILING": "x", "IFCMEMBER": "x", "IFCMEMBERSTANDARDCASE": "x", "IFCPLATE": "x", "IFCPLATESTANDARDCASE": "x", "IFCBUILDINGELEMENTPROXY": "x",
        "IFCFOOTING": "s", "IFCRAMP": "x", "IFCRAMPFLIGHT": "x", "IFCCHIMNEY": "x", "IFCSHADINGDEVICE": "x"}
-STAND = 2   # Fassung des Netzes – ältere rechnet die Route aus der gespeicherten Datei neu (planstand.planstand_netz)
+STAND = 3   # 3: lange Schnittketten (Allplan) – Fassung des Netzes – ältere rechnet die Route aus der gespeicherten Datei neu (planstand.planstand_netz)
 GRENZE = 400000   # höchstens so viele Dreiecke (große Modelle werden nicht vollständig, aber die Seite bleibt flott)
 
 
@@ -226,8 +226,12 @@ class _Netz:
             for it in (rep[3] if len(rep) > 3 else []) or []:
                 F += self.koerper(it, M.nach(T), tiefe + 1)
             return F
-        if typ in ("IFCBOOLEANCLIPPINGRESULT", "IFCBOOLEANRESULT"):
-            return self.koerper(a[1], M, tiefe + 1)   # erster Operand (Abschnitte, z. B. Giebel, werden nicht abgezogen)
+        if typ in ("IFCBOOLEANCLIPPINGRESULT", "IFCBOOLEANRESULT"):   # erster Operand (Abschnitte, z. B. Giebel, werden nicht abgezogen)
+            n = 0   # Kette Schritt für Schritt – Allplan schneidet je Öffnung einmal, als Tiefe gezählt fehlte die Wand im 3D (22.11.2026)
+            while typ in ("IFCBOOLEANCLIPPINGRESULT", "IFCBOOLEANRESULT") and a and len(a) > 1 and n < 500:
+                ref, n = a[1], n + 1
+                typ, a = self.a(ref)
+            return self.koerper(ref, M, tiefe + 1)
         return []
 
     def operator(self, ref):

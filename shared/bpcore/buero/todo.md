@@ -252,6 +252,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Allplan-IFC ohne Mengen: Dach (IfcRoof mit eigener Geometrie), Wände ohne Material, lange Schnittketten und Öffnungen aus mehreren Körpern – nichts fällt mehr als „ohne Menge“ heraus, 3D nicht mehr grau~~ (22.11.2026)
 - ~~Apps-Menü bei „Effekte aus“ im hellen Stil: weiß mit heller Schrift – jetzt dunkel wie die Leiste~~ (21.11.2026)
 - ~~Planung aufräumen: Zurücksetzen, Leistungen nur im Bauzeitenplan, Gebäudeteile zuklappbar und vorbelegt, Staffelgeschoss je Teil ⇄ 3D, Zahl → wartende Änderungen (PL-A2 B1 C1 D1 E1 F2)~~ (21.11.2026)
 - ~~Baukasten-Planstand: Fenster/Türen nur aus dem 3D (plus von Hand), keine geschätzten Fenster/Räume mehr~~ (21.11.2026)

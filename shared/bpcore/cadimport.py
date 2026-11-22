@@ -412,11 +412,19 @@ def ifc_lesen(raw, bestand=False):
             h = float(a[3] or 0)
             return {"v": A * h * dz, "a": A, "u": U, "h": h * dz}
         if t in ("IFCBOOLEANCLIPPINGRESULT", "IFCBOOLEANRESULT") and len(a) > 2:
-            k = koerper(a[1], tiefe + 1)
-            if k and a[0] == ".DIFFERENCE.":
-                k2 = koerper(a[2], tiefe + 1)
-                if k2 and R(a[2]) and R(a[2])[0] in ("IFCEXTRUDEDAREASOLID", "IFCFACETEDBREP"):
-                    k = dict(k, v=max(0.0, k["v"] - k2["v"]))
+            # Kette der Abzüge Schritt für Schritt bis zum Grundkörper – Allplan schneidet je Öffnung/Dachkante einmal, eine Wand trug
+            # acht und mehr Schnitte; als Tiefe gezählt blieb sie ohne Geometrie und fiel heraus (22.11.2026). Höchstens 500 Glieder.
+            weg, n = [], 0
+            while x and x[0] in ("IFCBOOLEANCLIPPINGRESULT", "IFCBOOLEANRESULT") and len(x[1]) > 2 and n < 500:
+                if x[1][0] == ".DIFFERENCE.":
+                    weg.append(x[1][2])
+                ref, x, n = x[1][1], R(x[1][1]), n + 1
+            k = koerper(ref, tiefe + 1)
+            for r2 in weg if k else []:
+                if R(r2) and R(r2)[0] in ("IFCEXTRUDEDAREASOLID", "IFCFACETEDBREP"):
+                    k2 = koerper(r2, tiefe + 1)
+                    if k2:
+                        k = dict(k, v=max(0.0, k["v"] - k2["v"]))
             return k
         if t == "IFCFACETEDBREP":
             return {"v": netz_volumen([a[0]]), "l": ausdehnung([a[0]])}
@@ -474,6 +482,8 @@ def ifc_lesen(raw, bestand=False):
                         out["a"] = out.get("a", 0.0) + k["a"] * f_len ** 2
                         out["u"] = max(out.get("u", 0.0), k.get("u", 0.0) * f_len)
                         out["h"] = max(out.get("h", 0.0), k.get("h", 0.0) * f_len)
+                        if k.get("u") and k.get("h"):   # Seitenfläche eines schlanken Profils je Stück: halber Umfang × Höhe (Wand ohne Material, 22.11.2026)
+                            out["seite"] = out.get("seite", 0.0) + k["u"] / 2 * k["h"] * f_len ** 2
         return out
 
     # Geschoss je Objekt (enthalten bzw. Räume über Aggregation)
@@ -628,12 +638,17 @@ def ifc_lesen(raw, bestand=False):
         if E.typ.get(i) in ("IFCCURTAINWALL", "IFCSTAIR", "IFCRAMP"):
             teil_von.update(kinder)
     dach_platten = {k for i, kinder in agg.items() if E.typ.get(i) == "IFCROOF" for k in kinder}
-    oeffnung = {}   # Wand → Fläche ihrer Öffnungen
+    OE = {}   # Wand → Öffnungen [(Profilfläche, Volumen)]
     for _, a in E.alle("IFCRELVOIDSELEMENT"):
         if len(a) >= 6 and isinstance(a[4], tuple) and isinstance(a[5], tuple):
             F = form(a[5][1])
             if F.get("a"):
-                oeffnung[a[4][1]] = oeffnung.get(a[4][1], 0.0) + F["a"]
+                OE.setdefault(a[4][1], []).append((F["a"], F.get("v") or 0.0))
+
+    def oeffnung(w, d=0.0):
+        """Fläche der Öffnungen einer Wand. Eine Öffnung aus mehreren Körpern (Allplan: Öffnung + Laibungs-/Brüstungsstücke) zählte ihre Profilflächen
+        zusammen – mehr als die Wand groß war, die Wand fiel als „ohne Menge“ heraus (22.11.2026). Mit bekannter Wanddicke höchstens Volumen ÷ Dicke."""
+        return sum(min(fa, fv / d) if d and fv else fa for fa, fv in OE.get(w, []))
     wand_der_oeffnung = {a[5][1]: a[4][1] for _, a in E.alle("IFCRELVOIDSELEMENT") if len(a) >= 6 and isinstance(a[4], tuple) and isinstance(a[5], tuple)}
     wand_von = {}   # Fenster/Tür → Wand, in deren Öffnung es sitzt (außen/innen von der Wand)
     for _, a in E.alle("IFCRELFILLSELEMENT"):
@@ -684,6 +699,10 @@ def ifc_lesen(raw, bestand=False):
                 if F is None:
                     F = form(i)
                 return F
+            if art == "Wand" and not dicke and geo().get("v") and geo().get("seite"):   # Wand ohne Material und Schichten (Allplan, 22.11.2026: zehn Wände fielen sonst als „ohne Menge“ heraus)
+                d_ = geo()["v"] / geo()["seite"]
+                if d_ < 1.0:
+                    dicke = round(d_, 3)
             if art == "Wand" and 0 < dicke <= 0.05:   # Putz-/Bekleidungsschicht als eigene Wand modelliert
                 art = "Bekleidung"
             if art == "Wand":
@@ -697,7 +716,7 @@ def ifc_lesen(raw, bestand=False):
                     elif g_.get("achse") and g_.get("h"):
                         m = g_["achse"] * g_["h"]
                     if m:
-                        m = max(0.0, m - oeffnung.get(i, 0.0))
+                        m = max(0.0, m - oeffnung(i, dicke))
                         aus_geometrie += 1
                 if aussen is None and KZ and KZ["lage"] and KZ["aussen"] is not None:   # Kürzel AW/IW … geht der Geometrie vor
                     aussen = KZ["aussen"]
@@ -722,8 +741,14 @@ def ifc_lesen(raw, bestand=False):
                 if kg == "351" and i == unterste:   # unterste Platte ohne Kennung: wohl die Bodenplatte (Hinweis an der Zeile)
                     kg = "322"
                 art = "Bodenplatte" if kg == "322" else "Dach" if kg == "361" else "Decke"
-            elif art == "Dach":
+            elif art == "Dach":   # IfcRoof mit eigener Geometrie (ohne Platten darin): ohne Mengen wie eine Decke aus der Geometrie (22.11.2026 – fiel sonst als Splitter heraus)
+                if not dicke and geo().get("v") and geo().get("a") and geo()["v"] / geo()["a"] < 1.5:
+                    dicke = geo()["v"] / geo()["a"]
                 m, kg = menge(i, "NetArea", "GrossArea", "ProjectedArea"), "361"
+                if m is None:
+                    g_ = geo()
+                    m = g_["v"] / dicke if g_.get("v") and dicke else g_.get("a")
+                    aus_geometrie += 1 if m else 0
             elif art in ("Fenster", "Tür"):
                 h_ = _wert(a[8]) if len(a) > 8 and isinstance(_wert(a[8]), (int, float)) else None
                 w = _wert(a[9]) if len(a) > 9 and isinstance(_wert(a[9]), (int, float)) else None
@@ -767,7 +792,7 @@ def ifc_lesen(raw, bestand=False):
                     dd = dicke or zahl(prop(i, "Schichtdicke")) or 0
                     m = g_["v"] / dd if g_.get("v") and dd else g_.get("a")
                     if m and typ.startswith("IFCWALL"):
-                        m = max(0.0, m - oeffnung.get(i, 0.0))
+                        m = max(0.0, m - oeffnung(i, dd))
                     aus_geometrie += 1 if m else 0
                 mt = str(prop(i, "Material") or "")
                 if mt and not namen:

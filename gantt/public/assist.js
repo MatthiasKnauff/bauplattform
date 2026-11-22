@@ -59,7 +59,7 @@
         else if (ctx === 'any') blks.forEach((bb) => add(s, by.get(K(r.id, bb)), r.type, r.lag));
         else add(s, by.get(K(r.id, b)), r.type, r.lag);
       }
-      if (sc === 'we' && multi(cfg) && cfg.takt === 'versetzt') {
+      if (sc === 'we' && multi(cfg) && cfg.takt === 'versetzt' && !B(s.cat).w) {   // Takt = dieselbe Kolonne zieht von Einheit zu Einheit; Wartezeiten (w: Estrich trocknen) laufen in allen Einheiten zugleich – sonst wartete die Trocknung der 14. Wohnung auf die der 13. (22.11.2026: Mehrfamilienhaus 24 statt 15 Monate)
         for (let bb = b - 1; bb >= 0; bb--) { const p = by.get(K(s.cat, bb)); if (p) { add(s, p, 'FS', 0); break; } }
       }
     }

@@ -255,6 +255,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Bauzeitenplan: Estrich-Trocknen nicht mehr im Takt von Wohnung zu Wohnung (MFH 14 WE 24 → 16 Monate); Dach-Leistungswerte standen im Kommentar~~ (22.11.2026)
 - ~~Leistungskatalog: Spalte „Firma“ weg, Firmen je Leistung gelöscht (Migration 0105) – Firmen nur noch je Projekt bzw. Vorgabe je Gewerk~~ (22.11.2026)
 - ~~Bauzeitenplan: alle Fenster im Aussehen des Eigenschaften-Fensters, Abschnittstitel ohne Farbverlauf (`.sec` → `.g-sec`)~~ (22.11.2026)
 - ~~Bauzeitenplan: Leistungsinformationen im gemeinsamen Eigenschaften-Fenster (Reiter, ↑ ↓, feste Größe)~~ (22.11.2026)

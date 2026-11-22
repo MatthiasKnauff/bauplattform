@@ -68,7 +68,7 @@ window.CATALOG = (() => {
     { id: 'bk_drain', m: 'bk_frei', ph: 'erd', n: 'Drainage / Entwässerung am Bestandskeller', gw: 'Erdbau', din: '18308', sc: 'bau', d: 2, ch: 'bestkeller', a: ['bk_abd'] },
     { id: 'bk_verf', m: 'bk_frei', ph: 'erd', n: 'Arbeitsraum verfüllen (Bestand)', gw: 'Erdbau', din: '18300', sc: 'bau', d: 2, ch: 'bestkeller', a: ['bk_drain', 'bk_abd'] },
     { id: 'bk_hsp', ph: 'erd', n: 'Horizontalsperre / Innenabdichtung Keller (Injektion, Sanierputz)', gw: 'Abdichtung', din: '18336', sc: 'bau', d: 5, ch: 'bestkeller', a: ['entk', 'schutz', 'be'] },
-    { id: 'bk_tr', m: 'bk_hsp', ph: 'erd', n: 'Kellerwände trocknen lassen (Messung vor dem Weiterbau)', gw: 'Abdichtung', sc: 'bau', d: 15, fix: 1, ch: 'bestkeller', a: ['bk_hsp', 'bk_verf'] },
+    { id: 'bk_tr', m: 'bk_hsp', ph: 'erd', n: 'Kellerwände trocknen lassen (Messung vor dem Weiterbau)', gw: 'Abdichtung', sc: 'bau', d: 15, fix: 1, w: 1, ch: 'bestkeller', a: ['bk_hsp', 'bk_verf'] },
     { id: 'bk_ausbau', ph: 'ausbau', n: 'Keller zu Wohn-/Nutzräumen ausbauen (Dämmung, Lichtschächte)', gw: 'Rohbau', din: '18330', sc: 'bau', d: 6, ch: 'bestkeller', a: ['bk_tr', 'bk_verf', 'bk_hsp', 'entk', 'be'] },
     // Rohbau
     { id: 'mauer', ph: 'rohbau', n: 'Rohbau Geschosse (Mauerwerk, Decken)', gw: 'Rohbau', din: '18330 / 18331', sc: 'bau', d: 25, nb: 1, a: ['keller', 'grund'] },
@@ -119,7 +119,7 @@ window.CATALOG = (() => {
     { id: 'fensterbank_i', m: 'putz', ph: 'ausbau', n: 'Fensterbänke innen', gw: 'Naturstein', din: '18332', sc: 'we', d: 1, a: ['putz', 'trocken'] },
     { id: 'fbh', m: 'hz_roh', ph: 'ausbau', n: 'Fußbodenheizung verlegen (Dämmung, Heizrohre)', gw: 'Heizung', din: '18380', sc: 'we', d: 2, ch: 'waermevert', a: ['putz', 'trocken', 'hz_roh'] },
     { id: 'estrich', ph: 'ausbau', n: 'Estrich einbringen', gw: 'Estrich', din: '18353', sc: 'we', d: 2, a: ['fbh', 'putz', 'trocken', 'hz_roh'] },
-    { id: 'estr_tr', ph: 'ausbau', n: 'Estrich trocknen (Belegreife, CM-Messung)', gw: 'Estrich', sc: 'we', d: 20, fix: 1, req: 'estrich', a: ['estrich'] },
+    { id: 'estr_tr', ph: 'ausbau', n: 'Estrich trocknen (Belegreife, CM-Messung)', gw: 'Estrich', sc: 'we', d: 20, fix: 1, w: 1, req: 'estrich', a: ['estrich'] },
     { id: 'fliesen_vb', m: 'fliesen', ph: 'ausbau', n: 'Wände für Fliesen vorbereiten (Abdichtung, Grundierung)', gw: 'Fliesen', din: '18352', sc: 'we', d: 3, a: ['estrich', 'putz', 'trocken'] },
     { id: 'fliesen', ph: 'ausbau', n: 'Fliesenarbeiten', gw: 'Fliesen', din: '18352', sc: 'we', d: 6, a: ['estr_tr', 'fliesen_vb', 'estrich', 'putz', 'trocken'] },
     { id: 'spachtel_wd', m: 'maler', ph: 'ausbau', n: 'Wände und Decken spachteln, schleifen (Q2/Q3)', gw: 'Maler', din: '18363', sc: 'we', d: 3, a: ['decke_abh', 'fensterbank_i', 'putz', 'trocken', 'san_roh', 'el_roh'] },
@@ -340,7 +340,9 @@ window.CATALOG = (() => {
   const MENGE = {
     aushub: ['gr', 30], grundl: ['gr', 40], grund: ['gr', 18], keller: ['gr', 8], keller_abd: ['u', 15], verfuell: ['u', 20], sauber: ['gr', 60], wu: ['gr', 12],
     mauer: ['bgf', 6, 4], holz_mont: ['bgf', 30], innenw: ['wf', 30],
-    geruest: ['fas', 200], geruest_ab: ['fas', 300],   // Gerüst: eine Kolonne (2–3 Leute) stellt 150–250 m² Fassade am Tag, Einfamilienhaus an einem Tag; Abbau schneller (Angaben von Gerüstbauern, 15.11.2026 – vorher 100/200: großes Haus 6 statt 3 Tage) zimmer: ['dach', 30], dach_deck: ['dach', 40], dach_daemm: ['dach', 40], dampfsp: ['dach', 150],
+    // Gerüst: eine Kolonne (2–3 Leute) stellt 150–250 m² Fassade am Tag, Einfamilienhaus an einem Tag; Abbau schneller (Angaben von Gerüstbauern, 15.11.2026 – vorher 100/200: großes Haus 6 statt 3 Tage)
+    geruest: ['fas', 200], geruest_ab: ['fas', 300],
+    zimmer: ['dach', 30], dach_deck: ['dach', 40], dach_daemm: ['dach', 40], dampfsp: ['dach', 150],   // standen bis 22.11.2026 versehentlich im Kommentar oben – Dach ohne Leistungswert
     lattung: ['dach', 60], flachdach: ['dach', 40], gruendach: ['dach', 60], klempner: ['u', 20], pv: ['dach', 50], fenster_neu: ['wf', 35],
     wdvs: ['fas', 20], klinker: ['fas', 12], vhf: ['fas', 15], holzfassade: ['fas', 18], aussenputz: ['fas', 25], oberste: ['gr', 40],
     entk: ['wf', 35], san_roh: ['wf', 35], hz_roh: ['wf', 28], el_roh: ['wf', 35], lueft: ['wf', 45], rohrdaemm: ['wf', 50],

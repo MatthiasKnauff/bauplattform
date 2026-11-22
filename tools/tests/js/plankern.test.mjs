@@ -69,8 +69,13 @@ test('Bauzeitenplan baut mit dem Kern für jeden Gebäudetyp einen Plan', () => 
     R._teile = { teile: pl.tasks.filter((t) => t.cat === '_teil').map((t) => t.teil), ohneTeil: pl.tasks.filter((t, i) => i > 0 && t.lvl > 0 && pl.tasks.slice(0, i).reverse().find((x) => x.lvl === 0).cat === '_teil' && !t.teil).length,
       tote: pl.tasks.reduce((n, t) => n + t.preds.filter((p) => !U.has(p.uid)).length, 0), ende: (pl.tasks.find((t) => t.cat === '_end') || { preds: [] }).preds.length,
       erdAuf: pl.tasks.some((t) => t.teil === 'aufstock' && t.cat === '_grp' && t.ph === 'erd'), gemeinsam: pl.tasks.filter((t) => t.cat === '_grp' && t.ph === 'planung').length, uids: U.size === pl.tasks.length };
+    const m = A.defaults('neubau_mfh'); Object.assign(m, { area: 1200, floors: 4, units: 14, dg: 'kalt', takt: 'versetzt' }); const pm = A.build(m, A.recFor(m)).tasks;
+    const tr = (b) => pm.find((t) => t.cat === 'estr_tr' && t.blk === b), es = (b) => pm.find((t) => t.cat === 'estrich' && t.blk === b);
+    R._takt = { trocknen: !!(tr(1) && tr(0)) && tr(1).preds.some((p) => p.uid === tr(0).uid), estrich: !!(es(1) && es(0)) && es(1).preds.some((p) => p.uid === es(0).uid) };
     return R; })()`, ctx);
   assert.ok(R, 'AssistCore aus gantt/public/assist.js nicht ladbar');
+  const TK = JSON.parse(JSON.stringify(R._takt)); delete R._takt;   // Takt (22.11.2026): die Kolonne zieht weiter, die Trocknung wartet nicht auf die vorige Wohnung
+  assert.deepEqual(TK, { trocknen: false, estrich: true }, 'versetzter Takt: Estrich von Wohnung zu Wohnung, Trocknen läuft überall zugleich');
   const TT = JSON.parse(JSON.stringify(R._teile)); delete R._teile;   // Gebäudeteile (GT-B2): je Teil ein Ablauf, Planung einmal, keine toten Verweise
   assert.deepEqual(TT.teile, ['_gem', 'bestand', 'anbau', 'aufstock'], 'Gemeinsames (Planung, Baustelle, Haustechnik, Abschluss) als eigener Block vorne'); assert.equal(TT.ohneTeil, 0); assert.equal(TT.tote, 0); assert.ok(TT.ende > 0, 'Ende hängt an den Teilen');
   assert.equal(TT.erdAuf, false, 'Aufstockung ohne Erdarbeiten'); assert.equal(TT.gemeinsam, 1, 'Planung einmal fürs Projekt'); assert.ok(TT.uids, 'Nummern eindeutig');
@@ -249,4 +254,15 @@ test('Gebäudeteile als Liste: Bestand · neu daneben · neu auf … (GG-D1, 18.
   assert.deepEqual(J(K.teilGeschosse(T[2], T)), ['2.OG'], 'Aufstockung über dem Teil, auf dem sie sitzt');
   const u = J(K.teile({ ...c, teile: { a: { a: { bodenbelag: 'fliesen' } } } }));
   assert.equal(u[1].ausbau.bodenbelag, 'fliesen', 'Ausbau je Teil (GG-C1)');
+});
+
+test('Dach rechnet über seine Fläche (22.11.2026: Leistungswerte standen im Kommentar)', () => {
+  const ctx = nurKern(), C = ctx.CATALOG, K = ctx.PlanKern;
+  for (const id of ['zimmer', 'dach_deck', 'dach_daemm', 'dampfsp']) {
+    const i = C.items.find((x) => x.id === id);
+    assert.ok(i && i.bz === 'dach' && i.lw > 0, `${id}: Bezug Dachfläche mit Leistungswert erwartet`);
+  }
+  const klein = K.dur('zimmer', { type: 'neubau_efh', area: 120, floors: 1, dg: 'aus' }), gross = K.dur('zimmer', { type: 'neubau_efh', area: 400, floors: 1, dg: 'aus' });
+  assert.ok(gross > klein, `großes Dach dauert länger: ${klein} → ${gross}`);
+  assert.match(K.durWeg('zimmer', { type: 'neubau_efh', area: 400, floors: 1, dg: 'aus' }), /Dachfläche/);
 });

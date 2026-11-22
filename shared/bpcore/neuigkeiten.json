@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-takt-trocknen",
+  "datum": "2026-11-22",
+  "app": "gantt",
+  "titel": "Mehrfamilienhaus: realistischere Bauzeit",
+  "text": "Beim versetzten Takt wartete das Estrich-Trocknen jeder Wohnung auf die vorige – ein Haus mit 14 Wohnungen kam so auf rund 24 statt 16 Monate. Trocknen läuft jetzt in allen Wohnungen zugleich, nur die Kolonnen ziehen weiter. Dazu rechnen Zimmerer, Dachdeckung und Dachdämmung jetzt über die Dachfläche. Gilt für neue Pläne und „Plan neu aus den Angaben“.",
+  "ziel": "#gridBody"
+ },
+ {
   "id": "katalog-ohne-firmen",
   "datum": "2026-11-22",
   "app": "gantt",

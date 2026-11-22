@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-zeitstand-details-2211",
+  "datum": "2026-11-22",
+  "app": "gantt",
+  "titel": "Zeit und Stand auch rechts unter Details",
+  "text": "Dauer, Fortschritt und „später fertig um … AT“ stehen jetzt auch rechts unter „Details“. Den Grund wählst du aus der Liste oder tippst ihn selbst ein (z. B. „Lieferverzug Fenster“).",
+  "ziel": ".g-det .zs"
+ },
+ {
   "id": "gantt-gruppe-fuellt-2211",
   "datum": "2026-11-22",
   "app": "gantt",

@@ -165,7 +165,7 @@ def sanitize(inp, pid):
             clean[-1]["los"] = 1
         ue = t.get("ueber")   # Fortschritt über 100 %: so viele AT später fertig, mit Grund (K7, Lernen nur bei „leistung“)
         if isinstance(ue, dict) and rnum(ue.get("at")) > 0:
-            clean[-1]["ueber"] = {"at": clamp(round(rnum(ue.get("at"))), 1, 365), "grund": ue.get("grund") if ue.get("grund") in _lernen_gruende() else "anders"}
+            clean[-1]["ueber"] = {"at": clamp(round(rnum(ue.get("at"))), 1, 365), "grund": _grund(ue.get("grund"))}
         if isinstance(t.get("teil"), str) and re.fullmatch(r"[\w-]{1,20}", t["teil"]):   # Gebäudeteil (18.11.2026)
             clean[-1]["teil"] = t["teil"]
         if t.get("mst") is True:   # Duplizieren mit Master (gantt-kopieren.js): Master bzw. Gegenstück im Master
@@ -228,6 +228,14 @@ def sanitize(inp, pid):
            if isinstance(inp.get("hand"), dict) and isinstance(inp["hand"].get("weg"), list) and inp["hand"]["weg"] else {}),
         "archived": truthy(inp.get("archived")),   # archiviert: bleibt erhalten, steht in den Listen unten
     }
+
+
+def _grund(g):
+    """Grund für „später fertig“: bekannter Schlüssel (Lernen zählt nur „leistung“) oder eigener Text bis 80 Zeichen (22.11.2026)."""
+    if g in _lernen_gruende():
+        return g
+    g = re.sub(r"\s+", " ", str(g or "")).strip()[:80]
+    return g or "anders"
 
 
 def _lernen_gruende():

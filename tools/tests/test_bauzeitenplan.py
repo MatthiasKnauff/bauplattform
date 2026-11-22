@@ -642,14 +642,14 @@ def test_kette_und_ueberzogen_bleiben(ctx):
     (22.11.2026: vs/los/hand fielen vorher beim Bereinigen auf dem Server weg – nach dem Neuladen fehlte jede Kette)."""
     T = [leistung(1, "Baubeginn", 0), leistung(2, "Estrich", 5, lvl=1, preds=[1], cat="estrich", vs={"d": 3, "n": "Estrich", "p": "1:FS:0", "pl": [{"uid": 1, "type": "FS", "lag": 0}]},
                                                 los=1, ueber={"at": 4, "grund": "leistung"}),
-         leistung(3, "Maler", 4, lvl=1, preds=[2], ueber={"at": 2, "grund": "quatsch"})]
+         leistung(3, "Maler", 4, lvl=1, preds=[2], ueber={"at": 2, "grund": "  Lieferverzug   Fenster "})]
     p = neuer_plan(ctx.admin, ctx.name("Kette"), T)
     try:
         p = speichern(ctx.admin, p, hand={"weg": ["fliesen|-1||#1"]})
         q = ctx.admin.gj(f"{G}/projects/{p['id']}")
         e, m = q["tasks"][1], q["tasks"][2]
         gleich((e["vs"]["d"], e["vs"]["pl"][0]["uid"], e["los"], e["ueber"]), (3, 1, 1, {"at": 4, "grund": "leistung"}), "Vorschlag, gelöst, überzogen")
-        gleich(m["ueber"]["grund"], "anders", "unbekannter Grund → anders")
+        gleich(m["ueber"]["grund"], "Lieferverzug Fenster", "eigener Grund als Text (22.11.2026), Leerzeichen bereinigt")
         gleich(q.get("hand"), {"weg": ["fliesen|-1||#1"]}, "von Hand gelöschte Leistungen des Assistenten")
     finally:
         weg(ctx, p["id"])

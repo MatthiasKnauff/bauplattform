@@ -81,10 +81,12 @@ export async function ganttHeftPruefen(browser, repo) {
       const zl = await p.evaluate(() => { const f = document.querySelector('.td-eig .form'), z = f.querySelector('.zs'), n = f.querySelector('#fName').closest('div');
         return { unter: !!(n.compareDocumentPosition(z) & Node.DOCUMENT_POSITION_FOLLOWING), vier: ['dur', 'ue', 'ueg'].every((k) => z.querySelector(`[data-zs="${k}"]`)) && !!z.querySelector('.bp-pz'), alt: !!document.querySelector('.td-eig #fPct, .td-eig #fUe') }; });
       pruef(zl.unter && zl.vier && !zl.alt, `Block „Zeit und Stand“ im Fenster: ${JSON.stringify(zl)}`);
+      const bu = await p.evaluate(() => { const a = document.querySelector('.td-eig [data-zs="ue"]').getBoundingClientRect(), b = document.querySelector('.td-eig [data-zs="ueg"]').getBoundingClientRect(); return { dt: a.top - b.top, dh: a.height - b.height }; });
+      pruef(Math.abs(bu.dt) < 1.5 && Math.abs(bu.dh) < 1.5, `„Später fertig um“ und „Grund“ bündig: ${JSON.stringify(bu)}`);
       await p.click('.td-eig .zs [data-zsp][data-p="75"]'); await p.fill('.td-eig .zs [data-zs="ue"]', '3');
-      await p.click('.td-eig .zs [data-zs="ueg"]'); await p.waitForTimeout(150);   // Auswahl „Grund“: die eigene Liste (bp/wahl.js), nicht die des Browsers
-      pruef(await p.evaluate(() => !!document.querySelector('.bph-wahl') && !!window.bpWahl), 'Auswahlliste im Eigenschaften-Fenster ist die eigene Liste');
-      await p.evaluate(() => [...document.querySelectorAll('.bph-wahl .bph-wahl-o')].find((o) => /Wetter/i.test(o.textContent)).click()); await p.waitForTimeout(80);
+      await p.click('.td-eig .zs [data-zs="ueg"]'); await p.waitForTimeout(150);   // Grund: Vorschlagsliste der Plattform (bp/vorschlag.js) – auswählen oder eigenen Text tippen
+      pruef(await p.evaluate(() => document.querySelectorAll('.bp-vs-z').length >= 5), 'Grund: Vorschlagsliste mit den üblichen Gründen');
+      await p.evaluate(() => [...document.querySelectorAll('.bp-vs-z')].find((o) => /Wetter/i.test(o.textContent)).dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))); await p.waitForTimeout(80);
       pruef(/jetzt fertig/.test(await p.textContent('.td-eig .zs [data-zs="erg"]')), 'Ergebniszeile zeigt „jetzt fertig …“');
       await p.click('.td-eig .bp-eigf [data-m="ok"]'); await p.waitForTimeout(200);
       const ue = await p.evaluate(() => ({ u: P.tasks[0].ueber, pct: P.tasks[0].pct }));
@@ -163,6 +165,15 @@ export async function ganttHeftPruefen(browser, repo) {
           const r = { hell: !!d.querySelector('path.sumbar.of'), voll: !!d.querySelector('path.sumbar[clip-path]'), w: +d.querySelector('clipPath rect').getAttribute('width'), strich: !!document.querySelector('#chartBody .sumprog') }; d.remove(); return r; });
         pruef(g.hell && g.voll && g.w === 40 && !g.strich, `Gruppe: offen hell, 40 % kräftig – ${JSON.stringify(g)}`); }
       await p.evaluate(() => doUndo()); pruef(await p.evaluate(() => !P.tasks[0].ueber && P.tasks[0].pct === 50), 'Rückgängig nimmt „später fertig“ zurück, Fortschritt bleibt');
+      {   // „Zeit und Stand“ auch rechts unter Details; Grund auch als eigener Text; Felder bündig (22.11.2026)
+        await p.evaluate(() => { selectRow(rowOfIdx(0)); seiteReiter('gantt', 'details'); }); await p.waitForSelector('.g-det .zs [data-zsp][data-p="25"]', { timeout: 4000 });
+        await p.click('.g-det .zs .bp-pz-s [data-zsp][data-p="25"]'); await p.waitForTimeout(200);
+        const a1 = await p.evaluate(() => P.tasks[0].pct);
+        await p.fill('.g-det [data-zs="ue"]', '1'); await p.press('.g-det [data-zs="ue"]', 'Enter'); await p.waitForTimeout(200);
+        await p.fill('.g-det [data-zs="ueg"]', 'Lieferverzug Fenster'); await p.press('.g-det [data-zs="ueg"]', 'Enter'); await p.waitForTimeout(250);
+        const a2 = await p.evaluate(() => { const t = P.tasks[0], a = document.querySelector('.g-det [data-zs="ue"]'), b = document.querySelector('.g-det [data-zs="ueg"]'); const ra = a && a.getBoundingClientRect(), rb = b && b.getBoundingClientRect();
+          return { u: t.ueber, st: (document.querySelector('text.bst[data-st="0"]') || {}).textContent || '' }; });
+        pruef(a1 === 25 && a2.u && a2.u.at === 1 && a2.u.grund === 'Lieferverzug Fenster' && /Lieferverzug Fenster/.test(a2.st), `Details: Zeit und Stand, eigener Grund – ${JSON.stringify({ a1, ...a2 })}`); }
       // SI2-3 A: begonnen, aber nichts eingetragen → roter Punkt „heute“, „… AT im Verzug“
       const vz = await p.evaluate(() => { P.tasks = [fillTask({ uid: 1, name: 'A', dur: 20, lvl: 0, preds: [] })]; P.start = snapWork(todayN() - 30); P.tasks[0].cons = snapWork(todayN() - 14); CAL = schedule(); render();
         const g = document.querySelector('#chartBody .bar[data-i="0"]'); return { rot: !!g.querySelector('circle.vz.rot'), st: (document.querySelector('text.bst[data-st="0"]') || {}).textContent || '' }; });

@@ -65,7 +65,7 @@ body.g-rahmen .ticon[data-act="toggleAssist"]{display:none}   /* Assistent ist e
 .bp-nav.oben.eng #tabs .gs-box:not(:focus-within){padding:0;gap:0;width:30px;height:30px;justify-content:center;cursor:pointer}.bp-nav.oben.eng #navVm .vm-grp{max-width:16rem;overflow:hidden}
 .bp-nav.oben #tabs .gs-box input{width:240px!important}.bp-nav.oben #tabs #saveState{display:inline!important}
 .bp-nav.oben.eng #tabs .gs-box input{width:180px!important}
-.g-pct-l{display:block;margin:.5rem 0 .25rem;font-size:var(--fs-s);color:var(--mute)}
+
 /* Zeilen: Bänderung bzw. nur die aktive Zeile mit dünnem rotem Strich (Darstellung) */
 .g-darst-z{display:grid;gap:.15rem}
 body.g-zl-band #gridBody .row:nth-child(even) .c{background:color-mix(in srgb,var(--ink) 4.5%,var(--card))}

@@ -874,7 +874,8 @@ html[data-theme="dunkel"] .kp-chip{border-color:#555;color:#bbb}html[data-theme=
 .zs-k{font-weight:600}
 .zs-z{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
 .zs-z label{display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
-.zs-z input[data-zs="ue"]{width:4.5em}.zs-z input[data-zs="dur"]{width:7em}
+.zs-z input{box-sizing:border-box;height:2.1em;margin:0;padding:0 .45em;vertical-align:middle}   /* alle Felder gleich hoch und bündig (22.11.2026) */
+.zs-z input[data-zs="ue"]{width:4.5em}.zs-z input[data-zs="dur"]{width:7em}.zs-z input[data-zs="ueg"]{width:15em}
 .zs-l{min-width:5.5em}
 .zs-e{color:var(--mut);font-size:var(--fs-s,12px)}.zs-e .zs-sp{color:#e8590c}
 .zs-pop{position:fixed;z-index:60;background:var(--card,#fff);border:1px solid var(--bd);border-radius:calc(10px*var(--rk,1));box-shadow:0 6px 22px #0003;padding:8px 10px;display:grid;gap:6px;width:min(400px,calc(100vw - 16px))}

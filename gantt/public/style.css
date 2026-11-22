@@ -660,7 +660,7 @@ html[data-theme="dunkel"] .mk{background:#2b2c2e;border-color:color-mix(in srgb,
 .gs-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 25%,transparent)}
 .gs-box.none{border-color:#d9534f}
 .gs-n{font-size:calc(var(--fs)*1.0);opacity:.7;white-space:nowrap;min-width:2.6em;text-align:right}
-.gs-box button{border:0;background:transparent;color:inherit;font-size:calc(var(--fs)*1.417);line-height:1;width:24px;height:24px;border-radius:50%;cursor:pointer}
+.gs-box button{border:0;background:transparent;color:inherit;line-height:0;width:28px;height:28px;padding:0;border-radius:50%;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}.gs-box button svg{width:18px;height:18px;opacity:1;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}   /* ‹ › so groß wie das ✕ des Felds (22.11.2026) */
 .gs-box button:hover{background:var(--tab-bd)}
 .row.gs-hit .c-name{background:color-mix(in srgb,#ffd200 22%,transparent)}
 @media (max-width:900px){.gs-box input{width:140px}}

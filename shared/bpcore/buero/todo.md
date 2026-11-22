@@ -254,6 +254,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Bauzeitenplan-Suche: Wortvervollständigung als Vorschlagsliste, ‹ › so groß wie das ✕~~ (22.11.2026)
 - ~~Räume als Baum mit Gruppieren, Haken an der Gruppe, Eigenschaften-Fenster Raum (Allgemein · Raumbuch · Maße), kein Sprung beim Klick (US-4)~~ (22.11.2026)
 - ~~Bauteile umsortieren: Ziehen, Strg+X/C/V, Kontextmenü, Haken an der Gruppenzeile (US-1 … US-3)~~ (22.11.2026)
 - ~~Gebäudemodell: Art je Bauteil ändern in Millisekunden statt Sekunden – IFC wird einmal gelesen (pm_elemente), danach nur neu geordnet; Rückgängig eine Anfrage, kein Nachladen~~ (22.11.2026)

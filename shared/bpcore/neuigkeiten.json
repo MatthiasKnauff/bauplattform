@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-suchvorschlag-2211",
+  "datum": "2026-11-22",
+  "app": "gantt",
+  "titel": "Suche mit Wortvorschlägen",
+  "text": "Beim Tippen ins Suchfeld des Bauzeitenplans erscheinen die passenden Wörter aus dem Plan untereinander (z. B. „trock“ → Trockenbau, Trockenestrich). ↑↓ und Enter übernehmen; die Pfeile vor und zurück sind größer.",
+  "ziel": "#leiste .gs-box"
+ },
+ {
   "id": "raeume-baum-2211",
   "datum": "2026-11-22",
   "app": "gebaeudemodell",

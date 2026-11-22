@@ -115,7 +115,15 @@ export async function ganttHeftPruefen(browser, repo) {
       await p.click('#leiste .gs-box'); await p.keyboard.type('a');
       const o = await p.evaluate(() => ({ fokus: document.activeElement.id, breit: Math.round(document.querySelector('#leiste .gs-box').getBoundingClientRect().width) }));
       pruef(o.fokus === 'gsQ' && o.breit > 250, `Klick auf „Suchen“ öffnet das Suchfeld – ${JSON.stringify(o)}`);
-      await p.keyboard.press('Escape'); await p.evaluate(() => document.activeElement.blur());
+      // Wortvervollständigung (22.11.2026): „trock“ → Trockenbau, Trockenestrich untereinander; ‹ › so groß wie das ✕
+      await p.evaluate(() => { P.tasks.push(fillTask({ uid: 9001, name: 'Trockenbau Wände', dur: 2, lvl: 0, preds: [] }), fillTask({ uid: 9002, name: 'Trockenestrich', dur: 2, lvl: 0, preds: [] })); });
+      await p.fill('#gsQ', ''); await p.keyboard.type('trock'); await p.waitForSelector('.bp-vs .bp-vs-z', { timeout: 3000 });
+      const v = await p.evaluate(() => ({ w: [...document.querySelectorAll('.bp-vs .bp-vs-z b')].map((b) => b.textContent), k: Math.round(document.querySelector('#leiste .gs-box [data-gs="1"]').getBoundingClientRect().width), s: Math.round(document.querySelector('#leiste .gs-box [data-gs="1"] svg').getBoundingClientRect().width) }));
+      pruef(v.w.includes('Trockenbau') && v.w.includes('Trockenestrich') && v.k >= 26 && v.s >= 17, `Suchvorschläge und Knöpfe – ${JSON.stringify(v)}`);
+      await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
+      pruef(/^Trocken/.test(await p.inputValue('#gsQ')), 'Vorschlag übernommen');
+      await p.evaluate(() => { P.tasks = P.tasks.filter((t) => t.uid < 9000); render(); });
+      await p.keyboard.press('Escape'); await p.keyboard.press('Escape'); await p.evaluate(() => document.activeElement.blur());
       await p.setViewportSize({ width: 1600, height: 900 }); await p.waitForTimeout(300);
     }
     {   // Fortschritt mit der Maus ziehen (22.11.2026): der Balken füllt sich beim Ziehen mit, nicht nur die Zahl im Tooltip

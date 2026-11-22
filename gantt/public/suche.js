@@ -9,12 +9,20 @@
   const tabs = document.getElementById('tabs'); if (!tabs) return;
   const box = document.createElement('div'); box.className = 'gs-box';
   box.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
-    <input type="search" id="gsQ" placeholder="Im Plan suchen – Leistung, Gewerk, Firma" aria-label="Im Bauzeitenplan suchen" autocomplete="off">
-    <span class="gs-n" id="gsN"></span><button type="button" data-gs="-1" title="Vorheriger Treffer (Umschalt+Enter)" aria-label="Vorheriger Treffer">‹</button><button type="button" data-gs="1" title="Nächster Treffer (Enter)" aria-label="Nächster Treffer">›</button>`;
+    <input type="search" id="gsQ" data-vs="gsWort" placeholder="Im Plan suchen – Leistung, Gewerk, Firma" aria-label="Im Bauzeitenplan suchen" autocomplete="off">
+    <span class="gs-n" id="gsN"></span><button type="button" data-gs="-1" title="Vorheriger Treffer (Umschalt+Enter)" aria-label="Vorheriger Treffer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><button type="button" data-gs="1" title="Nächster Treffer (Enter)" aria-label="Nächster Treffer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>`;
   (document.querySelector('#leiste .g-such') || tabs).appendChild(box);   // Befehlsleiste schon gezeichnet: gleich dorthin, sonst holt rahmen.js das Feld
   const q = box.querySelector('#gsQ'), nEl = box.querySelector('#gsN');
   box.addEventListener('click', (e) => { if (!e.target.closest('button, input')) q.focus(); });   // eingeklappt (Befehlsleiste): Klick auf die Lupe öffnet das Feld
   let hits = [], pos = -1;
+  /* Wortvervollständigung (22.11.2026): beim Tippen die Wörter aus dem Plan, die so anfangen (Trockenbau, Trockenestrich …) – untereinander
+     unter dem Feld, gemeinsame Vorschlagsliste (bp/vorschlag.js); ↑↓ wählen, Enter/Klick übernimmt, danach springt Enter durch die Treffer */
+  if (window.bpVorschlag) bpVorschlag.listen.gsWort = () => {
+    if (typeof P === 'undefined' || !P) return [];
+    const N = new Map();
+    P.tasks.forEach((t) => [t.name, t.gw, t.res].join(' ').split(/[^\p{L}\p{N}-]+/u).forEach((w) => { w = w.replace(/^-+|-+$/g, ''); if (w.length < 3) return; const k = w.toLowerCase(), x = N.get(k); if (x) x.n++; else N.set(k, { w, n: 1 }); }));
+    return [...N.values()].sort((a, b) => b.n - a.n || a.w.localeCompare(b.w, 'de')).map((x) => ({ w: x.w, t: `${x.n}×` }));
+  };
 
   const norm = (s) => String(s || '').normalize('NFC').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
   function suchen() {

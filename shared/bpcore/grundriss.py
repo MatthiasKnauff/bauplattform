@@ -4,7 +4,8 @@ ermittelter Raum), sonst „frei“: eine Fläche ohne Raum, die man im Grundris
 modell_plus). Gerechnet einmal je Planstand und gemerkt in bp_store („gm:grundriss:<Planstand>“) – nur Umrisse, nie die Datei.
 
 berechnen(raw) → {"geschosse": [{"n", "z"}], "flaechen": [{"g", "umriss": [[x, y] m], "flaeche", "z", "hoehe", "raum": {"nr", "name"} | None}]}
-GET /api/bp/modell/<pid>/grundriss[?planstand=<id> – angesehener Planstand] → {"art": "ifc", …berechnen} | {"art": "", "flaechen": []} (ohne IFC: nur die 3D-Ansicht zeichnet)
+GET /api/bp/modell/<pid>/grundriss[?planstand=<id> – angesehener Planstand] → {"art": "ifc", …berechnen} | {"art": "baukasten", …baukasten_innen.grundriss}
+  (Baukasten-Arbeitsstand, Etappe 5 – 22.11.2026) | {"art": "", "flaechen": []}
 """
 import json
 
@@ -62,6 +63,10 @@ def routen(bp, mit, lesen_modell):
             if an:
                 r = c.execute("SELECT art FROM pm_planstand WHERE id=? AND project_id=?", (an, pid)).fetchone()
                 sid, art = (an, r["art"] or "ifc") if r else (None, "")
+            m = lesen_modell(c, pid)["modell"]
+            if not an and sid and art == "hand" and (m.get("baukasten") or {}).get("koerper"):   # Baukasten (Etappe 5): Grundriss aus Körpern, Innenwänden, Treppen
+                from . import baukasten as BK, baukasten_innen as BI
+                return jsonify(art="baukasten", **BI.grundriss(BK.sauber(m["baukasten"])))
             if not sid or art != "ifc":
                 return jsonify(art=art if sid else "", geschosse=[], flaechen=[])
             key = f"gm:grundriss:{int(sid)}"

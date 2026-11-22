@@ -9,7 +9,7 @@ sich der Aufbau im Korb, bekommen alle verknüpften Bauteile ihn beim nächsten 
 Fenster (D2): Rahmen, Verglasung und Uw gelten als Vorgabe für die Fenster-Zeilen; die Fensterfläche schätzt weiter der Assistent.
 Kommt später ein Plan (E1), bleiben Baukasten und Korb stehen; die Angaben gehen über den Abgleich als Vorschlag (folgt).
 
-Modell: m["baukasten"] = {koerper, dach, gauben, oeff, teile, raeume}, m["korb"] = {id: {art, vorlage, name, eigen}}.
+Modell: m["baukasten"] = {koerper, dach, gauben, oeff, teile, raeume, innen, treppen, rnamen (baukasten_innen.py)}, m["korb"] = {id: {art, vorlage, name, eigen}}.
 sauber(bk) · korb_sauber(k) · aus_assistent(m) · ins_assistent(a, bk) · rohbau(bk, korb, EL) · netz_pruefen(N) · routen()
 Das 3D-Netz rechnet der Baustein (bp/gebaeudekasten.js, mit Dicke aus dem Aufbau – E1) und gibt es beim Speichern mit; Nummern wie in rohbau().
 """
@@ -88,7 +88,9 @@ def sauber(bk):
     T = {_s(t, 20): _s(n, 80) for t, n in list((bk.get("teile") if isinstance(bk.get("teile"), dict) else {}).items())[:20] if _s(t, 20)}
     for k in K:
         T.setdefault(k["teil"], "Hauptgebäude" if not T else f"Anbau {len(T)}")
+    from . import baukasten_innen as BI
     return {"koerper": K, "dach": D, "gauben": G, "oeff": O, "teile": {t: n for t, n in T.items() if any(k["teil"] == t for k in K)}, "raeume": bool(bk.get("raeume")),
+            **BI.sauber(bk, ids),   # Innenwände, Treppen, Raumnamen (Etappe 5, 22.11.2026)
             **({"pl": 1} if bk.get("pl") else {})}   # pl: die Planung kennt das Staffelgeschoss schon (seit ins_assistent es überträgt) – erst dann darf sie es entfernen
 
 
@@ -442,16 +444,18 @@ def rohbau(bk, korb, EL=None, vorlagen=None):
     vl = lambda kid, std: (Kb.get(kid) or {}).get("vorlage") or std   # noqa: E731
     G = {}
 
-    def add(teil, kg, art, nm, v, menge, ids, aussen, kid=""):
+    def add(teil, kg, art, nm, v, menge, ids, aussen, kid="", einheit="m²", je=""):
         if menge < 0.3:
             return
-        key = (teil, kg, v)
-        g = G.setdefault(key, {"kg": kg, "art": art, "material": "", "dicke": 0, "einheit": "m²", "menge": 0.0, "anzahl": 1, "aussen": aussen, "name": nm, "code": "", "ids": [],
+        key = (teil, kg, v, je)   # je: eigene Zeile je Treppe
+        g = G.setdefault(key, {"kg": kg, "art": art, "material": "", "dicke": 0, "einheit": einheit, "menge": 0.0, "anzahl": 1, "aussen": aussen, "name": nm, "code": "", "ids": [],
                                "zustand": "", "hinweis": "Aus dem Gebäude-Baukasten gemessen.", "vorlage": v, "geschaetzt": True, "teil": teil, "baukasten": True,
                                **({"korb": kid} if kid and kid in Kb else {})})   # Korb-Eintrag: Zeile ↔ Aufbau (bauteilliste: Kennung je Eintrag, Aufbau-Wahl führt ihn nach)
         g["menge"] += menge
         g["ids"] += ids
 
+    from . import baukasten_innen as BI
+    loch = BI.deckenloch(bk)
     teil_tief = {}
     DA = bk.get("dach") or {}   # Dächer je Körper – auch für das Verschneiden mit dem Nachbardach
     for k in K:
@@ -469,7 +473,7 @@ def rohbau(bk, korb, EL=None, vorlagen=None):
         kid = k.get("boden")
         v = vl(kid, VORGABE["boden"] if unten else VORGABE["decke"])
         kg = v.split(".")[0] if "." in v else ("322" if unten else "351")
-        add(k["teil"], kg, "Bodenplatte" if kg.startswith("32") else "Decke", ("Bodenplatte – " if kg.startswith("32") else "Decke – ") + name(kid, v), v, k["w"] * k["d"], [ID0 + b * 20 + 5], kg.startswith("32"), kid)
+        add(k["teil"], kg, "Bodenplatte" if kg.startswith("32") else "Decke", ("Bodenplatte – " if kg.startswith("32") else "Decke – ") + name(kid, v), v, k["w"] * k["d"] - loch.get(k["id"], 0.0), [ID0 + b * 20 + 5], kg.startswith("32"), kid)   # Deckenloch über einer Treppe
         if D:
             ges, fn = dach_flaeche(k, D["form"], D.get("first"), K, DA), dict(sattel="Satteldach", walm="Walmdach", pult="Pultdach", flach="Flachdach")[D["form"]]
             for i, ant in dach_anteile(k, D["form"], D.get("first"), K, DA).items():   # je Dachfläche – eigener Aufbau (fl) oder der des Dachs
@@ -487,9 +491,10 @@ def rohbau(bk, korb, EL=None, vorlagen=None):
             kid = k.get("wand")
             v = vl(kid, VORGABE["wand"])
             add(k["teil"], "331", "Wand", f"Außenwand – {name(kid, v)}", v, a, [GID + n * 4, GID + n * 4 + 3], True, kid)
+    BI.zeilen(bk, Kb, name, vl, add)   # Innenwände und Treppen aus dem Grundriss (Etappe 5)
     # Fensterflächen des Assistenten anteilig von den Außenwänden je Teil
     for teil in {k["teil"] for k in K}:
-        W = [g for (t, kg, _), g in G.items() if t == teil and kg == "331"]
+        W = [g for (t, kg, _, _j), g in G.items() if t == teil and kg == "331"]
         fen = sum((e.get("b") or 0) * (e.get("h") or 0) for e in (EL or []) if e.get("aussen"))
         ges = sum(g["menge"] for g in W) or 1
         anteil = sum(k["w"] * k["d"] for k in K if k["teil"] == teil) / (sum(k["w"] * k["d"] for k in K) or 1)
@@ -922,10 +927,14 @@ def nachfuehren(c, pid, m, wer, schreiben_modell, N=None, neu=False, name="", ha
     else:   # Räume und Elemente von Hand bleiben; die aus dem 3D bildet oeff_elemente jedes Mal neu
         RA, EA = MH.sauber({"raeume": alt.get("raeume") or [], "elemente": MH._el_zurueck({"elemente": [e for e in alt.get("elemente") or [] if e.get("quelle") != "baukasten"]})})
     OE = oeff_elemente(m["baukasten"])
+    from . import baukasten_innen as BI
+    bk = m["baukasten"]
+    if bk.get("innen") or bk.get("rnamen"):   # Räume aus dem Grundriss des Baukastens (Etappe 5, G4-A) statt von Hand
+        RA = MH.sauber({"raeume": BI.raeume(bk)})[0]
     R = MH.R_aus(RA, EA + OE, schaetzen=False)
     V = {r["id"]: r["name"] for r in c.execute("SELECT id, name FROM pdb_vorlage").fetchall()}
     roh = rohbau(m["baukasten"], m.get("korb") or {}, R["elemente"], V)
-    inn = [g for g in MH.rohbau(R["raeume"], R["elemente"], m.get("assistent"), m.get("teile")) if g["kg"] == "341"] if R["raeume"] else []   # Innenwände schätzt weiter der Assistent
+    inn = [g for g in MH.rohbau(R["raeume"], R["elemente"], m.get("assistent"), m.get("teile")) if g["kg"] == "341"] if R["raeume"] and not bk.get("innen") else []   # Innenwände: gezogen (Grundriss) oder vom Assistenten geschätzt
     R["bauteile"] = roh + inn + R["bauteile"]
     L = B.zeilen_aus_ifc(c, R, alt, B.bauart(m))
     fv = fenster_vorgabe(m["baukasten"])

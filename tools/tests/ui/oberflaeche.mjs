@@ -90,6 +90,12 @@ const { chromium, devices } = createRequire(import.meta.url)('playwright');   //
 const BASE = (process.argv[2] || 'http://localhost:8090').replace(/\/$/, '');
 const USER = 'Test-Admin', PW = 'Testdaten1';   // aus bautagebuch/tools/testdaten.py
 const NUR = (process.env.UI_NUR || '').split(',').filter(Boolean);   // z. B. UI_NUR=ava,baukosten (zum Eingrenzen)
+/* Aufteilen (22.11.2026, schnellere Pipeline): UI_TEIL=server = nur die Apps gegen die laufende Plattform (Job „rauchtest“);
+   UI_TEIL=k/n = nur jede n-te der übrigen Prüfungen (nachgebildeter Server, brauchen keine Plattform – eigene Jobs, starten sofort).
+   Ohne UI_TEIL alles wie bisher. */
+const TEIL = process.env.UI_TEIL || '', [TK, TN] = /^\d+\/\d+$/.test(TEIL) ? TEIL.split('/').map(Number) : [0, 0];
+let block = 0;
+const dran = () => { const k = block++; return !TEIL || (TN > 0 && k % TN === TK - 1); };
 const ART = process.env.RT_ARTEFAKTE ? path.join(process.env.RT_ARTEFAKTE, 'oberflaeche') : '';
 
 // Pfad im Verteiler → Name (gleiche Liste wie tools/rauchtest.py)
@@ -111,7 +117,7 @@ const fehler = [];
 let ok = 0, spaltenGeprueft = 0;
 
 const b = await chromium.launch();
-for (const [gname, gopt] of Object.entries(GERAETE)) {
+if (!TN) for (const [gname, gopt] of Object.entries(GERAETE)) {
   const ctx = await b.newContext({ ...gopt, locale: 'de-DE', timezoneId: 'Europe/Berlin' });
   const login = await ctx.request.post(BASE + '/api/login', { data: { name: USER, password: PW } });
   if (!login.ok()) console.log(`Hinweis: Anmeldung als ${USER} nicht möglich (${login.status()}) – teste ohne Anmeldung`);
@@ -202,7 +208,7 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
   await ctx.close();
 }
 // Tastatur im Baum (baum.js): Muster-Baum im Browser, unabhängig von den Testdaten
-{ const KASTEN = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../shared/bpcore/head');
+if (dran()) { const KASTEN = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../shared/bpcore/head');
   const ctx = await b.newContext({ viewport: { width: 1200, height: 800 } }), p = await ctx.newPage(), js = [];
   p.on('pageerror', (e) => js.push('JavaScript-Fehler: ' + String(e.message || e).split('\n')[0]));
   let f = [];
@@ -215,267 +221,267 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
   if (f.length) { fehler.push('Tastatur im Baum / Fenster:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Tastatur im Baum / Fenster'); } else { ok++; console.log('  ok      Tastatur im Baum / Fenster'); }
   await ctx.close(); }
 // Großes LV bleibt flüssig (nur ein Ausschnitt der Zeilen auf der Seite) – Seite mit nachgebildetem Server, siehe lvgross.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await lvGrossPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Großes LV:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Großes LV'); } else { ok++; console.log('  ok      Großes LV'); } }
 // Kürzel aus dem Plan: wie verstanden, bitte bestätigen, An den Zeichner – nachgebildeter Kern, siehe kuerzel.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await kuerzelPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Kürzel aus dem Plan:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Kürzel aus dem Plan'); } else { ok++; console.log('  ok      Kürzel aus dem Plan'); } }
 // LV-Nachverfolgung: alle versendeten LVs mit Bieter:innen, Einstieg /ava/#nachverfolgen – nachgebildeter Server, siehe nachverfolgen.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await nachverfolgenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('LV-Nachverfolgung:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  LV-Nachverfolgung'); } else { ok++; console.log('  ok      LV-Nachverfolgung'); } }
 // Ausschreibung: Quelle „Bauteile“ aus dem Gebäudemodell neben „Baudaten“, Kette an verknüpften Positionen – nachgebildeter Server, siehe modellquelle.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await modellquellePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Quelle „Bauteile“ (Ausschreibung):\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Quelle „Bauteile“ (Ausschreibung)'); } else { ok++; console.log('  ok      Quelle „Bauteile“ (Ausschreibung)'); } }
 // Startseite: jede Sache steht nur einmal da (eigenes Widget oder „Erinnerungen & Fristen“) – nachgebildeter Server, siehe startseite.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await startseitePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Startseite:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Startseite'); } else { ok++; console.log('  ok      Startseite'); } }
 // Versand: überall derselbe Dialog (bp/versand.js) – nachgebildeter Server, siehe versand.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await versandPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Versand:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Versand'); } else { ok++; console.log('  ok      Versand'); } }
 // Baudaten: Bereich rechts mit Reitern Position/Korb steht neben der Liste – nachgebildeter Server, siehe baudaten.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await baudatenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Baudaten:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Baudaten'); } else { ok++; console.log('  ok      Baudaten'); } }
 // Breite: Tabellen und Listen nutzen bei 1.920 px die ganze Breite – nachgebildeter Server, siehe breite.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await breitePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Breite:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Breite'); } else { ok++; console.log('  ok      Breite'); } }
 // Planungsassistent: Reiter „Planung“ im Bereich rechts, Schritte, Speichern ins Projektmodell – nachgebildeter Server, siehe assistent.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await assistentPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Planungsassistent:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Planungsassistent'); } else { ok++; console.log('  ok      Planungsassistent'); } }
 // Wärmeschutz: Hinweise aus dem Projektmodell in der Stufe „Bauteile“ – nachgebildeter Server, siehe wsmodell.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await wsModellPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Wärmeschutz ⇄ Projektmodell:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Wärmeschutz ⇄ Projektmodell'); } else { ok++; console.log('  ok      Wärmeschutz ⇄ Projektmodell'); } }
 // Rückgängig fest oben links: erste Gruppe der Befehlsleiste bzw. schmale Zeile – ohne Server, siehe rueckgaengig.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await rueckgaengigPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Rückgängig oben links:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Rückgängig oben links'); } else { ok++; console.log('  ok      Rückgängig oben links'); } }
 // Leistungskatalog im Bauzeitenplan: Auswahlfelder (Maus, Finger), Rollposition, Abschnitte umsortieren – nachgebildeter Server, siehe katalog.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await katalogPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Leistungskatalog:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Leistungskatalog'); } else { ok++; console.log('  ok      Leistungskatalog'); } }
 // Bauherrenportal – Seite der Bauherr:innen: Kopf, Titelbild, Bauphasen, Kacheln, Neuigkeiten, Ansprechperson – ohne Server, siehe bauherrenportal.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await bauherrenPortalPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Bauherrenportal (Startseite):\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Bauherrenportal (Startseite)'); } else { ok++; console.log('  ok      Bauherrenportal (Startseite)'); } }
 // Datumswahl im Aussehen des Bautagebuch-Kalenders: ohne KW, Punkte, Schnellwahl nur im erlaubten Bereich – ohne Server, siehe datum.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await datumPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Datumswahl:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Datumswahl'); } else { ok++; console.log('  ok      Datumswahl'); } }
 // PDF-Ansicht: Knöpfe mit Beschriftung, Hauptknopf je App, Seitenübersicht, Handy-Leiste unten – ohne Server, siehe pdfansicht.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await pdfAnsichtPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('PDF-Ansicht:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  PDF-Ansicht'); } else { ok++; console.log('  ok      PDF-Ansicht'); } }
 // Einträge aus Vorschlagslisten löschen mit Ersatz – ohne Server, siehe begriffe.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await begriffePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Vorschlag löschen mit Ersatz:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Vorschlag löschen mit Ersatz'); } else { ok++; console.log('  ok      Vorschlag löschen mit Ersatz'); } }
 // Fenster stapeln: neues Fenster über Druckseite/PDF-Ansicht – ohne Server, siehe stapel.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await stapelPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Fenster stapeln:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Fenster stapeln'); } else { ok++; console.log('  ok      Fenster stapeln'); } }
 // Dämmdicke: Dämmstoff und Dicke getrennt – ohne Server, siehe daemmdicke.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await daemmdickePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Dämmdicke:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Dämmdicke'); } else { ok++; console.log('  ok      Dämmdicke'); } }
 // U-Werte an den Bauteilen – ohne Server, siehe uwert.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await uwertPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('U-Werte:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  U-Werte'); } else { ok++; console.log('  ok      U-Werte'); } }
 // Ablauf der Gebäudeteile (Pfeile, Drucken) – ohne Server, siehe ablauf.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await ablaufPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Ablauf der Teile:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Ablauf der Teile'); } else { ok++; console.log('  ok      Ablauf der Teile'); } }
 // Raumbuch: Boden, Wand, Decke je Raum – ohne Server, siehe raumbuch.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await raumbuchPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Raumbuch:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Raumbuch'); } else { ok++; console.log('  ok      Raumbuch'); } }
 // Gebäude-Baukasten: ＋/−, Staffel, Korb, Rückgängig – ohne Server, siehe baukasten.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await baukastenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Gebäude-Baukasten:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Gebäude-Baukasten'); } else { ok++; console.log('  ok      Gebäude-Baukasten'); } }
 // Abwesenheit zurücknehmen oder löschen – ohne Server, siehe abwesenheit.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await abwesenheitPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Abwesenheit zurücknehmen:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Abwesenheit zurücknehmen'); } else { ok++; console.log('  ok      Abwesenheit zurücknehmen'); } }
 // Markierungen auswählen/löschen, Radiergummi, Unterschrift als Ebene – ohne Server, siehe markwahl.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await markWahlPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Markieren & Unterschrift:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Markieren & Unterschrift'); } else { ok++; console.log('  ok      Markieren & Unterschrift'); } }
 // Rechnung abhaken: ✔ → ✘ → weg auf Seite 2, Seiten nicht doppelt – ohne Server, siehe haken.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await hakenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Rechnung abhaken:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Rechnung abhaken'); } else { ok++; console.log('  ok      Rechnung abhaken'); } }
 // Benachrichtigungen: kein waagerechter Rollbalken, Markier-Häkchen bleibt ein Häkchen – ohne Server, siehe meldungen.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await meldungenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Benachrichtigungen:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Benachrichtigungen'); } else { ok++; console.log('  ok      Benachrichtigungen'); } }
 // Ausklappen: ein Zeichen für Abschnitte, Bäume und Zeilen, Stil „Ausklappen“ wirkt überall – ohne Server, siehe klappen.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await klappenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Ausklappen:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Ausklappen'); } else { ok++; console.log('  ok      Ausklappen'); } }
 // Ablage-Einstellungen je App: Felder vom Kern, Frage beim Ordnernamen – ohne Server, siehe ablageeinst.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await ablageEinstPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Ablage-Einstellungen:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Ablage-Einstellungen'); } else { ok++; console.log('  ok      Ablage-Einstellungen'); } }
 // Projektordner aufräumen (Ablage & Server): Tabelle mit Abweichungen, nur angehakte ausführen – ohne Server, siehe ordneraufr.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await ordnerAufrPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Projektordner aufräumen:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Projektordner aufräumen'); } else { ok++; console.log('  ok      Projektordner aufräumen'); } }
 // Stammdaten-Maske: Feldart „auswahl“ mit „eigener Wert …“ – ohne Server, siehe datenmaske.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await datenMaskePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Stammdaten-Maske (Auswahl):\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Stammdaten-Maske (Auswahl)'); } else { ok++; console.log('  ok      Stammdaten-Maske (Auswahl)'); } }
 // Rüge aus dem Suchfeld – siehe ruegesuche.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await ruegesuchePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Rüge aus dem Suchfeld:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Rüge aus dem Suchfeld'); } else { ok++; console.log('  ok      Rüge aus dem Suchfeld'); } }
 // KI nur in den Einstellungen wählen – siehe kiwahl.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await kiwahlPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('KI-Wahl:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  KI-Wahl'); } else { ok++; console.log('  ok      KI-Wahl'); } }
 // Anzahl mit − / + (bpZaehler) – siehe zaehler.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await zaehlerPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Anzahl − / +:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Anzahl − / +'); } else { ok++; console.log('  ok      Anzahl − / +'); } }
 // Zu schmale Reiterleisten: enger, dann „+n ▾“, Knöpfe bleiben – siehe leiste.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await leistePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Reiterleisten:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Reiterleisten'); } else { ok++; console.log('  ok      Reiterleisten'); } }
 // Gemeinsam markieren für Externe (/gast/…): pdf.js lädt trotz <base href="/"> – siehe gastpdf.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await gastPdfPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Gast-Seite PDF:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Gast-Seite PDF'); } else { ok++; console.log('  ok      Gast-Seite PDF'); } }
 // Adressen beginnen mit dem Projektbezug, einmalige Frage „immer ohne Projekt?“, Häkchen unter „Beteiligte …“ – nachgebildeter Server, siehe adrstart.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await adrStartPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Adressen mit Projektbezug:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Adressen mit Projektbezug'); } else { ok++; console.log('  ok      Adressen mit Projektbezug'); } }
 // Heftzwecke im Bauzeitenplan: Kopf und Befehlsleiste zweistufig weg, Befehle im Kontextmenü – nachgebildeter Server, siehe ganttheft.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await ganttHeftPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Heftzwecke Bauzeitenplan:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Heftzwecke Bauzeitenplan'); } else { ok++; console.log('  ok      Heftzwecke Bauzeitenplan'); } }
 // Großer Bauzeitenplan bleibt flüssig (nur ein Ausschnitt der Zeilen in Tabelle und Diagramm) – nachgebildeter Server, siehe ganttgross.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await ganttGrossPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Großer Bauzeitenplan:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Großer Bauzeitenplan'); } else { ok++; console.log('  ok      Großer Bauzeitenplan'); } }
 // Projekt wählen – neu: Favoriten, Zuletzt, Zähler, Vorschau, Tastatur, Strg+K – nachgebildeter Server, siehe projektwahl.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await projektWahlPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Projekt wählen:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Projekt wählen'); } else { ok++; console.log('  ok      Projekt wählen'); } }
 // Mein Ordner: Menü unter dem Namen, Mein Konto, Benutzerordner in Pläne & Dateien – nachgebildeter Server, siehe meinordner.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await meinOrdnerPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Mein Ordner:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Mein Ordner'); } else { ok++; console.log('  ok      Mein Ordner'); } }
 // Windows-App anbieten: Popup auf der Startseite unter Windows, Menüpunkt, „genutzt“ aus der App – nachgebildeter Server, siehe winapp.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await winappPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Windows-App anbieten:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Windows-App anbieten'); } else { ok++; console.log('  ok      Windows-App anbieten'); } }
 // Verwaltung: „Für mich“ abgesetzt (admin.html) – nachgebildeter Server, siehe verwaltungnav.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await verwaltungNavPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Verwaltung „Für mich“:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Verwaltung „Für mich“'); } else { ok++; console.log('  ok      Verwaltung „Für mich“'); } }
 // Adressen aufräumen (adressen-aufraeumen.js) – nachgebildeter Server, siehe adraufraeumen.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await adrAufraeumenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Adressen aufräumen:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Adressen aufräumen'); } else { ok++; console.log('  ok      Adressen aufräumen'); } }
 // Honorar in Schritten (honorar-ablauf.js) – nachgebildeter Server, siehe honorar.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await honorarPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Honorar in Schritten:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Honorar in Schritten'); } else { ok++; console.log('  ok      Honorar in Schritten'); } }
 // Schwebendes Zurück-Feld nach Sprüngen aus „Zu tun“ und Suche (bp/zurueck.js) – nachgebildete Seiten, siehe zurueck.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await zurueckPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Zurück-Feld:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Zurück-Feld'); } else { ok++; console.log('  ok      Zurück-Feld'); } }
 // Verknüpfungs-Karte des Projektmodells (bp/karte.js) und App „Planung“ – nachgebildeter Kern, siehe karte.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await kartePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Verknüpfungs-Karte:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Verknüpfungs-Karte'); } else { ok++; console.log('  ok      Verknüpfungs-Karte'); } }
 // Kontaktmaske: Bausteine Gewerk/Stichwörter/Tags mit Vorschlägen, Anordnung – siehe kontakt.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await kontaktPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Kontaktmaske:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Kontaktmaske'); } else { ok++; console.log('  ok      Kontaktmaske'); } }
 // Dateiauswahl am iPhone: Filter mit unbekannten Endungen (.ifc, GAEB) fallen weg – siehe dateiwahl.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await dateiwahlPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Dateiauswahl am iPhone:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Dateiauswahl am iPhone'); } else { ok++; console.log('  ok      Dateiauswahl am iPhone'); } }
 // Verwaltung → Projekte: App-Felder öffnen ein Menü – siehe projektchips.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await projektchipsPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Projekt-Felder:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Projekt-Felder'); } else { ok++; console.log('  ok      Projekt-Felder'); } }
 // Gebäudemodell wie alle Apps: Befehlsleiste, Baumtabelle, Details rechts, Anweisungen – siehe gebaeudemodell.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await gebaeudemodellPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Gebäudemodell:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Gebäudemodell'); } else { ok++; console.log('  ok      Gebäudemodell'); } }
 // Zeiten → Mein Tag: Zeitstrahl zoomen und verschieben – siehe zeitstrahl.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await zeitstrahlPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Zeitstrahl:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Zeitstrahl'); } else { ok++; console.log('  ok      Zeitstrahl'); } }
 // 3D-Ansicht des Gebäudemodells (bp/ansicht3d.js): zeichnen, Geschosse, Färben, Antippen – siehe ansicht3d.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await ansicht3dPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('3D-Ansicht:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  3D-Ansicht'); } else { ok++; console.log('  ok      3D-Ansicht'); } }
 // Versand an Bieter:innen: Stand in den Details einer Firma als eine Reihe – siehe versandstand.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await versandstandPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Versand: Stand der Firma:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Versand: Stand der Firma'); } else { ok++; console.log('  ok      Versand: Stand der Firma'); } }
 // KI-Gespräch „Fragen“ (bp/fragen.js): nur Ollama, im Netz erst nach Warnung – siehe fragen.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await fragenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('KI-Gespräch „Fragen“:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  KI-Gespräch „Fragen“'); } else { ok++; console.log('  ok      KI-Gespräch „Fragen“'); } }
 // Bauherrenportal, Seite der Bauherr:innen: Gebäude mit 3D unter der strengen CSP des Portals – siehe portal3d.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await portal3dPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Bauherrenportal 3D:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Bauherrenportal 3D'); } else { ok++; console.log('  ok      Bauherrenportal 3D'); } }
 // Versionsmenü (head.js): offen an <body>, nicht verdeckt oder abgeschnitten – siehe versionsmenue.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await versionsmenuePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Versionsmenü:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Versionsmenü'); } else { ok++; console.log('  ok      Versionsmenü'); } }
 // Wiki-Symbol überall (bp/wikisym.js): eine Abfrage je Seite, Symbol mit Zahl, Fenster lesen/bearbeiten/löschen – siehe wikisym.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await wikisymPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Wiki-Symbol:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Wiki-Symbol'); } else { ok++; console.log('  ok      Wiki-Symbol'); } }
 // Startdaten aus dem Gebäudemodell (bp/startdaten.js): Frage beim ersten Stand, Antwort setzt die Linie – siehe startdaten.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await startdatenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Startdaten aus dem Gebäudemodell:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Startdaten aus dem Gebäudemodell'); } else { ok++; console.log('  ok      Startdaten aus dem Gebäudemodell'); } }
 // Bauteil-Checkliste im Projektmodell (bp/bauteile.js): Status, Aufbau, berechnen, IFC einlesen – siehe bauteile.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await bauteilePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Bauteil-Checkliste:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Bauteil-Checkliste'); } else { ok++; console.log('  ok      Bauteil-Checkliste'); } }
 // Bauteiltypen (Gebäudemodell neu, Etappe 2): Baum nach Typ, Eigenschaften-Fenster mit Typ, Neuer Typ mit Rückgängig – siehe bautypen.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await bautypenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Bauteiltypen:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Bauteiltypen'); } else { ok++; console.log('  ok      Bauteiltypen'); } }
 // Grundriss im Baukasten (Etappe 5): Wand ziehen, Treppe, Entf, Raumname – siehe grundrissbk.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await grundrissBkPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Grundriss im Baukasten:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Grundriss im Baukasten'); } else { ok++; console.log('  ok      Grundriss im Baukasten'); } }
 // Leistungskatalog: Büro-Ebene, Abhängigkeiten, Lernen, Fortschritt über 100 % – siehe katalognetz.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await katalogNetzPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Leistungskatalog Abhängigkeiten:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Leistungskatalog Abhängigkeiten'); } else { ok++; console.log('  ok      Leistungskatalog Abhängigkeiten'); } }
 // Kosten aus Bauteilen (plattform/static/baukosten.js): Band, Übernehmen, Stufe, Preis von Hand, DIN 276 – siehe kosten.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await kostenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Kosten:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Kosten'); } else { ok++; console.log('  ok      Kosten'); } }
 // Bauherrenportal – Baustein bp/freigeben.js: Bereiche an/aus, Eingang mit Datei, Information, Freigabe mit PDF – siehe bauherren.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await bauherrenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Bauherrenportal:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Bauherrenportal'); } else { ok++; console.log('  ok      Bauherrenportal'); } }
 // Bauantrag – Angaben der Vordrucke (bauantrag-angaben.js): Liste, Eintragen, Kästchen, Antragsfeld, Rückgängig – siehe angaben.mjs
-{ let f = [];
+if (dran()) { let f = [];
   try { f = await angabenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Bauantrag-Angaben:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Bauantrag-Angaben'); } else { ok++; console.log('  ok      Bauantrag-Angaben'); } }
 await b.close();
 if (fehler.length) console.log('\n' + fehler.join('\n'));
-console.log(`\nSpalten-Menü an ${spaltenGeprueft} Tabellen geprüft.`);
+if (!TN) console.log(`\nSpalten-Menü an ${spaltenGeprueft} Tabellen geprüft.`);
 console.log(`\nOberflächentests: ${ok} in Ordnung, ${fehler.length} mit Fehlern.`);
 process.exit(fehler.length ? 1 : 0);

@@ -8,8 +8,7 @@ on:
   release:
     types: [published]
   push:
-    branches: [main]
-    tags: ['v*']
+    branches: [main]   # Freigaben kommen NUR über „release“ – vorher startete jede Freigabe zweimal (Release + Tag-Push), nacheinander je ~12 min (22.11.2026)
     paths-ignore:
       - 'server/**'
       - '**.md'
@@ -172,7 +171,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/ui" && cd "$RUNNER_TEMP/ui" && npm init -y >/dev/null && npm install --no-audit --no-fund playwright@1.63.0 >/dev/null
           # Systempakete von Ubuntu sind manchmal nicht erreichbar – dann ohne sie (das Runner-Image hat das Nötige meist schon)
           npx playwright install --with-deps chromium >/dev/null 2>&1 || { echo "::warning::Systempakete für Chromium nicht ladbar – versuche es ohne"; npx playwright install chromium >/dev/null; }
-          NODE_PATH="$RUNNER_TEMP/ui/node_modules" node "$GITHUB_WORKSPACE/tools/tests/ui/oberflaeche.mjs" http://localhost:${PORTAL_PUBLISH:-8090} || { echo "::error::Oberflächentests melden Fehler (siehe Schritt „Oberflächentests“)."; exit 1; }
+          UI_TEIL=server NODE_PATH="$RUNNER_TEMP/ui/node_modules" node "$GITHUB_WORKSPACE/tools/tests/ui/oberflaeche.mjs" http://localhost:${PORTAL_PUBLISH:-8090} || { echo "::error::Oberflächentests melden Fehler (siehe Schritt „Oberflächentests“)."; exit 1; }
 
       # Lasttest: 8 gleichzeitige Nutzer (Doppelte der Büro-Spitze) arbeiten 60 s, danach alle gleichzeitig Foto + PDF, siehe tools/lasttest.py
       - name: Lasttest
@@ -190,10 +189,30 @@ jobs:
         if: failure()
         run: docker compose -p rauchtest -f rauchtest.yml logs --no-color --tail 150
 
+  # Oberflächentests mit nachgebildetem Server (brauchen keine Plattform): in drei Teilen parallel, ab dem ersten Moment des Laufs –
+  # neben Bauen und Rauchtest. Der Rauchtest prüft nur noch die Apps gegen die laufende Plattform (UI_TEIL=server). Siehe oberflaeche.mjs.
+  oberflaeche:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        teil: [1, 2, 3]
+    name: Oberflächentests ${{ matrix.teil }}/3
+    steps:
+      - uses: actions/checkout@v6
+      - name: Oberflächentests (nachgebildeter Server)
+        env:
+          UI_TEIL: ${{ matrix.teil }}/3
+        run: |
+          mkdir -p "$RUNNER_TEMP/ui" && cd "$RUNNER_TEMP/ui" && npm init -y >/dev/null && npm install --no-audit --no-fund playwright@1.63.0 >/dev/null
+          npx playwright install --with-deps chromium >/dev/null 2>&1 || { echo "::warning::Systempakete für Chromium nicht ladbar – versuche es ohne"; npx playwright install chromium >/dev/null; }
+          NODE_PATH="$RUNNER_TEMP/ui/node_modules" node "$GITHUB_WORKSPACE/tools/tests/ui/oberflaeche.mjs" || { echo "::error::Oberflächentests ${UI_TEIL} melden Fehler."; exit 1; }
+
   # Push auf main  -> server/test.yml (Testserver) bekommt den neuen Stand
   # Tag v…         -> server/docker-compose.yml (Produktiv, Docker 2) bekommt die freigegebene Version
   version-eintragen:
-    needs: [build, rauchtest]
+    needs: [build, rauchtest, oberflaeche]
     runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}   # eigener Runner auf Docker 1: Variable RUNNER = bauportal (server/runner.yml)
     steps:
       - uses: actions/checkout@v6

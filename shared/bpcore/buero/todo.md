@@ -265,6 +265,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Behörden als Art, Person in einer Zeile (Anrede · Titel · Name · Zusatz), Bauherr:in als Person, Projektnummern am Kontakt (Name aus dem Projektordner), Suche findet Stichwörter~~ (23.11.2026)
 - ~~Adressen: Auswahl einzelner/mehrerer/aller gefilterten (Mock AW-1 … AW-5 A) – Haken, Strg/Umschalt, Leiste unten, Mail an alle, Projekt, Ändern, Zusammenführen, Excel/Drucken, Papierkorb~~ (23.11.2026)
 - ~~Tests nach den Kontakt-Feldern (Amt, Zusatz, ist_firma) nachgezogen~~ (23.11.2026)
+- ~~Schalter „zählt“ zu hoch: Klasse doppelt vergeben (Liste im Abgleich), in der Karte auf Zeilenhöhe gezogen~~ (23.11.2026)
 - ~~Adressverzeichnis drucken im Druck-Layout (wie LV/Kosten) über die gemeinsame Druckseite – auch im Bautagebuch~~ (23.11.2026)
 - Ausdrucke: eigene Kopien der Bürowerte (fusszeile …) in Honorar, Bauantrag, Kosten, Wärmeschutz, Aufgaben auf `layout.buero_werte` umstellen **ca. 20 min**
 - ~~Adressen-Karten schneller (70 → 30 ms bei 700 Adressen): Karten außerhalb des Bildes ohne Anordnung (`content-visibility`)~~ (23.11.2026)

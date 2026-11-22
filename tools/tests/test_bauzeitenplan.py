@@ -672,8 +672,9 @@ def test_katalog_buero_und_lernen(ctx):
         L = a.gj(f"{G}/catlernen")
         pruefe(len([x for x in L["dauer"].get("estrich", []) if x["f"] > 1.3]) >= 2, f"Dauer länger in zwei Plänen: {L['dauer'].get('estrich')}")
         pruefe("bemusterung fliesen" in L["eigene"], f"eigene Leistung in zwei Plänen: {list(L['eigene'])[:5]}")
-        n = a.uj(f"{G}/catlernen/nein", {"schluessel": "test:" + ctx.name("x")})
-        pruefe(("test:" + ctx.name("x")) in n["nein"], "nicht mehr vorschlagen gemerkt")
+        sk = "test:" + ctx.name("x")   # ctx.name ist bei jedem Aufruf neu – einmal merken
+        n = a.uj(f"{G}/catlernen/nein", {"schluessel": sk})
+        pruefe(sk in n["nein"], "nicht mehr vorschlagen gemerkt")
     finally:
         for p in P:
             weg(ctx, p["id"])

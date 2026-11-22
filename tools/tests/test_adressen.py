@@ -296,23 +296,22 @@ def test_aufraeumen(ctx):
 
 
 def test_einlesen(ctx):
-    """Adressen einlesen (GO 22.11.2026, AE-1 … AE-7 A): Excel nur gelesen; Firmenspalte ohne passende Überschrift erkannt, zwei Zeilen
+    """Adressen einlesen (GO 22.11.2026, AE-1 … AE-7 A): Datei (hier CSV) nur gelesen; Firmenspalte ohne passende Überschrift erkannt, zwei Zeilen
     derselben Firma = ein Kontakt mit weiterer Person, „Bauherrin“ = Art Bauherr:in, Projektnummer T101 → beteiligt, unbekannte Nummer
     → Stichwort, vorhandener Kontakt ergänzt (leere Felder), Rückgängig nimmt alles zurück. Daten erfunden."""
-    import openpyxl
     a, x = ctx.admin, uuid.uuid4().hex[:6]
     t101 = ctx.projekt("T101")
     alt = _neu(ctx, name=f"RT-Ein Alt {x} GmbH", trade="Maler")
-    wb = openpyxl.Workbook(); ws = wb.active
-    ws.append(["Gewerk", "Irgendwas", "Anrede/Vorname Name (Ansprechpartner)", "Nachname (nicht eintragen)", "Adresse", "PLZ Ort", "Tel", "FAX", "Mobil", "Mail", "Webseite", "Projektnummer", "Notizen"])
-    ws.append(["Dachdecker", f"RT-Ein Dach {x} GmbH", "Hr. Max Beispiel", "Beispiel", "Weg 1", "45127 Essen", "0201 1", "0201 2", "", "a@ein.test", "", "T101", ""])
-    ws.append(["Dachdecker", f"RT-Ein Dach {x} GmbH", "Fr. Eva Muster", "Muster", "", "", "", "", "0172 9", "eva@ein.test", "", "Z999", "zweite Zeile"])
-    ws.append(["Bauherrin", "", f"Fr. Rita Probe{x}", "Probe", "Gasse 2", "45130 Essen", "", "", "", "", "", "", ""])
-    ws.append(["Maler", f"RT-Ein Alt {x} GmbH", "", "", "Straße 3", "45131 Essen", "0201 3", "", "", "", "", "", ""])
-    buf = io.BytesIO(); wb.save(buf)
+    Z = []
+    Z.append(["Gewerk", "Irgendwas", "Anrede/Vorname Name (Ansprechpartner)", "Nachname (nicht eintragen)", "Adresse", "PLZ Ort", "Tel", "FAX", "Mobil", "Mail", "Webseite", "Projektnummer", "Notizen"])
+    Z.append(["Dachdecker", f"RT-Ein Dach {x} GmbH", "Hr. Max Beispiel", "Beispiel", "Weg 1", "45127 Essen", "0201 1", "0201 2", "", "a@ein.test", "", "T101", ""])
+    Z.append(["Dachdecker", f"RT-Ein Dach {x} GmbH", "Fr. Eva Muster", "Muster", "", "", "", "", "0172 9", "eva@ein.test", "", "Z999", "zweite Zeile"])
+    Z.append(["Bauherrin", "", f"Fr. Rita Probe{x}", "Probe", "Gasse 2", "45130 Essen", "", "", "", "", "", "", ""])
+    Z.append(["Maler", f"RT-Ein Alt {x} GmbH", "", "", "Straße 3", "45131 Essen", "0201 3", "", "", "", "", "", ""])
+    datei = ("\n".join(";".join(z) for z in Z) + "\n").encode("utf-8")   # CSV – .xlsx prüft der Einheitentest im Container (openpyxl)
     ids = []
     try:
-        r = a.req("POST", "/adressen/api/contacts/einlesen/datei", dateien={"datei": ("liste.xlsx", buf.getvalue(), "application/octet-stream")}).json()
+        r = a.req("POST", "/adressen/api/contacts/einlesen/datei", dateien={"datei": ("liste.csv", datei, "text/csv")}).json()
         gleich(r["spalten"][1], "firma", "Firmenspalte ohne passende Überschrift"); gleich(r["spalten"][3], "", "„nicht eintragen“ bleibt frei")
         K = {k["name"]: k for k in r["kontakte"]}
         d = K[f"RT-Ein Dach {x} GmbH"]

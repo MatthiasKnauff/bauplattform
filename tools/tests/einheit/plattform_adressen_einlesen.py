@@ -74,3 +74,18 @@ def test_csv():
         pruefe(False, "PDF abgelehnt")
     except ValueError:
         pass
+
+
+def test_xlsx():
+    import io
+    import openpyxl
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(KOPF)
+    for z in Z:
+        ws.append(z)
+    ws.append([None] * 13)
+    b = io.BytesIO()
+    wb.save(b)
+    Z2 = E.lesen("liste.xlsx", b.getvalue())
+    gleich((len(Z2), Z2[0][1], Z2[1][1]), (5, "Müller", "Dach Eins GmbH"), "leere Zeilen weg, Text bleibt")

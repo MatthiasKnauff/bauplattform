@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-massnahme",
+  "datum": "2026-11-22",
+  "app": "gebaeudemodell",
+  "titel": "„Maßnahme“ statt „Antwort“",
+  "text": "Was mit einem Bauteil passiert (neu, bleibt, erneuern, instandsetzen, Abbruch, prüfen), heißt jetzt überall „Maßnahme“.",
+  "ziel": ".bt-baum thead"
+ },
+ {
   "id": "gm-arbeitsstand",
   "datum": "2026-11-22",
   "app": "gebaeudemodell",

@@ -277,7 +277,7 @@
       const it = (x, art) => { const p = art === 'e' ? paar[x.id] : Object.keys(paar).find((k) => paar[k] === x.id);
         return `<button type="button" class="bt-i${wahl === x.id ? ' sel' : ''}${p ? ' paar' : ''}" data-m="${art}:${esc(x.id)}">${esc(x.name)} <small>· ${zahl(x.menge)} ${esc(x.einheit)}${x.beantwortet ? ' · ' + esc(WORT[x.status] || x.status) : ''}</small>${p ? `<br><small>↔ ${esc((art === 'e' ? A.neu : A.entfaellt).find((y) => y.id === p)?.name || '')}</small>` : ''}</button>`; };
       const html = () => `<div class="bt-ab"><h3>Neuer Planstand: ${esc(e.name)}</h3>
-        <div>${A.neu.length} neu · ${A.geaendert.length} geändert · ${A.entfaellt.length} entfällt · ${A.gleich} unverändert – deine Antworten zu unveränderten Zeilen bleiben.</div>
+        <div>${A.neu.length} neu · ${A.geaendert.length} geändert · ${A.entfaellt.length} entfällt · ${A.gleich} unverändert – deine Maßnahmen zu unveränderten Zeilen bleiben.</div>
         ${A.entfaellt.length && A.neu.length ? '<div class="mute">Ist ein „entfällt“ und ein „neu“ dasselbe Bauteil (neu gezeichnet, umbenannt)? Erst links, dann rechts antippen – Status und Aufbau gehen mit. Nochmal antippen löst die Zuordnung.</div>' : ''}
         <div class="bt-sp"><div class="bt-li"><h4>Entfällt (${A.entfaellt.length})</h4>${A.entfaellt.map((x) => it(x, 'e')).join('') || '<span class="mute">nichts</span>'}</div>
           <div class="bt-li"><h4>Neu (${A.neu.length})</h4>${A.neu.map((x) => it(x, 'n')).join('') || '<span class="mute">nichts</span>'}</div></div>
@@ -455,7 +455,7 @@
         ? `<div class="bt-ab"><h3>Verfeinern (extern) – was soll die KI vorschlagen?</h3>${W.map(([k, n, t, an]) => `<label style="display:flex;gap:.5rem;align-items:flex-start"><input type="checkbox" data-btkw="${k}"${an ? ' checked' : ''}><span><b>${n}</b><br><small class="bt-w">${t}</small></span></label>`).join('')}
           <div class="bt-ft"><button type="button" class="btn" data-m="abbrechen">Abbrechen</button><button type="button" class="btn primary" data-m="kweiter">Weiter …</button></div></div>`
         : `<div class="bt-ab"><h3>Das geht hinaus</h3><p style="margin:0">An die externe KI (wie in der Verwaltung eingestellt), <b>anonymisiert</b>:</p>
-          <ul style="margin:0;padding-left:1.2rem"><li>Bauart, Geschosse, Räume nach Art (Bad, Küche …) mit Fläche und Höhe – keine Raumnamen</li><li>die Bauteil-Liste mit Mengen, Antworten und Aufbau</li><li>passende Aufbauten aus dem eigenen Baukasten (nur Namen)</li></ul>
+          <ul style="margin:0;padding-left:1.2rem"><li>Bauart, Geschosse, Räume nach Art (Bad, Küche …) mit Fläche und Höhe – keine Raumnamen</li><li>die Bauteil-Liste mit Mengen, Maßnahmen und Aufbau</li><li>passende Aufbauten aus dem eigenen Baukasten (nur Namen)</li></ul>
           <p style="margin:0"><b>Nicht:</b> Projektname, Adresse, Personen, Firmen, Preise, Pläne oder Bilder.</p>
           <p class="bt-an" style="margin:0">Kostet je Anfrage, die Antwort ist ungeprüft und steht im Datenschutz-Protokoll. Nichts ändert sich von selbst – jeder Vorschlag wird einzeln übernommen.</p>
           <div class="bt-w" data-btkw2></div><div class="bt-ft"><button type="button" class="btn" data-m="abbrechen">Abbrechen</button><button type="button" class="btn" data-m="kzur">Zurück</button><button type="button" class="btn primary" data-m="kgo" data-btkgo>Extern fragen</button></div></div>`;
@@ -638,7 +638,7 @@
       if (t.closest('[data-btzurueck]')) return ansehen(null);
       if (t.closest('[data-btgilt]') && Z.an) return aendern(Z.an.id, { zurueckholen: true }, ZURUECK);
       if (t.closest('[data-btweg-alle]')) {
-        if (!(await bpFrage('Alle Zeilen entfernen, die im gültigen Planstand nicht mehr vorkommen? Ihre Antworten gehen dabei verloren.', { ok: 'Aufräumen' }))) return;
+        if (!(await bpFrage('Alle Zeilen entfernen, die im gültigen Planstand nicht mehr vorkommen? Ihre Maßnahmen gehen dabei verloren.', { ok: 'Aufräumen' }))) return;
         try { const d = await (await J(`${basis}/bauteile/aufraeumen`, 'POST', {})).json(); neu(d); sag(`${d.entfernt} Zeilen entfernt.`); zeichne(); } catch (er) { sag(er.message, true); }
         return;
       }
@@ -810,7 +810,7 @@
       const y = el.querySelector('.bt-bw') ? el.querySelector('.bt-bw').scrollTop : 0;
       const mwl = Z.mw.length > 1 && !Z.an ? `<div class="bt-mwl">${mwHtml(true)}</div>` : '';   // H1: gemeinsam ändern über der Tabelle
       const grp = window.bpGruppen && !leer ? `<div class="bt-grp">${bpGruppen.html(Z.grp, GRUPPEN, { rechts: 'Doppelklick: Eigenschaften · Strg + Klick: mehrere' })}</div>` : '';
-      el.innerHTML = `<div class="bt-bl">${an}${rwl}${zl}${tw}${meldung}${mwl}<div class="bt-w"></div>${grp}<div class="bt-bw"><table class="bp-baum bt-baum${leer ? ' bt-gerust' : ''}"><thead><tr><th>Bauteil</th><th class="r">Menge</th><th>Antwort</th><th>Aufbau</th><th class="r" title="U-Wert aus dem gewählten Aufbau, W/(m²K) – Farbe nach GModG (Neubau: Referenzgebäude, Bestand: Anlage 7)">U</th><th class="c" title="wird berechnet">€</th></tr></thead><tbody>${body}</tbody></table></div>
+      el.innerHTML = `<div class="bt-bl">${an}${rwl}${zl}${tw}${meldung}${mwl}<div class="bt-w"></div>${grp}<div class="bt-bw"><table class="bp-baum bt-baum${leer ? ' bt-gerust' : ''}"><thead><tr><th>Bauteil</th><th class="r">Menge</th><th>Maßnahme</th><th>Aufbau</th><th class="r" title="U-Wert aus dem gewählten Aufbau, W/(m²K) – Farbe nach GModG (Neubau: Referenzgebäude, Bestand: Anlage 7)">U</th><th class="c" title="wird berechnet">€</th></tr></thead><tbody>${body}</tbody></table></div>
         <input type="file" accept=".ifc,.dxf,.pdf" data-btdatei hidden></div>`;
       el.querySelector('.bt-bw').scrollTop = y;
       if (window.bpSpaltBreite && !leer) bpSpaltBreite.an(el.querySelector('.bt-baum'), 'bauteile');   // Spaltenbreiten ziehen wie im LV (22.11.2026)
@@ -880,7 +880,7 @@
       const S = gewaehlt(), GL = gleiche(), R = Z.popU === 'gleich' ? GL : S, an = new Set(S.map((x) => x.id)), nAn = R.filter((x) => an.has(x.id)).length;
       const ty = S[0] && S[0].typ && S.every((x) => x.typ === S[0].typ) ? S[0].typ : '';
       const E = window.bpEigen.offen('bt.pop'); if (E) E.titel((!S.length ? 'Eigenschaften' : S.length > 1 ? `Eigenschaften · ${S.length} Bauteile` : `Eigenschaften · ${S[0].name}`) + (ty ? ` · Typ ${typName(ty)}` : ''));
-      const tyL = ty && !Z.an ? `<div class="bt-popr bt-typl"><span class="bt-nr">Der Aufbau gilt für alle Bauteile des Typs ${esc(ty)} mit bauender Antwort.</span><button type="button" class="btn sm" data-bttyp="neu" title="Die angehakten Bauteile bekommen einen eigenen Typ – eine Kopie von ${esc(ty)}">Neuer Typ aus den angehakten …</button><button type="button" class="btn sm" data-bttyp="zus">Mit anderem Typ zusammenlegen …</button><button type="button" class="btn sm" data-bttyp="name">Typ umbenennen …</button></div>` : '';
+      const tyL = ty && !Z.an ? `<div class="bt-popr bt-typl"><span class="bt-nr">Der Aufbau gilt für alle Bauteile des Typs ${esc(ty)} mit bauender Maßnahme.</span><button type="button" class="btn sm" data-bttyp="neu" title="Die angehakten Bauteile bekommen einen eigenen Typ – eine Kopie von ${esc(ty)}">Neuer Typ aus den angehakten …</button><button type="button" class="btn sm" data-bttyp="zus">Mit anderem Typ zusammenlegen …</button><button type="button" class="btn sm" data-bttyp="name">Typ umbenennen …</button></div>` : '';
       u.innerHTML = `<div class="bt-popr"><span class="bt-seg" role="tablist"><button type="button" role="tab" data-btpu="an" class="${Z.popU !== 'gleich' ? 'on' : ''}">angewählte (${S.length})</button><button type="button" role="tab" data-btpu="gleich" class="${Z.popU === 'gleich' ? 'on' : ''}">${ty ? `Typ ${esc(ty)}` : 'gleiche Bauteile'} (${GL.length})</button></span>
         <span class="bt-nr">Änderung oben gilt für ${S.length === 1 ? 'das angehakte Bauteil' : `${S.length} angehakte`} · daneben in der Tabelle oder im 3D mit Strg + Klick</span></div>
         ${tyL}<table class="bt-el"><thead><tr><th class="bt-hk"><input type="checkbox" data-btpall${R.length && nAn === R.length ? ' checked' : ''} title="alle / keins" aria-label="alle oder keins"${R.length ? '' : ' disabled'}></th><th>Bauteil</th><th>Gebäudeteil</th><th>Aufbau</th><th class="r">Menge</th></tr></thead><tbody>${R.map((x) => `<tr data-btpz="${esc(x.id)}"><td class="bt-hk"><input type="checkbox" data-btpk="${esc(x.id)}"${an.has(x.id) ? ' checked' : ''} aria-label="${esc(x.name)} mitändern"></td><td>${esc(x.name)}</td><td>${esc(x.teil || '')}</td><td>${esc(x.kurz || '')}</td><td class="r">${zahl(x.menge)} ${esc(x.einheit || '')}</td></tr>`).join('') || '<tr><td colspan="5" class="bt-nr">nichts gewählt</td></tr>'}</tbody></table>`;
@@ -914,7 +914,7 @@
       }
       if (Z.sel === '__rw') { box.innerHTML = `<div class="bt-l">${rueckwegHtml() || '<p class="bt-leer">Keine offenen Vorschläge.</p>'}</div>`; return; }
       const z = L().zeilen.find((x) => x.id === Z.sel);
-      if (!z) { box.innerHTML = '<div class="bt-l"><p class="bt-leer">Links eine Zeile antippen – hier stehen Antwort, Aufbau mit Optionen, „wird berechnet“ und die Fenster, Türen oder Räume der Zeile.</p></div>'; return; }
+      if (!z) { box.innerHTML = '<div class="bt-l"><p class="bt-leer">Links eine Zeile antippen – hier stehen Maßnahme, Aufbau mit Optionen, „wird berechnet“ und die Fenster, Türen oder Räume der Zeile.</p></div>'; return; }
       const D = Z.d.modell.bauteilliste || {}, E = (D.elemente || []).filter((e) => (z.mitglieder || []).includes(String(e.id))), R = (D.raeume || []).filter((r) => z.bereich === 'raum' && (z.mitglieder || []).includes(r.nr));
       const m = (v) => (v == null ? '–' : zahl(v));
       const liste = E.length ? `<table class="bt-el"><thead><tr><th>Nr.</th><th>Art</th><th>Geschoss</th><th>Raum</th><th class="r">B × H</th><th class="r">Brüstung</th></tr></thead><tbody>${E.map((e) => `<tr><td>${esc(e.nr)}</td><td>${esc(e.typ)}</td><td>${esc(e.geschoss)}</td><td>${esc((e.raeume || []).join(' → '))}</td><td class="r">${m(e.b)} × ${m(e.h)}</td><td class="r">${m(e.bruestung)}</td></tr>`).join('')}</tbody></table>`
@@ -940,14 +940,14 @@
       const erl = (R[0].erlaubt || []).filter((s) => R.every((z) => (z.erlaubt || []).includes(s))), st = gl('status'), ber = gl('berechnen'), vl = gl('vorlage');
       const k2 = String(R[0].kg || '').slice(0, 2), einKg = k2 && R.every((z) => String(z.kg || '').slice(0, 2) === k2), V = einKg ? Z.vorlD[k2] : null;
       if (einKg && !V && !Z.mwL) { Z.mwL = true; vorlagen(k2).then(() => { Z.mwL = false; zeichne(); }, () => { Z.mwL = false; }); }
-      const ant = erl.length ? `${erl.map((s) => `<button type="button" data-btmwst="${s}" class="${st === s ? 'on' : ''}">${esc(WORT[s] || s)}</button>`).join('')}${st === undefined ? ' ' + versch : ''}` : '<span class="mute">keine gemeinsame Antwort</span>';
+      const ant = erl.length ? `${erl.map((s) => `<button type="button" data-btmwst="${s}" class="${st === s ? 'on' : ''}">${esc(WORT[s] || s)}</button>`).join('')}${st === undefined ? ' ' + versch : ''}` : '<span class="mute">keine gemeinsame Maßnahme</span>';
       const auf = einKg ? `<select data-btmwvl aria-label="Aufbau für alle"><option value="">${vl ? esc(R[0].kurz || 'gewählter Aufbau') : 'verschieden – für alle wählen …'}</option>${(V || []).filter((v) => v.id !== vl || true).map((v) => `<option value="${esc(v.id)}"${v.id === vl ? ' selected' : ''}>${esc(v.name)}</option>`).join('')}</select>` : '<span class="mute">verschiedene Bauteilarten – Aufbau je Zeile</span>';
       const aw = artWahl(R[0]), fam = opt.artJe && aw.length > 1 && R.every((z) => artWahl(z).some((x) => x[0] === String(R[0].kg))) && (L().quelle || {}).planstand && ((L().quelle || {}).art || 'ifc') === 'ifc';   // Art je Bauteil (22.11.2026)
       const kgG = gl('kg'), art = fam ? `<button type="button" class="bt-ehb" data-btmwart title="Art der gewählten Bauteile ändern, falls der Plan sie falsch zeigt">${kgG ? esc(ARTEN[kgG] || kgG) : 'verschieden'} ▾</button>` : '';
       const be = `<label class="bt-mwb"><input type="checkbox" data-btmwber${ber ? ' checked' : ''}${ber === undefined ? ' data-mix' : ''}> wird berechnet${ber === undefined ? ' ' + versch : ''}</label>`;
-      if (kompakt) return `<b>${R.length} gewählt:</b><span class="bt-mwg"><span class="mute">Antwort</span>${ant}</span><span class="bt-mwg"><span class="mute">Aufbau</span>${auf}</span>${art ? `<span class="bt-mwg"><span class="mute">Art</span>${art}</span>` : ''}${be}<button type="button" class="btn sm" data-btmwweg>Auswahl aufheben</button>`;
+      if (kompakt) return `<b>${R.length} gewählt:</b><span class="bt-mwg"><span class="mute">Maßnahme</span>${ant}</span><span class="bt-mwg"><span class="mute">Aufbau</span>${auf}</span>${art ? `<span class="bt-mwg"><span class="mute">Art</span>${art}</span>` : ''}${be}<button type="button" class="btn sm" data-btmwweg>Auswahl aufheben</button>`;
       return `<h3 class="bt-mwt">${R.length} Bauteile gewählt</h3><p class="bt-nr">${R.slice(0, 8).map((z) => esc(z.name)).join(' · ')}${R.length > 8 ? ` · … ${R.length - 8} weitere` : ''}</p>
-        <div class="bt-o"><span>Antwort</span>${ant}</div>${ohneAufbau ? `<div class="bt-o"><span>Aufbau</span>${vl === undefined ? versch : esc(R[0].kurz || '–')}</div>` : `<div class="bt-o"><span>Aufbau</span>${auf}</div>`}${art ? `<div class="bt-o"><span>Art</span>${art}</div>` : ''}<div class="bt-o"><span></span>${be}</div>
+        <div class="bt-o"><span>Maßnahme</span>${ant}</div>${ohneAufbau ? `<div class="bt-o"><span>Aufbau</span>${vl === undefined ? versch : esc(R[0].kurz || '–')}</div>` : `<div class="bt-o"><span>Aufbau</span>${auf}</div>`}${art ? `<div class="bt-o"><span>Art</span>${art}</div>` : ''}<div class="bt-o"><span></span>${be}</div>
         <p class="bt-h">Jede Änderung hier gilt für alle ${R.length}. „verschieden“ = die Gewählten haben verschiedene Werte; wählst du einen, gilt er für alle. Mit Strg + Klick weitere dazu oder weg.</p>
         <button type="button" class="btn sm" data-btmwweg>Auswahl aufheben</button>`;
     }

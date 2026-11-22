@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-grundriss-springt-2211",
+  "datum": "2026-11-22",
+  "app": "gebaeudemodell",
+  "titel": "Grundriss: Liste rechts bleibt stehen",
+  "text": "Ein Klick auf einen Raum im Grundriss lässt die Bauteile rechts stehen – die Liste springt nicht mehr nach oben. Das „undefined“ über der Tabelle ist weg.",
+  "ziel": ".sr-r"
+ },
+ {
   "id": "handy-rahmen-2211",
   "datum": "2026-11-22",
   "app": "portal",

@@ -283,6 +283,12 @@ export async function gebaeudemodellPruefen(browser, repo) {
       await p.click('#view .gr-f.weg', { button: 'right' }); await p.waitForSelector('.bph-km');
       await p.evaluate(() => [...document.querySelectorAll('.bph-km button')].find((b) => /Doch ein Raum/.test(b.textContent)).click()); await p.waitForTimeout(500);
       pruef(S.rwPut && S.rwPut.art === '', `Kontextmenü „Doch ein Raum“ nimmt die Fläche wieder als Raum: ${JSON.stringify(S.rwPut)}`); S.schacht = null; }
+    // Klick auf einen Raum im Grundriss (Video 22.11.2026 „und es springt“): der Bereich rechts wird nicht neu aufgebaut, die Rollposition bleibt, kein „undefined“
+    { await p.evaluate(() => { const b = document.querySelector('.sr-r .sr-b'); if (b) { b.dataset.probe = '1'; b.scrollTop = 40; } });
+      const f = await p.$('#view .gr-f:not(.frei):not(.weg)');
+      if (f) { await f.click(); await p.waitForTimeout(300); await f.click(); await p.waitForTimeout(300); }
+      const r = await p.evaluate(() => { const b = document.querySelector('.sr-r .sr-b'); return { gleich: !!(b && b.dataset.probe), y: b ? b.scrollTop : -1, undef: /undefined/.test((document.querySelector('.sr-r') || {}).textContent || '') }; });
+      pruef(f && r.gleich && !r.undef, `Raum im Grundriss angeklickt: Bereich rechts bleibt stehen, kein „undefined“ – ${JSON.stringify(r)}`); }
     // 3D in der Mitte: nur zwei Färbungen, Klick im Baum wählt im Modell; „Darstellung ▾“ rechts, ⧉ abdocken
     { S.leer = false; S.mh = false; S.hand = false; S.plus = null;
       await p.click('#navL [data-pl="g3d"]'); await p.waitForSelector('#view .gm-d3 .b3 canvas', { timeout: 8000 });

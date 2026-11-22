@@ -181,7 +181,7 @@ tr.bt-mwz>td{background:color-mix(in srgb,#7b2ff7 8%,transparent)}
     const H = window.BPHead || {};
     /* Für andere Apps (22.11.2026, Wärmeschutz – Mock „Wärmeschutz: Bauteile-Baum“ WB-1 B): opt.filter(z) – nur diese Zeilen; opt.gruppenExtra
        { key: [Name, (z) => Wert] } – eigene Ebenen; opt.grp0 / opt.grpKey – Vorgabe und Merk-Schlüssel; opt.kompakt – nur Bauteil · Menge · U ·
-       letzte Spalte; opt.letzte { kopf, zelle(z), gruppe(R) } statt „in Kosten/LV“; opt.nachher() – Zeilen der App unter dem Baum;
+       letzte Spalte; opt.letzte { kopf, zelle(z), gruppe(R) } statt „in Kosten/LV“; opt.nachher(api) – nach jedem Zeichnen;
        opt.umsortieren: false – Ziehen und Strg+X/V ordnen nichts um; opt.ziehen(ids) – beim Anfassen der Zeilen (Ablegen außerhalb macht die App) */
     const GX = opt.gruppenExtra || {}, GR = { ...GRUPPEN, ...Object.fromEntries(Object.entries(GX).map(([k, [n]]) => [k, n])) };
     const grpKey = opt.grpKey || 'bp.bt.grp3', grp0 = opt.grp0 || GRP0, KOMP = !!opt.kompakt, NS = KOMP ? 4 : 6;
@@ -872,7 +872,7 @@ tr.bt-mwz>td{background:color-mix(in srgb,#7b2ff7 8%,transparent)}
       const y = el.querySelector('.bt-bw') ? el.querySelector('.bt-bw').scrollTop : 0;
       const mwl = Z.mw.length > 1 && !Z.an ? `<div class="bt-mwl">${mwHtml(true)}</div>` : '';   // H1: gemeinsam ändern – schwebt unten im Bereich (22.11.2026: über der Tabelle schob sie die Liste nach unten)
       const grp = window.bpGruppen && !leer ? `<div class="bt-grp">${bpGruppen.html(Z.grp, GR, { rechts: 'Doppelklick: Eigenschaften · Strg + Klick: mehrere' })}</div>` : '';
-      el.innerHTML = `<div class="bt-bl">${an}${rwl}${zl}${tw}${meldung}<div class="bt-w"></div>${grp}<div class="bt-bw"><table class="bp-baum bt-baum${leer ? ' bt-gerust' : ''}${KOMP ? ' bt-kompakt' : ''}"><thead><tr><th>Bauteil</th><th class="r">Menge</th>${KOMP ? '' : '<th>Maßnahme</th><th>Aufbau</th>'}<th class="r" title="U-Wert aus dem gewählten Aufbau, W/(m²K) – Farbe nach GModG (Neubau: Referenzgebäude, Bestand: Anlage 7)">U</th><th class="c"${opt.letzte ? '' : ' title="wird berechnet"'}>${opt.letzte ? esc(opt.letzte.kopf) : 'in Kosten/LV'}</th></tr></thead><tbody>${body}${opt.nachher ? opt.nachher() : ''}</tbody></table></div>${mwl}
+      el.innerHTML = `<div class="bt-bl">${an}${rwl}${zl}${tw}${meldung}<div class="bt-w"></div>${grp}<div class="bt-bw"><table class="bp-baum bt-baum${leer ? ' bt-gerust' : ''}${KOMP ? ' bt-kompakt' : ''}"><thead><tr><th>Bauteil</th><th class="r">Menge</th>${KOMP ? '' : '<th>Maßnahme</th><th>Aufbau</th>'}<th class="r" title="U-Wert aus dem gewählten Aufbau, W/(m²K) – Farbe nach GModG (Neubau: Referenzgebäude, Bestand: Anlage 7)">U</th><th class="c"${opt.letzte ? '' : ' title="wird berechnet"'}>${opt.letzte ? esc(opt.letzte.kopf) : 'in Kosten/LV'}</th></tr></thead><tbody>${body}</tbody></table></div>${mwl}
         <input type="file" accept=".ifc,.dxf,.pdf" data-btdatei hidden></div>`;
       el.querySelector('.bt-bw').scrollTop = y; Z.selAuf = false;
       el.querySelectorAll('[data-btgw][data-teil]').forEach((x) => { x.indeterminate = true; });

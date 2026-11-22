@@ -257,6 +257,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Handyansicht Etappe 2: Startseite, Aufgaben & Post, Adressen voll **ca. 2 h**; Etappe 3: Ansichten der übrigen Apps je **30–60 min**, Verwaltung nur „Für mich“
 
 ## Erledigt
+- ~~Gebäudemodell: Klick im Grundriss baute den Bereich rechts neu auf (Liste sprang nach oben), „undefined“ über dem Bauteil-Baum~~ (22.11.2026)
 - ~~Handyansicht Etappe 1: Rahmen bp/handy.js – Leiste unten (je Person einstellbar), „nur Ansicht“ mit „Link an mich senden“~~ (22.11.2026)
 - ~~Adressen: rechts die Details des gewählten Kontakts (Mock AR-1 … AR-5), Liste über die ganze Breite~~ (22.11.2026)
 - ~~Wärmeschutz: Gebäudemodell rechts wie die Kopierquelle (Mock WR-1 … WR-7): „← übernehmen“/Ziehen, links wieder die Bauteile des Nachweises, rechts Gebäudemodell · Bauphysik · 3D~~ (22.11.2026)

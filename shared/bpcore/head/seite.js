@@ -252,6 +252,9 @@
   function seiteDa() { return sichtbar().length > 0; }
   function seiteOffen() { const s = sichtbar()[0]; return !!s && !lies(s[0] + '.zu', false); }
   function seiteReiter(key, id) {   // einen Reiter nach vorn holen (und den Bereich aufklappen) – z. B. Knopf „Kopierquelle“
+    const x0 = AKTIV.get(key);   // steht er schon vorn (offen, nicht abgedockt): nichts neu aufbauen – sonst springt der Bereich (Video 22.11.2026, Klick im Grundriss)
+    if (x0 && x0.sp.isConnected && !lies(key + '.zu', false) && !eigenOffen(key, id) && !lies(key + '.frei', []).includes(id)
+      && x0.sp.querySelector(`:scope > .sr-r .sr-tab.on[data-srt="${CSS.escape(id)}"]`)) return;
     merk(key + '.r', id); merk(key + '.zu', false); merk(key + '.frei', lies(key + '.frei', []).filter((x) => x !== id));
     const x = AKTIV.get(key); if (x && x.sp.isConnected) { seite(x.sp, key, x.reiter, x.opt); if (x.opt.wechsel) x.opt.wechsel(); }   // wie ein Klick auf den Reiter (22.11.2026: Räume-Kisten blieben sonst stehen)
   }

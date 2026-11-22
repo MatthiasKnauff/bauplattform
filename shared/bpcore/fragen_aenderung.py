@@ -98,6 +98,8 @@ def ausfuehren(c, pid, d, wer):
                 z.update(kz_vorlage=d.get("vorlage") or "", kz_wahl=d.get("wahl") or [], bestaetigt=True,
                          hinweis=(f"Aufbau per Änderung: „{d.get('alt')}“ → „{d.get('neu')}“ – im Plan nachziehen (An den Zeichner)." + (" " + z["hinweis"] if z.get("hinweis") else ""))[:300])
                 was.append({"zeile": z["name"], "vorher": vor, "nachher": z.get("kurz") or ""})
+                from . import typen
+                typen.weitergeben(L, z)   # gilt für den ganzen Typ (GN-A)
         if not was:
             raise modell.Ungueltig("Die Bauteile gibt es nicht mehr – bitte neu fragen.")
         m["bauteilliste"] = L

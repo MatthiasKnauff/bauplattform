@@ -268,6 +268,8 @@ def annehmen(c, pid, hid, wahl, wer):
                 ziel["phase"] = e["neu"]["phase"]
             if e["neu"].get("vorlage"):   # Aufbau aus dem Baukasten (Vorschlag der externen KI, verfeinern.py)
                 bauteilliste.aufbau_setzen(c, ziel, e["neu"]["vorlage"])
+                from . import typen
+                typen.weitergeben(L, ziel)   # gilt für den ganzen Typ (GN-A)
             n += 1
         elif e["art"] == "neu" and w == "ja":
             z = bauteilliste._zeile(id=f"lst:{hk.get('app', '')}:{abs(hash((e['name'], hid, i))) % 10 ** 9}", bereich="leistung", art="Leistung", kg=e["neu"].get("kg") or "",

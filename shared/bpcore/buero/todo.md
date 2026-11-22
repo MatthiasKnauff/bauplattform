@@ -30,7 +30,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
-- Gebäudemodell neu denken: Bauteiltypen (AW-01 …), Kurzwahl der Bauweisen, ohne Arbeitsmaske, ein Arbeitsstand mit festgehaltenen Versionen – erst Konzept + Mock (Aufwand wird gemeldet)
+- Gebäudemodell neu (GO 22.11.2026): Etappe 1 Typen im Kern ✓ · 2 Typen in der Oberfläche **ca. 3 h** · 3 Kurzwahl **ca. 1,5 h** · 4 Arbeitsstand + Versionen **ca. 3–4 h** · 5 ohne Arbeitsmaske (Linie im Grundriss) **ca. 4–6 h** · 6 Positionen hinaus **ca. 1,5 h** · 7 Aufräumen **ca. 2 h**
 - Bauzeitenplan: zeitliche Zusammenhänge recherchieren, Dauer nach Gebäudegröße, Verknüpfungen robust gegen Handänderungen – erst Recherche + Mock
 - Aufräumen: Sahne, Fehler an der Wurzel, toter Code (tools/tot)
 - U-Wert-Färbung wählbar: GModG · BEG-Einzelmaßnahmen · Effizienzhaus (Recherche + Mock)
@@ -255,6 +255,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Gebäudemodell neu, Etappe 1: Bauteiltypen im Kern (AW-01 …, Aufbau einmal am Typ, Maßnahme je Bauteil, Typ aus dem IFC = Plan-Name + Dicke)~~ (22.11.2026)
 - ~~Bauzeitenplan: „Plan neu aus den Angaben“ gleicht ab statt zu ersetzen, Kette 🔗 wie im LV (Mock BZ H1–H3)~~ (22.11.2026)
 - ~~Bauzeitenplan: „Innenputz trocknen“ (10 AT, Wartezeit) vor Maler/Fliesen; Heizestrich 30 statt 20 AT (Mock BZ P1, P2)~~ (22.11.2026)
 - ~~Bauzeitenplan: Estrich-Trocknen nicht mehr im Takt von Wohnung zu Wohnung (MFH 14 WE 24 → 16 Monate); Dach-Leistungswerte standen im Kommentar~~ (22.11.2026)

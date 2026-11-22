@@ -542,6 +542,8 @@ def routen(bp, _uid):
     modell_hand.routen(bp, mit, lesen, schreiben)   # Räume, Fenster, Türen von Hand und vom Assistenten (17.11.2026)
     from . import modell_plus
     modell_plus.routen(bp, mit, lesen, schreiben)   # Ergänzen neben dem gültigen Plan (20.11.2026)
+    from . import typen
+    typen.routen(bp, mit, lesen, schreiben)   # Bauteiltypen AW-01 … (Gebäudemodell neu, GN-A – 22.11.2026)
     anweisung.routen(bp, mit, lesen, _uid)   # Anweisungen an das Modell (Auswahl + Katalog, Vorschau, Rückgängig)
     from . import fragen_aenderung, uwert
     uwert.routen(bp, mit)   # /api/bp/modell/<pid>/uwerte – Schichten und Baustoffe für die U-Werte der Bauteile (bp/uwert.js)

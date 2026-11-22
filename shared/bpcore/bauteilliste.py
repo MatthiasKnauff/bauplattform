@@ -187,6 +187,7 @@ def sauber(d):
                               **({"ergaenzt": True} if z.get("ergaenzt") else {}),   # ergänzt neben dem Plan (modell_plus.py)
                               **({"einheit_hand": True} if z.get("einheit_hand") else {}),   # Einheit von Hand gewählt – der Aufbau ändert sie nicht
                               **({"korb": _s(z["korb"], 12)} if z.get("korb") else {}),   # Zeile aus dem Baukasten: ihr Eintrag im Korb (Aufbau ↔ 3D, 21.11.2026)
+                              **({"typ": _s(z["typ"], 8)} if z.get("typ") else {}),   # Bauteiltyp (typen.py, GN-A 22.11.2026)
                               **_kuerzel_sauber(z), **_plan_sauber(z)})
         z_ = out["zeilen"][-1]
         z_["erlaubt"] = erlaubt(z_)
@@ -212,6 +213,9 @@ def sauber(d):
         pl = modell_plus.sauber(d.get("plus"))
         if pl:
             out["plus"] = pl
+    from . import typen
+    out["typen"] = typen.sauber(d.get("typen"))
+    typen.ableiten(out)   # entfernt „typen“ wieder, wenn es keine gibt   # jede Bauteil-Zeile hat einen Typ (AW-01 …), der Aufbau steht einmal am Typ
     return out
 
 
@@ -434,6 +438,8 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
         if a and (a.get("status") in erlaubt(z) or a.get("status") == "offen"):
             for k in ("status", "berechnen", "vorlage", "wahl", "code", "kurz"):
                 z[k] = a.get(k, z[k])
+            if a.get("typ"):
+                z["typ"] = a["typ"]
             if a.get("name_hand"):   # von Hand umbenannt geht dem Plan vor
                 z["name"], z["name_hand"] = a["name"], True
             if z.get("kuerzel") and "bestaetigt" in a:
@@ -449,6 +455,10 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
     out = {"zeilen": Z, "raeume": raeume, "elemente": elemente.aus_ifc(R.get("elemente") or [], Z, raeume)}
     if W:
         out["raumweg"] = W
+    if (alt or {}).get("typen"):
+        from . import typen
+        out["typen"] = typen.sauber(alt["typen"])
+        typen.ableiten(out)
     RA = raumausbau(c, R.get("ausbau") or [], raeume)
     if RA:
         out["raumausbau"] = RA
@@ -501,10 +511,14 @@ def setzen(c, liste, zid, neu):
     z = next((x for x in liste["zeilen"] if x["id"] == zid), None)
     if z is None:
         return None
+    from . import typen
+    gewollt = any(k in neu for k in ("vorlage", "wahl", "dicken", "ausf", "wie"))   # Aufbau bewusst geändert → gilt für den ganzen Typ
     if "status" in neu and neu["status"] in erlaubt(z) and neu["status"] != z["status"]:
         z["status"] = neu["status"]
         z["berechnen"] = z["status"] not in ("offen", "bleibt", "pruefen")
-        if "vorlage" not in neu and z["quelle"] != "allplan":
+        if "vorlage" not in neu and z["status"] in typen.BAUEND and typen.annehmen(liste, z):
+            pass   # bauende Antwort: der Aufbau des Typs (GN-A) – kein neuer Vorschlag
+        elif "vorlage" not in neu and z["quelle"] != "allplan":
             v = vorschlag(z, z["status"])
             # Kein Vorschlag zur neuen Antwort (z. B. Dach „neu“): ein schon gewählter Aufbau bleibt – nur der Abbruch-Aufbau passt dann nicht mehr
             # (21.11.2026: „neu“ löschte den Aufbau, den der Baukasten oder der Mensch gesetzt hatte)
@@ -553,6 +567,8 @@ def setzen(c, liste, zid, neu):
             kuerzel.lernen(c, kuerzel.normal(z["kuerzel"]), z.get("vorlage"), z.get("wahl"))
     elif ("wahl" in neu or "dicken" in neu or "ausf" in neu) and z["vorlage"]:
         aufbau_setzen(c, z, z["vorlage"], neu.get("wahl", z.get("wahl")), neu.get("dicken"), neu.get("ausf"))
+    if gewollt:
+        typen.weitergeben(liste, z)
     return z
 
 

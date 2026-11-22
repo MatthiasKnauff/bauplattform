@@ -308,12 +308,8 @@ table.bt-baum{table-layout:fixed;width:100%}table.bt-baum th:nth-child(2){width:
       }
       const z0 = L().zeilen.find((x) => x.id === id), alt = z0 && !neu.loeschen ? Object.fromEntries(Object.keys(neu).map((k) => [k, k === 'wahl' ? [...(z0.wahl || [])] : z0[k]])) : null;
       if (alt && 'status' in neu) Object.assign(alt, { vorlage: z0.vorlage, wahl: [...(z0.wahl || [])], berechnen: z0.berechnen });
-      const oben = () => { const r = el.querySelector(`[data-btz="${CSS.escape(id)}"]`); return r ? r.getBoundingClientRect().top : null; }, o0 = oben();
       try {
         Z.d = await (await J(`${basis}/bauteile/zeile`, 'POST', { id, rev: Z.d.rev, ...neu })).json(); zeichne();
-        {   // die geänderte Zeile bleibt, wo sie war – auch wenn sich darüber etwas ändert (19.11.2026, „ohne Herumgehüpfe“)
-          let sc = el; while (sc && sc !== document.body && !(sc.scrollHeight > sc.clientHeight && /auto|scroll/.test(getComputedStyle(sc).overflowY))) sc = sc.parentElement;
-          const o1 = oben(); if (o0 != null && o1 != null && sc && sc !== document.body && Math.abs(o1 - o0) > 2) sc.scrollTop += o1 - o0; }
         window.dispatchEvent(new CustomEvent('bp:bauteile', { detail: { pid, id } }));   // andere Ansichten (Kosten links) rechnen nach
         if (alt && !still && window.rueckgaengig) rueckgaengig(`${z0.name}: ${wasText(neu)}`, () => zeile(id, alt, true), 10000, () => zeile(id, neu, true));
       } catch (e) { sag(e.message, true); if (e.status === 409) laden(); }
@@ -1007,10 +1003,19 @@ table.bt-baum{table-layout:fixed;width:100%}table.bt-baum th:nth-child(2){width:
     /* Text fürs Rückgängig (21.11.2026): welches Bauteil, welche Angabe – „Außenwand – KS + WDVS: Aufbau“ statt „… geändert“ */
     const FELD = { status: 'Maßnahme', vorlage: 'Aufbau', wahl: 'Ausführung', dicken: 'Schichtdicke', ausf: 'Ausführung', menge: 'Menge', name: 'Name', uw: 'Uw', kg: 'Art', einheit: 'Einheit', berechnen: 'Menge berechnen', wie: 'Aufbau wie …', bestaetigt: 'Kürzel bestätigt' };
     const wasText = (neu) => [...new Set(Object.keys(neu).map((k) => FELD[k]).filter(Boolean))].join(', ') || 'geändert';
+    /* Mehrere Zeilen auf einmal: je gleicher Änderung EINE Anfrage mit allen Kennungen (Kern: ids), einmal zeichnen –
+       vorher ging jede Zeile einzeln, die Gruppe zeigte unterwegs „teils“ und ein zweiter Klick traf einen halben Stand (22.11.2026) */
+    async function zeilenSetzen(L2) {
+      const G = new Map(); for (const [id, v] of L2) { const k = JSON.stringify(v); if (!G.has(k)) G.set(k, { v, ids: [] }); G.get(k).ids.push(id); }
+      try {
+        for (const { v, ids } of G.values()) Z.d = await (await J(`${basis}/bauteile/zeile`, 'POST', { ids, rev: Z.d.rev, ...v })).json();
+        zeichne(); window.dispatchEvent(new CustomEvent('bp:bauteile', { detail: { pid } }));
+      } catch (e) { sag(e.message, true); if (e.status === 409) laden(); }
+    }
     async function mwAendern(neu, R0) {   // R0: diese Zeilen (Schalter an einer Gruppe), sonst die gewählten
       const R = R0 || mwZ(); if (!R.length) return;
       const alt = R.map((z) => [z.id, Object.fromEntries(Object.keys(neu).map((k) => [k, z[k]]).concat('status' in neu ? [['vorlage', z.vorlage], ['wahl', [...(z.wahl || [])]], ['berechnen', z.berechnen]] : 'vorlage' in neu ? [['wahl', [...(z.wahl || [])]]] : []))]);
-      const lauf = async (L2) => { for (const [id, v] of L2) await zeile(id, v, true); };
+      const lauf = (L2) => zeilenSetzen(L2);
       const stop = warte(`${R.length} Bauteile werden geändert …`);
       try { await lauf(R.map((z) => [z.id, neu])); } finally { stop(); }
       sag(`${R.length} Bauteile geändert.`);

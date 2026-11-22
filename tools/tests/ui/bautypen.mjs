@@ -23,7 +23,8 @@ export async function bautypenPruefen(browser, repo) {
       return J(alles()); }
     if (u.endsWith('/bauteile/vorlagen')) return J([{ id: '331.01', kg: '331', name: 'AW', einheit: 'm²', schichten: [] }]);
     if (u.endsWith('/modell/kurzwahl')) return J({ AW: { name: 'Außenwand', quelle: 'auto', eintraege: [{ vorlage: '331.01', wahl: [0], dicken: {}, ausf: {}, kurz: 'AW KS 17,5' }, { vorlage: '331.05', wahl: [0], dicken: {}, ausf: {}, kurz: 'Holzrahmen 24' }] } });
-    if (u.endsWith('/bauteile/zeile')) { S.zeile = r.request().postDataJSON(); return J(alles()); }
+    if (u.endsWith('/bauteile/zeile')) { const d = S.zeile = r.request().postDataJSON(); (S.zl = S.zl || []).push(d);
+      if ('berechnen' in d) S.L.zeilen.forEach((z) => { if ((d.ids || [d.id]).includes(z.id)) z.berechnen = d.berechnen; }); return J(alles()); }
     if (u.endsWith('/modell/kuerzel')) return J({ kern: [], lage: [] });
     if (u.endsWith('/planstaende')) return J({ planstaende: [{ id: 4, name: 'Plan' }], gilt: 4 });
     if (u.endsWith('/rueckweg')) return J({ vorschlaege: [], schalter: {}, phasen: [], termine: {} });
@@ -94,6 +95,12 @@ export async function bautypenPruefen(browser, repo) {
       for (let n = 0; n < 2; n++) { await q.evaluate((n) => document.querySelectorAll('.bt-baum tr.bt-bh [data-zu]')[n].click(), n); await q.waitForTimeout(80); }
       const g = await q.evaluate(() => ({ k: [...document.querySelectorAll('.bt-baum tr.bt-bh b')].map((b) => b.textContent), a: document.querySelectorAll('.bt-baum tr[data-btz="a"]:not(.bt-el):not(.bt-snz)').length }));
       pruef(g.k.join('|').startsWith('EG|OG') && g.a === 2, `nach Geschoss: EG vor OG, Zeile a in beiden – ${JSON.stringify(g)}`); }
+    {   // Schalter „zählt“ an der Gruppe (22.11.2026): EINE Anfrage für alle Zeilen, kein halber Stand dazwischen
+      S.zl = []; await q.evaluate(() => document.querySelector('.bt-baum tr.bt-bh [data-btberg]').click()); await q.waitForTimeout(200);
+      const z = { n: S.zl.length, ids: (S.zl[0] || {}).ids, b: S.L.zeilen.map((x) => x.berechnen) };
+      pruef(z.n === 1 && z.ids && z.ids.length >= 2 && z.b.filter((x) => !x).length === z.ids.length, `Gruppe umschalten: ${JSON.stringify(z)}`);
+      await q.evaluate(() => U[U.length - 1][1]()); await q.waitForTimeout(200);
+      pruef(S.zl.length === 2 && S.L.zeilen.every((x) => x.berechnen), `Rückgängig der Gruppe: eine Anfrage, alle zählen wieder (${S.zl.length})`); }
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n').slice(0, 3).join(' / ')); }
   await q.close();
   return fehler;

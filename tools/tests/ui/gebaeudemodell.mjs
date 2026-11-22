@@ -109,7 +109,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
       await p.click('tr[data-btz="f"] [data-btmw]'); await p.waitForSelector('.bt-mwl [data-btmwst="erneuern"]', { timeout: 4000 });
       pruef(await p.evaluate(() => /2 gewählt/.test(document.querySelector('.bt-mwl').textContent) && document.querySelector('.b3 canvas').dataset.wahl === '1'), 'Mehrfachauswahl: Leiste über dem Baum, im 3D gewählt');
       await p.click('.bt-mwl [data-btmwst="erneuern"]'); await p.waitForTimeout(400);
-      pruef(S.zeile.filter((b) => b.status === 'erneuern').map((b) => b.id).sort().join() === 'f,raum:boden:trocken', `gemeinsam ändern: ${JSON.stringify(S.zeile)}`);
+      pruef(S.zeile.filter((b) => b.status === 'erneuern').length === 1 && S.zeile.filter((b) => b.status === 'erneuern')[0].ids.slice().sort().join() === 'f,raum:boden:trocken', `gemeinsam ändern – eine Anfrage für alle: ${JSON.stringify(S.zeile)}`);
       S.zeile = []; await p.keyboard.press('Control+z'); await p.waitForTimeout(500);
       pruef(S.zeile.length === 2 && S.zeile.every((b) => b.status === 'offen'), `ein Rückgängig für beide: ${JSON.stringify(S.zeile)}`);
       await p.click('.bt-mwl [data-btmwweg]'); await p.waitForTimeout(150); }
@@ -119,7 +119,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
       await p.evaluate(() => BT.eigenschaften(null));
       await p.waitForSelector('.bt-pop .bt-mwe [data-btvl="353.02"]', { timeout: 5000 });
       await p.click('.bt-pop .bt-mwe [data-btvl="353.02"]'); await p.waitForTimeout(500);
-      pruef(S.zeile.filter((b) => b.vorlage === '353.02').map((b) => b.id).sort().join() === 'raum:boden:nass,raum:boden:trocken', `Aufbau im Editor gilt für alle Gewählten: ${JSON.stringify(S.zeile)}`);
+      pruef(S.zeile.filter((b) => b.vorlage === '353.02').flatMap((b) => b.ids || [b.id]).sort().join() === 'raum:boden:nass,raum:boden:trocken', `Aufbau im Editor gilt für alle Gewählten: ${JSON.stringify(S.zeile)}`);
       await popZu(); await p.click('.bt-mwl [data-btmwweg]').catch(() => {}); S.zwei = false; S.zeile = []; await zu('bauteile'); }
     {   // Räume als Reiter rechts (R-A), Fenster & Türen über dem Baum – rechts bleibt derselbe Bereich (kein „Planungsassistent wird geladen“)
       await p.waitForSelector('.sr-r table.bt-baum');

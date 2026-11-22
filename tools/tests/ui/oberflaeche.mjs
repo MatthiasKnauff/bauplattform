@@ -27,6 +27,7 @@ import { breitePruefen } from './breite.mjs';
 import { assistentPruefen } from './assistent.mjs';
 import { wsModellPruefen } from './wsmodell.mjs';
 import { schichtaufbauPruefen } from './schichtaufbau.mjs';
+import { handyPruefen } from './handy.mjs';
 import { rueckgaengigPruefen } from './rueckgaengig.mjs';
 import { katalogPruefen } from './katalog.mjs';
 import { ganttHeftPruefen } from './ganttheft.mjs';
@@ -265,6 +266,10 @@ if (dran()) { let f = [];
 if (dran()) { let f = [];
   try { f = await schichtaufbauPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Wärmeschutz Schichtaufbau:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Wärmeschutz Schichtaufbau'); } else { ok++; console.log('  ok      Wärmeschutz Schichtaufbau'); } }
+// Handyansicht – Rahmen: untere Leiste, Hinweis „bearbeiten am Rechner“, Link an mich – nachgebildeter Server, siehe handy.mjs
+if (dran()) { let f = [];
+  try { f = await handyPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Handyansicht Rahmen:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Handyansicht Rahmen'); } else { ok++; console.log('  ok      Handyansicht Rahmen'); } }
 // Rückgängig fest oben links: erste Gruppe der Befehlsleiste bzw. schmale Zeile – ohne Server, siehe rueckgaengig.mjs
 if (dran()) { let f = [];
   try { f = await rueckgaengigPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

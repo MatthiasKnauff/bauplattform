@@ -390,7 +390,7 @@ def blueprint(get_user=None):
             return r.make_conditional(request)
         if name in APP_DATEIEN:   # App-Beschreibung und Symbol: Bauportal als App installieren
             return _app_datei(name)
-        if name not in ("head.js", "head.css", "undo.js", "seite.js", "eigenschaften.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "gruppen.js", "spaltbreite.js", "druck.js", "wahl.js", "datum.js", "neu.js", "hilfeseite.js", "eingang.js", "unterschrift.js", "versand.js", "antrag.js", "aufpost.js", "filter.js", "ablegen.js", "neuleiste.js", "live.js", "wiki.js", "wikisym.js", "dateiwahl.js", "suche.js", "stempellage.js", "kontakt.js", "teilen.js", "plankatalog.js", "plankern.js", "bauart.js", "freigeben.js", "assistent.js", "gebaeudekasten.js", "karte.js", "bauteile.js", "anweisung.js", "ansicht3d.js", "startdaten.js", "fragen.js", "ablageeinst.js", "winapp.js", "meinordner.js", "projektwahl.js", "zurueck.js", "markwahl.js", "begriffe.js", "abwesenheit.js", "raumbuch.js", "zeitplan.js", "leiste.js", "meldungen.js", "kischieber.js", "wsphysik.js", "wsregeln.js", "uwert.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
+        if name not in ("head.js", "head.css", "undo.js", "seite.js", "eigenschaften.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "gruppen.js", "spaltbreite.js", "druck.js", "wahl.js", "datum.js", "neu.js", "hilfeseite.js", "eingang.js", "unterschrift.js", "versand.js", "antrag.js", "aufpost.js", "filter.js", "ablegen.js", "neuleiste.js", "live.js", "wiki.js", "wikisym.js", "dateiwahl.js", "suche.js", "stempellage.js", "kontakt.js", "teilen.js", "plankatalog.js", "plankern.js", "bauart.js", "freigeben.js", "assistent.js", "gebaeudekasten.js", "karte.js", "bauteile.js", "anweisung.js", "ansicht3d.js", "startdaten.js", "fragen.js", "ablageeinst.js", "winapp.js", "meinordner.js", "projektwahl.js", "zurueck.js", "markwahl.js", "begriffe.js", "abwesenheit.js", "raumbuch.js", "zeitplan.js", "leiste.js", "meldungen.js", "kischieber.js", "wsphysik.js", "wsregeln.js", "uwert.js", "handy.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
             return "Nicht gefunden", 404
         r = send_from_directory(ASSETS, name, max_age=0)
         r.headers["Cache-Control"] = "no-cache"
@@ -432,7 +432,7 @@ def blueprint(get_user=None):
             with db.tx() as c:
                 pr = konto.prefs(c, u["id"])
                 return jsonify(theme=sso.theme_of(u) or "dunkel", accent=u["accent"] or "", farbschema=pr.get("farbschema", ""), modus=_modus(c, pr, u), modus_apps=_modus_apps(pr), ki_immer=bool(pr.get("ki_immer")), ki_vorgabe=pr.get("ki_vorgabe") or "buero",
-                               schrift=pr.get("schrift", ""), schrift_g=pr.get("schrift_g", ""), stil=pr.get("stil") or {}, logo=pr.get("logo", ""))
+                               schrift=pr.get("schrift", ""), schrift_g=pr.get("schrift_g", ""), stil=pr.get("stil") or {}, logo=pr.get("logo", ""), handy=pr.get("handy") or [])
         d = request.get_json(silent=True) or {}
         sets, args = [], []
         if "theme" in d:
@@ -470,6 +470,8 @@ def blueprint(get_user=None):
             if "schrift_g" in d:
                 k = str(d.get("schrift_g") or "").strip().lower()
                 konto.set_prefs(c, u["id"], {"schrift_g": k if k in GROESSEN else ""}, u["name"])
+            if isinstance(d.get("handy"), list):   # untere Leiste am Handy (handy.js)
+                konto.set_prefs(c, u["id"], {"handy": d["handy"]}, u["name"])
             if "logo" in d:   # Büro-Logo in der Kopfleiste: aus · dezent · in Farbe
                 konto.set_prefs(c, u["id"], {"logo": d.get("logo") or ""}, u["name"])
             if "stil" in d:   # Stil je Benutzer: nur bekannte Schlüssel und Werte (leer = wie bisher)
@@ -478,7 +480,32 @@ def blueprint(get_user=None):
             r = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
             pr = konto.prefs(c, u["id"])
         return jsonify(ok=True, theme=sso.theme_of(r) or "dunkel", accent=r["accent"] or "", farbschema=pr.get("farbschema", ""), modus=_modus(c, pr, u), modus_apps=_modus_apps(pr), ki_immer=bool(pr.get("ki_immer")), ki_vorgabe=pr.get("ki_vorgabe") or "buero",
-                       schrift=pr.get("schrift", ""), schrift_g=pr.get("schrift_g", ""), stil=pr.get("stil") or {}, logo=pr.get("logo", ""))
+                       schrift=pr.get("schrift", ""), schrift_g=pr.get("schrift_g", ""), stil=pr.get("stil") or {}, logo=pr.get("logo", ""), handy=pr.get("handy") or [])
+
+    @bp.post("/api/bp/handy/link")
+    def handy_link():
+        """Handyansicht „Link an mich senden“ (HG-3): die Adresse genau dieser Stelle als Mail an die angemeldete Person selbst –
+        zum Weiterarbeiten am Rechner. Nur an die eigene Adresse, nur eine Adresse dieser Plattform (wie sie der Browser zeigt)."""
+        import re
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        b = request.get_json(silent=True) or {}
+        url, titel = str(b.get("url") or "")[:2000], str(b.get("titel") or "")[:120].strip()
+        if not re.fullmatch(r"https?://[\w.:-]+(/[^\s]*)?", url):   # geht nur an die eigene Adresse – kein Weg, Fremden Links zu schicken
+            return jsonify(error="Ungültige Adresse"), 400
+        if not u["email"]:
+            return jsonify(error="Für dich ist keine E-Mail-Adresse eingetragen (Mein Konto)."), 400
+        with db.tx() as c:
+            cf = mail.conf(c)
+        if not mail.configured(cf):
+            return jsonify(error="Der Mailserver ist noch nicht eingerichtet."), 400
+        try:
+            mail.direkt(cf, u["email"], f"Am Rechner weiterarbeiten: {titel or 'Bauportal'}",
+                        f"Hallo,\n\nhier der Link, den du am Handy angefordert hast:\n\n{url}\n\nAm Rechner öffnen und dort weiterarbeiten.")
+        except mail.MailError as e:
+            return jsonify(error=str(e)[:200]), 400
+        return jsonify(ok=True, an=u["email"])
 
     def _modus(c, pr, u=None):
         """Ansicht des Benutzers: eigene Wahl, sonst Vorgabe der Rolle, sonst des Büros (Einstellung modus_standard), sonst profi.

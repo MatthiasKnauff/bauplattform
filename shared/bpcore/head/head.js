@@ -532,10 +532,22 @@
       <div class="bph-info" style="padding:.5rem 0 .3rem">Schrift</div><div class="bph-lk">${SCHRIFT_N.map(([k, n]) => `<button type="button" class="bph-th${k === sAkt() ? ' on' : ''}" data-sf="${k}" style="font-family:${SCHRIFT[k] || 'Ubuntu,system-ui,sans-serif'}">${esc(n)}</button>`).join('')}</div>
       <div class="bph-info" style="padding:.5rem 0 .3rem">Schriftgröße</div><div class="bph-lk">${[['klein', 'klein', '12px'], ['normal', 'normal', '13px'], ['gross', 'groß', '14.5px']].map(([k, n, px]) => `<button type="button" class="bph-th${k === gAkt() ? ' on' : ''}" data-sg="${k}" style="font-size:${px}">${n}</button>`).join('')}</div>
       <div class="bph-info" style="padding:.5rem 0 .3rem">Büro-Logo in der Kopfleiste</div><div class="bph-lk">${[['aus', 'aus'], ['dezent', 'dezent'], ['farbe', 'in Farbe']].map(([k, n]) => `<button type="button" class="bph-th${k === logoA ? ' on' : ''}" data-logo="${k}">${n}</button>`).join('')}</div>
+      ${handyHtml()}
       <div class="bph-info" style="padding:.7rem 0 .1rem"><b>Stil</b> <small>– Aussehen von Flächen, Rahmen und Bedienelementen</small></div>
       <div class="bph-lk">${STIL_PAKETE.map(([n, P], i) => { const v = (me.stil || {}), gleich = STIL.every(([k]) => (v[k] || '') === (P[k] || '')); return `<button type="button" class="bph-th${gleich ? ' on' : ''}" data-stilp="${i}">${esc(n)}</button>`; }).join('')}</div>
       ${STIL.map(([k, n, L]) => { const v = ((me.stil || {})[k]) || ''; return `<div class="bph-info" style="padding:.35rem 0 .2rem">${esc(n)}</div><div class="bph-lk">${L.map(([w, t]) => `<button type="button" class="bph-th${w === v ? ' on' : ''}" data-stil="${k}" data-w="${w}">${esc(t)}</button>`).join('')}</div>`; }).join('')}`;
   };
+  /* Untere Leiste am Handy (HG-4): fünf Plätze; Klick auf einen Platz wählt ihn, darunter steht zur Wahl, was es gibt */
+  let hPlatz = 0;
+  const HANDY_V = ['portal', 'bautagebuch', 'aufgaben', 'adressen', 'suche'];
+  const handyName = (k) => (k === 'suche' ? 'Suche' : k === 'portal' ? 'Start' : String((((H.conf || {}).apps || []).find((a) => a.key === k) || {}).name || k).replace(/ &.*$/, ''));
+  function handyHtml() {
+    const L = Array.isArray((H.me || {}).handy) && H.me.handy.length ? H.me.handy : HANDY_V;
+    const alle = ['portal', 'suche', ...((H.conf || {}).apps || []).filter((a) => a.allowed !== false && !a.teil && !['portal', 'admin', 'papierkorb'].includes(a.key)).map((a) => a.key)];
+    return `<div class="bph-info" style="padding:.5rem 0 .3rem">Untere Leiste am Handy <small>– Platz antippen, dann wählen</small></div>
+      <div class="bph-lk">${L.map((k, i) => `<button type="button" class="bph-th${i === hPlatz ? ' on' : ''}" data-hplatz="${i}">${i + 1}. ${esc(handyName(k))}</button>`).join('')}<button type="button" class="bph-th" data-hwahl="" title="Vorgabe: Start · Bautagebuch · Aufgaben · Adressen · Suche">↺</button></div>
+      <div class="bph-lk">${alle.filter((k) => !L.includes(k)).map((k) => `<button type="button" class="bph-th" data-hwahl="${esc(k)}">${esc(handyName(k))}</button>`).join('')}</div>`;
+  }
   const SCHRIFT_N = [['ubuntu', 'Ubuntu'], ['system', 'Systemschrift'], ['arial', 'Arial'], ['verdana', 'Verdana'], ['calibri', 'Calibri'], ['georgia', 'Georgia']];
   const sAkt = () => (H.me && H.me.schrift) || (H.conf && H.conf.schrift) || 'ubuntu', gAkt = () => (H.me && H.me.schrift_g) || (H.conf && H.conf.schrift_groesse) || 'normal';
   function lookWire(m, redraw) {
@@ -543,6 +555,9 @@
       const th = e.target.closest('[data-th]'), ac = e.target.closest('[data-acc]');
       const fs = e.target.closest('[data-fs]'), sf = e.target.closest('[data-sf]'), sg = e.target.closest('[data-sg]'), sl = e.target.closest('[data-stil]');
       if (th || ac || fs || sf || sg || sl) e.stopPropagation();
+      const hp = e.target.closest('[data-hplatz]'); if (hp) { e.stopPropagation(); hPlatz = +hp.dataset.hplatz; (redraw || lookMenu)(); return; }
+      const hw = e.target.closest('[data-hwahl]'); if (hw) { e.stopPropagation(); const L = (Array.isArray((H.me || {}).handy) && H.me.handy.length ? H.me.handy : HANDY_V).slice();
+        if (hw.dataset.hwahl) L[hPlatz] = hw.dataset.hwahl; saveLook({ handy: hw.dataset.hwahl ? L : [] }, redraw); return; }
       const lo = e.target.closest('[data-logo]'); if (lo) { e.stopPropagation(); logoArt(lo.dataset.logo); saveLook({ logo: lo.dataset.logo }, redraw); return; }
       const sp = e.target.closest('[data-stilp]'); if (sp) { e.stopPropagation(); const st = Object.assign({}, STIL_PAKETE[+sp.dataset.stilp][1]); stilAnwenden(st); saveLook({ stil: st }, redraw); return; }
       if (sl) { const st = Object.assign({}, (H.me && H.me.stil) || {}, { [sl.dataset.stil]: sl.dataset.w }); stilAnwenden(st); saveLook({ stil: st }, redraw); return; }   // sofort sichtbar, dann gespeichert
@@ -564,8 +579,8 @@
     try {
       const r = await fetch('api/bp/darstellung', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then((x) => x.json());
       if (r.error) throw new Error(r.error);
-      H.me = Object.assign(H.me || {}, { theme: r.theme, accent: r.accent, farbschema: r.farbschema || '', schrift: r.schrift || '', schrift_g: r.schrift_g || '', stil: r.stil || {} });
-      stilAnwenden(H.me.stil);
+      H.me = Object.assign(H.me || {}, { handy: r.handy || [], theme: r.theme, accent: r.accent, farbschema: r.farbschema || '', schrift: r.schrift || '', schrift_g: r.schrift_g || '', stil: r.stil || {} });
+      stilAnwenden(H.me.stil); if (window.bpHandy) bpHandy.neu();
       schriftAnwenden(sAkt(), gAkt());
       schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ }
       setTimeout(eigeneFarben, 50);
@@ -741,9 +756,10 @@
       { const ca = (conf.apps || []).find((x) => x.key === H.app) || {}, nl = ca.nur_lesen ? ['nur lesen', 'Deine Rolle erlaubt hier nur Ansehen – Ändern ist gesperrt'] : ca.seiten ? [`nur diese Seite${Object.values(ca.seiten).includes('an') ? '' : ' · nur lesen'}`, 'Deine Rolle schaltet nur einzelne Seiten dieser App frei'] : null;   // Apps je Rolle / Seiten als Rechte – der Server sperrt (bpcore/nurlesen.py), hier nur der Hinweis
         if (nl) { if (ca.nur_lesen) document.documentElement.classList.add('bp-nurlesen'); band.querySelector('.bph-brand').insertAdjacentHTML('afterend', `<span class="bph-nl" title="${nl[1]}">${nl[0]}</span>`); } }
       setTimeout(pulsStarten, 0);
+      H.handyLaden();   // Handyansicht (handy.js): nur wenn schmal, sonst erst, wenn das Fenster schmal wird
       schriftAnwenden(conf.schrift || '', conf.schrift_groesse || '');
       testBanner(conf.version);
-      if (H.me) getJ('api/bp/darstellung').then((d) => { const dm = (d.modus_apps || {})[H.app] || d.modus; if (dm && dm !== H.modus) { try { localStorage.setItem('bpModus', d.modus); if (H.app) localStorage.setItem('bpModus.' + H.app, dm); } catch { /* egal */ } location.reload(); return; } H.me.farbschema = d.farbschema || ''; H.me.stil = d.stil || {}; stilAnwenden(H.me.stil); H.me.schrift = d.schrift || ''; H.me.schrift_g = d.schrift_g || ''; if (d.schrift || d.schrift_g) schriftAnwenden(sAkt(), gAkt()); H.kiImmer = !!d.ki_immer; H.kiVorgabe = d.ki_vorgabe || 'buero'; logoArt(d.logo); schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } }).catch(() => {});
+      if (H.me) getJ('api/bp/darstellung').then((d) => { const dm = (d.modus_apps || {})[H.app] || d.modus; if (dm && dm !== H.modus) { try { localStorage.setItem('bpModus', d.modus); if (H.app) localStorage.setItem('bpModus.' + H.app, dm); } catch { /* egal */ } location.reload(); return; } H.me.farbschema = d.farbschema || ''; H.me.stil = d.stil || {}; H.me.handy = d.handy || []; if (window.bpHandy) bpHandy.neu(); stilAnwenden(H.me.stil); H.me.schrift = d.schrift || ''; H.me.schrift_g = d.schrift_g || ''; if (d.schrift || d.schrift_g) schriftAnwenden(sAkt(), gAkt()); H.kiImmer = !!d.ki_immer; H.kiVorgabe = d.ki_vorgabe || 'buero'; logoArt(d.logo); schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } }).catch(() => {});
       H.projekt = pj && pj.id ? pj : null; kopfProjekt();
       if (ki) { H.ki = ki.choice || 'intern'; H.providers = ki.providers || []; }
       const portal = (conf.apps || []).find((a) => a.key === 'portal');
@@ -1887,6 +1903,12 @@
     const los = () => { setTimeout(sieh, 1200); mo = new MutationObserver(() => { clearTimeout(tw); tw = setTimeout(sieh, 800); }); mo.observe(document.body, { childList: true, subtree: true }); };
     if (document.body) setTimeout(los, 0); else document.addEventListener('DOMContentLoaded', los); }
   H.meinordner = () => window.bpMeinOrdner ? Promise.resolve() : new Promise((ok) => { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'meinordner.js' + v; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); });   // Mein Ordner (meinordner.js) erst bei Bedarf
+  /* Handyansicht (GO 22.11.2026, Mock „Handyansicht je App“): Baustein handy.js erst laden, wenn das Fenster schmal ist (≤ 820 px) */
+  H.handyLaden = () => {
+    const mq = matchMedia('(max-width: 820px)'), los = () => { if (window.bpHandy || H.handyLaden.l) return; H.handyLaden.l = 1;
+      const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'handy.js' + v; document.head.appendChild(sc); };
+    if (mq.matches) los(); else mq.addEventListener('change', (e) => { if (e.matches) los(); });
+  };
   H.winapp = () => window.bpWinApp ? Promise.resolve() : new Promise((ok) => { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'winapp.js' + v; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); });   // Baustein winapp.js erst bei Bedarf
   /* Dateien aus dem Projektordner wählen (Baustein dateiwahl.js, erst bei Bedarf geladen): Pläne & Dateien oder Fileserver → Verweise */
   H.dateiWahl = function (o) {

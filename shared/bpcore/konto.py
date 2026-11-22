@@ -25,6 +25,7 @@ STANDARD = {"logo": "",              # Büro-Logo in der Kopfleiste: aus | dezen
             "schrift": "", "schrift_g": "",   # Schrift und Schriftgröße der Oberfläche (⚙ → Persönlich → Darstellung), leer = Vorgabe
             "pdb_preis": "",         # Preis beim Übernehmen aus den Baudaten: leer = fragen | mittel | von | bis | eigen_median | eigen_neu
             "absender": "buero",     # Absender meiner Mails: buero (Absenderadresse des Büros) | eigen (meine E-Mail-Adresse)
+            "handy": [],             # untere Leiste am Handy (handy.js, ⚙ → Darstellung): bis 5 Plätze – App-Schlüssel oder „suche“; leer = Vorgabe
             "hinweise_aus": []}      # Hinweisfenster, die nicht mehr erscheinen sollen (z. B. „baukosten“)
 SIG_STANDARD = "{name}\n{funktion}\n{buero}\n{buero_strasse}, {buero_ort}\nTel. {telefon} · {email}\n{buero_web}"
 SIG_PLATZ = {"name": "Vor- und Nachname", "vorname": "Vorname", "nachname": "Nachname", "funktion": "Funktion (z. B. Bauleitung)",
@@ -84,6 +85,13 @@ def set_prefs(c, uid, d, by=""):
         p["pdb_preis"] = d["pdb_preis"]
     if d.get("erinnerung_an") in ("ich", "bauleiter"):
         p["erinnerung_an"] = d["erinnerung_an"]
+    if isinstance(d.get("handy"), list):   # untere Leiste am Handy: nur Schlüssel aus Kleinbuchstaben, ohne Doppelte, höchstens 5
+        L = []
+        for x in d["handy"]:
+            x = str(x)[:20]
+            if re.fullmatch(r"[a-z]+", x) and x not in L:
+                L.append(x)
+        p["handy"] = L[:5]
     if isinstance(d.get("hinweise_aus"), list):
         p["hinweise_aus"] = sorted({str(x)[:40] for x in d["hinweise_aus"] if str(x).strip()})[:30]
     if "mailsignatur_html" in d:

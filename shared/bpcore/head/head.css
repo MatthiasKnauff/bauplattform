@@ -878,3 +878,20 @@ html[data-bewegung="aus"] .bp-kl::before,html[data-bewegung="aus"] .car::before,
 .bp-tl tr.aus textarea{opacity:.5}.bp-tl-q{white-space:nowrap;width:1%;padding-top:.35rem!important}.bp-tl-g{font-size:.72rem;border-radius:999px;padding:0 .45rem;margin-right:.2rem;background:color-mix(in srgb,#e8b400 22%,transparent)}
 .bp-tl-b{border:0;background:none;cursor:pointer;font:inherit;padding:0 .15rem}.bp-tl>.bph-btn{margin-top:.3rem}
 .bph-dm-eig{display:flex;gap:.3rem;width:100%}.bph-dm-eig input{flex:1;min-width:0}.bph-dm-eig .bph-btn{padding:0 .55rem}
+/* Handyansicht (handy.js, GO 22.11.2026 Mock „Handyansicht je App“): untere Leiste mit fünf Plätzen, Hinweis „bearbeiten am Rechner“;
+   in „nur Ansicht“-Apps fehlt die Befehlsleiste zum Bearbeiten. Platz unten über --bp-unten für alles, was unten fest steht. */
+html.bp-handy:not([data-hstufe="eigen"]){--bp-unten:calc(58px + env(safe-area-inset-bottom,0px))}
+html.bp-handy:not([data-hstufe="eigen"]) body{padding-bottom:var(--bp-unten)}
+.bph-unten{position:fixed;left:0;right:0;bottom:0;z-index:8000;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));height:var(--bp-unten);padding:0 env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);background:var(--card,#252729);border-top:1px solid var(--line,#3b3e42);box-shadow:0 -4px 14px rgba(0,0,0,.12)}
+.bph-unten>a,.bph-unten>button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0;border:0;background:none;color:var(--mute,#9aa0a6);font:inherit;font-size:.68rem;text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.bph-unten svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bph-unten span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bph-unten .on{color:var(--y,#d4f02a);font-weight:600}
+.bph-hrech{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;padding:.45rem max(.8rem,env(safe-area-inset-left,0px));background:color-mix(in srgb,var(--y,#d4f02a) 14%,var(--card,#252729));color:var(--ink,#f3f3f1);font-size:.85rem;border-bottom:1px solid var(--line,#3b3e42)}
+.bph-hrech span{flex:1 1 12rem;min-width:0}
+.bph-hrech button{border:1px solid var(--line,#3b3e42);background:var(--card,#252729);color:inherit;font:inherit;border-radius:calc(8px*var(--rk,1));padding:.35rem .7rem;cursor:pointer}
+html.bp-handy[data-hstufe="lesen"] .bf,html.bp-handy[data-hstufe="keine"] .bf{display:none!important}
+html.bp-handy:not([data-hstufe="eigen"]) #toasts{bottom:calc(var(--bp-unten) + .8rem)}
+html.bp-handy:not([data-hstufe="eigen"]) .bp-undo{bottom:calc(var(--bp-unten) + .8rem)}
+html.bp-handy:not([data-hstufe="eigen"]) .bph-warten{bottom:calc(var(--bp-unten) + 1.2rem)}
+@media print{.bph-unten,.bph-hrech{display:none!important}}

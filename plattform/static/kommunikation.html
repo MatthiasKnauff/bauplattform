@@ -393,7 +393,7 @@ QIN.addEventListener('input', (e) => { clearTimeout(qT); qT = setTimeout(() => {
 
 (async () => {
   let PC; [ME, PC] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(ME);   // gleichzeitig
-  await header('Aufgaben & Post', ME, PC);
+  await header('Aufgaben & Post', ME, PC, { app: 'kommunikation' });
   const ah = /(?:^#|&)art=(\w*)/.exec(location.hash);   // aus den Aufgaben: #art=planversand (leer = alles)
   if (ah) { F.arten = new Set(ah[1] ? [ah[1]] : []); LS.set('arten', [...F.arten]); history.replaceState(null, '', location.pathname); }
   if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(() => { if (!K) { F.alle = false; LS.set('alle', false); } laden(); });

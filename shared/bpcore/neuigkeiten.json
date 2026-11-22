@@ -1,5 +1,13 @@
 [
  {
+  "id": "handy-rahmen-2211",
+  "datum": "2026-11-22",
+  "app": "portal",
+  "titel": "Am Handy: Leiste unten",
+  "text": "Am Handy (schmales Fenster) steht unten eine Leiste mit Start, Bautagebuch, Aufgaben, Adressen und Suche – unter ⚙ → Darstellung austauschbar. Apps, die am Handy nur zum Ansehen sind, zeigen oben „Link an mich senden“: die Mail bringt dich am Rechner genau an diese Stelle.",
+  "ziel": ".bph-unten"
+ },
+ {
   "id": "adr-rechts-2026-11-22",
   "datum": "2026-11-22",
   "app": "adressen",

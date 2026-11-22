@@ -404,6 +404,8 @@ function taskDialog(i) {
       <label>% Abgeschlossen</label><input id="fPct" type="number" min="0" max="100" value="${Math.round(CAL.pct[i])}" ${isS ? 'disabled' : ''}>
       <label>Anfang nicht früher als</label><input id="fCons" type="date" value="${t.cons != null ? isoD(t.cons) : ''}">
       <label>Berechnet</label><div class="ro">${fmtD(CAL.sd[i])} – ${fmtD(CAL.fd[i])}</div>
+      ${isS ? '' : `<label>Später fertig als geplant</label><div class="ro colrow"><input id="fUe" type="number" min="0" max="365" value="${(t.ueber && t.ueber.at) || 0}"><span>AT</span></div>
+      <label>Grund</label><select id="fUeG">${Object.entries(UEBER_GRUND).map(([k, n]) => `<option value="${k}"${t.ueber && t.ueber.grund === k ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`}
       <label>Gewerk</label><input id="fGw" list="gwList" value="${esc(t.gw || '')}" placeholder="${esc(guessGw(t) ? 'Vorschlag: ' + guessGw(t) : 'z. B. Elektro')}">
       <label>Balkenfarbe</label><div class="ro colrow"><select id="fColM"><option value="">vom Gewerk</option><option value="own"${t.color ? ' selected' : ''}>eigene Farbe</option></select><input type="color" id="fCol" value="${t.color || effColor(t) || '#8db3e2'}"><span id="fGwC"></span></div>
       <label>Unternehmer:in</label><div class="full combo-wrap"><input id="fRes" value="${esc(t.res || '')}" placeholder="z. B. Firma Müller; Elektro Schmidt"></div>
@@ -427,6 +429,8 @@ function taskDialog(i) {
       if (!isS) {
         const d = parseDur(v('#fDur')); if (d == null) throw new UErr('Ungültige Dauer.'); t.dur = d;
         t.pct = Math.max(0, Math.min(100, Math.round(+v('#fPct') || 0)));
+        const ue = Math.max(0, Math.min(365, Math.round(+v('#fUe') || 0)));   // K7: überzogen – wie Fortschritts-Griff über das Ende hinaus
+        if (ue) { t.ueber = { at: ue, grund: v('#fUeG') }; t.pct = 100; } else delete t.ueber;
       }
       const cs = v('#fCons'); t.cons = cs ? snapWork(parseDate(cs)) : null;
       t.res = v('#fRes').trim(); t.notes = v('#fNotes');

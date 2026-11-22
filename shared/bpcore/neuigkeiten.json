@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-ueber-eig-2211",
+  "datum": "2026-11-22",
+  "app": "gantt",
+  "titel": "Später fertig als geplant – auch im Eigenschaften-Fenster",
+  "text": "Im Fenster einer Leistung (Doppelklick, Reiter „Allgemein“) stehen jetzt „Später fertig als geplant“ (Arbeitstage) und der Grund. 0 nimmt die Überziehung wieder weg.",
+  "ziel": "#gridBody"
+ },
+ {
   "id": "gm-grau-kontext-2211",
   "datum": "2026-11-22",
   "app": "gebaeudemodell",

@@ -73,7 +73,14 @@ export async function ganttHeftPruefen(browser, repo) {
       pruef(b.dur === 7 && !b.offen, `OK übernimmt die Dauer und schließt: ${JSON.stringify(b)}`);
       await p.evaluate(() => taskDialog(0)); await p.waitForSelector('.td-eig'); await p.click('.td-eig .bp-eigk [data-m="next"]'); await p.waitForTimeout(400);
       pruef(await p.evaluate(() => ((document.querySelector('.td-eig .bp-eigk b') || {}).textContent || '') === 'Leistungsinformationen – ' + P.tasks[vis[1]].name), 'Blättern ↓ öffnet die nächste Leistung');
-      await p.keyboard.press('Escape'); await p.waitForTimeout(100); pruef(!(await p.$('.td-eig')), 'Esc schließt'); }
+      await p.keyboard.press('Escape'); await p.waitForTimeout(100); pruef(!(await p.$('.td-eig')), 'Esc schließt');
+      // überzogen (K7) auch im Eigenschaften-Fenster: Tage und Grund
+      await p.evaluate(() => taskDialog(0)); await p.waitForSelector('.td-eig #fUe'); await p.fill('.td-eig #fUe', '3'); await p.selectOption('.td-eig #fUeG', 'wetter');
+      await p.click('.td-eig .bp-eigf [data-m="ok"]'); await p.waitForTimeout(200);
+      const ue = await p.evaluate(() => ({ u: P.tasks[0].ueber, pct: P.tasks[0].pct }));
+      pruef(ue.u && ue.u.at === 3 && ue.u.grund === 'wetter' && ue.pct === 100, `Überzogen im Eigenschaften-Fenster: ${JSON.stringify(ue)}`);
+      await p.evaluate(() => taskDialog(0)); await p.waitForSelector('.td-eig #fUe'); await p.fill('.td-eig #fUe', '0'); await p.click('.td-eig .bp-eigf [data-m="ok"]'); await p.waitForTimeout(200);
+      pruef(await p.evaluate(() => !P.tasks[0].ueber), '0 AT nimmt die Überziehung weg'); }
     const sicht = () => p.evaluate(() => { const b = document.querySelector('.bf-heft'), g = document.querySelector('#gridPane'); return { da: !!b, tabs: !!document.querySelector('#tabs').offsetParent, such: !!document.querySelector('#leiste .gs-box'),
       leiste: !document.querySelector('#leiste').classList.contains('bf-zu'), pinR: b && Math.round(b.getBoundingClientRect().right), planR: Math.round(document.querySelector('#links').getBoundingClientRect().right), pinO: b && Math.round(b.getBoundingClientRect().top), planO: Math.round(g.getBoundingClientRect().top) }; });
     let v = await sicht();

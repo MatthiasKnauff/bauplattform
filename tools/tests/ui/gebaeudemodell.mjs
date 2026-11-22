@@ -92,7 +92,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
     pruef(await p.evaluate(() => window.bpBauteile.material({ lagen: [['Putz', 1.5], ['Kalksandstein', 17.5], ['Mineralwolle Dämmung', 20]] }) === 'Kalksandstein'), 'Gruppe „Material“ (F1): Hauptschicht ohne Dämmung');
     // Antwort im Eigenschaften-Fenster (Doppelklick wie im LV)
     await p.waitForTimeout(300); const uw0 = S.uwN || 0;
-    await p.dblclick('tr[data-btz="raum:boden:trocken"] td.baumz'); await p.waitForSelector('.bt-pop [data-btst="erneuern"]', { timeout: 6000 });
+    await p.dblclick('tr[data-btz="raum:boden:trocken"] .bt-tn'); await p.waitForSelector('.bt-pop [data-btst="erneuern"]', { timeout: 6000 });
     await p.click('.bt-pop [data-btst="erneuern"]'); await p.waitForTimeout(300);
     {   // niedriges Fenster: nur die Bereiche rollen, nicht die Seite – Navigation links reicht bis unten (Video 17.11.2026)
       await p.setViewportSize({ width: 1280, height: 520 }); await p.waitForTimeout(200);

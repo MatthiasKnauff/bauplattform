@@ -254,6 +254,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Bauteile: Spaltenbreiten fest (ändern sich nicht mehr mit dem Inhalt)~~ (22.11.2026)
 - ~~Nichts springt: Auswahl-Leiste der Bauteile schwebt (statt die Liste zu schieben), Bäume rollen mit der Maus nie, Anker-Rückroll-Tricks entfernt~~ (22.11.2026)
 - ~~Gebäudemodell-Liste: einzelne Bauteile unter der Zeile (3D ↔ Liste), Gruppieren nach Geschoss, nichts unterscheidende Ebenen ausgegraut, Anwählen ohne Springen, Doppelklick/Rechtsklick = Eigenschaften der Auswahl, „in Kosten/LV: zählt / zählt nicht“ auch je Gruppe~~ (22.11.2026)
 - ~~Gebäudemodell: Bauteile nach Bauteilart › Typ (zu, mit Anzahl, Name neben dem Kürzel); Aufklappen bewegt nichts (alle Bäume); Spaltenbreite bei Fenster & Türen und Räumen~~ (22.11.2026)

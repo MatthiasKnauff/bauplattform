@@ -30,7 +30,6 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
-- Leistungskatalog: Abhängigkeiten (GO 22.11.2026, Mock LK K1–K7): Büro-Ebene über dem Werkskatalog, Recht „Leistungskatalog ändern“, Ansicht Abhängigkeiten mit Probe, Fortschritt über 100 % mit Grund, Lernen als Vorschläge **ca. 4–6 h**
 - Gebäudemodell neu (GO 22.11.2026): Etappe 1 Typen im Kern ✓ · 2 Typen in der Oberfläche ✓ · 3 Kurzwahl ✓ · 4 Arbeitsstand + Versionen ✓ · 5 ohne Arbeitsmaske ✓ (offen: L/U-Treppen im 3D, „offen bis unters Dach“ in den Mengen, Deckenloch im 3D – ca. 1 h) · 6 Positionen hinaus **ca. 1,5 h** · 7 Aufräumen **ca. 2 h**
 - Aufräumen: Sahne, Fehler an der Wurzel, toter Code (tools/tot)
 - U-Wert-Färbung wählbar: GModG · BEG-Einzelmaßnahmen · Effizienzhaus (Recherche + Mock)
@@ -255,6 +254,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Leistungskatalog: Abhängigkeiten, Werk-Leistungen direkt ändern, Lernen aus den Plänen, Fortschritt über 100 % mit Grund~~ (22.11.2026)
+- ~~Bauzeitenplan: Kette 🔗 und gelöschte Assistenten-Leistungen gingen beim Speichern verloren – behoben~~ (22.11.2026)
 - ~~Bauzeitenplan: ✨ KI-Positionsvorschlag entfernt (K6-A), Vorbelegung ohne KI~~ (22.11.2026)
 - ~~Gebäudemodell neu, Etappe 5 (Teil 3): Arbeitsmaske entfällt, „Dach direkt auf dem Geschoss“~~ (22.11.2026)
 - ~~Gebäudemodell neu, Etappe 5 (Teil 1–2): Innenwände, Treppen, Räume aus den Wänden im Grundriss des Baukastens~~ (22.11.2026)

@@ -8,7 +8,7 @@ GET    /api/katalog/staende/<id>/vergleich     was ist seither anders (je Teil)
 POST   /api/katalog/staende/<id>/zurueck {teile}  zurückholen: leistungen, abschnitte, vorgaben, firmen – vorher wird der jetzige Stand gesichert
 GET    /api/katalog/datei                      der ganze Katalog als Datei (JSON)
 POST   /api/katalog/datei                      Datei einlesen → als Stand ablegen (zurückholen dann wie oben)
-Die automatischen Stände je Speicherung liefert der Versionsverlauf (bpcore/versionen, Bereiche gs:library, gs:phases, gs:catfirms, gs:catscope).
+Die automatischen Stände je Speicherung liefert der Versionsverlauf (bpcore/versionen, Bereiche gs:library, gs:phases, gs:catfirms, gs:catscope, gs:catbuero).
 Gespeichert in gantt_store: „_kstaende“ (Liste) und „_kstand:<id>“ (Daten) – Schlüssel mit „_“ laufen nicht durch den Versionsverlauf.
 """
 import json, re, secrets, time
@@ -17,19 +17,19 @@ from flask import Response, g, jsonify, request
 
 from bpcore import db
 
-TEILE = {"leistungen": ("library",), "abschnitte": ("phases",), "vorgaben": ("catfirms", "catscope"), "firmen": ()}
+TEILE = {"leistungen": ("library",), "abschnitte": ("phases",), "vorgaben": ("catfirms", "catscope", "catbuero"), "firmen": ()}
 MAX = 60
 
 
-def einbinden(app, *, store_get, store_put, store_put_roh, all_firms, clean_firm, save_firm, firm_of, uname, body, clean_lib, phase_key):
+def einbinden(app, *, store_get, store_put, store_put_roh, all_firms, clean_firm, save_firm, firm_of, uname, body, clean_lib, phase_key, catbuero_sauber=lambda d: {}):
 
     def jetzt(c):
         return {"library": store_get(c, "library", []), "phases": store_get(c, "phases", []), "catfirms": store_get(c, "catfirms", {}),
-                "catscope": store_get(c, "catscope", {}), "firmen": all_firms(c)}
+                "catscope": store_get(c, "catscope", {}), "catbuero": store_get(c, "catbuero", {}), "firmen": all_firms(c)}
 
     def zahlen(d):
         return {"leistungen": len(d.get("library") or []), "abschnitte": len(d.get("phases") or []),
-                "vorgaben": len(d.get("catfirms") or {}) + len(d.get("catscope") or {}), "firmen": len(d.get("firmen") or [])}
+                "vorgaben": len(d.get("catfirms") or {}) + len(d.get("catscope") or {}) + len(d.get("catbuero") or {}), "firmen": len(d.get("firmen") or [])}
 
     def liste(c):
         L = store_get(c, "_kstaende", [])
@@ -104,9 +104,10 @@ def einbinden(app, *, store_get, store_put, store_put_roh, all_firms, clean_firm
         def dct(a, b):
             return {"dazu": len(set(b) - set(a)), "weg": len(set(a) - set(b)), "anders": sum(1 for k in set(a) & set(b) if a[k] != b[k])}
         v1, v2 = dct(alt.get("catfirms") or {}, neu.get("catfirms") or {}), dct(alt.get("catscope") or {}, neu.get("catscope") or {})
+        v3 = dct(alt.get("catbuero") or {}, neu.get("catbuero") or {})   # Abweichungen des Büros (Dauer, Art, Vorgänger) – 22.11.2026
         return {"leistungen": per(alt.get("library") or [], neu.get("library") or [], lambda x: x.get("id")),
                 "abschnitte": per(alt.get("phases") or [], neu.get("phases") or [], lambda x: x.get("k")),
-                "vorgaben": {k: v1[k] + v2[k] for k in v1},
+                "vorgaben": {k: v1[k] + v2[k] + v3[k] for k in v1},
                 "firmen": per(alt.get("firmen") or [], neu.get("firmen") or [], lambda x: x.get("id"))}
 
     @app.get("/api/katalog/staende/<sid>/vergleich")
@@ -167,6 +168,7 @@ def einbinden(app, *, store_get, store_put, store_put_roh, all_firms, clean_firm
                  "phases": [{"k": x["k"], "n": str(x.get("n") or x["k"])[:120], "own": bool(x.get("own"))} for x in lst("phases")[:200] if isinstance(x, dict) and phase_key.match(str(x.get("k") or ""))],
                  "catfirms": {k: str(v)[:200] for k, v in list(dic("catfirms").items())[:5000] if ok(k) and k.startswith("gw~") and v},   # nur je Gewerk
                  "catscope": {k: v for k, v in list(dic("catscope").items())[:5000] if ok(k) and v in ("bau", "we")},
+                 "catbuero": catbuero_sauber(dic("catbuero")),
                  "firmen": [clean_firm(x) for x in lst("firmen")[:5000]]}
         with db.tx() as c:
             sid = sichern(c, f"aus Datei {f.filename or ''} (Stand {str(d.get('am') or '')[:10]})", daten=daten)

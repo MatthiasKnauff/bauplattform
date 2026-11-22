@@ -157,6 +157,15 @@ def sanitize(inp, pid):
             "preds": [_pred(p) for p in (t.get("preds") if isinstance(t.get("preds"), list) else []) if isinstance(p, dict) and is_int(p.get("uid"))],
             "segs": segs,
         })
+        vs = t.get("vs")   # Vorschlag des Assistenten (Kette 🔗, kette.js – 22.11.2026; vorher fiel er beim Speichern weg)
+        if isinstance(vs, dict):
+            clean[-1]["vs"] = {"d": max(0, rnum(vs.get("d"))), "n": jstr(vs.get("n"))[:500], "p": jstr(vs.get("p"))[:4000],
+                               "pl": [_pred(q) for q in (vs.get("pl") if isinstance(vs.get("pl"), list) else [])[:200] if isinstance(q, dict) and is_int(q.get("uid"))]}
+        if t.get("los") in (1, True):   # Kette von Hand gelöst
+            clean[-1]["los"] = 1
+        ue = t.get("ueber")   # Fortschritt über 100 %: so viele AT später fertig, mit Grund (K7, Lernen nur bei „leistung“)
+        if isinstance(ue, dict) and rnum(ue.get("at")) > 0:
+            clean[-1]["ueber"] = {"at": clamp(round(rnum(ue.get("at"))), 1, 365), "grund": ue.get("grund") if ue.get("grund") in _lernen_gruende() else "anders"}
         if isinstance(t.get("teil"), str) and re.fullmatch(r"[\w-]{1,20}", t["teil"]):   # Gebäudeteil (18.11.2026)
             clean[-1]["teil"] = t["teil"]
         if t.get("mst") is True:   # Duplizieren mit Master (gantt-kopieren.js): Master bzw. Gegenstück im Master
@@ -215,8 +224,15 @@ def sanitize(inp, pid):
         "nextUid": int(nu) if float(nu).is_integer() else nu,
         "tasks": clean, "cal": cal, "trades": trades, "assist": assist, "gwColors": gw_colors, "ablauf": ablauf,
         "sched": _sched(inp.get("sched"), {t["uid"] for t in clean}),
+        **({"hand": {"weg": [jstr(x)[:200] for x in inp["hand"]["weg"][:2000] if isinstance(x, str)]}}   # von Hand gelöschte Leistungen des Assistenten (kette.js)
+           if isinstance(inp.get("hand"), dict) and isinstance(inp["hand"].get("weg"), list) and inp["hand"]["weg"] else {}),
         "archived": truthy(inp.get("archived")),   # archiviert: bleibt erhalten, steht in den Listen unten
     }
+
+
+def _lernen_gruende():
+    from lernen import GRUENDE
+    return GRUENDE
 
 
 def _sched(v, uids):
@@ -1195,6 +1211,54 @@ def catscope():
         return jsonify(o)
 
 
+def catbuero_sauber(b):
+    """Abweichungen des Büros vom Werkskatalog (Mock „Leistungskatalog: Abhängigkeiten“ K5-A, 22.11.2026): je Leistung des Katalogs
+    d (Richtdauer AT), fix (0/1 feste Dauer), w (0/1 Wartezeit – läuft in allen Einheiten zugleich), a (Vorgänger: id oder [id, FS|SS, Abstand AT])."""
+    out = {}
+    for k, v in list((b if isinstance(b, dict) else {}).items())[:3000]:
+        if not re.fullmatch(r"[\w~.-]{1,60}", str(k)) or not isinstance(v, dict):
+            continue
+        x = {}
+        try:
+            if v.get("d") is not None and str(v.get("d")).strip() != "":
+                x["d"] = max(0.5, min(999.0, round(float(v["d"]) * 2) / 2))
+        except (TypeError, ValueError):
+            pass
+        for f in ("fix", "w"):
+            if v.get(f) in (0, 1, True, False):
+                x[f] = 1 if v[f] else 0
+        if isinstance(v.get("a"), list):
+            A = []
+            for a in v["a"][:16]:
+                if isinstance(a, str) and re.fullmatch(r"[\w~.-]{1,60}", a):
+                    A.append(a)
+                elif isinstance(a, list) and a and isinstance(a[0], str) and re.fullmatch(r"[\w~.-]{1,60}", a[0]):
+                    t = a[1] if len(a) > 1 and a[1] in ("FS", "SS", "FF") else "FS"
+                    try:
+                        lag = max(-60, min(365, int(a[2]))) if len(a) > 2 else 0
+                    except (TypeError, ValueError):
+                        lag = 0
+                    A.append(a[0] if t == "FS" and not lag else [a[0], t, lag])
+            x["a"] = A
+        if x:
+            out[str(k)] = x
+    return out
+
+
+@app.route("/api/catbuero", methods=["GET", "PUT"])
+def catbuero():
+    """Büro-Ebene über dem Werkskatalog: Dauer, Art, Vorgänger je Leistung (gelb mit ↺ im Leistungskatalog, Lernen übernimmt hierhin)."""
+    with db.tx() as c:
+        if request.method == "GET":
+            v = store_get(c, "catbuero", {})
+            return jsonify(v if isinstance(v, dict) else {})
+        if not katalog_darf():
+            return jsonify(error="Den Leistungskatalog für alle Projekte darfst du nicht ändern – das stellt die Verwaltung je Rolle ein (Block „Bauzeitenplan: Leistungskatalog …“)."), 403
+        o = catbuero_sauber(body())
+        store_put(c, "catbuero", o, uname())
+        return jsonify(o)
+
+
 # ---- KI-Positionsvorschlag (✨, api/ai/place, api/settings, api/ai/test) entfernt am 22.11.2026 (Mock „Leistungskatalog: Abhängigkeiten“ K6-A):
 # er lief mit eigener Einstellung am KI-Schieber und an den Obergrenzen der Verwaltung vorbei; neue Leistungen belegt der Textvergleich
 # ohne KI vor (public/ai.js, LeistungVorschlag).
@@ -1209,7 +1273,12 @@ _links.einbinden(app, row_of=row_of, project_or_error=_project_or_error, can_see
 # ---------------------------------------------------------------- Leistungskatalog sichern (katalog.py)
 import katalog as _katalog   # noqa: E402
 _katalog.einbinden(app, store_get=store_get, store_put=store_put, store_put_roh=_store_put, all_firms=all_firms, clean_firm=clean_firm, save_firm=save_firm,
-                   firm_of=firm_of, uname=uname, body=body, clean_lib=clean_lib, phase_key=PHASE_KEY)
+                   firm_of=firm_of, uname=uname, body=body, clean_lib=clean_lib, phase_key=PHASE_KEY, catbuero_sauber=catbuero_sauber)
+
+
+# ---------------------------------------------------------------- Leistungskatalog lernt aus den Plänen (lernen.py, 22.11.2026)
+import lernen as _lernen   # noqa: E402
+_lernen.einbinden(app, store_get=store_get, store_put=store_put, uname=uname, body=body, darf=katalog_darf)
 
 
 # ---------------------------------------------------------------- Oberfläche

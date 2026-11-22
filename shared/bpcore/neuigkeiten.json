@@ -1,5 +1,21 @@
 [
  {
+  "id": "gantt-katalog-netz",
+  "datum": "2026-11-22",
+  "app": "gantt",
+  "titel": "Leistungskatalog: Abhängigkeiten",
+  "text": "Im Leistungskatalog gibt es neben der Liste die Ansicht „Abhängigkeiten“: eine Leistung in der Mitte, Vorgänger links, Nachfolger rechts – Dauer, Art und Abhängigkeiten ändern, darunter die Probe-Bauzeit. Leistungen ab Werk lassen sich jetzt direkt ändern (gelb, ↺ = zurück auf Werk). Oben stehen Vorschläge, die der Katalog aus euren Plänen gelernt hat.",
+  "ziel": ".lv-modus"
+ },
+ {
+  "id": "gantt-ueberzogen",
+  "datum": "2026-11-22",
+  "app": "gantt",
+  "titel": "Fertig später als geplant",
+  "text": "Den Fortschritt einer Leistung kannst du über das Balkenende hinausziehen: „fertig X Tage später“ steht dann rot am Balken. Dazu wählst du kurz den Grund – nur „liegt an der Leistung“ zählt fürs Lernen im Leistungskatalog.",
+  "ziel": "#chartBody"
+ },
+ {
   "id": "gantt-ki-weg",
   "datum": "2026-11-22",
   "app": "gantt",

@@ -8,6 +8,7 @@
    „Gewerke & Firmen“: beim Einfügen wird die Firma des Gewerks eingetragen.
    ===================================================================== */
 window.LIBRARY = [];
+let LIBMODUS = LS.get('libModus', 'liste') === 'netz' ? 'netz' : 'liste';   // Liste | Abhängigkeiten (Mock LK, K1-A)
 let libLoaded = false, libSaveT = null, libQuery = '', libEk = LS.get('libEk', LS.get('libStd2', true) ? 0 : 1), libZu = new Set(LS.get('libZu', [])),   // Einklappen (GO 18.11.2026, EK-A1 B2): 0 alles · 1 nur eigene · 2 nur Abschnitte
    libDelAsk = null, libFocus = null;
 let CATFIRMS = {}, catfSaveT = null;
@@ -43,7 +44,8 @@ function savePhases(still) {
   if (window.AssistCore) AssistCore.notifySoon();
 }
 async function loadLibrary() {
-  try { const [a, b, ph, sc] = await Promise.all([fetch('api/library').then(j), fetch('api/catfirms').then(j), fetch('api/phases').then(j), fetch('api/catscope').then(j).catch(() => ({}))]); window.LIBRARY = a; CATFIRMS = b || {}; window.CATSCOPE = sc || {}; applyPhaseList(ph); scStand = { ...window.CATSCOPE }; cfStand = { ...CATFIRMS }; libLoaded = true; }
+  try { const [a, b, ph, sc, kb] = await Promise.all([fetch('api/library').then(j), fetch('api/catfirms').then(j), fetch('api/phases').then(j), fetch('api/catscope').then(j).catch(() => ({})), fetch('api/catbuero').then(j).catch(() => ({}))]); window.LIBRARY = a; CATFIRMS = b || {}; window.CATSCOPE = sc || {};
+    if (window.KatBuero) KatBuero.laden(kb); /* Abweichungen des Büros vom Werkskatalog (katalogbuero.js, 22.11.2026) */ applyPhaseList(ph); scStand = { ...window.CATSCOPE }; cfStand = { ...CATFIRMS }; libLoaded = true; }
   catch (e) { toast('Leistungskatalog konnte nicht geladen werden: ' + e.message, true); }
   if (window.AssistCore) AssistCore.notifySoon();
   if (!$('#libView').hidden) renderLib();
@@ -136,10 +138,16 @@ function renderLib() {
     fv.querySelectorAll('input:not(#libQ),select,textarea').forEach((x) => { x.disabled = true; });
     fv.querySelectorAll('button').forEach((x) => { if (!/^(lstd|lsort|phklapp)$/.test(Object.keys(x.dataset)[0] || '')) x.disabled = true; });
     fv.querySelectorAll('[draggable]').forEach((x) => x.removeAttribute('draggable')); };
-  h += `<div class="fv-head"><div><h3>Leistungskatalog</h3><span>${libPhases().length} Abschnitte · ${L.length} eigene Leistungen · gilt für alle neuen Planungen (Planungsassistent)</span></div>
+  const modus = `<span class="kn-seg lv-modus" role="tablist"><button type="button" role="tab" data-lmodus="liste" aria-selected="${LIBMODUS === 'liste'}" class="${LIBMODUS === 'liste' ? 'on' : ''}">Liste</button><button type="button" role="tab" data-lmodus="netz" aria-selected="${LIBMODUS === 'netz'}" class="${LIBMODUS === 'netz' ? 'on' : ''}">Abhängigkeiten</button></span>`;
+  if (LIBMODUS === 'netz' && window.KatBuero && typeof katNetzHtml === 'function') {
+    box.innerHTML = `<div class="fv"><div class="fv-head"><div><h3>Leistungskatalog</h3><span>eine Leistung in der Mitte – Vorgänger links, Nachfolger rechts</span></div>${modus}</div>${libLernHtml()}${katNetzHtml(LIBNETZ)}</div>`;
+    LIBNETZ = null;   // nur einmal: danach führt die Ansicht selbst (Klick auf eine Kiste)
+    nurLesen(); return;
+  }
+  h += `<div class="fv-head"><div><h3>Leistungskatalog</h3><span>${libPhases().length} Abschnitte · ${L.length} eigene Leistungen · gilt für alle neuen Planungen (Planungsassistent)</span></div>${modus}
     <input id="libQ" class="lv-q" placeholder="Suchen …" value="${esc(libQuery)}">
     <span class="fv-hint">Firmen stehen nicht im Katalog: sie gehören zum Projekt (Reiter „Gewerke &amp; Firmen“, dort auch die Vorgabe je Gewerk für alle Projekte). Eigene Leistungen erscheinen im Planungsassistenten im gewählten Abschnitt – unter „Weitere Leistungen“ oder, wenn unter <b>Vorausgewählt bei</b> die Projektart markiert ist, dort gleich angekreuzt. Beim Einfügen bekommt die Leistung die Firma, die ihr Gewerk im Projekt hat. <b>Abschnitte</b>: Namen in der blauen Zeile überschreiben, am ⠿ ziehen, oben „＋ Abschnitt“.</span></div>
-    <div class="fv-scroll"><table class="fv-t lv-t" data-tk="lv-alle"><thead><tr><th style="min-width:250px">Leistung</th><th>Abschnitt</th><th style="min-width:120px">Gewerk</th><th>DIN</th><th style="min-width:140px" title="Rolle der ausführenden Firma oder Planer:in, z. B. Tragwerksplaner, Rohbauer">Fachrichtung</th><th>Bezug</th><th class="num">AT</th><th style="min-width:170px">Folgt auf</th><th style="min-width:150px">Muss fertig sein vor</th><th style="min-width:130px" title="Bei welchen Projektarten der Planungsassistent diese Leistung von sich aus ankreuzt. Symbol anklicken = ein/aus. Bei allen anderen Projektarten steht sie zur Auswahl, ist aber nicht angekreuzt.">Vorausgewählt bei</th><th></th></tr></thead><tbody>`;
+    ${libLernHtml()}<div class="fv-scroll"><table class="fv-t lv-t" data-tk="lv-alle"><thead><tr><th style="min-width:250px">Leistung</th><th>Abschnitt</th><th style="min-width:120px">Gewerk</th><th>DIN</th><th style="min-width:140px" title="Rolle der ausführenden Firma oder Planer:in, z. B. Tragwerksplaner, Rohbauer">Fachrichtung</th><th>Bezug</th><th class="num">AT</th><th style="min-width:170px">Folgt auf</th><th style="min-width:150px">Muss fertig sein vor</th><th style="min-width:130px" title="Bei welchen Projektarten der Planungsassistent diese Leistung von sich aus ankreuzt. Symbol anklicken = ein/aus. Bei allen anderen Projektarten steht sie zur Auswahl, ist aber nicht angekreuzt.">Vorausgewählt bei</th><th></th></tr></thead><tbody>`;
   let shown = 0;
   for (const [phi, ph] of libPhases().entries()) {
     const own = L.filter((x) => x.ph === ph.k && hit(x));
@@ -161,17 +169,66 @@ function renderLib() {
         <td><select data-k="a"><option value="">automatisch – Ende des Abschnitts</option>${libPredOpts((x.a || [])[0], x.id)}</select></td>
         <td><select data-k="b"><option value="">–</option>${libPredOpts((x.b || [])[0], x.id)}</select></td>
         <td class="lv-rec">${profs.map((p) => `<button class="lv-pr${(x.rec || []).includes(p.k) ? ' on' : ''}" data-rec="${p.k}" title="${esc(p.n)}: ${(x.rec || []).includes(p.k) ? 'im Assistenten vorausgewählt (klicken = aus)' : 'nicht vorausgewählt (klicken = ein)'}">${p.ic}</button>`).join('')}</td>
-        <td class="lv-act"><button class="fv-x" data-lplan="${x.id}" title="In das geöffnete Projekt einfügen">＋ Plan</button><button class="fv-x" data-ldup="${x.id}" title="Duplizieren">⧉</button><button class="fv-x${libDelAsk === x.id ? ' sure' : ''}" data-ldel="${x.id}" title="Aus dem Katalog löschen">${libDelAsk === x.id ? 'Löschen?' : '✕'}</button></td></tr>`;
+        <td class="lv-act"><button class="fv-x" data-lnetz="${x.id}" title="Abhängigkeiten dieser Leistung">⇆</button><button class="fv-x" data-lplan="${x.id}" title="In das geöffnete Projekt einfügen">＋ Plan</button><button class="fv-x" data-ldup="${x.id}" title="Duplizieren">⧉</button><button class="fv-x${libDelAsk === x.id ? ' sure' : ''}" data-ldel="${x.id}" title="Aus dem Katalog löschen">${libDelAsk === x.id ? 'Löschen?' : '✕'}</button></td></tr>`;
     }
     for (const i of std) {
+      const ab = KatBuero.abw(i.id);
       h += `<tr class="lv-std"><td><div class="lv-n"><span class="gwdot" style="background:${gwColor(i.gw) || '#9e9e9e'}"></span><span>${esc(i.n)}</span></div></td><td>${esc(ph.n.split(' (')[0])}</td><td>${esc(i.gw)}</td><td>${esc(i.din || '')}</td>
-        <td>${esc((typeof CRAFT !== 'undefined' && CRAFT[i.gw]) || '')}</td><td><select data-sscope="${i.id}" class="${stdScope(i) !== i.sc ? 'lv-fown' : ''}" title="Vorgabe für neue Planungen. Standard: ${i.sc === 'bau' ? 'Gebäude' : 'je Einheit'}. In bestehenden Plänen im Planungsassistenten je Projekt umstellbar."><option value="we"${stdScope(i) === 'we' ? ' selected' : ''}>je Einheit</option><option value="bau"${stdScope(i) === 'bau' ? ' selected' : ''}>Gebäude</option></select></td><td class="num">${i.ms ? '◆' : i.d}</td><td colspan="3" class="lv-stdh">Standardkatalog</td>
-        <td class="lv-act"><button class="fv-x" data-lcopy="${i.id}" title="Als eigene Leistung kopieren und anpassen">⧉ kopieren</button></td></tr>`;
+        <td>${esc((typeof CRAFT !== 'undefined' && CRAFT[i.gw]) || '')}</td><td><select data-sscope="${i.id}" class="${stdScope(i) !== i.sc ? 'lv-fown' : ''}" title="Vorgabe für neue Planungen. Standard: ${i.sc === 'bau' ? 'Gebäude' : 'je Einheit'}. In bestehenden Plänen im Planungsassistenten je Projekt umstellbar."><option value="we"${stdScope(i) === 'we' ? ' selected' : ''}>je Einheit</option><option value="bau"${stdScope(i) === 'bau' ? ' selected' : ''}>Gebäude</option></select></td><td class="num">${i.ms ? '◆' : `<input data-kbd="${i.id}" type="number" min="0.5" max="999" step="0.5" value="${i.d}" class="lv-d${ab.includes('d') ? ' lv-fown' : ''}" title="Richtdauer (EFH 140 m²) – ${esc(KatBuero.art(i))}">${ab.includes('d') ? `<button class="lv-ru" data-kbz="${i.id}:d" title="zurück auf Werk: ${KatBuero.werk(i.id).d} AT">↺</button>` : ''}`}</td>
+        <td>${libSchilder(KatBuero.vor(i.id).map((v) => v.id), i.id, ab.includes('a'))}</td><td>${libSchilder(KatBuero.nach(i.id), i.id)}</td><td class="lv-stdh">${ab.length ? '<span class="lv-fown">Büro</span>' : 'Werk'}</td>
+        <td class="lv-act"><button class="fv-x" data-lnetz="${i.id}" title="Abhängigkeiten dieser Leistung">⇆</button><button class="fv-x" data-lcopy="${i.id}" title="Als eigene Leistung kopieren (nur für eine wirklich andere Leistung – ändern geht direkt)">⧉ kopieren</button></td></tr>`;
     }
   }
   if (!shown && libEk === 1) h += `<tr><td colspan="12" class="fv-empty">${q ? 'Keine Treffer.' : 'Noch keine eigenen Leistungen. Mit „Neue Leistung“ anlegen, mit „Aus Projekten übernehmen“ aus vorhandenen Plänen holen oder im Planungsassistenten mit „＋ eigene“ – dort ist „auch im Leistungskatalog speichern“ vorgewählt. Mit „Standardkatalog“ siehst du die mitgelieferten Leistungen und kannst sie als eigene Variante kopieren.'}</td></tr>`;
   h += '</tbody></table></div></div>' + libLists();
   box.innerHTML = h; nurLesen(); libAfter(box, st, sl);
+}
+let LIBNETZ = null;
+/* Lernen (Mock LK C, K3-A + K7): Vorschläge aus den Plänen des Büros – zum Übernehmen, nie automatisch (Server gantt/lernen.py) */
+let LIBLERN = null, libLernP = null;
+function libLernListe() {
+  if (!LIBLERN) { if (!libLernP) libLernP = fetch('api/catlernen').then(j).then((d) => { LIBLERN = d; if (!$('#libView').hidden) renderLib(); }, () => { LIBLERN = { dauer: {}, links: {}, eigene: {}, nein: [] }; }); return []; }
+  const nein = new Set(LIBLERN.nein || []), n = (id) => ((CATALOG.items.find((i) => i.id === id) || {}).n || id).split(' (')[0], V = [];
+  for (const [cat, L] of Object.entries(LIBLERN.dauer || {})) {
+    const i = CATALOG.items.find((x) => x.id === cat); if (!i || i.ms) continue;
+    const f = L.reduce((a, x) => a + x.f, 0) / L.length; if (Math.abs(f - 1) < 0.1) continue;
+    const d = Math.max(0.5, Math.round(i.d * f * 2) / 2); if (d === i.d) continue;
+    const k = `d:${cat}:${d}`; if (nein.has(k)) continue;
+    V.push({ k, art: 'd', id: cat, d, text: `„${n(cat)}“ war in <b>${L.length} Plänen</b> ${f > 1 ? 'länger' : 'kürzer'} als vorgeschlagen (Ø ${f > 1 ? '+' : ''}${Math.round((f - 1) * 100)} %) – Richtdauer ${i.d} → ${d} AT?`, wo: L.map((x) => x.p) });
+  }
+  for (const [vn, P] of Object.entries(LIBLERN.links || {})) {
+    const [von, nach] = vn.split('>'), it = CATALOG.items.find((x) => x.id === nach);
+    if (!it || !CATALOG.items.some((x) => x.id === von) || (it.a || []).some((a) => (Array.isArray(a) ? a[0] : a) === von)) continue;
+    const k = `a:${vn}`; if (nein.has(k)) continue;
+    V.push({ k, art: 'a', von, nach, text: `„${n(von)}“ wurde in <b>${P.length} Plänen</b> vor „${n(nach)}“ gehängt – als Abhängigkeit aufnehmen?`, wo: P });
+  }
+  const eig = new Set((window.LIBRARY || []).map((x) => x.n.toLowerCase()));
+  for (const [kn, e] of Object.entries(LIBLERN.eigene || {})) {
+    if (eig.has(kn) || CATALOG.items.some((i) => i.n.toLowerCase() === kn)) continue;
+    const k = `e:${kn}`; if (nein.has(k)) continue;
+    V.push({ k, art: 'e', e, text: `Eigene Leistung „${esc(e.n)}“ in <b>${e.p.length} Plänen</b> – in den Leistungskatalog?`, wo: e.p });
+  }
+  return V;
+}
+function libLernHtml() {
+  const V = libLernListe(); if (!V.length) return '';
+  return `<details class="lv-lern" data-klapp="gantt.lern"${typeof bpKlappOffen === 'function' && bpKlappOffen('gantt.lern', false) ? ' open' : ''}><summary>💡 ${V.length} ${V.length === 1 ? 'Vorschlag' : 'Vorschläge'} aus euren Plänen</summary>
+    ${V.map((v, x) => `<div class="lv-lz"><span>${v.text} <small class="mut" title="${esc(v.wo.join(', '))}">(${esc(v.wo.slice(0, 3).join(', '))}${v.wo.length > 3 ? ' …' : ''})</small></span><span style="flex:1"></span><button type="button" class="fv-x" data-lern="ja:${x}">Übernehmen</button><button type="button" class="fv-x" data-lern="nein:${x}">Nicht mehr vorschlagen</button></div>`).join('')}
+    <p class="mut">Grundlage: von Hand geänderte Leistungen (Kette 🔗 gelöst) und Fortschritt über 100 % mit Grund „liegt an der Leistung“ – ab 2 Plänen. Ohne KI.</p></details>`;
+}
+async function libLernKlick(b) {
+  if (!libDarf()) return libNurAdmin();
+  const [was, x] = b.dataset.lern.split(':'), v = libLernListe()[+x]; if (!v) return;
+  if (was === 'nein') { try { LIBLERN.nein = (await fetch('api/catlernen/nein', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ schluessel: v.k }) }).then(j)).nein; } catch (e) { toast(e.message, true); } return renderLib(); }
+  if (v.art === 'd') KatBuero.setzen(v.id, { d: v.d }, `Gelernt: ${v.id} ${v.d} AT`);
+  else if (v.art === 'a') knVerbinde(v.von, v.nach);
+  else { libText = `Gelernt: „${v.e.n}“ in den Katalog`; libSet([...window.LIBRARY, libClean({ n: v.e.n, gw: v.e.gw, d: Math.max(1, Math.round(+v.e.d || 1)), sc: 'we', ph: libGuessPh(v.e.n, v.e.gw), id: newLibId() })]); }
+  renderLib();
+}
+function libSchilder(ids, eigen, gelb) {   // Vorgänger/Nachfolger als Schilder (Mock LK A) – Klick = Abhängigkeiten dieser Leistung
+  const n = (id) => ((CATALOG.items.find((i) => i.id === id) || (window.LIBRARY || []).find((x) => x.id === id) || {}).n || id).split(' (')[0];
+  if (!ids.length) return '<span class="mut">–</span>';
+  return `<span class="lv-chips${gelb ? ' lv-fown' : ''}" data-lnetz="${esc(eigen)}" title="Abhängigkeiten ansehen und ändern">${ids.slice(0, 2).map((id) => `<span class="lv-chip">${esc(n(id))}</span>`).join('')}${ids.length > 2 ? `<span class="lv-chip p">+${ids.length - 2}</span>` : ''}</span>`;
 }
 function libLists() {
   return `<datalist id="lvGwList">${AssistCore.gewerke().map((g) => `<option value="${esc(g)}">`).join('')}</datalist>
@@ -363,6 +420,12 @@ function libSetProjectFirm(keys, nameOf) {
 
 $('#libView').addEventListener('change', (e) => {
   const t = e.target;
+  if (typeof katNetzAendern === 'function' && katNetzAendern(e)) return;
+  if (t.dataset.kbd) {   // Richtdauer einer Werk-Leistung: Abweichung des Büros (K5-A)
+    if (!libDarf()) { libNurAdmin(); return renderLib(); }
+    const i = CATALOG.items.find((y) => y.id === t.dataset.kbd), v = Math.max(0.5, Math.min(999, Math.round((+String(t.value).replace(',', '.') || 1) * 2) / 2));
+    if (i) KatBuero.setzen(i.id, { d: v }, `${i.n}: Richtdauer ${v} AT`); renderLib(); return;
+  }
   if (t.dataset.phn) { const p = phEntwurf().find((x) => x.k === t.dataset.phn); const v = t.value.trim(); if (p && v && v !== p.n) { p.n = v; phUebernehmen(); toast(`Abschnitt heißt jetzt „${v}“ – gilt für alle Projekte.`); } else PHDRAFT = null; renderLib(); return; }
   if (t.dataset.sscope) {
     const i = CATALOG.items.find((y) => y.id === t.dataset.sscope); if (!i) return;
@@ -386,7 +449,12 @@ $('#libView').addEventListener('change', (e) => {
 $('#libView').addEventListener('input', (e) => { if (e.target.id === 'libQ') { libQuery = e.target.value; libFocus = '#libQ'; renderLib(); const q = $('#libQ'); if (q) { const n = q.value.length; q.setSelectionRange(n, n); } } });
 $('#libView').addEventListener('click', (e) => {
   const kl = e.target.closest && e.target.closest('[data-phklapp]'); if (kl) { libPhKlapp(kl.dataset.phklapp); return; }
+  if (typeof katNetzKlick === 'function' && katNetzKlick(e)) return;
+  const nz = e.target.closest('[data-lnetz]'); if (nz) { LIBNETZ = nz.dataset.lnetz; LIBMODUS = 'netz'; LS.set('libModus', 'netz'); renderLib(); return; }
+  const md = e.target.closest('[data-lmodus]'); if (md) { LIBMODUS = md.dataset.lmodus; LS.set('libModus', LIBMODUS); renderLib(); return; }
+  const lz = e.target.closest('[data-lern]'); if (lz) { libLernKlick(lz); return; }
   const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.kbz) { if (!libDarf()) return libNurAdmin(); const [id, f] = b.dataset.kbz.split(':'); KatBuero.zurueck(id, f); renderLib(); return; }
   if (b.dataset.phdel) {
     const k = b.closest('tr').dataset.phk;
     if (libDelAsk !== 'ph:' + k) { libDelAsk = 'ph:' + k; renderLib(); setTimeout(() => { if (libDelAsk === 'ph:' + k) { libDelAsk = null; renderLib(); } }, 3000); return; }

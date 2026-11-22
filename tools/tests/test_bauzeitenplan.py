@@ -422,30 +422,11 @@ def test_vorlagen_und_assistent_einrichtung(ctx):
     pruefe(not finde(ctx.admin.gj(f"{G}/assistcfg/vorlagen"), id=e["id"]), "Einrichtung nach dem Löschen noch da")
 
 
-def test_einstellungen_nur_verwaltung(ctx):
-    """KI-Einstellungen: alle dürfen lesen, nur die Verwaltung ändern; der API-Schlüssel verlässt den Server nie."""
-    alt = ctx.admin.gj(f"{G}/settings")["ai"]
-    for k in ("mode", "model", "models", "hasKey"):
-        pruefe(k in alt, f"Einstellung {k} fehlt: {alt}")
-    clara = ctx.anmelden("Clara Wolf")
-    gleich(clara.gj(f"{G}/settings")["ai"]["mode"], alt["mode"], "Clara darf lesen")
-    clara.put(f"{G}/settings", {"ai": {"mode": "off"}}, expect=403)
-    try:
-        neu = "off" if alt["mode"] != "off" else "builtin"
-        gleich(ctx.admin.uj(f"{G}/settings", {"ai": {"mode": neu, "model": "gibt-es-nicht"}})["ai"]["mode"], neu, "Vorschlagsart geändert")
-        x = ctx.admin.gj(f"{G}/settings")["ai"]
-        gleich(x["mode"], neu, "Vorschlagsart gespeichert")
-        gleich(x["model"], alt["model"], "unbekanntes Modell ignoriert")
-        if not alt["hasKey"]:   # nur auf einem System ohne eigenen Schlüssel (CI) – sonst würde der echte gelöscht
-            a = ctx.admin.put(f"{G}/settings", {"ai": {"key": "sk-ant-rauchtest-WXYZ"}})
-            gleich(a.json["ai"]["hasKey"], True, "Schlüssel hinterlegt")
-            gleich(a.json["ai"]["keyHint"], "…WXYZ", "nur die letzten Zeichen")
-            pruefe("rauchtest" not in a.text and "rauchtest" not in ctx.admin.get(f"{G}/settings").text, "API-Schlüssel wird ausgeliefert")
-            b = ctx.admin.uj(f"{G}/settings", {"ai": {"clearKey": True}})["ai"]
-            gleich(b["hasKey"], b["fromEnv"], "Schlüssel wieder entfernt")
-    finally:
-        ctx.admin.put(f"{G}/settings", {"ai": {"mode": alt["mode"], "model": alt["model"]}})
-    gleich(ctx.admin.gj(f"{G}/settings")["ai"]["mode"], alt["mode"], "Einstellung wieder wie vorher")
+def test_ki_vorschlag_ist_weg(ctx):
+    """K6-A (22.11.2026): der KI-Positionsvorschlag mit eigener Einstellung ist entfernt – keine Routen mehr, kein API-Schlüssel im Bauzeitenplan."""
+    for m, pfad in (("get", "/settings"), ("post", "/ai/place"), ("post", "/ai/test")):
+        r = getattr(ctx.admin, m)(G + pfad, *([{}] if m == "post" else []), expect=None)
+        pruefe(r.status in (404, 405), f"{pfad} gibt es noch: {r.status}")
 
 
 # ---------------------------------------------------------------------------------------------- Rechte
@@ -654,3 +635,45 @@ def test_master_und_kopie_bleiben(ctx):
         pruefe("mst" not in x[5] and "mu" not in x[5], f"Unsinn fällt weg: {x[5]}")
     finally:
         weg(ctx, p["id"])
+
+
+def test_kette_und_ueberzogen_bleiben(ctx):
+    """Kette 🔗 (Vorschlag t.vs, t.los), von Hand Gelöschtes (hand.weg) und Fortschritt über 100 % (t.ueber, K7) überleben das Speichern
+    (22.11.2026: vs/los/hand fielen vorher beim Bereinigen auf dem Server weg – nach dem Neuladen fehlte jede Kette)."""
+    T = [leistung(1, "Baubeginn", 0), leistung(2, "Estrich", 5, lvl=1, preds=[1], cat="estrich", vs={"d": 3, "n": "Estrich", "p": "1:FS:0", "pl": [{"uid": 1, "type": "FS", "lag": 0}]},
+                                                los=1, ueber={"at": 4, "grund": "leistung"}),
+         leistung(3, "Maler", 4, lvl=1, preds=[2], ueber={"at": 2, "grund": "quatsch"})]
+    p = neuer_plan(ctx.admin, ctx.name("Kette"), T)
+    try:
+        p = speichern(ctx.admin, p, hand={"weg": ["fliesen|-1||#1"]})
+        q = ctx.admin.gj(f"{G}/projects/{p['id']}")
+        e, m = q["tasks"][1], q["tasks"][2]
+        gleich((e["vs"]["d"], e["vs"]["pl"][0]["uid"], e["los"], e["ueber"]), (3, 1, 1, {"at": 4, "grund": "leistung"}), "Vorschlag, gelöst, überzogen")
+        gleich(m["ueber"]["grund"], "anders", "unbekannter Grund → anders")
+        gleich(q.get("hand"), {"weg": ["fliesen|-1||#1"]}, "von Hand gelöschte Leistungen des Assistenten")
+    finally:
+        weg(ctx, p["id"])
+
+
+def test_katalog_buero_und_lernen(ctx):
+    """Büro-Ebene über dem Werkskatalog (api/catbuero, K5-A) und Lern-Vorschläge aus den Plänen (api/catlernen, K3-A)."""
+    a = ctx.admin
+    kb0 = a.gj(f"{G}/catbuero")
+    try:
+        kb = a.uj(f"{G}/catbuero", {"estrich": {"d": 3.2, "w": True, "a": ["putz_tr", ["heiz_roh", "SS", 2], 7]}, "kaputt id!": {"d": 1}})
+        gleich(kb, {"estrich": {"d": 3.0, "w": 1, "a": ["putz_tr", ["heiz_roh", "SS", 2]]}}, "bereinigt: halbe Tage, Art, Vorgänger mit Art/Abstand")
+        gleich(a.gj(f"{G}/catbuero"), kb, "gespeichert")
+    finally:
+        a.put(f"{G}/catbuero", kb0 or {})
+    vs = lambda d: {"d": d, "n": "Estrich", "p": "1:FS:0", "pl": [{"uid": 1, "type": "FS", "lag": 0}]}   # noqa: E731
+    P = [neuer_plan(a, ctx.name(f"Lernen {k}"), [leistung(1, "Baubeginn", 0), leistung(2, "Estrich", 4, lvl=1, preds=[1], cat="estrich", vs=vs(3)),
+                                                    leistung(3, "Bemusterung Fliesen", 1, lvl=1, preds=[2])]) for k in range(2)]
+    try:
+        L = a.gj(f"{G}/catlernen")
+        pruefe(len([x for x in L["dauer"].get("estrich", []) if x["f"] > 1.3]) >= 2, f"Dauer länger in zwei Plänen: {L['dauer'].get('estrich')}")
+        pruefe("bemusterung fliesen" in L["eigene"], f"eigene Leistung in zwei Plänen: {list(L['eigene'])[:5]}")
+        n = a.uj(f"{G}/catlernen/nein", {"schluessel": "test:" + ctx.name("x")})
+        pruefe(("test:" + ctx.name("x")) in n["nein"], "nicht mehr vorschlagen gemerkt")
+    finally:
+        for p in P:
+            weg(ctx, p["id"])

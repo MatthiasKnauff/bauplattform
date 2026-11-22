@@ -83,6 +83,7 @@ import { modellquellePruefen } from './modellquelle.mjs';
 import { kuerzelPruefen } from './kuerzel.mjs';
 import { bautypenPruefen } from './bautypen.mjs';
 import { grundrissBkPruefen } from './grundrissbk.mjs';
+import { katalogNetzPruefen } from './katalognetz.mjs';
 
 const { chromium, devices } = createRequire(import.meta.url)('playwright');   // auch global installiert (NODE_PATH) auffindbar
 
@@ -457,6 +458,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await grundrissBkPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Grundriss im Baukasten:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Grundriss im Baukasten'); } else { ok++; console.log('  ok      Grundriss im Baukasten'); } }
+// Leistungskatalog: Büro-Ebene, Abhängigkeiten, Lernen, Fortschritt über 100 % – siehe katalognetz.mjs
+{ let f = [];
+  try { f = await katalogNetzPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Leistungskatalog Abhängigkeiten:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Leistungskatalog Abhängigkeiten'); } else { ok++; console.log('  ok      Leistungskatalog Abhängigkeiten'); } }
 // Kosten aus Bauteilen (plattform/static/baukosten.js): Band, Übernehmen, Stufe, Preis von Hand, DIN 276 – siehe kosten.mjs
 { let f = [];
   try { f = await kostenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

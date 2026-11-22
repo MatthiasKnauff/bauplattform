@@ -40,7 +40,7 @@
     ['app:baudaten', 'Apps', 'Baudaten: Kataloge, Preise, Index & Löhne', 'Baudaten Katalog sirAdos Preis Index Baupreisindex Regionalfaktor Löhne', ''],
     ['app:ava', 'Apps', 'Ausschreibung: Kataloge & Abrechnung', 'Ausschreibung AVA Katalog Abrechnung Nachträge Mengenüberschreitung Bedarfsposition', ''],
     ['app:plaene', 'Apps', 'Pläne: Plannummerierung & Gewerke', 'Plan Plannummer Planname Planarten Gewerk Kennung Plotauftrag Anhang', ''],
-    ['app:gantt', 'Apps', 'Bauzeitenplan: Kataloge, Phasen, Firmen', 'Bauzeitenplan Leistungskatalog Phasen Firmen Vorlagen Gantt', ''],
+    ['app:gantt', 'Apps', 'Bauzeitenplan: Leistungskatalog, Phasen, Firmen', 'Bauzeitenplan Leistungskatalog Phasen Firmen Vorlagen Gantt', ''],
     ['app:bautagebuch', 'Apps', 'Bautagebuch: Bericht-Assistent', 'Bautagebuch Bericht Assistent Schritte', ''],
     ['app:honorar', 'Apps', 'Honorar: Rechnungen & Vertrag', 'Honorar Rechnungsnummer Zahlungsziel Texte Vertrag', ''],
   ];

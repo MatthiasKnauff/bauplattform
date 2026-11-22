@@ -42,7 +42,7 @@ BLOECKE = [   # key, Bereich, Titel, enthält, stufen
     ("baudaten", "Apps", "Baudaten: Preise, Index & Löhne", "Regionalfaktor, Baupreisindex, Verrechnungslöhne – sirAdos-Kataloge einlesen nur Administrator", 3),
     ("ava", "Apps", "Ausschreibung: Abrechnung", "Nachträge, Mengenüberschreitung, Bedarfspositionen", 3),
     ("plaene", "Apps", "Pläne: Plannummerierung & Gewerke", "Aufbau der Plannamen, Planarten, Kennungen, Plotauftrag", 3),
-    ("gantt", "Apps", "Bauzeitenplan: Kataloge, Phasen, Firmen", "Leistungskatalog, Phasen, Firmen- und Bezugsvorgaben für alle Pläne", 3),
+    ("gantt", "Apps", "Bauzeitenplan: Leistungskatalog, Phasen, Firmen", "Leistungskatalog für alle Pläne – Dauern, Abhängigkeiten, Lern-Vorschläge –, Phasen, Firmen- und Bezugsvorgaben", 3),
     ("aufgaben", "Apps", "Aufgaben: Erinnerungen & To-do-Regeln", "Erinnerungsmails (Vorlauf, Uhrzeit) und die Regeln der automatischen To-dos fürs Büro", 3),
 ]
 # Apps je Rolle (beschlossen am 17.11.2026): an (nichts eingetragen) · nur lesen („app.<key>.lesen“) · aus („app.<key>.aus“) –

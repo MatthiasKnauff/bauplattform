@@ -258,6 +258,8 @@ function renderChart() {
         h += `<g class="sg" data-seg="${k}"><rect class="b" data-seg="${k}" x="${sg.x1}" y="${y + 6}" width="${w}" height="12"${bst}/>`
           + (f > 0 ? `<rect class="p" x="${sg.x1}" y="${y + 10}" width="${w * f}" height="4"${pst}/>` : '') + '</g>';
       });
+      if (t.ueber && t.ueber.at) { const w = t.ueber.at * 7 / 5 * ppd; px = g.x2 + w;   // K7: fertig später – rote Verlängerung hinter dem geplanten Ende
+        h += `<rect class="ue" x="${g.x2}" y="${y + 9}" width="${w}" height="6"><title>Fertig ${t.ueber.at} AT später als geplant – ${esc((typeof UEBER_GRUND !== 'undefined' ? UEBER_GRUND : {})[t.ueber.grund] || t.ueber.grund)}</title></rect>`; }
       const sp = g.segs.length > 1;   // unterbrochen: jedes Abschnittsende anfassbar, jeder Abschnitt verknüpfbar (13.11.2026)
       bars += `<g class="bar${cr ? ' crit' : ''}${sp ? ' split' : ''}" data-i="${i}">${h}`
         + (sp ? g.segs.map((sg, k) => `<rect class="lh" data-seg="${k}" x="${sg.x1 - 3}" y="${y + 4}" width="7" height="16"/><rect class="rh" data-seg="${k}" x="${sg.x2 - 5}" y="${y + 4}" width="8" height="16"/>`

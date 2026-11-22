@@ -313,3 +313,7 @@ tr.bp-paar>td:first-child{box-shadow:inset 3px 0 0 var(--af,#2f6fb3)}
 
 /* Kette: folgt einer Quelle (Gebäudemodell, Türliste, Planungsassistent) – gelöst = von Hand geändert (LV, Bauzeitenplan; 22.11.2026) */
 i.bp-kette{font-style:normal;margin:0 .25rem 0 0;font-size:.8rem;cursor:pointer;flex:none}i.bp-kette.los{filter:grayscale(1);opacity:.45}
+
+/* Spaltenbreiten ziehen (bp/spaltbreite.js) */
+.sb-griff{position:absolute;top:0;right:-4px;width:9px;height:100%;cursor:col-resize;z-index:2;border-radius:calc(2px*var(--rk,1))}.sb-griff:hover,body.sb-zieh .sb-griff{background:color-mix(in srgb,var(--y) 45%,transparent)}body.sb-zieh{cursor:col-resize;user-select:none}
+table.sb-fest td{overflow:hidden;text-overflow:ellipsis}   /* Klasse statt Selektor auf das style-Attribut: der machte bei jeder Breitenänderung der Tabelle alle Zellen ungültig (17.11.2026) */

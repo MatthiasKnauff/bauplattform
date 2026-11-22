@@ -118,7 +118,7 @@ function auWertR(r) { const x = r.x, ti = r.typ === 'ti'; return [`${x.oz || ''}
 function auSpaltenStil() { return AUAUS.size ? `<style>${[...AUAUS].map((n) => `table.au-t .sp${n}`).join(',')}{display:none}</style>` : ''; }
 /* Spaltenreihenfolge (wie in Excel/Explorer): Spaltenkopf ziehen oder im Spalten-Menü verschieben – „Bezeichnung“ bleibt vorn */
 let AUORD = (() => { const o = (LS.get('au.ord', []) || []).filter((n) => n > 0 && n < AU_AKT); AU_SP.forEach((_, n) => { if (n && n < AU_AKT && !o.includes(n)) { if (n === 9 && o.includes(5)) o.splice(o.indexOf(5) + 1, 0, n); else o.push(n); } }); return [0, ...o, AU_AKT]; })();   // Bezeichnung vorn, Knöpfe hinten
-function auOrdSetzen(o) { AUORD = [0, ...o.filter((n) => n > 0 && n < AU_AKT), AU_AKT]; LS.set('au.ord', AUORD.slice(1, -1)); const sb = LS.get('sb', {}); if (sb['auftraege:tree.au-t']) { delete sb['auftraege:tree.au-t']; LS.set('sb', sb); delete SB['auftraege:tree.au-t']; } render(); }
+function auOrdSetzen(o) { AUORD = [0, ...o.filter((n) => n > 0 && n < AU_AKT), AU_AKT]; LS.set('au.ord', AUORD.slice(1, -1)); bpSpaltBreite.vergessen('auftraege:tree.au-t', LS); render(); }
 function auSpaltenWahl(x, y) {   // kleines Menü an der Maus bzw. am Knopf: Häkchen = sichtbar, ⋮⋮ ziehen = Reihenfolge
   document.querySelectorAll('.au-spm').forEach((m) => m.remove());
   const m = document.createElement('div'); m.className = 'au-spm'; m.setAttribute('role', 'menu');

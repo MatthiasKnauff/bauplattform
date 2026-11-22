@@ -14,7 +14,7 @@ export async function bautypenPruefen(browser, repo) {
   const alles = () => ({ modell: { bauteilliste: S.L }, rev: 3 + S.put.length, staende: [], links: [] });
   await q.route('http://typ.test/**', async (r) => {
     const u = new URL(r.request().url()).pathname, J = (o) => r.fulfill({ contentType: 'application/json', body: JSON.stringify(o) });
-    if (u === '/seite') return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><body><div id="feld"></div><div id="det"></div><script>${fs.readFileSync(R + 'bp.js', 'utf8')}</script><script>${fs.readFileSync(R + 'baum.js', 'utf8')}</script><script>${fs.readFileSync(R + 'gruppen.js', 'utf8')}</script><script>${fs.readFileSync(R + 'eigenschaften.js', 'utf8')}</script><script>${fs.readFileSync(R + 'bauteile.js', 'utf8')}</script>
+    if (u === '/seite') return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><style>${fs.readFileSync(R + 'bp.css', 'utf8')}</style><body><div id="feld"></div><div id="det"></div><script>${fs.readFileSync(R + 'bp.js', 'utf8')}</script><script>${fs.readFileSync(R + 'baum.js', 'utf8')}</script><script>${fs.readFileSync(R + 'gruppen.js', 'utf8')}</script><script>${fs.readFileSync(R + 'spaltbreite.js', 'utf8')}</script><script>${fs.readFileSync(R + 'eigenschaften.js', 'utf8')}</script><script>${fs.readFileSync(R + 'bauteile.js', 'utf8')}</script>
       <script>window.bpEingabe = async () => 'Sonderwand'; window.bpHinweis = () => {}; window.U = []; window.rueckgaengig = (t, z) => U.push([t, z]); window.BPHead = { projekt: { name: 'A100' }, conf: { apps: [] }, appUrl: () => '' };
       window.BT = bpBauteile.mount(document.getElementById('feld'), 7, { baum: true, artJe: (ids, kg) => { window.AJ = [ids, kg]; }, e3: () => [7] }); BT.details(document.getElementById('det'))</script>` });
     if (u.endsWith('/typen')) { const d = r.request().postDataJSON(); S.put.push(d);
@@ -34,6 +34,13 @@ export async function bautypenPruefen(browser, repo) {
     await q.goto('http://typ.test/seite'); await q.waitForSelector('.bt-baum [data-btz="a"]');
     const g = await q.evaluate(() => ({ chips: [...document.querySelectorAll('.bt-grp [data-bpgk]')].map((c) => c.dataset.bpgk).join(), k: [...document.querySelectorAll('.bt-baum tr.bt-bh b')].map((b) => b.textContent) }));
     pruef(g.chips === 'typ' && g.k.join('|') === 'AW-01 · Außenwand 24|AW-02', `Vorgabe: nach Typ gruppiert – ${JSON.stringify(g)}`);
+    // Spaltenbreite ziehen wie im LV (bp/spaltbreite.js, 22.11.2026)
+    const th = await q.$('.bt-baum th .sb-griff'); const bx = th && await th.boundingBox();
+    if (!bx) fehler.push('Spaltenbreite: kein Griff am Spaltenkopf'); else {
+      const w0 = await q.evaluate(() => document.querySelector('.bt-baum th').getBoundingClientRect().width);
+      await q.mouse.move(bx.x + 4, bx.y + 5); await q.mouse.down(); await q.mouse.move(bx.x + 84, bx.y + 5, { steps: 4 }); await q.mouse.up();
+      const r = await q.evaluate(() => ({ w: document.querySelector('.bt-baum th').getBoundingClientRect().width, m: JSON.parse(localStorage.getItem('bp.sb') || '{}').bauteile }));
+      pruef(r.w > w0 + 50 && r.m, `Spaltenbreite gezogen und gemerkt: ${w0} → ${r.w}, ${JSON.stringify(r.m)}`); }
     await q.dblclick('.bt-baum tr[data-btz="a"] .bt-tn'); await q.waitForSelector('.bt-pop .bt-typl', { state: 'attached', timeout: 5000 });
     const p = await q.evaluate(() => ({ titel: document.querySelector('.bt-pop .bp-eigk b').textContent, reiter: [...document.querySelectorAll('.bt-pop [data-btpu]')].map((b) => b.textContent) }));
     pruef(/Typ AW-01 · Außenwand 24/.test(p.titel) && p.reiter[1] === 'Typ AW-01 (2)', `Fenster: Typ im Titel, Reiter „Typ AW-01 (2)“ – ${JSON.stringify(p)}`);

@@ -804,6 +804,7 @@
       el.innerHTML = `<div class="bt-bl">${an}${rwl}${zl}${tw}${meldung}${mwl}<div class="bt-w"></div>${grp}<div class="bt-bw"><table class="bp-baum bt-baum${leer ? ' bt-gerust' : ''}"><thead><tr><th>Bauteil</th><th class="r">Menge</th><th>Antwort</th><th>Aufbau</th><th class="r" title="U-Wert aus dem gewählten Aufbau, W/(m²K) – Farbe nach GModG (Neubau: Referenzgebäude, Bestand: Anlage 7)">U</th><th class="c" title="wird berechnet">€</th></tr></thead><tbody>${body}</tbody></table></div>
         <input type="file" accept=".ifc,.dxf,.pdf" data-btdatei hidden></div>`;
       el.querySelector('.bt-bw').scrollTop = y;
+      if (window.bpSpaltBreite && !leer) bpSpaltBreite.an(el.querySelector('.bt-baum'), 'bauteile');   // Spaltenbreiten ziehen wie im LV (22.11.2026)
       const gb = el.querySelector('.bt-grp');
       if (gb) bpGruppen.an(gb, { lies: () => Z.grp, namen: GRUPPEN, setze: (G2) => { Z.grp = G2.length ? G2 : ['typ']; try { localStorage.setItem('bp.bt.grp2', JSON.stringify(Z.grp)); } catch { /* egal */ } baumZeichnen(); } });
     }

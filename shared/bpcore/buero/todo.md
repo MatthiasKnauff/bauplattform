@@ -254,6 +254,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Spaltenbreite ziehen als gemeinsamer Baustein (LV, Bauteile)~~ (22.11.2026)
 - ~~Gebäudemodell neu, Etappe 3: Kurzwahl der Aufbauten je Büro~~ (22.11.2026)
 - ~~Art einzelner Bauteile im 3D ändern (Außenwand ↔ Innenwand, Decke ↔ Dach ↔ Bodenplatte), Klick im 3D wählt nur das Bauteil~~ (22.11.2026)
 - ~~Gebäudemodell neu, Etappe 2: Bauteile nach Typ gruppiert, Eigenschaften-Fenster mit Typ – neuer Typ, zusammenlegen, umbenennen, mit Rückgängig~~ (22.11.2026)

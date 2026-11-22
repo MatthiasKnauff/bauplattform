@@ -1,5 +1,13 @@
 [
  {
+  "id": "bt-spaltbreite",
+  "datum": "2026-11-22",
+  "app": "gebaeudemodell",
+  "titel": "Spaltenbreite der Bauteile",
+  "text": "Die Spalten der Bauteil-Tabelle lassen sich jetzt wie im LV am Spaltenkopf breiter oder schmaler ziehen. Doppelklick auf den Rand setzt zurück.",
+  "ziel": ".bt-baum thead"
+ },
+ {
   "id": "gm-artje",
   "datum": "2026-11-22",
   "app": "gebaeudemodell",

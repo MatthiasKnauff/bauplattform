@@ -309,8 +309,8 @@ def test_karte_in_der_liste_und_pdfjs():
     gleich((r.status_code, r.data, "max-age" in r.headers.get("Cache-Control", "")), (200, jpg, True), "Vorschaubild abrufbar und zwischengespeichert")
     p = cl.get("/static/pdfjs/pdf.mjs")
     pruefe(p.status_code in (200, 404), "pdf.js-Adresse beantwortet")
-    if os.path.isdir(os.path.join(HIER, "..", "plattform", "static", "vendor", "pdfjs")):
-        pruefe(p.status_code == 200 and "javascript" in p.headers.get("Content-Type", ""), "pdf.js aus plattform/static/vendor")
+    if os.path.isdir(os.path.join(HIER, "..", "shared", "bpcore", "vendor", "pdfjs")):
+        pruefe(p.status_code == 200 and "javascript" in p.headers.get("Content-Type", ""), "pdf.js aus dem Kern")
     gleich(cl.get("/static/pdfjs/../app.py").status_code, 404, "sonst nichts")
 
 

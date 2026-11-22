@@ -38,7 +38,7 @@ export async function bauherrenPortalPruefen(browser, repo) {
       if (pf.startsWith('/api/paket/7/7%3Aplan') || pf.startsWith('/api/paket/7/7:plan')) return r.fulfill({ contentType: 'application/json', body: JSON.stringify({ titel: 'Grundriss OG', stand: tag(-3), daten: { dateien: [{ nr: 0, name: 'Grundriss OG B.pdf', mime: 'application/pdf' }, { nr: 1, name: 'vorschau-0.jpg', mime: 'image/jpeg' }] } }) });
       if (pf.startsWith('/api/paket/')) return r.fulfill({ contentType: 'application/json', body: JSON.stringify({ titel: 'Bauzeitenplan', stand: tag(-2), daten: { zeitplan: ZP, zeilen: [['Leistung', 'Beginn', 'Ende']] } }) });
       if (pf.startsWith('/api/datei/')) return /plan/.test(decodeURIComponent(pf)) && /\/0$/.test(pf) ? r.fulfill({ contentType: 'application/pdf', body: PDF }) : r.fulfill({ contentType: 'image/png', body: PNG });
-      if (pf.startsWith('/static/pdfjs/')) return r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(path.join(repo, 'plattform/static/vendor/pdfjs', pf.slice(14))) });
+      if (pf.startsWith('/static/pdfjs/')) return r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(path.join(repo, 'shared/bpcore/vendor/pdfjs', pf.slice(14))) });
       if (pf.startsWith('/static/')) { const f = path.join(ST, pf.slice(8)); return fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); }
       if (pf === '/api/ich') return r.fulfill({ contentType: 'application/json', body: JSON.stringify(ICH) });
       return r.fulfill({ contentType: 'application/json', body: '[]' });

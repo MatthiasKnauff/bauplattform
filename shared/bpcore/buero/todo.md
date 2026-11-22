@@ -252,6 +252,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~pdf.js nur noch einmal im Repo (Kern, `bp/pdfjs/`) statt je in Plattform und Bautagebuch – 1,9 MB weniger~~ (22.11.2026)
 - ~~Bauzeitenplan: Änderungssätze im Reiter „Fragen“ („Malerarbeiten 5 Tage länger“, „… auf 8 AT“, „… 1 Woche später“, „A nach B“, „… 50 % fertig“) mit Vorschau~~ (22.11.2026)
 - ~~Bauzeitenplan/Leistungskatalog: „↺ Zurücksetzen …“ mit Vorschau in drei Ebenen (Katalog → ab Werk, Gewerke & Firmen → Vorgabe)~~ (22.11.2026)
 - ~~Gebäudemodell: Räume als farbige, halb durchsichtige Kisten im 3D (R-B)~~ (22.11.2026)

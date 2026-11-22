@@ -2452,9 +2452,10 @@
   function pdfjs() {
     if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
     if (pdfjsP) return pdfjsP;
-    /* pdf.js als Modul (vendor/pdfjs/pdf.mjs, legacy-Fassung; Workflow „pdf.js aktualisieren“) */
-    const tryLoad = (base) => import(new URL(base + 'pdf.mjs', document.baseURI).href).then((m) => { m.GlobalWorkerOptions.workerSrc = new URL(base + 'pdf.worker.mjs', document.baseURI).href; window.pdfjsLib = m; return m; });
-    pdfjsP = tryLoad('static/vendor/pdfjs/').catch(() => tryLoad('vendor/pdfjs/')).catch(() => { pdfjsP = null; throw new Error('PDF-Anzeige nicht verfügbar'); });
+    /* pdf.js als Modul – EINE Fassung im Kern (shared/bpcore/vendor/pdfjs, legacy; Workflow „pdf.js aktualisieren“), in jeder App unter bp/pdfjs/ */
+    const [b0, vq] = window.BP_HEAD_BASIS, base = new URL(b0 + 'pdfjs/', document.baseURI).href;
+    pdfjsP = import(base + 'pdf.mjs' + vq).then((m) => { m.GlobalWorkerOptions.workerSrc = base + 'pdf.worker.mjs' + vq; window.pdfjsLib = m; return m; })
+      .catch(() => { pdfjsP = null; throw new Error('PDF-Anzeige nicht verfügbar'); });
     return pdfjsP;
   }
   let gv = null;

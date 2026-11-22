@@ -10,9 +10,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const PDF = '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF';
 
-for (const app of ['plattform', 'bautagebuch']) {
-  test(`pdf.js in ${app}: Seite, Ansicht, Punkte umrechnen, Formularfelder`, async () => {
-    const dir = path.join(ROOT, app, 'static/vendor/pdfjs');
+for (const app of ['shared/bpcore']) {
+  test(`pdf.js im Kern: Seite, Ansicht, Punkte umrechnen, Formularfelder`, async () => {
+    const dir = path.join(ROOT, app, 'vendor/pdfjs');
     const warn = console.warn; console.warn = () => {};
     try {
       const lib = await import(pathToFileURL(path.join(dir, 'pdf.mjs')).href);

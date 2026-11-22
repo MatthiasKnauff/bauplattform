@@ -10,7 +10,7 @@ export async function gastPdfPruefen(browser, repo) {
   await p.route('http://g.test/**', (r) => { const pf = new URL(r.request().url()).pathname; geholt.push(pf);
     if (pf === '/gast/abc') return r.fulfill({ contentType: 'text/html', body: '<!doctype html><html><head><meta charset="utf-8"><base href="/"></head><body><script src="bp/head.js"></script></body></html>' });
     if (pf.startsWith('/bp/') && fs.existsSync(path.join(KASTEN, pf.slice(4)))) return r.fulfill({ contentType: pf.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(path.join(KASTEN, pf.slice(4))) });
-    if (pf.startsWith('/static/vendor/pdfjs/')) return r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(path.join(repo, 'plattform', pf)) });
+    if (pf.startsWith('/bp/pdfjs/')) return r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(path.join(repo, 'shared/bpcore/vendor/pdfjs', pf.slice(10))) });
     return r.fulfill({ status: 404, body: '' }); });
   try {
     await p.goto('http://g.test/gast/abc'); await p.waitForFunction(() => window.BPHead && BPHead.pdfLib, null, { timeout: 8000 });

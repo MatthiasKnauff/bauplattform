@@ -36,6 +36,7 @@ from . import logo as bplogo
 from . import abwesenheit, ablage, ausschreibung, ablage_einst, bauherren, begriffe, dateiwahl, ki_stufe, meldungen, handyus, ruegesuche, skizze_routen, layout, modell, neuigkeiten, projektwahl, stempel, stempel_druck, todo_routen, unterschrift, teilen, versand, wiki
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
+PDFJS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vendor", "pdfjs")   # pdf.js (Workflow „pdf.js aktualisieren“)
 BAUKASTEN = ("bp.js", "undo.js", "seite.js", "eigenschaften.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "gruppen.js", "spaltbreite.js", "druck.js", "leiste.js")   # Reihenfolge im Bündel /bp/baukasten.js
 
 
@@ -365,6 +366,14 @@ def blueprint(get_user=None):
             W = layout.wahl(c, b)
             W["werte"] = {v["id"]: layout.optionen(c, b, v["id"]) for v in W["layouts"]}
         return jsonify(W)
+
+    @bp.get("/bp/pdfjs/<name>")
+    def bp_pdfjs(name):   # pdf.js – eine Fassung für alle Apps (vendor/pdfjs im Kern, 22.11.2026; vorher je eine Kopie in Plattform und Bautagebuch)
+        if name not in ("pdf.mjs", "pdf.worker.mjs"):
+            return "Nicht gefunden", 404
+        r = send_from_directory(PDFJS, name, max_age=0, mimetype="text/javascript")
+        r.headers["Cache-Control"] = "no-cache"
+        return r.make_conditional(request)
 
     @bp.get("/bp/<name>")
     def asset(name):

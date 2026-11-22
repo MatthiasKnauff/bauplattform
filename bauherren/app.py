@@ -343,8 +343,8 @@ def statisch(name):
         r = send_from_directory(d, name, max_age=0, mimetype="text/javascript")
         r.headers["Cache-Control"] = "no-cache"
         return r
-    if name in ("pdfjs/pdf.mjs", "pdfjs/pdf.worker.mjs"):   # Pläne und PDFs im Portal ansehen (pdf.js aus plattform/static/vendor, im Image unter /app/plattform)
-        d = next((x for x in (os.path.join(HIER, "..", "plattform", "static", "vendor", "pdfjs"),) if os.path.isfile(os.path.join(x, name[6:]))), None)
+    if name in ("pdfjs/pdf.mjs", "pdfjs/pdf.worker.mjs"):   # Pläne und PDFs im Portal ansehen (pdf.js aus dem Kern: bpcore/vendor/pdfjs)
+        d = next((x for x in (os.path.join(HIER, "..", "bpcore", "vendor", "pdfjs"), os.path.join(HIER, "..", "shared", "bpcore", "vendor", "pdfjs")) if os.path.isfile(os.path.join(x, name[6:]))), None)
         if not d:
             abort(404)
         r = send_from_directory(d, name[6:], max_age=86400, mimetype="text/javascript")

@@ -81,8 +81,6 @@
 
   /* ---------- Plan erzeugen ---------- */
   const mkT = (o) => ({ uid: 0, name: '', dur: 0, cons: null, pct: 0, res: '', gw: '', color: '', notes: '', lvl: 0, preds: [], collapsed: false, cat: '', blk: -1, ph: '', ...o });
-  // Firmen-Vorgabe aus dem Leistungskatalog: je Leistung, sonst Stammfirma des Gewerks im Adressbuch
-  const firmFor = (id, gw) => (window.Library && window.Library.firmFor ? window.Library.firmFor(baseOf(id), gw) : { name: '', own: false });
   // Unternehmer bleibt leer, solange dem Gewerk im Projekt keine Firma zugeordnet ist (keine Vorbelegung aus dem Katalog)
   const firmaImProjekt = (gw) => { const tr = gw && P && P.trades && P.trades[gw]; const f = tr && tr.firm && typeof firmById === 'function' ? firmById(tr.firm) : null; return f ? f.name : ''; };
   function taskOf(id, cfg, blk, lvl) { const it = item(id, cfg); return mkT({ name: it.n, dur: dur(id, cfg), gw: it.gw, res: firmaImProjekt(it.gw), notes: it.info || '', cat: id, blk, lvl, ...(it.kl ? { kl: it.kl.slice(0, 2) } : {}) }); }
@@ -228,7 +226,7 @@
     let pos = e + 1;
     for (let j = g + 1; j <= e; j++) { const t = T[j]; if (t.lvl === L && t.cat && B(t.cat) && ORDf(t.cat) > ORDf(id)) { pos = j; break; } }
     const t = taskOf(id, cfg, blk, L); t.uid = P.nextUid++;
-    // Firma aus „Gewerke & Firmen“ übernehmen, sonst Firma/Unternehmer aus dem Leistungskatalog
+    // Firma aus „Gewerke & Firmen“ des Projekts (der Katalog kennt keine Firmen – 22.11.2026)
     const it = item(id, cfg), tr = (P.trades && P.trades[t.gw]) || {};
     const f = tr.firm && typeof firmById === 'function' ? firmById(tr.firm) : null;
     // nur eine im Projekt zugeordnete Firma eintragen – sonst bleibt der Unternehmer leer

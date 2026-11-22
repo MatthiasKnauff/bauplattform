@@ -1,5 +1,13 @@
 [
  {
+  "id": "katalog-ohne-firmen",
+  "datum": "2026-11-22",
+  "app": "gantt",
+  "titel": "Leistungskatalog ohne Firmen",
+  "text": "Im Leistungskatalog gibt es keine Spalte „Firma“ mehr, die eingetragenen Firmen sind gelöscht. Firmen gehören zum Projekt: Reiter „Gewerke & Firmen“, dort auch die Vorgabe je Gewerk für alle Projekte.",
+  "ziel": "#libView"
+ },
+ {
   "id": "gantt-fenster-standard",
   "datum": "2026-11-22",
   "app": "gantt",

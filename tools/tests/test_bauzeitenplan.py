@@ -352,11 +352,12 @@ def test_leistungskatalog_und_quellen(ctx):
     name = ctx.name("Leistung")
     p = neuer_plan(ctx.admin, ctx.name("Plan"), [leistung(1, name, 3, gw="Maler")])
     try:
-        neu = ctx.admin.uj(f"{G}/library", alt + [{"id": lid, "n": name, "ph": "rohbau", "gw": "Maler", "d": 4.4, "a": ["x1", ""], "sc": "bau"},
+        neu = ctx.admin.uj(f"{G}/library", alt + [{"id": lid, "n": name, "ph": "rohbau", "gw": "Maler", "d": 4.4, "a": ["x1", ""], "sc": "bau", "firm": "Firma X"},
                                                   {"n": "", "ph": "Ungültig!", "d": 0}])
         x = finde(neu, id=lid)
         pruefe(x, "Leistung fehlt nach dem Speichern")
         gleich((x["n"], x["ph"], x["gw"], x["d"], x["a"], x["sc"]), (name, "rohbau", "Maler", 4, ["x1"], "bau"), "bereinigte Leistung")
+        pruefe("firm" not in x, "keine Firma je Leistung im Katalog (22.11.2026)")
         y = neu[-1]
         gleich((y["n"], y["ph"], y["d"], y["sc"]), ("Leistung", "ausbau", 1, "we"), "Standardwerte für leere Leistung")
         pruefe(y["id"].startswith("L"), f"neue ID: {y['id']}")
@@ -381,9 +382,11 @@ def test_abschnitte_und_vorgaben(ctx):
         gleich([x for x in ph if x["k"] == k], [{"k": k, "n": "Testabschnitt", "own": True}], "Abschnitt einmal, ungültige verworfen")
         gleich(len(ph), len(ph0) + 1, "nur ein Abschnitt dazu")
         gleich(ctx.admin.gj(f"{G}/phases"), ph, "Abschnitte geladen wie gespeichert")
-        cf = ctx.admin.uj(f"{G}/catfirms", {**cf0, k: "firma-1", k + "_leer": ""})
-        gleich(cf.get(k), "firma-1", "Firma je Gewerk")
-        pruefe(k + "_leer" not in cf, "leere Zuordnung wird nicht gespeichert")
+        g = "gw~" + k
+        cf = ctx.admin.uj(f"{G}/catfirms", {**cf0, g: "firma-1", g + "_leer": "", "L" + k: "firma-2"})
+        gleich(cf.get(g), "firma-1", "Firma je Gewerk")
+        pruefe(g + "_leer" not in cf, "leere Zuordnung wird nicht gespeichert")
+        pruefe("L" + k not in cf, "keine Firma je Leistung mehr (22.11.2026)")
         cs = ctx.admin.uj(f"{G}/catscope", {**cs0, k: "bau", k + "_x": "irgendwas"})
         gleich(cs.get(k), "bau", "Bezug „Gebäude“")
         pruefe(k + "_x" not in cs, "ungültiger Bezug verworfen")

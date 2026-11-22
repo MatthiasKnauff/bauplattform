@@ -355,8 +355,8 @@ function updateResList(i) {
   if (!dl) { dl = document.createElement('datalist'); dl.id = 'resList'; document.body.appendChild(dl); }
   dl.innerHTML = firmOptions(P.tasks[i] ? P.tasks[i].gw : '');
 }
-// Alle anderen Firmenfelder (Katalog, Projekt-Firmen, Gewerke-Liste): Gewerk der Zeile ermitteln und die Liste danach ordnen
-const FIRM_LISTS = ['fvFirmList', 'fvFirmList2', 'firmSugList'];
+// Alle anderen Firmenfelder (Projekt-Firmen, Gewerke-Liste): Gewerk der Zeile ermitteln und die Liste danach ordnen
+const FIRM_LISTS = ['fvFirmList', 'firmSugList'];
 document.addEventListener('focusin', (e) => {
   const el = e.target; if (!el.matches || !el.matches('input[list]') || !FIRM_LISTS.includes(el.getAttribute('list'))) return;
   const tr = el.closest('tr');

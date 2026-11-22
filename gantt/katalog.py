@@ -165,7 +165,7 @@ def einbinden(app, *, store_get, store_put, store_put_roh, all_firms, clean_firm
         ok = lambda k: isinstance(k, str) and re.fullmatch(r"[\w~.-]{1,60}", k)
         daten = {"library": [clean_lib(x) for x in lst("library")[:5000]],   # wie beim Speichern geprüft
                  "phases": [{"k": x["k"], "n": str(x.get("n") or x["k"])[:120], "own": bool(x.get("own"))} for x in lst("phases")[:200] if isinstance(x, dict) and phase_key.match(str(x.get("k") or ""))],
-                 "catfirms": {k: str(v)[:200] for k, v in list(dic("catfirms").items())[:5000] if ok(k) and v},
+                 "catfirms": {k: str(v)[:200] for k, v in list(dic("catfirms").items())[:5000] if ok(k) and k.startswith("gw~") and v},   # nur je Gewerk
                  "catscope": {k: v for k, v in list(dic("catscope").items())[:5000] if ok(k) and v in ("bau", "we")},
                  "firmen": [clean_firm(x) for x in lst("firmen")[:5000]]}
         with db.tx() as c:

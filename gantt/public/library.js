@@ -98,17 +98,11 @@ function gwFirm(gw) {
   const g = gw.toLowerCase(), l = FIRMS.filter((f) => (f.gewerke || []).some((x) => x.toLowerCase() === g)).sort((a, b) => a.name.localeCompare(b.name, 'de'));
   return l.length ? l[0].name : '';
 }
-// Vorgabe für alle Projekte: eigene Angabe je Leistung, sonst Stammfirma des Gewerks
-function libFirmFor(id, gw) {
-  const own = (window.LIBRARY.find((x) => x.id === id) || {}).firm || CATFIRMS[id] || '';
-  return own ? { name: own, own: true } : { name: gwFirm(gw), own: false };
-}
 window.Library = {
-  firmFor: libFirmFor,
   async add(it) { if (!libDarf()) throw new Error('Den Leistungskatalog für alle Projekte pflegt der Administrator – die Leistung bleibt in diesem Plan.'); const x = libClean({ ...it, id: it.id || newLibId() }); await libSet([...window.LIBRARY, x], true); if (!$('#libView').hidden) renderLib(); return x; },
 };
 function libClean(x) {
-  return { id: x.id || newLibId(), n: String(x.n || 'Leistung'), ph: x.ph || 'ausbau', gw: x.gw || '', din: x.din || '', craft: x.craft || '', firm: x.firm || '',
+  return { id: x.id || newLibId(), n: String(x.n || 'Leistung'), ph: x.ph || 'ausbau', gw: x.gw || '', din: x.din || '', craft: x.craft || '',
     sc: x.sc === 'bau' || x.sc === 'gs' ? x.sc : 'we', ...(x.ms ? { ms: 1 } : {}), d: Math.max(1, Math.round(+x.d) || 1), a: x.a || [], b: x.b || [], rec: x.rec || [], info: x.info || '', src: x.src || '', from: x.from || '' };
 }
 // wahrscheinlicher Abschnitt zu Gewerk/Bezeichnung
@@ -133,7 +127,7 @@ function renderLib() {
   const box = $('#libView'); if (!box) return;
   const sc = box.querySelector('.fv-scroll'), st = sc ? sc.scrollTop : 0, sl = sc ? sc.scrollLeft : 0;   // Rollposition in beiden Richtungen merken – die Tabelle ist breiter als das Fenster
   const q = libQuery.trim().toLowerCase();
-  const hit = (x) => !q || [x.n, x.gw, x.din, x.craft, x.firm].join(' ').toLowerCase().includes(q);
+  const hit = (x) => !q || [x.n, x.gw, x.din, x.craft].join(' ').toLowerCase().includes(q);
   const L = window.LIBRARY, profs = CATALOG.profiles.filter((p) => p.k !== 'frei');
   /* ein Reiter (15.11.2026, Mock „Bauzeitenplan aufgeräumt“): Abschnitte als blaue Zwischenzeilen – umbenennen, ziehen, ＋ Leistung;
      Firmen im Projekt stehen unter „Gewerke & Firmen“, Stände & Verlauf oben in der Befehlsleiste */
@@ -145,8 +139,8 @@ function renderLib() {
     fv.querySelectorAll('[draggable]').forEach((x) => x.removeAttribute('draggable')); };
   h += `<div class="fv-head"><div><h3>Leistungskatalog</h3><span>${libPhases().length} Abschnitte · ${L.length} eigene Leistungen · gilt für alle neuen Planungen (Planungsassistent)</span></div>
     <input id="libQ" class="lv-q" placeholder="Suchen …" value="${esc(libQuery)}">
-    <span class="fv-hint"><b>Firma</b>: Vorgabe für alle neuen Planungen – grau = Stammfirma des Gewerks aus dem Adressbuch, eigener Eintrag gilt nur für diese Leistung. Eigene Leistungen erscheinen im Planungsassistenten im gewählten Abschnitt – unter „Weitere Leistungen“ oder, wenn unter <b>Vorausgewählt bei</b> die Projektart markiert ist, dort gleich angekreuzt. Gewerk, Unternehmer:in und Firma werden beim Einfügen wie im Reiter „Gewerke &amp; Firmen“ übernommen. <b>Abschnitte</b>: Namen in der blauen Zeile überschreiben, am ⠿ ziehen, oben „＋ Abschnitt“.</span></div>
-    <div class="fv-scroll"><table class="fv-t lv-t" data-tk="lv-alle"><thead><tr><th style="min-width:250px">Leistung</th><th>Abschnitt</th><th style="min-width:120px">Gewerk</th><th>DIN</th><th style="min-width:140px" title="Rolle der ausführenden Firma oder Planer:in, z. B. Tragwerksplaner, Rohbauer">Fachrichtung</th><th style="min-width:140px">Firma</th><th>Bezug</th><th class="num">AT</th><th style="min-width:170px">Folgt auf</th><th style="min-width:150px">Muss fertig sein vor</th><th style="min-width:130px" title="Bei welchen Projektarten der Planungsassistent diese Leistung von sich aus ankreuzt. Symbol anklicken = ein/aus. Bei allen anderen Projektarten steht sie zur Auswahl, ist aber nicht angekreuzt.">Vorausgewählt bei</th><th></th></tr></thead><tbody>`;
+    <span class="fv-hint">Firmen stehen nicht im Katalog: sie gehören zum Projekt (Reiter „Gewerke &amp; Firmen“, dort auch die Vorgabe je Gewerk für alle Projekte). Eigene Leistungen erscheinen im Planungsassistenten im gewählten Abschnitt – unter „Weitere Leistungen“ oder, wenn unter <b>Vorausgewählt bei</b> die Projektart markiert ist, dort gleich angekreuzt. Beim Einfügen bekommt die Leistung die Firma, die ihr Gewerk im Projekt hat. <b>Abschnitte</b>: Namen in der blauen Zeile überschreiben, am ⠿ ziehen, oben „＋ Abschnitt“.</span></div>
+    <div class="fv-scroll"><table class="fv-t lv-t" data-tk="lv-alle"><thead><tr><th style="min-width:250px">Leistung</th><th>Abschnitt</th><th style="min-width:120px">Gewerk</th><th>DIN</th><th style="min-width:140px" title="Rolle der ausführenden Firma oder Planer:in, z. B. Tragwerksplaner, Rohbauer">Fachrichtung</th><th>Bezug</th><th class="num">AT</th><th style="min-width:170px">Folgt auf</th><th style="min-width:150px">Muss fertig sein vor</th><th style="min-width:130px" title="Bei welchen Projektarten der Planungsassistent diese Leistung von sich aus ankreuzt. Symbol anklicken = ein/aus. Bei allen anderen Projektarten steht sie zur Auswahl, ist aber nicht angekreuzt.">Vorausgewählt bei</th><th></th></tr></thead><tbody>`;
   let shown = 0;
   for (const [phi, ph] of libPhases().entries()) {
     const own = L.filter((x) => x.ph === ph.k && hit(x));
@@ -163,7 +157,6 @@ function renderLib() {
         <td><input data-k="gw" list="lvGwList" value="${esc(x.gw)}"></td>
         <td><input data-k="din" list="fvDinList2" value="${esc(x.din)}" title="${esc(dt || 'ATV DIN-Nummer')}" style="min-width:70px"></td>
         <td><input data-k="craft" value="${esc(x.craft)}" placeholder="${esc((typeof CRAFT !== 'undefined' && CRAFT[x.gw]) || '')}"></td>
-        <td><input data-k="firm" list="fvFirmList2" value="${esc(x.firm)}" placeholder="${esc(gwFirm(x.gw) ? gwFirm(x.gw) + ' (Gewerk)' : 'Firma wählen')}" class="${x.firm ? 'lv-fown' : ''}"></td>
         <td><select data-k="sc"><option value="we"${x.sc === 'we' && !x.ms ? ' selected' : ''}>je Einheit</option><option value="bau"${x.sc === 'bau' && !x.ms ? ' selected' : ''}>Gebäude</option><option value="gs"${x.sc === 'gs' && !x.ms ? ' selected' : ''}>je Geschoss</option><option value="ms"${x.ms ? ' selected' : ''}>◆ Meilenstein</option></select></td>
         <td>${x.ms ? '<span class="lv-ms" title="Meilenstein – ohne Dauer">◆</span>' : `<input data-k="d" type="number" min="1" max="999" value="${x.d}" class="lv-d">`}</td>
         <td><select data-k="a"><option value="">automatisch – Ende des Abschnitts</option>${libPredOpts((x.a || [])[0], x.id)}</select></td>
@@ -174,7 +167,7 @@ function renderLib() {
     }
     for (const i of std) {
       h += `<tr class="lv-std"><td><div class="lv-n"><span class="gwdot" style="background:${gwColor(i.gw) || '#9e9e9e'}"></span><span>${esc(i.n)}</span></div></td><td>${esc(ph.n.split(' (')[0])}</td><td>${esc(i.gw)}</td><td>${esc(i.din || '')}</td>
-        <td>${esc((typeof CRAFT !== 'undefined' && CRAFT[i.gw]) || '')}</td><td><input data-sfirm="${i.id}" data-gw="${esc(i.gw)}" list="fvFirmList2" value="${esc(CATFIRMS[i.id] || '')}" placeholder="${esc(gwFirm(i.gw) ? gwFirm(i.gw) + ' (Gewerk)' : '')}" class="${CATFIRMS[i.id] ? 'lv-fown' : ''}"></td><td><select data-sscope="${i.id}" class="${stdScope(i) !== i.sc ? 'lv-fown' : ''}" title="Vorgabe für neue Planungen. Standard: ${i.sc === 'bau' ? 'Gebäude' : 'je Einheit'}. In bestehenden Plänen im Planungsassistenten je Projekt umstellbar."><option value="we"${stdScope(i) === 'we' ? ' selected' : ''}>je Einheit</option><option value="bau"${stdScope(i) === 'bau' ? ' selected' : ''}>Gebäude</option></select></td><td class="num">${i.ms ? '◆' : i.d}</td><td colspan="3" class="lv-stdh">Standardkatalog</td>
+        <td>${esc((typeof CRAFT !== 'undefined' && CRAFT[i.gw]) || '')}</td><td><select data-sscope="${i.id}" class="${stdScope(i) !== i.sc ? 'lv-fown' : ''}" title="Vorgabe für neue Planungen. Standard: ${i.sc === 'bau' ? 'Gebäude' : 'je Einheit'}. In bestehenden Plänen im Planungsassistenten je Projekt umstellbar."><option value="we"${stdScope(i) === 'we' ? ' selected' : ''}>je Einheit</option><option value="bau"${stdScope(i) === 'bau' ? ' selected' : ''}>Gebäude</option></select></td><td class="num">${i.ms ? '◆' : i.d}</td><td colspan="3" class="lv-stdh">Standardkatalog</td>
         <td class="lv-act"><button class="fv-x" data-lcopy="${i.id}" title="Als eigene Leistung kopieren und anpassen">⧉ kopieren</button></td></tr>`;
     }
   }
@@ -184,7 +177,7 @@ function renderLib() {
 }
 function libLists() {
   return `<datalist id="lvGwList">${AssistCore.gewerke().map((g) => `<option value="${esc(g)}">`).join('')}</datalist>
-    <datalist id="fvFirmList2">${(typeof FIRMS !== 'undefined' ? FIRMS : []).map((f) => `<option value="${esc(f.name)}">`).join('')}</datalist>
+
     <datalist id="fvDinList2">${(window.DIN_ATV || []).map((x) => `<option value="${x[0]}">${esc(x[1])}</option>`).join('')}</datalist>`;
 }
 function libAfter(box, st, sl = 0) {
@@ -192,13 +185,6 @@ function libAfter(box, st, sl = 0) {
   const sc2 = box.querySelector('.fv-scroll'); if (sc2) { sc2.scrollTop = st; sc2.scrollLeft = sl; }
   if (libFocus) { const el = box.querySelector(libFocus); if (el) { el.focus(); if (el.select) el.select(); } libFocus = null; }
   document.querySelectorAll('[data-act="libKlapp"]').forEach((b) => { b.classList.toggle('on', libEk > 0); b.title = ['Alles offen', 'Nur eigene Leistungen (Standard ausgeblendet)', 'Nur Abschnitte'][libEk] + ' – Klick: ' + ['nur eigene Leistungen', 'nur Abschnitte', 'alles offen'][libEk]; });
-}
-// Firma ins Adressbuch aufnehmen bzw. Gewerk dort ergänzen
-function libBook(name, gw) {
-  if (!name || typeof FIRMS === 'undefined') return;
-  let f = firmByName(name);
-  if (!f) { FIRMS.push({ id: newFirmId(), name, gewerke: gw ? [gw] : [], contact: '', phone: '', mobile: '', mail: '', address: '', note: '' }); saveFirmsSoon(); }
-  else if (gw && !(f.gewerke || []).includes(gw)) { f.gewerke = [...(f.gewerke || []), gw]; saveFirmsSoon(); }
 }
 const libUpd = (id, f) => libSet(window.LIBRARY.map((x) => (x.id === id ? { ...x, ...f } : x)));
 function libNew(ph = 'ausbau', base) {
@@ -387,7 +373,6 @@ $('#libView').addEventListener('change', (e) => {
     toast(`„${i.n}“: neue Planungen ${t.value === 'bau' ? 'einmal für das Gebäude' : 'je Einheit / Wohnung'}.`);
     return;
   }
-  if (t.dataset.sfirm) { const v = t.value.trim(); libBook(v, (CATALOG.items.find((i) => i.id === t.dataset.sfirm) || {}).gw); if (v) CATFIRMS[t.dataset.sfirm] = v; else delete CATFIRMS[t.dataset.sfirm]; CATFIRMS = { ...CATFIRMS }; saveCatFirms(); if (window.AssistCore) AssistCore.notifySoon(); renderLib(); return; }
   const tr = t.closest('tr[data-lid]'); if (!tr || !t.dataset.k) return;
   const id = tr.dataset.lid, k = t.dataset.k, x = window.LIBRARY.find((y) => y.id === id); if (!x) return;
   let v = t.value; const f = {};
@@ -397,7 +382,6 @@ $('#libView').addEventListener('change', (e) => {
   if (typeof v === 'string') v = v.trim();
   f[k] = v;
   if (k === 'gw' && v) { gwColor(v); if (!x.din) f.din = libDinFor(v, x.n); }
-  if (k === 'firm' && v) libBook(v, x.gw);
   if (k === 'n' && v && !x.gw) { const s = AssistCore.dinSuggest(v)[0]; if (s) { f.gw = s.gw; f.din = x.din || s.din; gwColor(s.gw); } }
   libUpd(id, f); renderLib();
 });
@@ -468,7 +452,6 @@ function libToPlan(id) {
     if (st.pres[id]) { toast(`„${x.n}“ ist schon im Plan.`); return; }
     if (AssistCore.toggle(id, true) !== false) toast(`„${x.n}“ in „${libPhName(x.ph)}“ eingefügt und verknüpft.`);
   } else if (AssistCore.insertSingle(id, P.assist || { type: 'frei' }) !== false) {
-    const t = P.tasks.find((y) => y.name === x.n && !y.res && x.firm); if (t) t.res = x.firm;
     toast(`„${x.n}“ an der markierten Zeile eingefügt.`);
   }
 }
@@ -623,7 +606,7 @@ document.addEventListener('mouseover', (e) => { const h = e.target.closest && e.
 
 /* ---------- Sichern: benannte Stände, Vergleich, Zurückholen in Teilen, Datei (Server: gantt/katalog.py) ---------- */
 const KST_TEILE = [['leistungen', 'Leistungen', 'eigene Leistungen mit Dauer, Reihenfolge, Vorauswahl', true], ['abschnitte', 'Abschnitte', 'Namen und Reihenfolge', true],
-  ['vorgaben', 'Firmen-Vorgaben', 'Firma je Leistung und Gewerk, Bezug', true], ['firmen', 'Firmen im Adressbuch', 'Kontaktdaten – gelten für alle Apps; geändert oder wieder angelegt, nie gelöscht', false]];
+  ['vorgaben', 'Firmen-Vorgaben', 'Firma je Gewerk, Bezug', true], ['firmen', 'Firmen im Adressbuch', 'Kontaktdaten – gelten für alle Apps; geändert oder wieder angelegt, nie gelöscht', false]];
 const kstZ = (z) => z ? `${z.leistungen} Leistungen · ${z.abschnitte} Abschnitte · ${z.vorgaben} Vorgaben · ${z.firmen} Firmen` : '';
 const kstDe = (t) => (t ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)} ${t.slice(11, 16)}` : '');
 async function kstSichern() {

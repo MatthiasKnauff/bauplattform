@@ -1066,7 +1066,7 @@ def clean_lib(x):
     o = {"id": x["id"] if re.fullmatch(r"L[a-z0-9]{1,40}", jstr(x.get("id")), re.I) else "L" + new_id()}
     o["n"] = jstr(x.get("n"))[:200] or "Leistung"
     o["ph"] = x["ph"] if PHASE_KEY.match(jstr(x.get("ph") or "")) else "ausbau"
-    for k in ("gw", "din", "craft", "firm", "src", "from"):
+    for k in ("gw", "din", "craft", "src", "from"):   # keine Firma je Leistung (22.11.2026): Firmen gehören zum Projekt
         o[k] = jstr(x.get(k))[:200]
     o["info"] = jstr(x.get("info"))[:2000]
     o["sc"] = x.get("sc") if x.get("sc") in ("bau", "gs") else "we"   # gs = je Geschoss
@@ -1174,7 +1174,7 @@ def catfirms():
         b = body()
         if not isinstance(b, dict):
             return jsonify(error="Ungültig"), 400
-        o = {k: jstr(v)[:200] for k, v in list(b.items())[:5000] if re.fullmatch(r"[\w~.-]{1,60}", k) and truthy(v)}
+        o = {k: jstr(v)[:200] for k, v in list(b.items())[:5000] if re.fullmatch(r"gw~[\w.-]{1,57}", k) and truthy(v)}   # nur Vorgaben je Gewerk
         store_put(c, "catfirms", o, uname())
         return jsonify(o)
 

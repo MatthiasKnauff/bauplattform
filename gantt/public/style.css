@@ -126,7 +126,7 @@ button{font:inherit}
 .bar.sum{cursor:pointer}
 .sumbar{fill:#262626}
 .bar.crit .sumbar{fill:var(--critbd)}
-.sumprog{fill:#8a8a8a;pointer-events:none}
+.sumbar.of{fill:#c3c7cd}.bar.crit .sumbar.of{fill:#f1b8b8}
 .ms{fill:#262626}
 .bar.crit .ms{fill:var(--critbd)}
 .bar.target .b,.bar.target .ms,.bar.target .sumbar{stroke:#f08a00;stroke-width:2.5}

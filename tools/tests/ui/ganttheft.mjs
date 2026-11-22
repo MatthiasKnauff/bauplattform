@@ -158,6 +158,10 @@ export async function ganttHeftPruefen(browser, repo) {
       pruef(z.u && z.u.at === 2 && z.u.grund === 'leistung' && z.pct === 50 && z.nach === r.es + 2 && z.ueh > 0.95 && !z.alt && /\+2 AT · liegt an der Leistung/.test(z.st), `Später fertig im Feld: volle Höhe, Nachfolger rückt, Stand rechts (${JSON.stringify(z)})`);
       pruef(Math.abs(z.prog - z.plan * 0.75) < 3, `Fortschritt zählt den Überzug mit: 50 % von 4 + 2 AT = 3 AT = ¾ des geplanten Balkens (${z.prog.toFixed(1)} von ${z.plan.toFixed(1)})`);
       await p.keyboard.press('Escape'); pruef(!(await p.$('.zs-pop')), 'Esc schließt das Feld');
+      {   // Gruppen füllen sich wie jeder Balken (SI2-2 A, Nachtrag 22.11.2026): offen hell, erledigt kräftig – kein 1,5-px-Strich mehr
+        const g = await p.evaluate(() => { const d = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); d.innerHTML = sumBalken(0, 100, 0, 40, 'probe'); document.body.appendChild(d);
+          const r = { hell: !!d.querySelector('path.sumbar.of'), voll: !!d.querySelector('path.sumbar[clip-path]'), w: +d.querySelector('clipPath rect').getAttribute('width'), strich: !!document.querySelector('#chartBody .sumprog') }; d.remove(); return r; });
+        pruef(g.hell && g.voll && g.w === 40 && !g.strich, `Gruppe: offen hell, 40 % kräftig – ${JSON.stringify(g)}`); }
       await p.evaluate(() => doUndo()); pruef(await p.evaluate(() => !P.tasks[0].ueber && P.tasks[0].pct === 50), 'Rückgängig nimmt „später fertig“ zurück, Fortschritt bleibt');
       // SI2-3 A: begonnen, aber nichts eingetragen → roter Punkt „heute“, „… AT im Verzug“
       const vz = await p.evaluate(() => { P.tasks = [fillTask({ uid: 1, name: 'A', dur: 20, lvl: 0, preds: [] })]; P.start = snapWork(todayN() - 30); P.tasks[0].cons = snapWork(todayN() - 14); CAL = schedule(); render();

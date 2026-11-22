@@ -242,8 +242,7 @@ function renderChart() {
     } else if (c.summ[i]) {
       const { x1 } = g, x2 = Math.max(g.x2, x1 + 8);
       const pw = (x2 - x1) * c.pct[i] / 100;
-      bars += `<g class="bar sum${cr ? ' crit' : ''}" data-i="${i}"><path class="sumbar" d="M${x1},${y + 7}H${x2}V${y + 17}L${x2 - 5},${y + 12}H${x1 + 5}L${x1},${y + 17}Z"/>`
-        + (pw > 0 ? `<rect class="sumprog" x="${x1}" y="${y + 9}" width="${pw}" height="1.5"/>` : '') + `<circle class="lkdot" cx="${x2 + 7}" cy="${y + 12}" r="3.5"/></g>`;
+      bars += `<g class="bar sum${cr ? ' crit' : ''}" data-i="${i}">${sumBalken(x1, x2, y, pw, 'sk' + i)}<circle class="lkdot" cx="${x2 + 7}" cy="${y + 12}" r="3.5"/></g>`;
     } else if (t.dur === 0) {
       bars += `<g class="bar${cr ? ' crit' : ''}" data-i="${i}"><path class="ms" d="M${g.cx},${y + 5}L${g.cx + 7},${y + 12}L${g.cx},${y + 19}L${g.cx - 7},${y + 12}Z"/><circle class="lkdot" cx="${g.cx + 13}" cy="${y + 12}" r="3.5"/></g>`;
     } else {
@@ -263,7 +262,7 @@ function renderChart() {
       if (g.ue) { const w = Math.max(2, g.x2 - g.xp);
         h += `<g class="ueg"><rect class="ue" x="${g.xp}" y="${y + 6}" width="${w}" height="12"><title>Fertig ${t.ueber.at} AT später als geplant – ${esc(UEBER_GRUND[t.ueber.grund] || t.ueber.grund)}</title></rect>`
           + (F.w[g.segs.length] > 0 ? `<rect class="p ueP" x="${g.xp}" y="${y + 6}" width="${F.w[g.segs.length]}" height="12"${pst}/>` : '') + '</g>'; }
-      if (!barLbl.m && pct > 0 && g.x2 - g.x1 >= 30) {   // Zahl im Balken: auf der Füllung hell, sonst dunkel
+      if (!barLbl.m && g.x2 - g.x1 >= 30) {   // Zahl im Balken, auch „0 %“ (SI2-2 A): auf der Füllung hell, sonst dunkel
         const txt = pct >= 100 ? (g.x2 - g.x1 >= 62 ? '✓ fertig' : '✓') : `${Math.round(pct)} %`;
         h += `<text class="pt" x="${g.x1 + 4}" y="${y + 15.5}" style="fill:${F.px - g.x1 >= 36 ? textOn(gc || '#8db3e2') : '#333'}">${txt}</text>`;
       }
@@ -289,6 +288,14 @@ function renderChart() {
   if (window.zsLage) zsLage();   // Feld „Zeit und Stand“ bleibt am Balken
   // Scrollposition stabil halten, wenn sich der Anfang der Zeitachse verschiebt
   if (old != null && oldPpd === ppd && old !== view.start) chartPane.scrollLeft += (old - view.start) * ppd;
+}
+
+/* Gruppe (offen): Klammer wie bisher, aber gefüllt wie jeder Balken (SI2-2 A) – offen hell, erledigt kräftig; derselbe Pfad, der erledigte Teil
+   über einen Ausschnitt. f = { hell, voll } nur für den Druck (feste Farben statt Stilklassen). */
+function sumBalken(x1, x2, y, pw, id, f) {
+  const d = `M${x1},${y + 7}H${x2}V${y + 17}L${x2 - 5},${y + 12}H${x1 + 5}L${x1},${y + 17}Z`;
+  return (f ? `<path fill="${f.hell}" d="${d}"/>` : `<path class="sumbar of" d="${d}"/>`)
+    + (pw > 0 ? `<clipPath id="${id}"><rect x="${x1}" y="${y}" width="${pw}" height="24"/></clipPath>${f ? `<path fill="${f.voll}" d="${d}" clip-path="url(#${id})"/>` : `<path class="sumbar" d="${d}" clip-path="url(#${id})"/>`}` : '');
 }
 
 /* ---------- Balkengeometrie (auch für den Druck) ---------- */

@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-gruppe-fuellt-2211",
+  "datum": "2026-11-22",
+  "app": "gantt",
+  "titel": "Bauzeitenplan: auch Gruppen zeigen den Fortschritt",
+  "text": "Die schwarze Klammer einer Gruppe füllt sich jetzt wie jeder Balken: offen hell, erledigt kräftig – statt des dünnen grauen Strichs. In jedem ausreichend breiten Balken steht der Stand, auch „0 %“.",
+  "ziel": "#chartBody"
+ },
+ {
   "id": "gm-grundriss-springt-2211",
   "datum": "2026-11-22",
   "app": "gebaeudemodell",

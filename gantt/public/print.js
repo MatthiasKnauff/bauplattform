@@ -225,10 +225,12 @@ function printChart(L) {
     const sf = c.summ[i] && window.ganttStufe ? ganttStufe.summeFarbe(i) : null;   // zugeklappte Gruppe in der Farbe des Gewerks
     if (sf) {
       const x1 = q.x1, x2 = Math.max(q.x2, x1 + 8);
-      body += `<rect x="${x1}" y="${y + 6}" width="${x2 - x1}" height="12" fill="${sf}" stroke="${cr ? red : shade(sf, 0.7)}" stroke-width="${cr ? 2 : 1}"/>`;
+      const pw = (x2 - x1) * (c.pct[i] || 0) / 100;   // wie im Diagramm: offen hell, erledigt kräftig
+      body += `<rect x="${x1}" y="${y + 6}" width="${x2 - x1}" height="12" fill="${hell(sf, 0.7)}" stroke="${cr ? red : shade(sf, 0.7)}" stroke-width="${cr ? 2 : 1}"/>`
+        + (pw > 0 ? `<rect x="${x1}" y="${y + 6}" width="${pw}" height="12" fill="${sf}"/>` : '');
     } else if (c.summ[i]) {
       const x1 = q.x1, x2 = Math.max(q.x2, x1 + 8);
-      body += `<path fill="${cr ? red : '#262626'}" d="M${x1},${y + 7}H${x2}V${y + 17}L${x2 - 5},${y + 12}H${x1 + 5}L${x1},${y + 17}Z"/>`;
+      body += sumBalken(x1, x2, y, (x2 - x1) * (c.pct[i] || 0) / 100, 'psk' + i, { hell: cr ? '#f1b8b8' : '#c3c7cd', voll: cr ? red : '#262626' });
     } else if (t.dur === 0) {
       body += `<path fill="${cr ? red : '#262626'}" d="M${q.cx},${y + 5}L${q.cx + 7},${y + 12}L${q.cx},${y + 19}L${q.cx - 7},${y + 12}Z"/>`;
     } else {

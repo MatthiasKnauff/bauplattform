@@ -64,6 +64,8 @@ body.r-zieht{user-select:none;-webkit-user-select:none}body.r-zieht .ri:not(.zie
 .ks-z{display:grid;grid-template-columns:6.5rem 1fr auto;gap:.5rem;align-items:center;font-size:.82rem;padding:.12rem 0}.ks-z span{color:var(--mute)}.ks-z b{font-weight:600;white-space:nowrap}
 .ks-b{height:10px;background:color-mix(in srgb,var(--line) 35%,transparent);border-radius:calc(3px*var(--rk,1));overflow:hidden}.ks-b i{display:block;height:100%;border-radius:calc(3px*var(--rk,1))}
 /* Handy: zwei Spalten, Kacheln je eine, Widgets volle Breite, Höhe nach Inhalt (begrenzt) */
+.st-such{display:none}html.bp-handy .st-such{display:flex;align-items:center;gap:.6rem;width:100%;margin:.2rem 0 .8rem;padding:.75rem .9rem;border:1px solid var(--line);border-radius:var(--rk,10px);background:var(--card);color:var(--mute);font:inherit;font-size:1rem;text-align:left;cursor:pointer}
+.st-such svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:2}html.bp-handy .hello>p{display:none}   /* Handy: großes Suchfeld oben (Mock „Handyansicht je App“, Startseite A) */
 .raster.handy{grid-template-columns:1fr 1fr;grid-auto-rows:auto;grid-auto-flow:row dense}
 .raster.handy .ri{grid-column:auto!important;grid-row:auto!important}.raster.handy .ri-w,.raster.handy .ri-plus,.raster.handy .ri.rg-b,.raster.handy .ri.rg-g{grid-column:1/-1!important}
 .raster.handy .ri.rg-k.ri-w{grid-column:auto!important}.raster.handy .ri-a.rg-g>.tile{min-height:140px}.raster.handy .ri-a.rg-g>.tile .ic svg{width:44px;height:44px}   /* Größe ⤢ am Handy */
@@ -169,6 +171,7 @@ html[data-modus="einfach"] .foot{order:6}
 <body>
 <main class="wrap">
   <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p><span class="bf-undo st-undo" role="toolbar" aria-label="Rückgängig"><span class="bf-ks"></span></span><button type="button" class="rfest" id="rReset" hidden title="Standard-Anordnung, ausgeblendete Kacheln und Widgets wieder da – nur dieses Gerät, mit Rückgängig">↺ Zurücksetzen</button><button type="button" class="rfest" id="rVorgabe" hidden title="Diese Einrichtung als Vorgabe für alle im Büro">Als Vorgabe fürs Büro</button><button type="button" class="rfest" id="rFest" hidden></button></div>
+  <button type="button" class="st-such" id="stSuch" aria-label="Suchen"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>Suchen – Projekt, Adresse, Befehl …</button>
   <nav class="ein" id="ein" aria-label="Häufige Aufgaben"></nav>
   <div class="raster" id="raster" aria-label="Startseite: Apps und Widgets"></div>
   <div hidden><section class="post" id="post" hidden aria-label="Post zu meinen Projekten"></section></div>
@@ -203,7 +206,7 @@ const DESC = {
 };
 /* ---------- Startseite als Raster (12 Spalten): App-Kacheln und Widgets frei verschieben (Kachel bzw. Kopf ziehen, Handy: lange drücken),
    Größe an der Ecke ↘ in Feldern, ✕ blendet aus, „＋ App / Widget“ holt zurück. Gespeichert je Benutzer (api/bp/kacheln → raster). ---------- */
-let KV = {}, GERAET = 'pc';   // Antwort von api/bp/kacheln, Gerät dieser Startseite (Handy / Rechner – je eigene Einrichtung)
+let KV = {}, GERAET = innerWidth < 760 ? 'handy' : 'pc';   // Antwort von api/bp/kacheln, Gerät dieser Startseite (Handy / Rechner – je eigene Einrichtung)
 let APPS = [], REIHE = [], RASTER = null, WB = [], RZIEH = null, RNEU = false, RRUHT = [];   // WB: Widgets aus deskZeigen · RZIEH: gerade gezogen
 const SP = 12, ZH = 64, LUE = 10;   // Spalten, Zeilenhöhe, Abstand (px)
 const RGR = { a: { w: [2, 6], h: [1, 2], d: [3, 1] }, w: { w: [3, 12], h: [2, 16], d: [6, 4] } };   // je Art: Breite/Höhe min–max, Standard
@@ -211,6 +214,12 @@ const RSTD = { 'w:post': [6, 7], 'w:todos': [6, 9], 'w:kosten': [4, 4] };
 const rArt = (i) => (i[0] === 'a' ? 'a' : 'w');
 const rKoll = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 const rHandy = () => innerWidth < 760;
+/* Handy ohne eigene Einrichtung (Mock „Handyansicht je App“, Startseite A): erst „Zu tun“, dann die Apps, dann die übrigen Widgets – die Reihenfolge des Rechners gilt innerhalb;
+   gezeigt wird am Handy nach der Zeile im Raster, also rücken die Zeilen: „Zu tun“ ganz oben über die volle Breite, die Apps darunter, die übrigen Widgets unter die letzte App */
+function rHandyReihe(L) {
+  const t = L.find((it) => it.i === 'w:todos'), th = t ? t.h : 0, A = L.filter((it) => it.i[0] === 'a'), au = th + A.reduce((m, r) => Math.max(m, r.y + r.h), 0);
+  return L.map((it) => (it === t ? { ...it, x: 0, y: 0, w: SP } : it.i[0] === 'a' ? { ...it, y: it.y + th } : { ...it, y: it.y + au }));
+}
 /* eigene Widgets mit Daten aus anderen Apps; je Widget ein Projekt (o.p) oder das aktuelle. Mehrere gleiche: w:bauzeit.2 … */
 const WX = { bauzeit: { name: 'Bauzeitenplan', app: 'gantt', ic: ['▤', '#1f9d4c'], d: [6, 4] }, kosten: { name: 'Kostenstand', app: 'ava', ic: ['€', '#c0392b'], d: [4, 4] },
   honorar: { name: 'Honorarstand', app: 'honorar', ic: ['§', '#6d4bd8'], d: [4, 4] } };
@@ -255,7 +264,8 @@ function rLayout() {
     const [w, h] = RSTD[i] || (wxTyp(i) && WX[wxTyp(i)].d) || RGR[rArt(i)].d;
     const p = i === 'w:post' ? (L.some((r) => rKoll(r, { x: 0, y: rUnten(L, 'a'), w, h })) ? rFrei(L, w, h) : { x: 0, y: rUnten(L, 'a'), w, h })
       : rArt(i) === 'w' ? rFreiRechts(L, w, h) : rKachelPlatz(L, w, h);
-    L.push({ i, ...p, w, h }); RNEU = true;
+    if (GERAET === 'handy' && i === 'w:todos') { L.forEach((r) => { r.y += h; }); L.push({ i, x: 0, y: 0, w: SP, h }); } else L.push({ i, ...p, w, h });   // am Handy steht „Zu tun“ oben
+    RNEU = true;
   }
   return rVerdichten(L);
 }
@@ -466,6 +476,7 @@ function rZeilen() {
 
 /* ✕ und ＋ */
 /* Widget-Kacheln (Bauzeitenplan, Kosten, Honorar): die ganze Kachel öffnet die App – wie die App-Kacheln (17.11.2026) */
+$('#stSuch').addEventListener('click', () => window.BPHead && BPHead.suche && BPHead.suche());
 $('#raster').addEventListener('click', (e) => {
   const w = e.target.closest('.ri-w .wx'); if (!w || !rFest() || RSPERRE || e.defaultPrevented || e.target.closest('a,button,input,.ue-grip,[data-rx]')) return;
   const ri = w.closest('[data-ri]'), a = w.querySelector('.wx-in a[href]'), t = ri && wxTyp(ri.dataset.ri);
@@ -757,7 +768,7 @@ function einfachZeigen(conf) {
   { const av = conf.apps.find((a) => a.key === 'ava' && (a.allowed || (a.seiten || {}).nachverfolgen)); if (av) APPS.push({ key: 'nachverfolgen', allowed: true, ava: av }); }   // Kachel „LV-Nachverfolgung“ (Ausschreibung → Nachverfolgen)
   { const k = await api('api/bp/kacheln').catch(() => ({})); REIHE = k.reihenfolge || []; KV = k; GERAET = rHandy() ? 'handy' : 'pc';   // je Gerät eigene Startseite; sonst die Vorgabe des Büros
     const ok = (r) => (r && Array.isArray(r.items) ? r : null);
-    RASTER = GERAET === 'handy' ? ok(k.raster_handy) || ok(k.vorgabe_handy) || (ok(k.raster) && { ...k.raster, items: k.raster.items.filter((it) => it.nur !== 'pc') }) : ok(k.raster) || ok(k.vorgabe_pc); }
+    RASTER = GERAET === 'handy' ? ok(k.raster_handy) || ok(k.vorgabe_handy) || (ok(k.raster) && { ...k.raster, items: rHandyReihe(k.raster.items.filter((it) => it.nur !== 'pc')) }) : ok(k.raster) || ok(k.vorgabe_pc); }
   rasterZeigen();
   einfachZeigen(conf);
   if (window.BPHead && BPHead.appEinstellungen) BPHead.appEinstellungen([

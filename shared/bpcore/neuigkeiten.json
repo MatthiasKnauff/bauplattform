@@ -1,5 +1,13 @@
 [
  {
+  "id": "handy-etappe2-2211",
+  "datum": "2026-11-22",
+  "app": "portal",
+  "titel": "Am Handy: Startseite und Adressen aufgeräumt",
+  "text": "Am Handy steht oben ein großes Suchfeld, darunter zuerst „Zu tun“, dann die Apps. Die Navigation der Apps ist eine schmale Zeile oben. In den Adressen führt 🧭 Route direkt zur Karte.",
+  "ziel": "#stSuch"
+ },
+ {
   "id": "filter-springt-2211",
   "datum": "2026-11-22",
   "app": "adressen",

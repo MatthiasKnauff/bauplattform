@@ -254,7 +254,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Wärmeschutz – Soll der weiteren Nachbarländer (NL, BE, LU, FR, DK, PL, CZ): Werte je Land mit Quelle recherchieren und in `WS_REGELN.SOLL` eintragen **ca. 1 h** · Querschnitt auch im Eigenschaften-Fenster des Gebäudemodells (SA-8) **ca. 1 h**
 
 - Baudaten-Baum: App Baudaten UND Reiter „Baudaten“ im LV auf EINEN Baustein (bpBaum + bpGruppen + fenster + tasten), eigene Baum-Logik der App weg – Mock zuerst, Umbau **ca. 3–4 h** (ersetzt WR-6)
-- Handyansicht Etappe 2: Startseite, Aufgaben & Post, Adressen voll **ca. 2 h**; Etappe 3: Ansichten der übrigen Apps je **30–60 min**, Verwaltung nur „Für mich“
+- Handyansicht Etappe 3: Ansichten der übrigen Apps je **30–60 min**, Verwaltung nur „Für mich“
 
 ## Erledigt
 - ~~Navigation/Filter an der Ursache: bpNav lässt den Platz „davor“ beim Neuzeichnen stehen, bpFilter sein Eingabefeld – Merk-Krücke für den Fokus entfernt~~ (22.11.2026)
@@ -262,6 +262,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Bauzeitenplan „Zeit und Stand“: Grund auch als eigener Text, Block auch rechts unter Details, Felder bündig, Meilenstein ohne Fortschritt/Überzug~~ (22.11.2026)
 - ~~Bauzeitenplan: Gruppen füllen sich wie die Balken (Mock SI2-2 A nachgezogen), „0 %“ im Balken~~ (22.11.2026)
 - ~~Gebäudemodell: Klick im Grundriss baute den Bereich rechts neu auf (Liste sprang nach oben), „undefined“ über dem Bauteil-Baum~~ (22.11.2026)
+- ~~Handyansicht Etappe 2: Startseite (Suchfeld oben, „Zu tun“ zuerst), Navigation als Zeile oben, Adressen mit 🧭 Route~~ (22.11.2026)
 - ~~Handyansicht Etappe 1: Rahmen bp/handy.js – Leiste unten (je Person einstellbar), „nur Ansicht“ mit „Link an mich senden“~~ (22.11.2026)
 - ~~Adressen: rechts die Details des gewählten Kontakts (Mock AR-1 … AR-5), Liste über die ganze Breite~~ (22.11.2026)
 - ~~Wärmeschutz: Gebäudemodell rechts wie die Kopierquelle (Mock WR-1 … WR-7): „← übernehmen“/Ziehen, links wieder die Bauteile des Nachweises, rechts Gebäudemodell · Bauphysik · 3D~~ (22.11.2026)

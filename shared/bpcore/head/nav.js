@@ -117,7 +117,8 @@
     }
   }
   bpNav.lage = lageGet;
-  bpNav.lageJetzt = (l) => { if (!LAGEN.includes(l) || lageGet() === 'oben') return; JETZT = l; ALLE.forEach((x) => { if (x.isConnected) zeichne(x); }); dispatchEvent(new Event('resize')); };
+  bpNav.lageJetzt = (l) => { if (l !== null && (!LAGEN.includes(l) || lageGet() === 'oben')) return; if (JETZT === l) return; JETZT = l;   // null = wieder die eigene Wahl (Handyansicht: am Handy oben, breit wieder wie gewählt)
+    ALLE.forEach((x) => { if (x.isConnected) zeichne(x); }); dispatchEvent(new Event('resize')); };
   bpNav.breite = function (el, o) {
     if (!el || el._bpBreite) return; el._bpBreite = 1;
     const key = 'bp.navw.' + o.key, min = o.min || 180, max = o.max || 520;

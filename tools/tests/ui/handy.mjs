@@ -1,5 +1,5 @@
 // Handyansicht – Rahmen (GO 22.11.2026, Mock „Handyansicht je App“ HG-1 … HG-5) im echten Browser mit nachgebildetem Server.
-// Geprüft: (1) Startseite bei 390 px: html.bp-handy, Stufe „voll“, untere Leiste mit Start · Bautagebuch · Aufgaben · Adressen · Suche, Start markiert,
+// Geprüft: (1) Startseite bei 390 px: html.bp-handy, „Zu tun“ als erstes, großes Suchfeld oben, Stufe „voll“, untere Leiste mit Start · Bautagebuch · Aufgaben · Adressen · Suche, Start markiert,
 // kein Hinweis „bearbeiten am Rechner“; Suche öffnet das Suchfeld. (2) Eigene Leiste aus den persönlichen Einstellungen. (3) Wärmeschutz („nur Ansicht“):
 // Hinweis mit „Link an mich senden“ schickt die Adresse an /api/bp/handy/link, Befehlsleiste weg. (4) Bei 1.400 px nichts davon. Kein Fehler im Skript.
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await handyPruefen(browser, repoWurzel)
@@ -40,6 +40,8 @@ export async function handyPruefen(browser, repo) {
     let S = await seite('Startseite schmal', { breite: 390, datei: 'portal.html', handy: [], posts: [] }), z = await stand(S.p);
     pruef(z.handy && z.stufe === 'voll' && !z.hinweis, `Startseite 390 px: ${JSON.stringify(z)}`);
     pruef(z.leiste.join('|') === 'Start|Bautagebuch|Aufgaben|Adressen|Suche' && z.on === 'Start', `untere Leiste (Vorgabe): ${JSON.stringify(z)}`);
+    const st = await S.p.evaluate(() => ({ erst: ([...document.querySelectorAll('#raster [data-ri]')][0] || { dataset: {} }).dataset.ri, such: !!(document.querySelector('#stSuch') || {}).offsetParent }));
+    pruef(st.erst === 'w:todos' && st.such, `Startseite am Handy: „Zu tun“ zuerst, Suchfeld oben – ${JSON.stringify(st)}`);
     await S.p.click('.bph-unten [data-hu="suche"]'); await S.p.waitForTimeout(400);
     pruef(await S.p.evaluate(() => !!document.querySelector('.bph-su')), 'Suche in der unteren Leiste öffnet das Suchfeld nicht');
     await S.ctx.close();

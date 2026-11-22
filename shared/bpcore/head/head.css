@@ -894,4 +894,5 @@ html.bp-handy[data-hstufe="lesen"] .bf,html.bp-handy[data-hstufe="keine"] .bf{di
 html.bp-handy:not([data-hstufe="eigen"]) #toasts{bottom:calc(var(--bp-unten) + .8rem)}
 html.bp-handy:not([data-hstufe="eigen"]) .bp-undo{bottom:calc(var(--bp-unten) + .8rem)}
 html.bp-handy:not([data-hstufe="eigen"]) .bph-warten{bottom:calc(var(--bp-unten) + 1.2rem)}
+html.bp-handy .bp-nav .ngrip,html.bp-handy .bp-nav .npin{display:none}   /* Navigation am Handy fest oben: nichts zu verschieben oder anzuheften */
 @media print{.bph-unten,.bph-hrech{display:none!important}}

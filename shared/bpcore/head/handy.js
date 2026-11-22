@@ -66,6 +66,7 @@
     R.classList.toggle('bp-handy', an);
     if (an) R.dataset.hstufe = stufe(); else delete R.dataset.hstufe;
     if (an) { leiste(); hinweis(); } else document.querySelectorAll('.bph-unten, .bph-hrech').forEach((x) => x.remove());
+    if (window.bpNav && bpNav.lageJetzt && stufe() !== 'eigen') bpNav.lageJetzt(an ? 'oben' : null);   // Navigation links am Handy als schmale Zeile oben (Bereiche als ▾-Menüs), nicht als halber Bildschirm
     document.dispatchEvent(new CustomEvent('bp:handy', { detail: { an, stufe: stufe() } }));
   }
   document.addEventListener('click', (e) => {

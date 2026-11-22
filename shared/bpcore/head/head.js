@@ -679,6 +679,12 @@
     if (k === 'apple') return `https://maps.apple.com/?ll=${a},${o}&q=${a},${o}`;
     return `https://www.google.com/maps/search/?api=1&query=${a},${o}`;
   };
+  H.adresseUrl = function (text) {   // dasselbe für eine Anschrift (Adressen: „Karte“ rechts, 🧭 am Handy) – öffnet am Handy die Karten-App mit Route
+    const q = encodeURIComponent(String(text || '')), k = (H.conf && H.conf.karte) || 'google';
+    if (k === 'osm') return `https://www.openstreetmap.org/search?query=${q}`;
+    if (k === 'apple') return `https://maps.apple.com/?q=${q}`;
+    return `https://www.google.com/maps/search/?api=1&query=${q}`;
+  };
   /* Büro-Logo links in der Kopfleiste (Verwaltung → Büro & Standort → Firma, Logo) – je Benutzer aus, dezent oder in Farbe
      (⚙ → Persönlich → Darstellung, besprochen am 13.11.2026). Ohne hinterlegtes Logo nichts; am Handy ausgeblendet. */
   const LOGO = ['aus', 'dezent', 'farbe'];

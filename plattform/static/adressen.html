@@ -33,6 +33,7 @@
 .ct .acts{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.2rem}
 .ct .acts a{font-size:.88rem;border:1px solid var(--line);border-radius:calc(6px*var(--rk,1));padding:.25rem .55rem;text-decoration:none;color:var(--ink);white-space:nowrap}
 .ct .acts a:hover{border-color:var(--y);color:var(--y)}
+html.bp-handy .ct .acts a{font-size:1rem;padding:.5rem .8rem}   /* Handyansicht: Anrufen, Mail, Route mit einem Tipp */
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:3px;gap:2px;background:var(--card)}
 .seg button{border-radius:calc(999px*var(--rkp,1));padding:.3rem .85rem;color:var(--mute);font-size:.88rem}
 .seg button.on{background:var(--y);color:var(--on);font-weight:600}
@@ -214,7 +215,7 @@ function render() {
       ${c.trade ? `<div class="sub">${esc(c.trade)}</div>` : ''}
       ${c.contact_person ? `<div class="sub">${esc(c.contact_person)}${c.role ? ' · ' + esc(c.role) : ''}</div>` : ''}
       ${addr(c) ? `<div class="sub">${esc(addr(c))}</div>` : ''}
-      <div class="acts">${c.phone ? `<a href="tel:${esc(tel(c.phone))}">☎ ${esc(c.phone)}</a>` : ''}${c.mobile ? `<a href="tel:${esc(tel(c.mobile))}">📱 ${esc(c.mobile)}</a>` : ''}${c.email ? `<a href="mailto:${esc(c.email)}">✉ E-Mail</a>` : ''}${wtTel(c).length + wtMails(c).length - (c.email ? 1 : 0) > 0 ? `<span class="mu" title="${esc(wtText(c))}">+${wtTel(c).length + wtMails(c).length - (c.email ? 1 : 0)} weitere</span>` : ''}</div>
+      <div class="acts">${c.phone ? `<a href="tel:${esc(tel(c.phone))}">☎ ${esc(c.phone)}</a>` : ''}${c.mobile ? `<a href="tel:${esc(tel(c.mobile))}">📱 ${esc(c.mobile)}</a>` : ''}${c.email ? `<a href="mailto:${esc(c.email)}">✉ E-Mail</a>` : ''}${addr(c) && window.BPHead && BPHead.adresseUrl ? `<a class="adr-nav" href="${esc(BPHead.adresseUrl(addr(c)))}" target="_blank" rel="noopener" title="Karte / Route zur Anschrift">🧭 Route</a>` : ''}${wtTel(c).length + wtMails(c).length - (c.email ? 1 : 0) > 0 ? `<span class="mu" title="${esc(wtText(c))}">+${wtTel(c).length + wtMails(c).length - (c.email ? 1 : 0)} weitere</span>` : ''}</div>
     </div>`).join('') || `<div class="empty">${ALL.length ? 'Keine Treffer – links Filter entfernen (✕).' : 'Noch keine Kontakte – mit „+ Neu“ anlegen.'}</div>`;
   adrNachRender();
 }

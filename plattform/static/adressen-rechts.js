@@ -34,7 +34,7 @@ function adrKontaktHtml(c) {
     ${z('Ansprechpartner', esc([c.contact_person, c.role].filter(Boolean).join(' · ')))}
     ${T.map(([l, v]) => z(esc(l || 'Telefon'), `<a href="tel:${esc(tel(v))}">${esc(v)}</a>`, adrKopie(v))).join('')}
     ${M.map((m, i) => z(i ? 'E-Mail' : 'E-Mail', esc(m), `<span class="adr-zk"><a class="adr-k" href="mailto:${esc(m)}" title="Mail schreiben">✉</a>${adrKopie(m)}</span>`)).join('')}
-    ${z('Anschrift', esc(a), a ? `<a class="adr-k" href="https://www.openstreetmap.org/search?query=${encodeURIComponent(a)}" target="_blank" rel="noopener" title="Auf der Karte zeigen">Karte</a>` : '')}
+    ${z('Anschrift', esc(a), a ? `<a class="adr-k" href="${esc(BPHead.adresseUrl(a))}" target="_blank" rel="noopener" title="Auf der Karte zeigen">Karte</a>` : '')}
     ${z('Internet', c.website ? `<a href="${esc(/^https?:/i.test(c.website) ? c.website : 'https://' + c.website)}" target="_blank" rel="noopener">${esc(c.website)}</a>` : '')}
     ${chips.length ? `<div class="adr-chips">${chips.map((x) => `<span>${esc(x)}</span>`).join('')}</div>` : ''}
     ${c.notes ? `<div class="adr-notiz">${esc(c.notes)}</div>` : ''}

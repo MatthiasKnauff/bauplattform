@@ -78,7 +78,7 @@ export async function baudatenPruefen(browser, repo) {
       pruef(Math.abs(y1 - y0) < 3, `Leistungsbereich ${nr} (${wo}): springt um ${Math.round(y1 - y0)} px`);
     }
     pruef(await reihe() === r0, `„oft geöffnet“ sortiert sich beim Klicken um: ${r0} → ${await reihe()}`);
-  }, { width: 516, height: 994 });
+  }, { width: 1900, height: 600 });   // breit, aber niedrig (Liste rollt) – unter 820 px ist es die Handyansicht mit der Navigation als Zeile oben
   return fehler;
 }
 

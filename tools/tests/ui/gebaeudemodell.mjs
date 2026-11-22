@@ -184,13 +184,12 @@ export async function gebaeudemodellPruefen(browser, repo) {
     pruef(S.rn === 'Kind' && await p.evaluate(() => document.querySelector('[data-gmrn="EG.03"]').value === 'Kind' && /ermittelt/.test(document.querySelector('.sr-r .gm-li-r').textContent)), `Raum benennen: ${S.rn}`);
     S.hand = true; await zu('bauteile'); await p.waitForFunction(() => G3.bk === true, null, { timeout: 6000 }).catch(() => {});   // ohne Plan: Arbeitsmaske
     await reiter('raeume'); await p.waitForSelector('.sr-r .gm-mask [data-gmh="0:flaeche"]');
-    pruef(await p.evaluate(() => document.querySelector('.sr-r .gm-mask [data-gmh="0:flaeche"]').disabled && !!document.querySelector('.sr-r .gm-lesen')), '„Gebäude bearbeiten“ an: Räume nur zum Lesen (R-E)');
-    await p.click('.b3-l [data-gmbearb]'); await p.waitForTimeout(300); await reiter('raeume'); await p.waitForSelector('.sr-r .gm-mask [data-gmh="0:flaeche"]:not([disabled])');
-    await p.fill('.sr-r [data-gmh="0:flaeche"]', '31,5'); await p.press('.sr-r [data-gmh="0:flaeche"]', 'Tab'); await p.waitForTimeout(300);
-    pruef(S.handPut && S.handPut.raeume && S.handPut.raeume[0].flaeche === 31.5, `Arbeitsmaske speichert: ${JSON.stringify(S.handPut)}`);
+    pruef(await p.evaluate(() => document.querySelector('.sr-r .gm-mask [data-gmh="0:flaeche"]').disabled && /im Grundriss/.test((document.querySelector('.sr-r .gm-lesen') || {}).textContent || '') && document.querySelector('.sr-r [data-gmneu="raeume"]').hidden), 'ohne Plan keine Arbeitsmaske (G4-A): Räume nur zum Lesen, „Zum Grundriss“');
+    await p.click('.b3-l [data-gmbearb]'); await p.waitForTimeout(300); await reiter('raeume'); await p.waitForSelector('.sr-r .gm-mask [data-gmh="0:flaeche"]');
+    pruef(await p.evaluate(() => document.querySelector('.sr-r .gm-mask [data-gmh="0:flaeche"]').disabled), '„Gebäude bearbeiten“ aus: Räume bleiben nur zum Lesen (G4-A)');
     // „aus der Planung“ (21.11.2026): kein Fenster „Mengen/Preise“ mehr – das ganze Gebäude aus dem Assistenten im Baukasten, eigener Planstand „Planung …“
     S.bkPut = null; S.bkGet = '';
-    await p.click('.sr-r [data-gmhvor]'); for (let i = 0; i < 60 && !S.bkPut; i++) await p.waitForTimeout(100);
+    await p.evaluate(() => gmWeg('planung')); for (let i = 0; i < 60 && !S.bkPut; i++) await p.waitForTimeout(100);
     pruef(await p.evaluate(() => !document.querySelector('.modal [data-bta]')) && /neu=1&planung=1/.test(S.bkGet || '') && S.bkPut && S.bkPut.neu === true && S.bkPut.name === 'Planung',
       `aus der Planung: ohne Mengen/Preise-Fenster, ganzes Gebäude als Planstand „Planung“: ${S.bkGet} ${JSON.stringify(S.bkPut && { neu: S.bkPut.neu, name: S.bkPut.name })}`);
     {   // Zeilen von Hand lassen sich ändern und entfernen – Name im Eigenschaften-Fenster, im Baum Kontextmenü/F2/Entf

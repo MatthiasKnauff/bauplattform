@@ -30,7 +30,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
-- Gebäudemodell neu (GO 22.11.2026): Etappe 1 Typen im Kern ✓ · 2 Typen in der Oberfläche ✓ · 3 Kurzwahl ✓ · 4 Arbeitsstand + Versionen ✓ · 5 ohne Arbeitsmaske (Linie im Grundriss) **ca. 4–6 h** · 6 Positionen hinaus **ca. 1,5 h** · 7 Aufräumen **ca. 2 h**
+- Gebäudemodell neu (GO 22.11.2026): Etappe 1 Typen im Kern ✓ · 2 Typen in der Oberfläche ✓ · 3 Kurzwahl ✓ · 4 Arbeitsstand + Versionen ✓ · 5 ohne Arbeitsmaske ✓ (offen: L/U-Treppen im 3D, „offen bis unters Dach“ in den Mengen, Deckenloch im 3D – ca. 1 h) · 6 Positionen hinaus **ca. 1,5 h** · 7 Aufräumen **ca. 2 h**
 - Aufräumen: Sahne, Fehler an der Wurzel, toter Code (tools/tot)
 - U-Wert-Färbung wählbar: GModG · BEG-Einzelmaßnahmen · Effizienzhaus (Recherche + Mock)
 - Eigenschaften-Fenster Etappe 2 (EF-B1 C1): einzelne Teile einer Zeile mit Haken, Abtrennen als eigene Zeile (Kern: Baukasten je Teil, IFC Zeile teilen), Doppelklick im 3D hakt nur das Teil an – ca. 2 Std.
@@ -254,6 +254,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Gebäudemodell neu, Etappe 5 (Teil 3): Arbeitsmaske entfällt, „Dach direkt auf dem Geschoss“~~ (22.11.2026)
 - ~~Gebäudemodell neu, Etappe 5 (Teil 1–2): Innenwände, Treppen, Räume aus den Wänden im Grundriss des Baukastens~~ (22.11.2026)
 - ~~Bauteile: „Antwort“ heißt jetzt „Maßnahme“~~ (22.11.2026)
 - ~~Gebäudemodell neu, Etappe 4: Arbeitsstand + Versionen, Version beim Versand~~ (22.11.2026)

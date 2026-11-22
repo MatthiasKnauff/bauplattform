@@ -63,7 +63,7 @@
     for (let k = 0; k < n; k++) L.push(k ? k + '.OG' : 'EG');
     const flach = CHM.dachform && chVisible(CHM.dachform, cfg) && choiceOf(cfg, 'dachform') === 'flach';
     const hasRoof = CHM.dachform && chVisible(CHM.dachform, cfg);
-    return { L, dg: cfg.dg === 'staffel' && (flach || !hasRoof) ? 'staffel' : cfg.dg === 'aus' && !flach ? 'aus' : 'none', flach,
+    return { L, dg: cfg.dg === 'staffel' && (flach || !hasRoof) ? 'staffel' : cfg.dg === 'aus' && !flach ? 'aus' : cfg.dg === 'direkt' && !flach ? 'direkt' : 'none', flach,
       kg: !!(CHM.keller && chVisible(CHM.keller, cfg) && choiceOf(cfg, 'keller') !== 'none') };
   }
   const NAMES = {
@@ -101,7 +101,8 @@
         L.forEach((l, k) => {
           const t = FT[k], base = t === 'holz' || t === 'bsp' ? IT.h : IT.m, nm = NAMES[t], top = k === L.length - 1 && dg === 'none';
           if (!base) return;
-          parts.push({ it: base, s: 'w' + k, n: nm[0](l), w: 0.6 }, { it: base, s: 'd' + k, n: top && flach ? (base.id === 'holz_mont' ? 'Montage Dachdecke über ' : 'Dachdecke über ') + l : nm[1](l) + (top ? ' – oberste Geschossdecke' : ''), w: 0.4 });
+          parts.push({ it: base, s: 'w' + k, n: nm[0](l), w: 0.6 });
+          if (!(k === L.length - 1 && dg === 'direkt')) parts.push({ it: base, s: 'd' + k, n: top && flach ? (base.id === 'holz_mont' ? 'Montage Dachdecke über ' : 'Dachdecke über ') + l : nm[1](l) + (top ? ' – oberste Geschossdecke' : ''), w: 0.4 });
         });
         const tt = FT[FT.length - 1], tb = tt === 'holz' || tt === 'bsp' ? IT.h : IT.m;
         if (tb && dg === 'aus') parts.push({ it: tb, s: 'w' + L.length, n: NAMES[tt][2], w: 0.35 });
@@ -122,7 +123,8 @@
         const parts = [];
         L.forEach((l, k) => {
           const top = k === L.length - 1 && dg === 'none';
-          parts.push({ s: 'w' + k, n: nm[0](l), w: 0.6 }, { s: 'd' + k, n: top && flach ? (it.id === 'holz_mont' ? 'Montage Dachdecke über ' : 'Dachdecke über ') + l : nm[1](l) + (top ? ' – oberste Geschossdecke' : ''), w: 0.4 });
+          parts.push({ s: 'w' + k, n: nm[0](l), w: 0.6 });
+          if (!(k === L.length - 1 && dg === 'direkt')) parts.push({ s: 'd' + k, n: top && flach ? (it.id === 'holz_mont' ? 'Montage Dachdecke über ' : 'Dachdecke über ') + l : nm[1](l) + (top ? ' – oberste Geschossdecke' : ''), w: 0.4 });
         });
         if (dg === 'aus') parts.push({ s: 'w' + L.length, n: nm[2], w: 0.35 });
         if (dg === 'staffel') parts.push({ s: 'w' + L.length, n: nm[0]('Staffelgeschoss'), w: 0.42 }, { s: 'd' + L.length, n: (it.id === 'holz_mont' ? 'Montage Dachdecke' : 'Dachdecke') + ' über Staffelgeschoss', w: 0.28 });
@@ -452,8 +454,8 @@
   function dgOpts(cfg) {   // „Was liegt über dem obersten Geschoss?“
     const flat = roofFlat(cfg), known = roofKnown(cfg);
     return flat ? [['kalt', 'nichts – Flachdach direkt auf dem obersten Vollgeschoss'], ['staffel', 'Staffelgeschoss (zurückgesetzt, eigenes Flachdach)']]
-      : known ? [['kalt', 'Dachraum nicht ausgebaut (Spitzboden)'], ['aus', 'Dachgeschoss ausgebaut (Wohnraum im Dach)']]
-        : [['kalt', 'nichts / Dachraum nicht ausgebaut'], ['aus', 'Dachgeschoss ausgebaut'], ['staffel', 'Staffelgeschoss']];
+      : known ? [['kalt', 'Dachraum nicht ausgebaut (Spitzboden)'], ['aus', 'Dachgeschoss ausgebaut (Wohnraum im Dach)'], ['direkt', 'nichts – Dach direkt auf dem Geschoss (offen bis unters Dach)']]
+        : [['kalt', 'nichts / Dachraum nicht ausgebaut'], ['aus', 'Dachgeschoss ausgebaut'], ['staffel', 'Staffelgeschoss'], ['direkt', 'nichts – Dach direkt auf dem Geschoss (offen bis unters Dach)']];   // direkt (Etappe 5, 22.11.2026): keine oberste Geschossdecke
   }
   const FLTW = [['massiv', 'Mauerwerk, Stahlbetondecke'], ['stb', 'Stahlbeton'], ['holz', 'Holzrahmenbau'], ['bsp', 'Brettsperrholz']];   // Bauweise je Geschoss
   /* ---------- Gebäudeteile (18.11.2026, Mock „Gebäudeteile in der Planung“: GT-E1 A1 …; Nachtrag GG-D1 am selben Abend) ----------

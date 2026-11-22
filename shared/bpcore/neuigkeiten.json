@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-ohne-maske",
+  "datum": "2026-11-22",
+  "app": "gebaeudemodell",
+  "titel": "Räume nur noch aus dem Grundriss",
+  "text": "Ohne Plan trägst du Räume nicht mehr in eine Liste ein – sie entstehen im Grundriss aus den Wänden. Neu in der Planung: „Über dem obersten Geschoss: nichts – Dach direkt auf dem Geschoss“ (z. B. Pultdach).",
+  "ziel": ".gm-li-r"
+ },
+ {
   "id": "gm-grundriss-bk",
   "datum": "2026-11-22",
   "app": "gebaeudemodell",

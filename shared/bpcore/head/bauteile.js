@@ -142,7 +142,7 @@
     return new Promise((fertig) => {
       modalBox(`<div class="bt-ab bt-anf"><h3>${o.neu ? 'Neuer Planstand – wie willst du beginnen?' : 'Wie willst du beginnen?'}</h3>
         ${WEGE.map(([k, t, u]) => `<button type="button" class="bt-ap bt-weg4" data-m="${k}"><span><b>${t}</b><small>${k === 'planung' && o.plan === false ? 'Dafür erst im Reiter „Planung“ sagen, was gebaut wird und wie groß – der Reiter geht auf.' : u}</small></span></button>`).join('')}
-        <div class="mute">Ohne Gebäude: <button type="button" class="bt-lk" data-m="raeume">Räume selbst eintragen</button> · <button type="button" class="bt-lk" data-m="zeilen">nur einzelne Bauteile</button></div>
+        <div class="mute">Ohne Gebäude: <button type="button" class="bt-lk" data-m="zeilen">nur einzelne Bauteile</button> · Räume entstehen im Grundriss des Baukastens (Etappe 5, G4-A)</div>
         <div class="mute">${o.neu ? 'Mit dem Baukasten gilt der neue Planstand sofort; aus der Planung oder einer Datei kommt er mit Abgleich. Der bisherige bleibt im Menü.' : 'Es entsteht ein Planstand – ein späterer Plan ersetzt ihn mit Abgleich, deine Antworten bleiben.'}</div>
         <div class="bt-ft"><button type="button" class="btn" data-m="x">Abbrechen</button></div></div>`, (m, bg, close) => { close(); fertig(m === 'x' ? null : m); });
     });

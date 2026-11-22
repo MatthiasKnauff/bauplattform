@@ -122,13 +122,15 @@ function g3Seite() {
 async function g3Listen(jetzt) {
   const st = BT ? BT.zustand() : {}; G3.liRev = `${st.rev}|${st.an ? st.an.id : null}`;
   const r = G3.raE.querySelector('.gm-li-r'), f = G3.btE.querySelector('.gm-li-f');
-  if (r.isConnected || jetzt) { await gmListe('raeume', null, true); if (G3.bk && G3.bearb) gmNurLesen(r); }
+  if (r.isConnected || jetzt) { await gmListe('raeume', null, true); if (G3.bk || st.planart === 'hand') gmNurLesen(r, true); }   // G4-A (22.11.2026): ohne Plan keine Arbeitsmaske – Räume entstehen im Grundriss
   if (!f.hidden) await gmListe('fenster', null, true);
 }
-function gmNurLesen(C) {
+function gmNurLesen(C, grundriss) {
   C.querySelectorAll('input,select,textarea,button').forEach((x) => { x.disabled = true; });
-  const n = G3.raE.querySelector('[data-gmneu]'); if (n) n.disabled = true;
-  if (!C.querySelector('.gm-lesen')) C.insertAdjacentHTML('afterbegin', '<p class="mute gm-lesen">Nur zum Lesen – Räume ändern: oben im 3D „Gebäude bearbeiten“ ausschalten.</p>');
+  const n = G3.raE.querySelector('[data-gmneu]'); if (n) n.hidden = !!grundriss, n.disabled = true;
+  if (!C.querySelector('.gm-lesen')) C.insertAdjacentHTML('afterbegin', grundriss ? `<p class="mute gm-lesen">Räume entstehen im Grundriss: Innenwand ziehen, Doppelklick in eine Fläche = Name.${G3.bk ? ' <button type="button" class="bt-lk" data-gmgr>Zum Grundriss</button>' : ' Ältere Räume von Hand bleiben lesbar – weiterbauen mit „Neuer Plan … → Mit dem Baukasten“.'}</p>`
+    : '<p class="mute gm-lesen">Nur zum Lesen – Räume ändern: oben im 3D „Gebäude bearbeiten“ ausschalten.</p>');
+  const g = C.querySelector('[data-gmgr]'); if (g) { g.disabled = false; g.onclick = () => g3Mitte('grundriss'); }
 }
 function g3Bearb(an) {   // Schalter „Gebäude bearbeiten“ (A1) – nur im Baukasten; ein Plan aus einer Datei hat seine Form aus der Datei (D1)
   if (!G3.bk) return;

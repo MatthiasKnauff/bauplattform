@@ -24,6 +24,9 @@ export async function kontaktPruefen(browser, repo) {
       return { nebenGewerk: Math.abs(r('contact_person').top - r('trade').top) < 4, funktionHalb: r('role').width < r('name').width * 0.7,
         gleichHoch: ((a, b) => Math.abs(a.top - b.top) < 2 && Math.abs(a.height - b.height) < 2)(document.querySelector('.bph-chips').getBoundingClientRect(), document.querySelector('[data-kmf="contact_person"]').getBoundingClientRect()),
         innenOhneRahmen: getComputedStyle(document.querySelector('[data-chipin="trade"]')).borderTopWidth === '0px' }; });
+    await p.evaluate(() => { const s = document.querySelector('.bph-kap select'); if (!s) return; const w = document.createElement('span'); w.className = 'bph-pa'; w.innerHTML = '<input value="Anrede –">'; s.replaceWith(w); });   // wie head.js (projektAuswahl) die Auswahl ersetzt – hier ohne head.js
+    const at = await p.evaluate(() => { const a = document.querySelector('.bph-kap > :first-child'), t = document.querySelector('[data-kmfi="ap_titel"]'); return a && t ? [a.getBoundingClientRect().right, t.getBoundingClientRect().left] : null; });
+    pruef(at && at[0] <= at[1] + 1, `Anrede schiebt sich über den Titel (22.11.2026, „rof.“ statt „Prof.“) – ${JSON.stringify(at)}`);
     pruef(lage.nebenGewerk && lage.funktionHalb && lage.gleichHoch && lage.innenOhneRahmen, `Anordnung: Ansprechpartner:in neben Gewerk auf gleicher Höhe, Funktion halb breit, Eingabe im Baustein-Feld ohne eigenen Rahmen – ${JSON.stringify(lage)}`);
     await p.click('[data-chipin="trade"]'); await p.keyboard.type('Ger'); await p.waitForTimeout(400);
     pruef(await p.evaluate(() => /Gerüstbau/.test(document.querySelector('[data-chl="trade"]').textContent)), 'Gewerk: kein Vorschlag „Gerüstbau“ beim Tippen von „Ger“');

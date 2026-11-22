@@ -15,7 +15,7 @@
   const esc = window.bpEsc;
   const KX = (u, o = {}) => fetch(u, { credentials: 'same-origin', ...o }).then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok || j.error) { const e = new Error(j.error || 'Fehler ' + r.status); e.data = j; throw e; } return j; });
   const css = document.createElement('style');
-  css.textContent = `.bph-kmk .bph-kap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem}.bph-kmk .bph-km-q{display:flex;flex-wrap:wrap;gap:.3rem;margin:0 0 .6rem}.bph-kmk .bph-km-q .bph-btn{font-size:.85em;padding:.25rem .65rem;text-decoration:none}
+  css.textContent = `.bph-kmk .bph-kap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem}.bph-kmk .bph-kap .bph-pa{min-width:0}.bph-kmk .bph-km-q{display:flex;flex-wrap:wrap;gap:.3rem;margin:0 0 .6rem}.bph-kmk .bph-km-q .bph-btn{font-size:.85em;padding:.25rem .65rem;text-decoration:none}
 .bph-kmk .bph-km-map{position:relative;margin:0 0 .7rem;border-radius:calc(10px*var(--rk,1));overflow:hidden;border:1px solid var(--line,#ccc);height:150px}
 .bph-kmk .bph-km-map iframe{border:0;width:100%;height:100%;display:block}
 .bph-kmk .bph-km-map a{position:absolute;right:.4rem;bottom:.4rem;background:var(--card,#fff);color:var(--ink,#222);border-radius:calc(6px*var(--rk,1));padding:.1rem .5rem;font-size:.8em;text-decoration:none;box-shadow:var(--sh0,0 1px 4px rgba(0,0,0,.2))}

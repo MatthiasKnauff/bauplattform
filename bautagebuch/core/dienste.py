@@ -1,5 +1,7 @@
 """Die Hintergrundaufgaben der Bauplattform als zwei Aufrufe: einrichten() einmal beim Start, starten() für die laufenden Aufgaben.
 Aufgerufen vom Container „dienste“ (bautagebuch/dienste.py) – und vom Bautagebuch selbst, solange es keinen Dienste-Container gibt."""
+import threading
+
 from . import aufraeumen, auth, backups, db, extern, reminders, storage, sync
 from bpcore import dateien, fehler
 
@@ -48,12 +50,29 @@ def einrichten():
         fehler.still("dienste", "ToDo-Liste ablegen", e)
 
 
+def _elemente_nachholen():
+    """Einmal nach dem Start (22.11.2026, „Art ändern dauert sehr lange“): IFC-Planstände von vorher lesen ihre Datei hier im Hintergrund,
+    nicht beim ersten Klick – je Planstand eine eigene Transaktion, die neuesten zuerst."""
+    from bpcore import planstand
+    with db.tx() as c:
+        offen = planstand.elemente_offen(c)
+    for sid, pid in offen:
+        try:
+            with db.tx() as c:
+                planstand.elemente(c, pid, sid)
+        except Exception as e:   # noqa: BLE001 – eine kaputte Datei hält die übrigen nicht auf; der Klick liest sie dann selbst
+            fehler.still("dienste", f"Bauteile des Planstands {sid} speichern", e)
+    if offen:
+        print(f"Dienste: Bauteile von {len(offen)} IFC-Planständen gespeichert", flush=True)
+
+
 def starten():
     """Die laufenden Aufgaben – jede in ihrem eigenen Hintergrund-Thread."""
     reminders.start()   # E-Mail-Erinnerungen für Erledigungsdaten
     backups.start()     # tägliche Datenbankversionen
     extern.start()      # nach einem Ausfall: Fotos und Logo vom Dateiserver zurückholen
     dateien.start(db.tx)  # Dateispeicher: Schalter prüfen, vorhandene Dateien aus der Datenbank umziehen, nachts aufräumen
+    threading.Thread(target=_elemente_nachholen, daemon=True).start()   # ältere IFC-Planstände: Bauteile einmal speichern (Art ändern ohne Datei lesen)
     aufraeumen.start()  # nachts alte Stände („…_old1“) auf dem Dateiserver aufräumen
     from . import wiki_dienst
     wiki_dienst.start()  # Wiki: PDF in „Pläne & Dateien“ → „Büro“, montags Zusammenfassung vorbereiten

@@ -147,6 +147,13 @@ def elemente(c, pid, sid):
     return S
 
 
+def elemente_offen(c):
+    """IFC-Planstände, die vor dem 22.11.2026 eingelesen wurden und ihre Bauteile noch nicht gespeichert haben – (Planstand, Projekt)."""
+    return [(r["id"], r["project_id"]) for r in c.execute(
+        "SELECT p.id, p.project_id FROM pm_planstand p LEFT JOIN pm_elemente e ON e.planstand = p.id "
+        "WHERE e.planstand IS NULL AND p.entwurf=0 AND COALESCE(p.archiviert, 0)=0 AND COALESCE(p.art, 'ifc')='ifc' ORDER BY p.id DESC").fetchall()]
+
+
 DXF_KEY = "gebaeudemodell:dxf"   # Zuordnung der Ebenen und Blöcke – fürs ganze Büro gemerkt (CAD-Gewohnheiten des Büros)
 
 

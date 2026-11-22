@@ -64,6 +64,7 @@ async function gmListeZeichnen(art, fokus, L, C, an) {
         return `<tr data-gmz="${esc(z ? z.id : '')}">${bpBaum.zelle({ tiefe: 1, html: esc(e.nr || '–') })}<td>${esc(e.typ)}</td><td>${esc((e.raeume || []).map((n) => (R[n] ? `${n} ${R[n].name}` : n)).join(' → '))}</td>
           <td class="r">${ab(e, 'b', gmZahl(e.b))}</td><td class="r">${ab(e, 'h', gmZahl(e.h))}</td><td class="r">${ab(e, 'bruestung', gmZahl(e.bruestung))}</td><td>${e.aussen ? 'ja' : ''}</td><td>${z ? esc(GM_WORT[z.status] || z.status) : ''}</td><td class="kz" title="${esc(z ? z.kurz : '')}">${esc(z ? z.kurz : '')}</td>${GM_HER}</tr>`;
       }).join('')}`).join('')}</tbody></table>`;
+    if (window.bpSpaltBreite) bpSpaltBreite.an(C.querySelector('table.gm-l'), 'gm.elemente');   // Spaltenbreiten ziehen wie überall (22.11.2026)
     return fok();
   }
   if (art === 'raeume') {
@@ -78,6 +79,7 @@ async function gmListeZeichnen(art, fokus, L, C, an) {
       ${gmGruppen(alle, (x) => x.g).map(([g, X]) => `<tr class="gh">${bpBaum.zelle({ tiefe: 0, html: `<b>${esc(g)}</b> <small class="mute">${X.length} Räume · ${gmZahl(X.reduce((a, x) => a + ((x.r || x.p).flaeche || 0), 0))} m²</small>` })}<td colspan="7"></td></tr>
         ${X.map(({ r, p, k }) => p ? plusZ(p, k) : `<tr data-gmz="${esc(zid(r))}">${bpBaum.zelle({ tiefe: 1, html: esc(r.nr) })}<td>${r.ermittelt ? `<input class="gm-rn" data-gmrn="${esc(r.nr)}" value="${esc(r.name)}" aria-label="Name des Raums ${esc(r.nr)}"> <small class="mute" title="Das IFC enthielt keine Räume – aus den Wänden ermittelt. Namen hier vergeben; „IFC mit Maßnahmen ausgeben“ schreibt die Räume ins IFC.">ermittelt</small>` : esc(r.name)}</td><td class="r">${gmZahl(r.flaeche)} m²</td><td class="r">${gmZahl(r.hoehe)}</td>
           ${['boden', 'wand', 'decke'].map((t) => `<td class="kz" title="${esc(teil(r, t))}">${esc(teil(r, t))}</td>`).join('')}${GM_HER}</tr>`).join('')}`).join('')}</tbody></table>`;
+    if (window.bpSpaltBreite) bpSpaltBreite.an(C.querySelector('table.gm-l'), 'gm.raeume');
     return fok();
   }
 }

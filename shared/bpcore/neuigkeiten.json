@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-baum-2211",
+  "datum": "2026-11-22",
+  "app": "gebaeudemodell",
+  "titel": "Bauteile: nach Bauteilart und Typ, nichts springt",
+  "text": "Die Bauteile stehen jetzt nach Bauteilart (Außenwände, Dach, Fenster …) und darin nach Typ – mit Anzahl, anfangs zugeklappt. Beim Aufklappen bleibt die angeklickte Zeile genau an ihrer Stelle (in allen Bäumen). Spaltenbreiten lassen sich auch bei Fenster & Türen und Räumen ziehen.",
+  "ziel": ".bt-grp"
+ },
+ {
   "id": "gantt-soll-ist-2211",
   "datum": "2026-11-22",
   "app": "gantt",

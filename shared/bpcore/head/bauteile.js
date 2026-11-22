@@ -45,7 +45,8 @@
     if (L.length) return dick(T.length ? T : L);
     return matName(z.kurz || z.material || z.name);
   }
-  const grpLies = () => { try { const v = JSON.parse(localStorage.getItem('bp.bt.grp2')); return Array.isArray(v) && v.length ? v.filter((k) => k in GRUPPEN) : ['typ']; } catch { return ['typ']; } };   // Vorgabe seit 22.11.2026: nach Typ (neuer Schlüssel – die frühere Vorgabe „Bereich“ gilt nicht weiter)
+  const GRP0 = ['art', 'typ'];   // Vorgabe (22.11.2026): Bauteilart › Typ – Außenwände › AW-01 …, Gruppen anfangs zu
+  const grpLies = () => { try { const v = JSON.parse(localStorage.getItem('bp.bt.grp3')); return Array.isArray(v) && v.length ? v.filter((k) => k in GRUPPEN) : GRP0; } catch { return GRP0; } };   // Vorgabe seit 22.11.2026: nach Typ (neuer Schlüssel – die frühere Vorgabe „Bereich“ gilt nicht weiter)
   const BEREICH = [['rohbau', 'Rohbau'], ['oeffnung', 'Öffnungen – Fenster und Türen'], ['raum', 'Räume – Oberflächen'], ['ausbau', 'Küche und Bad'], ['frage', 'Nicht im Modell – bitte beantworten'], ['hand', 'Von Hand'], ['leistung', 'Leistungen ohne Bauteil']];
   const HAND = ['hand', 'leistung'];   // Name/Menge hier änderbar, entfernen möglich
   let KONTEXT = null; document.addEventListener('bph:kontext', (e) => { if (KONTEXT) KONTEXT(e); });
@@ -773,14 +774,16 @@
       /* Eine Baumtabelle für alles (17.11.2026, „konsequent“): alle Bereiche und Gruppen stehen immer da – leer mit 0 und „＋ Zeile“, gefüllt
          klappbar; „＋ Zeile“ am Kopf jeder Gruppe, in die man von Hand etwas eintragen kann. Ohne Zeilen oben die Meldung wie in allen Apps. */
       const plus = (kg, g) => (Z.an ? '' : ` <button type="button" class="bt-plus" data-bthand data-kg="${kg}" data-gruppe="${esc(g)}" title="Bauteil von Hand in „${esc(g)}“ anlegen">＋ Zeile</button>`);
-      const kopfZ = (R, t, k, tiefe, extra) => {
-        const zu = R.length && KL && KL.zu(k), offen = R.filter((z) => z.status === 'offen' && !z.entfaellt).length;
-        return [zu, `<tr class="bt-bh">${bpBaum.zelle({ tiefe, auf: R.length ? !zu : null, klapp: R.length ? k : null, html: `<b>${esc(t)}</b> <small class="bt-nr">${R.length}${offen ? ` · <span class="bt-ro">${offen} offen</span>` : ''}</small>${extra || ''}` })}<td colspan="5"></td></tr>`];
+      const kopfZ = (R, t, k, tiefe, extra) => {   // Gruppen aus „Gruppieren“ (g:…) sind anfangs zu – gemerkt wird, was offen ist („og:…“)
+        const g = k.startsWith('g:'), kk = g ? 'o' + k : k;
+        if (g && Z.selAuf && KL && !KL.zu(kk) && R.some((z) => z.id === Z.sel || Z.mw.includes(z.id))) KL.um(kk);   // im 3D gewählt: nur ihre Gruppe geht auf
+        const zu = R.length && KL && (g ? !KL.zu(kk) : KL.zu(k)), offen = R.filter((z) => z.status === 'offen' && !z.entfaellt).length;
+        return [zu, `<tr class="bt-bh">${bpBaum.zelle({ tiefe, auf: R.length ? !zu : null, klapp: R.length ? kk : null, html: `<b>${esc(t)}</b> <small class="bt-nr">${R.length}${offen ? ` · <span class="bt-ro">${offen} offen</span>` : ''}</small>${extra || ''}` })}<td colspan="5"></td></tr>`];
       };
       const ort = (z) => z.bereich !== 'hand' ? z.bereich : /^3[2-6]/.test(z.kg || '') ? 'rohbau' : /^41/.test(z.kg || '') ? 'ausbau' : 'hand';   // „＋ Zeile“ in einer Gruppe: die Zeile steht dort
       const PLUS = { ausbau: '412', hand: '300' };
       let body = ''; Z.gk = [];
-      const G = Z.grp.join() === 'typ' && (leer || !Object.keys(Li.typen || {}).length) ? ['bereich'] : Z.grp, gewohnt = G.length === 1 && G[0] === 'bereich';   // noch keine Typen (leer, nur von Hand): der Standardbaum
+      const G = Z.grp.includes('typ') && (leer || !Object.keys(Li.typen || {}).length) ? ['bereich'] : Z.grp, gewohnt = G.length === 1 && G[0] === 'bereich';   // noch keine Typen (leer, nur von Hand): der Standardbaum
       if (!gewohnt) {   // Ebenen aus der Leiste oben, außen vor innen – je Ebene klappbar
         const artVon = (z) => { if (ort(z) === 'rohbau') { const g = ROHG.find((x) => x[3](z)); return g ? g[1] : 'Sonstiges'; } return (BEREICH.find(([b]) => b === ort(z)) || [, 'Sonstiges'])[1]; };
         const wert = (z, k) => (k === 'bereich' ? (BEREICH.find(([b]) => b === ort(z)) || [, 'Sonstiges'])[1] : k === 'teil' ? z.teil || 'ohne Gebäudeteil' : k === 'art' ? artVon(z)
@@ -788,7 +791,8 @@
         const ebene = (R, i, pfad) => {
           if (i >= G.length) { body += R.map((z) => zeilenHtml(z, i)).join(''); return; }
           const M = new Map(); R.forEach((z) => { const w = wert(z, G[i]); (M.get(w) || M.set(w, []).get(w)).push(z); });
-          [...M.entries()].sort((a, b) => a[0].localeCompare(b[0], 'de', { numeric: true })).forEach(([w, RR]) => { const k = `g:${pfad}/${w}`; Z.gk.push(k); const [zu, h] = kopfZ(RR, w, k, i); body += h; if (!zu) ebene(RR, i + 1, `${pfad}/${w}`); });
+          const ART = [...ROHG.map((x) => x[1]), ...BEREICH.map((x) => x[1])], rang = (w) => (G[i] === 'art' && ART.includes(w) ? ART.indexOf(w) : 999);   // Bauteilart in der Reihenfolge des Baus
+          [...M.entries()].sort((a, b) => rang(a[0]) - rang(b[0]) || a[0].localeCompare(b[0], 'de', { numeric: true })).forEach(([w, RR]) => { const k = `g:${pfad}/${w}`; Z.gk.push(k); const [zu, h] = kopfZ(RR, w, k, i); body += h; if (!zu) ebene(RR, i + 1, `${pfad}/${w}`); });
         };
         ebene(ZZ, 0, G.join('>'));
       }
@@ -812,10 +816,10 @@
       const grp = window.bpGruppen && !leer ? `<div class="bt-grp">${bpGruppen.html(Z.grp, GRUPPEN, { rechts: 'Doppelklick: Eigenschaften · Strg + Klick: mehrere' })}</div>` : '';
       el.innerHTML = `<div class="bt-bl">${an}${rwl}${zl}${tw}${meldung}${mwl}<div class="bt-w"></div>${grp}<div class="bt-bw"><table class="bp-baum bt-baum${leer ? ' bt-gerust' : ''}"><thead><tr><th>Bauteil</th><th class="r">Menge</th><th>Maßnahme</th><th>Aufbau</th><th class="r" title="U-Wert aus dem gewählten Aufbau, W/(m²K) – Farbe nach GModG (Neubau: Referenzgebäude, Bestand: Anlage 7)">U</th><th class="c" title="wird berechnet">€</th></tr></thead><tbody>${body}</tbody></table></div>
         <input type="file" accept=".ifc,.dxf,.pdf" data-btdatei hidden></div>`;
-      el.querySelector('.bt-bw').scrollTop = y;
+      el.querySelector('.bt-bw').scrollTop = y; Z.selAuf = false;
       if (window.bpSpaltBreite && !leer) bpSpaltBreite.an(el.querySelector('.bt-baum'), 'bauteile');   // Spaltenbreiten ziehen wie im LV (22.11.2026)
       const gb = el.querySelector('.bt-grp');
-      if (gb) bpGruppen.an(gb, { lies: () => Z.grp, namen: GRUPPEN, setze: (G2) => { Z.grp = G2.length ? G2 : ['typ']; try { localStorage.setItem('bp.bt.grp2', JSON.stringify(Z.grp)); } catch { /* egal */ } baumZeichnen(); } });
+      if (gb) bpGruppen.an(gb, { lies: () => Z.grp, namen: GRUPPEN, setze: (G2) => { Z.grp = G2.length ? G2 : GRP0; try { localStorage.setItem('bp.bt.grp3', JSON.stringify(Z.grp)); } catch { /* egal */ } baumZeichnen(); } });
     }
     /* Dreieck an der Zeile (E3): darunter die schnelle Wahl eines fertigen Aufbaus – erst Standardbauteile, dann Schichten (dieselbe Suche wie im Editor) */
     function schnellHtml(z) {
@@ -846,7 +850,7 @@
     /* Bauteiltypen (Gebäudemodell neu, Etappe 2 – 22.11.2026): „gleiche Bauteile“ = derselbe Typ (Kern bpcore/typen.py); ältere Listen ohne Typ: gleicher Aufbau */
     const gleiche = () => { const r = gewaehlt()[0]; if (!r) return []; if (r.typ) return L().zeilen.filter((x) => !x.entfaellt && x.typ === r.typ);
       return r.kurz ? L().zeilen.filter((x) => !x.entfaellt && x.kurz === r.kurz && String(x.kg || '').slice(0, 2) === String(r.kg || '').slice(0, 2)) : []; };
-    function typName(k) { const t = (L().typen || {})[k]; return t ? `${k}${t.name ? ' · ' + t.name : ''}` : 'ohne Typ'; }
+    function typName(k) { const t = (L().typen || {})[k], n = t && (t.name || t.kurz); return t ? `${k}${n ? ' · ' + n : ''}` : 'ohne Typ'; }   // ohne eigenen Namen: der Aufbau
     function typStand(ks) {   // Stand vor einer Typ-Aktion – für Rückgängig/Wieder (Aktion „stand“ im Kern)
       const K = new Set(ks), zl = {};
       for (const z of L().zeilen) if (z.typ && K.has(z.typ)) zl[z.id] = { typ: z.typ, vorlage: z.vorlage, wahl: [...(z.wahl || [])], code: z.code, kurz: z.kurz, dicken: z.dicken || {}, ausf: z.ausf || {} };
@@ -990,7 +994,7 @@
       mehr(ids) { mwSetzen(ids || []); },   // im 3D mehrere gewählt (Zeilen-Kennungen)
       eigenschaften(id) { eigenschaften(id); },   // Doppelklick im 3D (G1)
       mehrfach: () => [...Z.mw],
-      zeige(id, rollen) { Z.mw = []; Z.sel = id; Z.auf = id; zeichne(); const r = rollen && el.querySelector(`[data-btz="${CSS.escape(id)}"]`); if (r) r.scrollIntoView({ block: 'nearest' }); },   // rollen: aus der 3D-Ansicht gewählt – die Zeile ins Bild
+      zeige(id, rollen) { Z.mw = []; Z.sel = id; Z.auf = id; Z.selAuf = !!rollen; zeichne(); const r = rollen && el.querySelector(`[data-btz="${CSS.escape(id)}"]`); if (r) r.scrollIntoView({ block: 'nearest' }); },   // rollen: aus der 3D-Ansicht gewählt – die Zeile ins Bild
       neu(d) { Z.d = d; zeichne(); },
       zeigen() { zeichne(); },   // der Platz wurde gerade sichtbar (Reiter rechts im Gebäudemodell) – der Baum zeichnet nur, was zu sehen ist
       entwurf: (e) => (e.erster ? uebernehmen(e, {}, e.name) : abgleich(e)),   // Planstand von außen (Assistent: bpcore/modell_hand.py) – wie nach dem Einlesen

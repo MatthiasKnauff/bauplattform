@@ -31,9 +31,15 @@ export async function bautypenPruefen(browser, repo) {
     return r.fulfill({ status: 404, body: '' });
   });
   try {
-    await q.goto('http://typ.test/seite'); await q.waitForSelector('.bt-baum [data-btz="a"]');
-    const g = await q.evaluate(() => ({ chips: [...document.querySelectorAll('.bt-grp [data-bpgk]')].map((c) => c.dataset.bpgk).join(), k: [...document.querySelectorAll('.bt-baum tr.bt-bh b')].map((b) => b.textContent) }));
-    pruef(g.chips === 'typ' && g.k.join('|') === 'AW-01 · Außenwand 24|AW-02', `Vorgabe: nach Typ gruppiert – ${JSON.stringify(g)}`);
+    await q.goto('http://typ.test/seite'); await q.waitForSelector('.bt-baum tr.bt-bh');
+    const kopf = () => q.evaluate(() => ({ chips: [...document.querySelectorAll('.bt-grp [data-bpgk]')].map((c) => c.dataset.bpgk).join(), k: [...document.querySelectorAll('.bt-baum tr.bt-bh b')].map((b) => b.textContent), z: document.querySelectorAll('.bt-baum tr[data-btz]').length }));
+    const g0 = await kopf();   // Vorgabe (22.11.2026): Bauteilart › Typ, Gruppen anfangs zu, Typ ohne Namen zeigt den Aufbau
+    pruef(g0.chips === 'art,typ' && g0.k.join('|') === 'Außenwände' && !g0.z, `Vorgabe: Bauteilart › Typ, zu – ${JSON.stringify(g0)}`);
+    await q.click('.bt-baum tr.bt-bh [data-zu]'); await q.waitForTimeout(100);
+    const g1 = await kopf();
+    pruef(g1.k.join('|') === 'Außenwände|AW-01 · Außenwand 24|AW-02 · AW KS 17,5' && !g1.z, `Außenwände auf: Typen darunter, zu – ${JSON.stringify(g1)}`);
+    for (const n of [1, 2]) { await q.evaluate((n) => document.querySelectorAll('.bt-baum tr.bt-bh [data-zu]')[n].click(), n); await q.waitForTimeout(80); }
+    await q.waitForSelector('.bt-baum [data-btz="a"]');
     // Spaltenbreite ziehen wie im LV (bp/spaltbreite.js, 22.11.2026)
     const th = await q.$('.bt-baum th .sb-griff'); const bx = th && await th.boundingBox();
     if (!bx) fehler.push('Spaltenbreite: kein Griff am Spaltenkopf'); else {
@@ -52,11 +58,11 @@ export async function bautypenPruefen(browser, repo) {
     await q.click('.bt-pop [data-btpu="gleich"]');
     pruef(await q.evaluate(() => [...document.querySelectorAll('.bt-pop .bt-popu tbody tr')].map((t) => t.dataset.btpz).join()) === 'a,b', 'Reiter Typ: beide Bauteile des Typs');
     await q.evaluate(() => { U.length = 0; });
-    await q.click('.bt-pop [data-bttyp="neu"]'); await q.waitForFunction(() => document.querySelectorAll('.bt-baum tr.bt-bh').length === 3);
+    await q.click('.bt-pop [data-bttyp="neu"]'); await q.waitForFunction(() => document.querySelectorAll('.bt-baum tr.bt-bh').length === 4);   // Außenwände + drei Typen
     const n = S.put[0] || {};
     pruef(n.aktion === 'neu_aus' && n.typ === 'AW-01' && n.zeilen.join() === 'a' && n.name === 'Sonderwand', `Neuer Typ aus den angehakten: ${JSON.stringify(n)}`);
     pruef(await q.evaluate(() => U.length === 1 && /Neuer Typ aus AW-01/.test(U[0][0])), 'Rückgängig angeboten');
-    await q.evaluate(() => U[0][1]()); await q.waitForFunction(() => document.querySelectorAll('.bt-baum tr.bt-bh').length === 2);
+    await q.evaluate(() => U[0][1]()); await q.waitForFunction(() => document.querySelectorAll('.bt-baum tr.bt-bh').length === 3);
     const s = S.put[1] || {};
     pruef(s.aktion === 'stand' && s.stand.zeilen.a.typ === 'AW-01' && !s.stand.typen['AW-03'], `Rückgängig: Stand vorher – ${JSON.stringify(s).slice(0, 200)}`);
     // Art je Bauteil (22.11.2026): mehrere gewählt → „Art ▾“; im 3D gewählte Bauteile dieser Zeilen gehen hinaus, nicht die ganze Zeile

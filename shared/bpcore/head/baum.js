@@ -69,8 +69,11 @@
       if (!c && !a) return;
       const K = o.klapp(); if (!K) return;
       e.stopPropagation();
+      // Auf-/Zuklappen bewegt nichts (22.11.2026, für alle Bäume): die angeklickte Zeile bleibt genau an ihrer Stelle, Neues geht nur darunter auf
+      const z = c || a, zurueck = anker(z, c ? `[data-zu="${CSS.escape(c.dataset.zu)}"]` : null);
       if (c) K.um(c.dataset.zu); else K.setze(a.dataset.zualle === 'zu' ? o.alle() : []);
-      o.neu();
+      const r = o.neu();
+      if (c) { zurueck(); requestAnimationFrame(() => zurueck()); if (r && r.then) r.then(() => zurueck()); }
     }, true);
   }
   /* ---------- Rollposition: vor dem Neuzeichnen merken, danach wiederherstellen (Auf-/Zuklappen springt nicht nach oben) ----------

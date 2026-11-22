@@ -254,6 +254,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Gebäudemodell: Bauteile nach Bauteilart › Typ (zu, mit Anzahl, Name neben dem Kürzel); Aufklappen bewegt nichts (alle Bäume); Spaltenbreite bei Fenster & Türen und Räumen~~ (22.11.2026)
 - ~~Bauzeitenplan: Soll und Ist – Soll festhalten (Recht je Rolle, ab Werk alle Planer:innen), Soll immer unter dem Plan, Überziehung schiebt Nachfolger, Lernen Ist ÷ Soll; Vergleich mit alten Versionen entfällt~~ (22.11.2026)
 - ~~Bauzeitenplan: Überziehung (Tage + Grund) im Eigenschaften-Fenster~~ (22.11.2026)
 - ~~Grundriss: graue Fläche („kein Raum“/„Schacht“) wieder Raum nur über das Kontextmenü, nicht per Klick~~ (22.11.2026)

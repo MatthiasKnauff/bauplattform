@@ -89,8 +89,6 @@ const ACTIONS = {
   toggleAutoLink: () => { autoLink = !autoLink; LS.set('autolink', autoLink); updateRibbon(); toast(autoLink ? 'Automatisch verknüpfen: EIN – beim Einfügen und Löschen werden Verknüpfungen angepasst.' : 'Automatisch verknüpfen: AUS'); },
   gwDialog, gwAuto,
   settings: () => settingsDialog(),
-  verlaufPlan: () => { if (P) versionHistory(); },
-  verlaufKatalog: () => { if (window.BPHead && BPHead.verlaufAlle) BPHead.verlaufAlle({ teil: 'gs', titel: 'Verlauf der Kataloge und Einstellungen' }); },
   fileClose: () => closeProject(),
   bpVerknuepfen: () => { if (window.bpLinkDialog) window.bpLinkDialog(); },
   projMenu: (b) => projMenu(b),
@@ -103,7 +101,7 @@ document.addEventListener('click', (e) => {
 });
 document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => showTab(t.dataset.tab)));
 // ohne geöffnetes Projekt erlaubte Befehle
-const NOPROJ_OK = new Set(['fileNew', 'fileOpen', 'projMenu', 'settings', 'verlaufKatalog', 'toggleAssist', 'libNew', 'libFromProjects', 'libKlapp', 'libExport', 'libImport']);
+const NOPROJ_OK = new Set(['fileNew', 'fileOpen', 'projMenu', 'settings', 'toggleAssist', 'libNew', 'libFromProjects', 'libKlapp', 'libExport', 'libImport']);
 function setNoProject(on) {
   document.body.classList.toggle('no-project', on);
   if (on) { const v = document.getElementById('bph-vl'); if (v) v.style.display = 'none'; }
@@ -512,7 +510,7 @@ function vleiste() {
   if (!window.BPHead || !BPHead.versionsleiste) return;
   if (!vlKnoepfe) {
     const mk = (act, txt, tip) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'bph-vl-b'; b.dataset.act = act; b.textContent = txt; b.title = tip; return b; };
-    vlKnoepfe = [mk('printDialog', '🖨 Drucken / PDF …', 'Bauzeitenplan drucken oder als PDF (Strg+P)'), mk('fileExport', '⤓ Exportieren …', 'Als Datei speichern: Excel/CSV, MS Project, Gantt-Datei'), mk('verlaufPlan', '🕘 Verlauf', 'Frühere Stände dieses Bauzeitenplans ansehen und wiederherstellen (Soll gegen Ist: Band über dem Plan)')];
+    vlKnoepfe = [mk('printDialog', '🖨 Drucken / PDF …', 'Bauzeitenplan drucken oder als PDF (Strg+P)'), mk('fileExport', '⤓ Exportieren …', 'Als Datei speichern: Excel/CSV, MS Project, Gantt-Datei')];
   }
   const bt = P && P._bt ? P._bt.id : null;
   const L = !P ? [] : (bt ? projects.filter((p) => p.bt_id === bt) : projects.filter((p) => p.id === P.id)).slice().sort((a, b) => (a.created || '').localeCompare(b.created || '') || a.id.localeCompare(b.id));
@@ -522,7 +520,7 @@ function vleiste() {
     liste: L.map((p) => ({ id: p.id, name: p.id === (P && P.id) ? P.name : p.name, datum: when(p.updated), wer: p.by || '', archiviert: p.archived })),
     onWahl: async (id) => { await flushSave(); if (await openProject(String(id)) !== false) refreshProjectList(); },
     onGueltig: bt ? versionGilt : null,
-    onNeu: neueVersion, extra: [{ text: '⎘ Aus anderem Plan übernehmen …', fn: () => ACTIONS.planUebernehmen() }, ...(window.GVGL && window.BP && BP.me && BP.me.soll ? [{ text: GVGL.soll() ? '📌 Soll neu festhalten …' : '📌 Als Soll festhalten …', fn: () => GVGL.festhalten() }] : [])], onUmbenennen: () => ACTIONS.renameProject(), onVerlauf: () => versionHistory(), onVerwalten: () => archivDialog() };
+    onNeu: neueVersion, extra: [{ text: '⎘ Aus anderem Plan übernehmen …', fn: () => ACTIONS.planUebernehmen() }, ...(window.GVGL && window.BP && BP.me && BP.me.soll ? [{ text: GVGL.soll() ? '📌 Soll neu festhalten …' : '📌 Als Soll festhalten …', fn: () => GVGL.festhalten() }] : [])], onUmbenennen: () => ACTIONS.renameProject(), onVerwalten: () => archivDialog() };
   // kompaktes Versionsmenü vorne in der Werkzeugleiste (wie in der AVA); Drucken/Exportieren rechts in der Reiterzeile
   const el = BPHead.versionsleiste({ vor: $('#tabs'), ...O }); el.style.display = 'none';
   let vb = $('#vmGrp');
@@ -624,10 +622,11 @@ function scheduleOf(data) {   // Termine eines gespeicherten Stands berechnen, o
   finally { P = save; buildCal(P.cal); }
   return { C: C2, T: T2 };
 }
+window.bpAeltereStaende = () => (P ? versionHistory : () => BPHead.verlaufAlle({ teil: 'gs', titel: 'Ältere Stände der Kataloge und Einstellungen' }));   // Rückgängig ▾ → „Ältere Stände …“ (22.11.2026)
 async function versionHistory() {
   await flushSave();
   let list = [];
-  const bg = modal('Verlauf – ' + P.name, '<div id="vhBody">Lade …</div>', [
+  const bg = modal('Ältere Stände – ' + P.name, '<div id="vhBody">Lade …</div>', [
     { label: 'Schließen' }]);
   bg.querySelector('.modal').style.width = '860px';
   const fmtTs = (iso) => { const d = new Date(iso); return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
@@ -680,15 +679,14 @@ function ganttSettings(host) {
       <label class="bph-ck"><input type="checkbox" data-gs="autoLink"${autoLink ? ' checked' : ''}> Neue Leistungen automatisch mit der vorherigen verknüpfen</label>
       <p class="bph-mu">Gilt auf diesem Gerät. Beides lässt sich auch im Reiter „Leistung“ umschalten.</p>
       <h4>Kataloge, Phasen, Firmen und Vorlagen</h4>
-      <p class="bph-mu">Leistungskatalog und Vorlagen pflegst du im Reiter „Leistungskatalog“, den Planungsassistenten über ✦ in der Leiste. Frühere Stände lassen sich hier zurückholen.</p>
-      <div class="bph-row"><button type="button" class="bph-btn" data-gs="verlauf">🕘 Verlauf der Kataloge und Einstellungen</button></div>`;
+      <p class="bph-mu">Leistungskatalog und Vorlagen pflegst du im Reiter „Leistungskatalog“, den Planungsassistenten über ✦ in der Leiste.</p>
+`;
   };
   host.onchange = (e) => {
     const k = e.target.dataset.gs;
     if (k === 'delAsk') { LS.set('delAsk', e.target.checked); updateRibbon(); }
     if (k === 'autoLink') { autoLink = e.target.checked; LS.set('autolink', autoLink); updateRibbon(); }
   };
-  host.onclick = (e) => { if (e.target.closest('[data-gs="verlauf"]')) ACTIONS.verlaufKatalog(); };
   draw();
 }
 if (window.BPHead && BPHead.appEinstellungen) BPHead.appEinstellungen([{ key: 'gantt', label: 'Bauzeitenplan', render: (h) => ganttSettings(h) }]);

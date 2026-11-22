@@ -1,7 +1,7 @@
 // Verknüpfungen (bp/karte.js, neu nach dem Konzept 20.11.2026: A → B → C, Feld rechts) – Ablauftest im echten Browser mit nachgebildetem Kern.
 // Geprüft: A2 + C1–C6 mit Pfeilen (keine Zeiten, keine Wahl der Richtung), vorgewählt die App mit Hinweisen, Übernahme automatisch/mit Übernahme/getrennt
 // im Feld rechts, Hinweise abarbeiten, Versionen (an der Kiste nur ★, Version wählen = fest, „aktuell“ fragt übernehmen/nur folgen), Stand festhalten,
-// Planstände an A2, alle Apps, Standard, Verlauf, Weg I–V; Bereich rechts und schmal ohne waagerechten Scrollbalken; kein Fehler in der Konsole.
+// Planstände an A2, alle Apps, Standard, Weg I–V; Bereich rechts und schmal ohne waagerechten Scrollbalken; kein Fehler in der Konsole.
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await kartePruefen(browser, repoWurzel)   – allein: node tools/tests/ui/karte.mjs
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
@@ -106,15 +106,13 @@ export async function kartePruefen(browser, repo) {
     // A2: Planstände, ★ gilt
     await p.click('#feld .vk-k[data-app="_plan"]'); await warte(p);
     pruef(await p.evaluate(() => document.querySelector('#feld .vk-det [data-ps="11"]').classList.contains('on')), 'A2: Planstände mit ★');
-    // ohne Auswahl: alle Apps, Standard, Verlauf
+    // ohne Auswahl: alle Apps, Standard (kein eigener Verlauf)
     await p.click('#feld .vk-k[data-app="_plan"]'); await warte(p);
     await p.click('#feld .vk-det [data-alle="auto"]'); await warte(p);
     pruef(S.L.kosten.uebernahme === 'auto' && S.L.zeiten.uebernahme === 'uebernahme', '„Alle Apps: automatisch“ wirkt nicht (oder fasst getrennte an)');
     await p.click('#feld [data-vk="standard"]'); await p.waitForSelector('.bph-frage, .bph-dlg'); await p.evaluate(() => [...document.querySelectorAll('.bph-frage button, .bph-dlg button')].find((x) => /Zurücksetzen/.test(x.textContent)).click()); await warte(p);
     pruef(S.L.kosten.uebernahme === 'uebernahme' && S.L.ausschreibung.zustand === 'lebendig', 'Standard wiederherstellen wirkt nicht');
-    await p.click('#feld [data-vk="verlauf"]'); await p.waitForSelector('.modal .vk-vlg');
-    pruef(await p.evaluate(() => document.querySelectorAll('.modal .vk-vlg > div').length >= 6), 'Verlauf zeigt die Änderungen nicht');
-    await p.click('.modal [data-m="zu"]');
+    pruef(await p.evaluate(() => !document.querySelector('#feld [data-vk="verlauf"]')), 'kein eigener Verlauf-Knopf mehr – ältere Stände nur über Rückgängig (22.11.2026)');
   });
 
   await lauf('Bereich rechts', 760, async (p, S, pruef) => {

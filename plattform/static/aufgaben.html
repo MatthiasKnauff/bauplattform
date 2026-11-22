@@ -209,7 +209,7 @@ function zeige(art, id) {
   if (!el) { toast('Dieser Eintrag ist nicht (mehr) vorhanden.', true); return; }
   el.scrollIntoView({ block: 'center' }); el.classList.add('hl'); setTimeout(() => el.classList.remove('hl'), 4000);
 }
-document.addEventListener('click', (e) => { if (e.target.closest('#mverl') && window.BPHead && BPHead.verlaufAlle) BPHead.verlaufAlle({ teil: 'mangel', titel: 'Verlauf der Mängel und Aufgaben' }); });
+window.bpAeltereStaende = () => () => BPHead.verlaufAlle({ teil: 'mangel', titel: 'Ältere Stände der Mängel und Aufgaben' });   // Rückgängig ▾ → „Ältere Stände …“
 window.bpNachVerlauf = () => reload();   // nach „Wiederherstellen“ die Liste neu laden
 /* ---------- Laden ---------- */
 async function reload(first) {
@@ -400,7 +400,7 @@ function renderM() {
         <label><span>Frist</span><input type="date" data-f="frist" value="${esc(m.frist)}"></label>
         <div style="display:flex;gap:.3rem;justify-content:flex-end;flex-wrap:wrap">${[[7, '+1 Woche'], [14, '+2 Wo.']].map(([d, l]) => `<button class="btn sm" data-plus="${d}">${l}</button>`).join('')}<button class="btn sm" data-bph-verlauf="mangel:${m.id}" title="Verlauf dieses Eintrags – frühere Stände ansehen und wiederherstellen">🕘</button>${m.frist && !m.done ? '<button class="btn sm" data-kal title="Frist als Termin in meinen Kalender (Einladung per E-Mail)">📅</button>' : ''}${m.done || m.art !== 'maengel' ? '' : '<button class="btn sm" data-ruege title="Mängelrüge an die Firma als ausfüllbares PDF">✉ Mängelrüge</button>'}</div></div></div>`;
   $('#view').innerHTML = `<div class="flt"><span class="mute">${list.length} von ${M.length} Einträgen</span><span class="fill"></span>
-      <button class="btn sm" id="mpdf" title="Die angezeigte Liste als PDF – z. B. für eine Firma">🖨 Drucken / PDF</button><button class="btn sm" id="mverl" title="Alle Änderungen an Mängeln, Aufgaben und Weisungen – auch gelöschte Einträge zurückholen">🕘 Verlauf</button></div>
+      <button class="btn sm" id="mpdf" title="Die angezeigte Liste als PDF – z. B. für eine Firma">🖨 Drucken / PDF</button></div>
     ${scope === 'mine' && !M.length ? '<div class="note">In „Meine Projekte“ stehen Projekte, bei denen du im Bautagebuch als zuständig eingetragen bist. Oben auf „Alle Projekte“ umschalten, um alles zu sehen.</div>' : ''}
     ${list.length ? [...by.entries()].map(([pid, ms]) => `<div class="grp">${esc(ms[0].projekt)} <small>${ms.length} ${ms.length === 1 ? 'Eintrag' : 'Einträge'}</small></div><div class="ml">${ms.map(row).join('')}</div>`).join('') : '<div class="empty">Keine Einträge für diese Auswahl.</div>'}
     <datalist id="firmList">${firms.map((f) => `<option value="${esc(f)}">`).join('')}</datalist>`;
@@ -931,7 +931,7 @@ async function setDialog(host) {
     <label>E-Mail</label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="sM"${CFG.mail_plan ? ' checked' : ''}> Erinnerungen aus den Bauzeitenplänen per E-Mail verschicken</label>
     <p class="w mute" style="font-size:.85rem;margin:0">Empfänger: die Zuständigen des verknüpften Projekts, sonst wer den Plan zuletzt gespeichert hat. Den Mailserver stellst du in der Verwaltung ein. Erinnerungen aus dem Bautagebuch verschickt das Bautagebuch am Fälligkeitstag selbst.</p></div>
     <p class="w mute" style="font-size:.85rem;margin:.3rem 0 0">Unterschrift, Signatur und Versand der Rügen: ⚙ → Persönlich. Texte der Mails: Verwaltung → Einstellungen → E-Mail-Vorlagen.</p>
-    <div class="acts"><button class="btn" data-m="test">Testmail an mich</button><button type="button" class="btn" data-bph-verlauf="bp:aufgaben" style="margin-right:auto" title="Frühere Stände ansehen und wiederherstellen">🕘 Verlauf</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">OK</button></div>`, async (m, bg, close) => {
+    <div class="acts"><button class="btn" data-m="test">Testmail an mich</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">OK</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m === 'test') { try { const r = await api('api/erinnerungen/test', 'POST', {}); toast('Testmail an ' + r.to + ' verschickt.'); } catch (e) { toast(e.message, true); } return; }
     if (m === 'ok') {

@@ -904,7 +904,6 @@
           <div class="bph-row"><button type="button" class="bph-btn" data-kzollineu>Alle Hinweise wieder zeigen</button></div>
           <h4>Mein Ordner</h4><div data-kmo></div>
           <h4>Kennwort</h4><div class="bph-row"><button type="button" class="bph-btn" data-kpw>🔑 Kennwort ändern …</button></div>
-          <div class="bph-row">${H.verlaufKnopf('konto:' + K.uid, 'Verlauf meiner Einstellungen')}</div>
           <p class="bph-mu">${K.email ? `Mails gehen an <b>${esc(K.email)}</b>.` : '<b>Für dein Konto ist keine E-Mail-Adresse hinterlegt</b> – bitte vom Administrator in der Verwaltung (▦ → Verwaltung → Benutzer) eintragen lassen.'}${K.mail ? '' : ' Der Mailserver ist noch nicht eingerichtet (Verwaltung → Einstellungen → Mailserver).'}</p>`;
       } else if (!V) { b = '<p class="bph-mu">Lade …</p>'; KX('api/bp/mailvorlagen').then((v) => { V = v; draw(); }).catch((e) => { msg = e.message; draw(); }); }
       else {
@@ -913,7 +912,7 @@
             <label>Betreff<input data-tk="${k}" data-tf="betreff" value="${esc(t.betreff)}"${V.admin ? '' : ' disabled'}></label>
             <label>Text<textarea rows="6" data-tk="${k}" data-tf="text"${V.admin ? '' : ' disabled'}>${esc(t.text)}</textarea></label>
             <p class="bph-mu">${t.platzhalter.map((p) => `<code title="${esc(V.erkl[p] || '')}">{${p}}</code> ${esc(V.erkl[p] || '')}`).join(' · ')}</p></div>`).join('')
-          + (V.admin ? `<div class="bph-row"><button type="button" class="bph-btn pri" data-ksave>Vorlagen speichern</button>${H.verlaufKnopf('einst:vorlagen')}</div>` : '');
+          + (V.admin ? `<div class="bph-row"><button type="button" class="bph-btn pri" data-ksave>Vorlagen speichern</button></div>` : '');
       }
       return (opt.into ? '' : `<div class="bph-dh"><b>Unterschrift, E-Mail & Kalender</b><button type="button" class="bph-x" data-kclose aria-label="Schließen">×</button></div>`)
         + tabs + `<div class="bph-db">${b}${msg ? `<p class="bph-msg">${esc(msg)}</p>` : ''}</div>`;
@@ -982,7 +981,7 @@
       ${i === 0 && !opt.titel ? ' <span class="bph-badge cur">jetziger Stand</span>' : ''}</div>
       <ul class="bph-va">${a.slice(0, 4).map((x) => `<li>${esc(x)}</li>`).join('')}${more ? `<li class="bph-vmore" hidden>${a.slice(4).map(esc).join('</li><li>')}</li><li><button type="button" class="bph-link" data-vmore>… ${a.length - 4} weitere</button></li>` : ''}</ul>
       <div class="bph-vcmp" hidden></div>
-      <div class="bph-row">${opt.titel ? `<button type="button" class="bph-btn" data-vopen="${esc(v.bereich)}">Verlauf öffnen</button>` : ''}
+      <div class="bph-row">${opt.titel ? `<button type="button" class="bph-btn" data-vopen="${esc(v.bereich)}">Alle Stände dazu</button>` : ''}
         ${i > 0 || opt.titel ? `<button type="button" class="bph-btn" data-vcmp>Vergleichen</button><button type="button" class="bph-btn" data-vback>Wiederherstellen</button>` : ''}
         <button type="button" class="bph-btn" data-vname="${esc(v.name || '')}">${v.name ? 'Umbenennen' : 'Benennen'}</button></div></li>`;
   }
@@ -997,7 +996,7 @@
       return true;
     }
     if (t.closest('[data-vback]')) {
-      if (!(await bpFrage('Diesen Stand wiederherstellen? Der jetzige Stand bleibt im Verlauf erhalten und kann ebenso zurückgeholt werden.'))) return true;
+      if (!(await bpFrage('Diesen Stand wiederherstellen? Der jetzige Stand bleibt als älterer Stand erhalten und kann ebenso zurückgeholt werden.'))) return true;
       try { await JS(`api/bp/versionen/${id}/wiederherstellen`, 'POST'); } catch (er) { alert(er.message); return true; }
       if (opt && opt.nach) { opt.nach(); await reload(); } else location.reload();
       return true;
@@ -1022,7 +1021,7 @@
   const vUhr = (s) => { const d = new Date(s); return isNaN(d) ? '' : d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); };
   H.verlauf = async function (opt = {}) {
     const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
-    bg.innerHTML = '<div class="bph-dlg bph-vx" role="dialog" aria-label="Verlauf"></div>';
+    bg.innerHTML = '<div class="bph-dlg bph-vx" role="dialog" aria-label="Ältere Stände"></div>';
     document.body.appendChild(bg); const root = bg.firstChild;
     const close = () => { bg.remove(); document.removeEventListener('keydown', esc1); };
     const esc1 = (e) => { if (e.key === 'Escape' && !document.querySelector('.bph-frage')) close(); };
@@ -1050,7 +1049,7 @@
     };
     const draw = () => {
       const v = D && D.versionen.find((x) => x.id === sel), i0 = v && D.versionen[0] === v;
-      root.innerHTML = `<div class="bph-dh"><b>Verlauf${D ? ' · ' + esc(D.titel) : ''}</b><button type="button" class="bph-btn" data-vsave>★ Jetzigen Stand benennen …</button><button type="button" class="bph-x" data-kclose aria-label="Schließen">×</button></div>
+      root.innerHTML = `<div class="bph-dh"><b>Ältere Stände${D ? ' · ' + esc(D.titel) : ''}</b><button type="button" class="bph-btn" data-vsave>★ Jetzigen Stand benennen …</button><button type="button" class="bph-x" data-kclose aria-label="Schließen">×</button></div>
         <div class="bph-vx-fl">${[['alle', 'Alle'], ['name', '★ benannte'], ['ich', 'von mir']].map(([k, t]) => `<button type="button" class="${filt === k ? 'on' : ''}" data-vfilt="${k}">${t}</button>`).join('')}<input type="search" data-vsuch placeholder="In Änderungen suchen …" value="${esc(such)}"></div>
         ${msg ? `<p class="bph-msg" style="margin:.4rem 1rem">${esc(msg)}</p>` : ''}
         <div class="bph-vx-bd"><div class="bph-vx-l">${D ? links() : '<p class="bph-mu" style="padding:.6rem">Lade …</p>'}</div><div class="bph-vx-r">${D ? rechts() : ''}</div></div>
@@ -1073,7 +1072,7 @@
         if (!n || !n.trim()) return; try { D = await JS('api/bp/versionen', 'POST', { bereich: opt.bereich, name: n.trim() }); msg = 'Stand „' + n.trim() + '“ festgehalten.'; sel = D.versionen[0] && D.versionen[0].id; } catch (er) { msg = er.message; } draw(); if (sel) holeDet(sel); return; }
       const nb = t.closest('[data-vname2]'); if (nb) { const n = await bpEingabe('Name für diesen Stand (leer = Name entfernen):', nb.dataset.vname2); if (n === null) return;
         try { await JS(`api/bp/versionen/${sel}`, 'PATCH', { name: n }); } catch (er) { msg = er.message; } await load(); return; }
-      if (t.closest('[data-vback2]')) { if (!(await bpFrage('Diesen Stand wiederherstellen? Der jetzige Stand bleibt im Verlauf erhalten und kann ebenso zurückgeholt werden.', { ok: 'Wiederherstellen' }))) return;
+      if (t.closest('[data-vback2]')) { if (!(await bpFrage('Diesen Stand wiederherstellen? Der jetzige Stand bleibt als älterer Stand erhalten und kann ebenso zurückgeholt werden.', { ok: 'Wiederherstellen' }))) return;
         try { await JS(`api/bp/versionen/${sel}/wiederherstellen`, 'POST'); } catch (er) { msg = er.message; draw(); return; }
         msg = 'Stand wiederhergestellt.'; if (opt.nach) await fertig(); else location.reload(); return; }
       const tb = t.closest('[data-vteil]'); if (tb) { const d = DET[sel], z = (modus === 'jetzt' ? d.jetzt : d.geaendert)[+tb.dataset.vteil]; if (!z) return;
@@ -1083,7 +1082,6 @@
     });
     draw(); load();
   };
-  /* Knopf „Verlauf“ für eine beliebige Stelle: H.verlaufKnopf('einst:bt', { nach }) → HTML; Klick öffnet den Verlauf */
   /* Eigenes Kennwort ändern (die Benutzerverwaltung liegt nur in der Verwaltung) */
   H.kennwort = function () {
     const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
@@ -1427,7 +1425,7 @@
         if (opt.onSaved) setTimeout(() => opt.onSaved(pid), 0);
         return { werte: { ...W, ...r.werte, ...druckWerte() }, hinweis: hinweis + (r.hinweis || 'Gespeichert – gilt in allen Apps.') };
       },
-      knoepfe: (H.verlaufKnopf ? H.verlaufKnopf(`bp:projektdaten:${pid}`, 'Verlauf') : '')
+      knoepfe: ''
         + (opt.archiv && P ? `<button type="button" class="bph-btn" data-parch>${P.archived ? 'Aus dem Archiv holen' : 'Projekt archivieren'}</button>` : '')
         + (opt.onDelete && P ? '<button type="button" class="bph-btn bph-bad" data-pdel>🗑 In den Papierkorb …</button>' : ''),
     });
@@ -1591,14 +1589,12 @@
     root.addEventListener('change', (e) => { if (e.target.closest('[data-pab="rhythmus"],[data-peg]')) { lesen(); draw(); return; } const v = e.target.closest('[data-pv]'); if (!v || !v.value) return; lesen(); const x = VORL[v.value] || ['', 993]; D.konten.push({ name: v.options[v.selectedIndex].text.replace(/ \(.*/, ''), host: x[0], port: x[1], user: '', ordner: 'INBOX', an: true }); draw(); });
     draw();
   };
-  H.verlaufKnopf = (bereich, label) => `<button type="button" class="bph-btn bph-vbtn" data-bph-verlauf="${esc(bereich)}" title="Frühere Stände ansehen und wiederherstellen">🕘 ${esc(label || 'Verlauf')}</button>`;
-  document.addEventListener('click', (e) => { const b = e.target.closest('[data-bph-verlauf]'); if (b) { e.preventDefault(); H.verlauf({ bereich: b.dataset.bphVerlauf, nach: H.nachVerlauf || window.bpNachVerlauf }); } });
 
   H.verlaufAlle = async function (opt = {}) {
     let root = opt.into, D = null, C = null, f = { teil: opt.teil || '', wer: '', q: '' }, msg = '';
     if (!root) {   // als Fenster (z. B. Adressen → Änderungsverlauf)
       const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
-      bg.innerHTML = `<div class="bph-dlg" role="dialog" aria-label="Verlauf"><div class="bph-dh"><b>${esc(opt.titel || 'Verlauf')}</b><button type="button" class="bph-x" aria-label="Schließen">×</button></div><div class="bph-db"></div></div>`;
+      bg.innerHTML = `<div class="bph-dlg" role="dialog" aria-label="Ältere Stände"><div class="bph-dh"><b>${esc(opt.titel || 'Ältere Stände')}</b><button type="button" class="bph-x" aria-label="Schließen">×</button></div><div class="bph-db"></div></div>`;
       document.body.appendChild(bg); root = bg.querySelector('.bph-db');
       const close = () => { bg.remove(); document.removeEventListener('keydown', esc1); };
       const esc1 = (e) => { if (e.key === 'Escape' && !document.querySelector('.bph-dlg-bg ~ .bph-dlg-bg')) close(); };
@@ -1618,7 +1614,7 @@
           Immer erhalten bleiben der jüngste Stand jedes Bereichs, benannte Stände und der Ausgangsstand.</p>
           <div class="bph-row"><label>alle Stände behalten <input type="number" min="1" max="3650" data-vc="alle_tage" value="${C.alle_tage}" style="width:5.5rem"> Tage</label>
           <label>danach einen je Tag bis <input type="number" min="0" max="3650" data-vc="taeglich_tage" value="${C.taeglich_tage}" style="width:5.5rem"> Tage <small class="bph-mu">(0 = nie löschen)</small></label>
-          <button type="button" class="bph-btn pri" data-vcsave>Speichern</button>${H.verlaufKnopf('bp:versionen_conf')}</div>
+          <button type="button" class="bph-btn pri" data-vcsave>Speichern</button></div>
           <p class="bph-mu">Vorschläge mit geschätztem Speicherbedarf (aus der Nutzung der letzten 30 Tage):</p>
           <div class="bph-row">${st.vorschlaege.map((v) => `<button type="button" class="bph-btn${v.alle_tage === C.alle_tage && v.taeglich_tage === C.taeglich_tage ? ' on' : ''}" data-vsug="${v.alle_tage},${v.taeglich_tage}">${esc(v.name)}: ${v.alle_tage} Tage alle, ${v.taeglich_tage ? `bis ${v.taeglich_tage} Tage täglich` : 'danach täglich unbegrenzt'} · ca. ${fmtB(v.bytes)}${v.hinweis ? ' ' + esc(v.hinweis) : ''}</button>`).join('')}</div>` : ''}
         ${msg ? `<p class="bph-msg">${esc(msg)}</p>` : ''}</div>`;
@@ -1698,7 +1694,7 @@
 
   /* ---------- Versionsleiste: je Projekt EINE Datei je App, darin Versionen mit Unternamen (Startversion, nach Bauherrengespräch …)
      H.versionsleiste({ vor: Element, liste: [{ id, name, sub, datum, wer, archiviert }], aktuell: id, rechts: [Elemente],
-       onWahl(id), onNeu(), onUmbenennen(), onVerlauf(), onVerwalten() })  – erneut aufrufen zum Aktualisieren.
+       onWahl(id), onNeu(), onUmbenennen(), onVerwalten() })  – erneut aufrufen zum Aktualisieren.
      Gespeichert wird in den Apps automatisch; „gespeichert“ zeigt H.versionStatus(text). */
   H.versionsleiste = function (o) {
     let el = document.getElementById('bph-vl');
@@ -1712,7 +1708,7 @@
         el.querySelector('.bph-vl-menu').hidden = true;
         if (a === 'w') { if (String(b.dataset.id) !== String(O.aktuell) && O.onWahl) O.onWahl(b.dataset.id); return; }
         if (a === 'x') { const x = (O.extra || [])[+b.dataset.i]; if (x && x.fn) x.fn(); return; }
-        const f = { neu: O.onNeu, ren: O.onUmbenennen, ver: O.onVerlauf, verw: O.onVerwalten }[a]; if (f) f();
+        const f = { neu: O.onNeu, ren: O.onUmbenennen, verw: O.onVerwalten }[a]; if (f) f();
       });
       document.addEventListener('mousedown', (e) => { const m = el.querySelector('.bph-vl-menu'); if (m && !m.hidden && !e.target.closest('.bph-vl-menu,[data-vl="dd"]')) m.hidden = true; });
       document.addEventListener('keydown', (e) => { const m = el.querySelector('.bph-vl-menu'); if (e.key === 'Escape' && m) m.hidden = true; });
@@ -1726,14 +1722,14 @@
       <span class="bph-vl-w"><button type="button" class="bph-vl-dd" data-vl="dd" aria-haspopup="listbox"${akt ? '' : ' disabled'}>${akt ? `<b class="n">${akt.archiviert ? '🗄' : nr(akt)}</b><b class="t">${esc(akt.name || 'ohne Namen')}</b>${akt.sub ? `<small>${esc(akt.sub)}</small>` : ''}` : '<b class="t">–</b>'}<span class="c">▾</span></button>
       <div class="bph-vl-menu" hidden>${aktiv.map(zeile).join('')}${arch.length ? '<div class="bph-vl-h">Archiviert</div>' + arch.map(zeile).join('') : ''}
         <div class="bph-vl-sep2"></div>${akt ? `<button type="button" class="bph-vl-a" data-vl="neu">＋ Neue Version aus „${esc(akt.name || '')}“ …</button>` : ''}${(o.extra || []).map((x, i) => `<button type="button" class="bph-vl-a" data-vl="x" data-i="${i}">${esc(x.text)}</button>`).join('')}${o.onVerwalten && akt ? `<button type="button" class="bph-vl-a" data-vl="verw">🗄 Diese Version archivieren / löschen …</button>` : ''}</div></span>
-      ${akt ? `<button type="button" class="bph-vl-b pri" data-vl="neu" title="Kopie der aktuellen Version unter neuem Namen – die alte bleibt, wie sie ist">＋ Neue Version …</button><button type="button" class="bph-vl-b" data-vl="ren">✎ Umbenennen</button>${o.onVerlauf ? '<button type="button" class="bph-vl-b" data-vl="ver" title="Automatisch gesicherte Zwischenstände dieser Version">🕘 Verlauf</button>' : ''}${o.onVerwalten ? '<button type="button" class="bph-vl-b" data-vl="verw" title="Die ganze Version archivieren oder in den Papierkorb legen">🗄 Version archivieren / löschen</button>' : ''}` : ''}
+      ${akt ? `<button type="button" class="bph-vl-b pri" data-vl="neu" title="Kopie der aktuellen Version unter neuem Namen – die alte bleibt, wie sie ist">＋ Neue Version …</button><button type="button" class="bph-vl-b" data-vl="ren">✎ Umbenennen</button>${o.onVerwalten ? '<button type="button" class="bph-vl-b" data-vl="verw" title="Die ganze Version archivieren oder in den Papierkorb legen">🗄 Version archivieren / löschen</button>' : ''}` : ''}
       <span class="bph-vl-r"></span><span class="bph-vl-st" role="status">${esc(stT)}</span>`;
     const r = el.querySelector('.bph-vl-r');
     if ((o.rechts || []).length) { r.insertAdjacentHTML('beforebegin', '<span class="bph-vl-sp"></span>'); (o.rechts || []).forEach((x) => x && r.appendChild(x)); }
     return el;
   };
   /* Kompaktes Versionsmenü (ein Knopf „1 Version: Startversion ▾“ statt der breiten Leiste) – für alle Module gleich.
-     H.versionsMenue({ in: Element, liste, aktuell, gueltig, onWahl, onNeu, onUmbenennen, onVerlauf, onVerwalten, onGueltig, extra, wahlHinweis,
+     H.versionsMenue({ in: Element, liste, aktuell, gueltig, onWahl, onNeu, onUmbenennen, onVerwalten, onGueltig, extra, wahlHinweis,
        wort ('Version' – z. B. 'Antrag'), neuText, giltText, fragen: false (beim Wechsel nicht nach „gilt“ fragen),
        gruppen: {schlüssel: Überschrift} – Einträge mit gruppe stehen eingeklappt darunter (22.11.2026) })
      gueltig: die Version, die für Bautagebuch, Erinnerungen, To-dos … gilt (★); onGueltig(id) setzt sie. Erneut aufrufen zum Aktualisieren. */
@@ -1763,7 +1759,7 @@
           O.onWahl(id); return;
         }
         if (a === 'x') { const x = (O.extra || [])[+b.dataset.i]; if (x && x.fn) x.fn(); return; }
-        const f = { neu: O.onNeu, ren: O.onUmbenennen, ver: O.onVerlauf, verw: O.onVerwalten, gilt: O.onGueltig && (() => O.onGueltig(O.aktuell)) }[a]; if (f) f();
+        const f = { neu: O.onNeu, ren: O.onUmbenennen, verw: O.onVerwalten, gilt: O.onGueltig && (() => O.onGueltig(O.aktuell)) }[a]; if (f) f();
       };
       el.addEventListener('click', el._klick);
     }
@@ -1782,7 +1778,7 @@
     if (el._m && el._m.parentNode === document.body) el._m.remove();   // altes Menü (hing offen an <body>)
     el.innerHTML = `<button type="button" class="bph-vm-b" data-vm="dd" aria-haspopup="menu" title="Version wechseln, neu anlegen, umbenennen …"${akt || L.length || o.onNeu ? '' : ' disabled'}><span class="n">${akt ? (akt.archiviert ? '🗄' : akt.gruppe ? '·' : nr(akt)) : '–'}</span><span class="t">${esc(o.wort || 'Version')}: <b>${esc(akt ? akt.name || 'ohne Namen' : L.length ? '–' : 'noch keiner')}</b></span>${hinweis}<span class="c">▾</span></button>
       <div class="bph-vm-m" role="menu" hidden>${aktiv.map(zeile).join('')}${GR.map((g) => { const X = L.filter((x) => !x.archiviert && x.gruppe === g); return `<details class="bph-vm-gr bp-klapp-aus"${akt && X.includes(akt) ? ' open' : ''}><summary class="bph-vm-h">${esc((o.gruppen || {})[g] || g)} (${X.length})</summary>${X.map(zeile).join('')}</details>`; }).join('')}${L.some((x) => x.archiviert) ? '<div class="bph-vm-h">Archiviert</div>' + L.filter((x) => x.archiviert).map(zeile).join('') : ''}
-        <hr>${akt && o.onGueltig && !gilt(akt) ? `<button type="button" data-vm="gilt" class="bph-vm-pri">${esc(o.giltText || '★ Diese Version gilt ab jetzt …')}</button>` : ''}${o.onNeu && (akt || o.neuText) ? `<button type="button" data-vm="neu">${esc(o.neuText || `＋ Neue Version aus „${akt.name || ''}“ …`)}</button>` : ''}${(o.extra || []).map((x, i) => `<button type="button" data-vm="x" data-i="${i}">${esc(x.text)}</button>`).join('')}${akt && o.onUmbenennen ? '<button type="button" data-vm="ren">✎ Umbenennen …</button>' : ''}${o.onVerlauf ? '<button type="button" data-vm="ver">🕘 Verlauf …</button>' : ''}${akt && o.onVerwalten ? '<button type="button" data-vm="verw">🗄 Archivieren / löschen …</button>' : ''}</div>`;
+        <hr>${akt && o.onGueltig && !gilt(akt) ? `<button type="button" data-vm="gilt" class="bph-vm-pri">${esc(o.giltText || '★ Diese Version gilt ab jetzt …')}</button>` : ''}${o.onNeu && (akt || o.neuText) ? `<button type="button" data-vm="neu">${esc(o.neuText || `＋ Neue Version aus „${akt.name || ''}“ …`)}</button>` : ''}${(o.extra || []).map((x, i) => `<button type="button" data-vm="x" data-i="${i}">${esc(x.text)}</button>`).join('')}${akt && o.onUmbenennen ? '<button type="button" data-vm="ren">✎ Umbenennen …</button>' : ''}${akt && o.onVerwalten ? '<button type="button" data-vm="verw">🗄 Archivieren / löschen …</button>' : ''}</div>`;
     el._m = el.querySelector('.bph-vm-m'); el._m._el = el; el._m.addEventListener('click', el._klick);
     return el;
   };
@@ -2401,7 +2397,7 @@
     return new Promise((fertig) => {
       const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
       bg.innerHTML = `<div class="bph-dlg bph-kn" role="dialog" aria-label="Als Kontakt anlegen?"><div class="bph-dh"><b>Als Kontakt anlegen?</b><button type="button" class="bph-x" aria-label="Schließen">×</button></div><div class="bph-db">
-        <p class="bph-mu">Für ${L.length > 1 ? 'diese Adressen gibt' : 'diese Adresse gibt'} es noch keinen Kontakt. Die Sendung ist trotzdem im Verlauf vermerkt – sie erscheint beim Kontakt, sobald er mit dieser E-Mail-Adresse angelegt ist.</p>
+        <p class="bph-mu">Für ${L.length > 1 ? 'diese Adressen gibt' : 'diese Adresse gibt'} es noch keinen Kontakt. Die Sendung ist trotzdem im Protokoll der Kommunikation vermerkt – sie erscheint beim Kontakt, sobald er mit dieser E-Mail-Adresse angelegt ist.</p>
         ${L.map((m, i) => `<div class="bph-kn-z" data-kn="${i}"><div class="bph-kn-m">✉ <b>${esc(m)}</b></div>
           <div class="bph-row"><label style="flex:2">Firma / Name<input data-k="name" value="${esc(L.length === 1 ? vor.name || '' : '')}" placeholder="${esc(m.split('@')[1] || '')}"></label>
           <label style="flex:1.4">Gewerk<input data-k="trade" value="${esc(vor.trade || '')}"></label>

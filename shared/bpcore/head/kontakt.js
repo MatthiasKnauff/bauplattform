@@ -96,7 +96,7 @@
           ${opt.info ? `<div class="bph-km-info">${opt.info}</div>` : ''}
           ${neu ? '' : '<details class="bph-km-bn" data-kmbn><summary>Benachrichtigungsverlauf <small class="bph-mu">Pläne, Mängel- und Terminrügen</small></summary><div data-kmbnh></div></details>'}</div>
         <p class="bph-err" data-kmerr></p>
-        <div class="bph-row bph-km-f">${!neu && opt.loeschen ? '<button type="button" class="bph-btn bph-km-del" data-kmdel>Löschen</button>' : ''}${neu ? '' : `<button type="button" class="bph-btn" data-bph-verlauf="kontakt:${c.id}" title="Frühere Stände dieser Adresse ansehen und wiederherstellen">🕘 Verlauf</button>`}<span class="bph-km-sp" title="Dieselben Adressen in allen Apps – in „Adressen“, im Bautagebuch, im Bauzeitenplan, in der AVA …"></span><button type="button" class="bph-btn" data-kmx>Abbrechen</button><button type="button" class="bph-btn pri" data-kms>${neu ? 'Anlegen' : 'Speichern'}</button></div></div>`;
+        <div class="bph-row bph-km-f">${!neu && opt.loeschen ? '<button type="button" class="bph-btn bph-km-del" data-kmdel>Löschen</button>' : ''}<span class="bph-km-sp" title="Dieselben Adressen in allen Apps – in „Adressen“, im Bautagebuch, im Bauzeitenplan, in der AVA …"></span><button type="button" class="bph-btn" data-kmx>Abbrechen</button><button type="button" class="bph-btn pri" data-kms>${neu ? 'Anlegen' : 'Speichern'}</button></div></div>`;
       document.body.appendChild(bg);
       const root = bg.firstChild, q = (a) => root.querySelector(a);
       let SUG = [], sT = 0, done = false, grund = null;

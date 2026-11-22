@@ -450,10 +450,10 @@ function adrLeiste() {
     { titel: 'Ansicht', knoepfe: [K('Karten', AIC.karten, () => setView('karten'), { an: TV.view !== 'tabelle', attrs: 'data-v="karten"' }), K('Tabelle', AIC.tabelle, () => setView('tabelle'), { an: TV.view === 'tabelle', attrs: 'data-v="tabelle"', tip: 'Tabelle – Zellen direkt ändern, Spalten wählen' })] },
     { titel: 'Liste', knoepfe: [K('Aufräumen', AIC.besen, () => aufraeumen(), { tip: 'Aufräumen: doppelte Adressen zusammenführen, ähnliche Gewerke und Arten vereinheitlichen', attrs: 'id="dup"' })] },   // adressen-aufraeumen.js
     { titel: 'Datei', rechts: true, knoepfe: [K('Drucken', AIC.druck, adrPdf, { tip: 'Gefilterte Liste drucken oder als PDF', attrs: 'id="pdf"' }), K('Excel', AIC.excel, adrXlsx, { tip: 'Gefilterte Liste als Excel-Datei speichern', attrs: 'id="xlsx"' })] },
-    { titel: 'Verlauf', rechts: true, knoepfe: [K('Verlauf', AIC.verlauf, () => { if (window.BPHead && BPHead.verlaufAlle) BPHead.verlaufAlle({ teil: 'kontakt', titel: 'Verlauf der Adressen' }); }, { tip: 'Geänderte und gelöschte Adressen ansehen und wiederherstellen', attrs: 'id="verl"' })] },
   ]);
 }
 window.bpNachVerlauf = () => load();
+window.bpAeltereStaende = () => () => BPHead.verlaufAlle({ teil: 'kontakt', titel: 'Ältere Stände der Adressen' });   // Rückgängig ▾ → „Ältere Stände …“
 </script>
 <script src="static/adressen-aufraeumen.js"></script>
 </body>

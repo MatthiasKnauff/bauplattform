@@ -187,7 +187,6 @@ async function vleiste(neu) {
         const name = bg.querySelector('#rnName').value.trim(); if (!name) return;
         try { await api('api/versionen/' + akt.id, 'PUT', { name }); close(); vleiste(); } catch (e) { toast(e.message, true); }
       }); setTimeout(() => { const i = document.querySelector('#rnName'); if (i) { i.focus(); i.select(); } }, 50); },
-    onVerlauf: () => lvVerlauf(),
     onVerwalten: () => { if (!akt) return;
       const selRe = (tab === 'rechnungen' || tab === 'aufmass') && L && PJSEL && PJSEL[0] === 'r' ? L.rechnungen.find((y) => 'r' + y.id === PJSEL) : null;
       const selAng = tab === 'angebote' && L && PJSEL && PJSEL[0] === 'b' ? L.angebote.find((y) => 'b' + y.id === PJSEL) : null;
@@ -305,15 +304,15 @@ const uSicht = () => new Set(uSlots().map((x) => x[0]).filter((x) => typeof x ==
 /* was früher unter „⋯“ stand, steht jetzt direkt in der Leiste (wird es eng, sammelt „»“ die Gruppen ein) */
 const BIC_ARCH = '<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10h14V9M10 13h4"/>';
 const uWeitere = () => { const S = uSicht(); S.add('quBtn'); S.add('moreBtn');   // Archivieren bietet „Löschen“ selbst an (bei Aufträgen zuerst) – kein zweiter Knopf
-  return uMenuPunkte().filter((x) => x !== '-' && (typeof x[0] === 'function' ? !/Verlauf/.test(x[1]) : !S.has(x[0]))).map((x) => {   // Kopierquelle und Verlauf stehen schon in der Leiste
+  return uMenuPunkte().filter((x) => x !== '-' && (typeof x[0] === 'function' || !S.has(x[0]))).map((x) => {   // Kopierquelle steht schon in der Leiste
   if (typeof x[0] === 'function') return { t: x[1].replace(/^\W+\s*/, '').replace(/ …$/, ''), fn: x[0], aus: !!x[2], ic: BIC_ARCH, tip: x[1] };
   const b = ribKnopf(x[0]); if (!b) return null; const sv = b.querySelector('svg');
   return { t: x[0] === 'moreBtn' ? 'Archivieren' : x[1].replace(/ ….*$/, ''), attrs: `data-ucmd="${esc(x[0])}" data-udr`, aus: b.disabled, ic: x[0] === 'moreBtn' || !sv ? BIC_ARCH : sv.innerHTML, tip: x[1] }; }).filter(Boolean); };
 function uMenuPunkte() {   // nur, was nicht schon oben, links oder in der Seite steht
-  const archiv = ['moreBtn', 'LV archivieren / löschen …'], verlauf = [() => lvVerlauf(), 'Verlauf …', !L];
+  const archiv = ['moreBtn', 'LV archivieren / löschen …'];
   if (tab === 'rechnungen' || tab === 'aufmass' || tab === 'angebote' || tab === 'tueren') return [archiv];
   if (tab === 'auftraege') return [archiv];
-  if (tab === 'uebersicht') return [['expBtn', 'Export … (GAEB, Excel)'], '-', verlauf];
+  if (tab === 'uebersicht') return [['expBtn', 'Export … (GAEB, Excel)']];
   return UMENU;
 }
 function uSlots() {   // feste Reihenfolge und gleiche Wörter in allen Bereichen – was nicht greift, ist grau (Erklärung im Tooltip)
@@ -327,18 +326,16 @@ function uSlots() {   // feste Reihenfolge und gleiche Wörter in allen Bereiche
     if (typeof x[0] === 'string') { const b = ribKnopf(x[0]); return b ? [x[0], label, ic, b.disabled, b.title || label] : [null, label, ic, true, tipNein]; }
     return [x[0], label, ic, !!x[1], x[2] || label];
   };
-  const IC_VER = '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>';
   return [
     slot(imp, 'Import', IC_IMP, 'Hier gibt es nichts einzulesen'),
     slot(exp, 'Export', '<path d="M5 14v6h14v-6"/><path d="M12 15V4M8 8l4-4 4 4"/>', 'Export gibt es im Leistungsverzeichnis, bei Angeboten, Aufträgen und in der Kostenkontrolle'),
     slot(dru, 'Drucken', IC_DRU, 'Hier gibt es nichts zu drucken'),
-    L && tab !== 'uebersicht' ? [() => lvVerlauf(), 'Verlauf', IC_VER, false, 'Verlauf des LV – alle Änderungen'] : [null, 'Verlauf', IC_VER, true, 'Erst ein LV wählen'],
     L && tab === 'aufmass' ? [uLoeschen, 'Löschen', IC_DEL, !amRe() || reNachfolger(amRe()), amRe() && reNachfolger(amRe()) ? `Auf ${reTitel(amRe())} bauen spätere Rechnungen auf – erst die späteren löschen` : uLoeschText() + ' – in den Papierkorb, mit Rückgängig', null, 'rot']
     : L && tab !== 'tueren' && tab !== 'uebersicht' ? [uLoeschen, 'Löschen', IC_DEL, false, uLoeschText() + ' – in den Papierkorb, mit Rückgängig', null, 'rot'] : [null, 'Löschen', IC_DEL, true, 'Hier gibt es nichts zu löschen'],
   ];
 }
 function uLeisteNeu() { befehle($('#bfl'), avaBefehle(), document.getElementById('kpi')); }   // Kennzahlen in der Mitte der Leiste – keine eigene Zeile mehr   // Befehlsleiste neu – nach jedem Zeichnen und wenn sich die Auswahl ändert
-/* Befehlsleiste je Bereich (befehle.js): links das Fachliche, rechts immer Datei · Verlauf · Löschen · ⋯ (den Bereich rechts klappen die Reiter am Rand und sein ✕) */
+/* Befehlsleiste je Bereich (befehle.js): links das Fachliche, rechts immer Datei · Löschen · ⋯ (den Bereich rechts klappen die Reiter am Rand und sein ✕) */
 /* „Prüfen Schritt für Schritt“ (Assistent ava-pruefen.js) für die gewählte Rechnung – in der Befehlsleiste von Aufmaß und Rechnungen */
 function rpKnopfGruppe() {
   const r = amRe(), ok = r && ['abschlag', 'schluss', 'nachtrag'].includes(r.art) && !istOA(L.id), g = r && r.status === 'geprueft';
@@ -373,7 +370,7 @@ const uKnopf = ([x, t, ic, aus, tip, an, rot]) => ({ t, ic, tip, an, rot, aus: a
 function avaBefehle() {
   const S = uSlots(), bez = { lv: 'LV', versand: 'Versand & Rücklauf', angebote: 'Angebot', besprechung: 'Protokoll', auftraege: 'Auftrag', aufmass: 'Rechnung', rechnungen: 'Rechnung', tueren: 'Türliste', uebersicht: 'Projekt' }[tab] || '';
   const rechts = [{ titel: 'Datei', rechts: true, knoepfe: S.slice(0, 3).map(uKnopf) },
-    { titel: bez, rechts: true, knoepfe: [uKnopf(S[4]), ...uWeitere(), uKnopf(S[3])] }];
+    { titel: bez, rechts: true, knoepfe: [uKnopf(S[3]), ...uWeitere()] }];
   return [...neuGruppe(), ...(L || tab === 'uebersicht' ? bereichBefehle() : []), ...rechts];
 }
 function bereichBefehle() {
@@ -421,8 +418,8 @@ document.addEventListener('click', (e) => {
     const eng = false;   // die Befehlsleiste klappt selbst zusammen (befehle.js)
     const sicht = uSicht();   // im Menü nicht doppelt
     UFN = [];
-    const oben = eng ? [...uSlots().slice(0, 4).filter((x) => x[0]).map(([a, b, , c]) => [a, b, c]), '-'] : [];
-    const unten = [...(eng && L && tab !== 'uebersicht' ? ['-', [() => lvVerlauf(), '🕘 Verlauf …', false]] : []), ...(eng && L && tab !== 'tueren' && tab !== 'uebersicht' ? ['-', [uLoeschen, '🗑 ' + uLoeschText(), false]] : []), ...(L && lvWeg(L) ? ['-', [() => lvWiederholen(L.id), '↩ Gelöschtes LV wiederherstellen', false]] : [])];   // breit: „Löschen“ steht schon rot in der Leiste – nicht doppelt
+    const oben = eng ? [...uSlots().slice(0, 3).filter((x) => x[0]).map(([a, b, , c]) => [a, b, c]), '-'] : [];
+    const unten = [...(eng && L && tab !== 'tueren' && tab !== 'uebersicht' ? ['-', [uLoeschen, '🗑 ' + uLoeschText(), false]] : []), ...(L && lvWeg(L) ? ['-', [() => lvWiederholen(L.id), '↩ Gelöschtes LV wiederherstellen', false]] : [])];   // breit: „Löschen“ steht schon rot in der Leiste – nicht doppelt
     d.innerHTML = [...oben, ...uMenuPunkte().filter((x) => x === '-' || typeof x[0] === 'function' || !sicht.has(x[0])), ...unten].map((x) => { if (x === '-') return '<hr>';
       if (typeof x[0] === 'function') { UFN.push(x[0]); return `<button type="button" role="menuitem" data-ufn="${UFN.length - 1}"${x[2] ? ' disabled' : ''}>${esc(x[1])}</button>`; }
       const b = ribKnopf(x[0]); if (!b) return ''; return `<button type="button" role="menuitem" data-ucmd="${esc(x[0])}"${b.disabled ? ' disabled' : ''}>${(b.querySelector('svg') || {}).outerHTML || ''}${esc(x[1])}</button>`; }).join('');

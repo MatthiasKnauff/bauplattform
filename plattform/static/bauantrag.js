@@ -306,7 +306,7 @@ function schrittHtml() {
       ${typeof bvWarnHtml === 'function' ? bvWarnHtml() : fb.length ? fb.map((n) => `<span class="fe">● Bauvorlage „${esc(n)}“ fehlt</span>`).join('') : ''}
     </div></div>
     <div class="ba-k"><h3>Stand</h3><span class="seg" role="group">${Object.entries(STATUS).map(([v, t]) => `<button type="button" data-status="${v}" class="${D.antrag.status === v ? 'on' : ''}">${t}</button>`).join('')}</span>
-      <p class="ba-hilfe" style="margin:.5rem 0 0">Solange „Entwurf“, trägt das PDF den Aufdruck ENTWURF. „eingereicht“ fragt nach Weg, Datum und Aktenzeichen und sperrt die Angaben (zum Ändern zurück auf „Entwurf“).</p>${typeof einreichVerlauf === 'function' ? einreichVerlauf() : ''}</div>
+      <p class="ba-hilfe" style="margin:.5rem 0 0">Solange „Entwurf“, trägt das PDF den Aufdruck ENTWURF. „eingereicht“ fragt nach Weg, Datum und Aktenzeichen und sperrt die Angaben (zum Ändern zurück auf „Entwurf“).</p>${einreichProtokoll()}</div>
     ${paketPruefenHtml()}`;
 }
 
@@ -484,7 +484,7 @@ function neuDialog() {
   });
 }
 
-/* Vorgaben für „Per Mail senden“ (Druckseite ✉, Ansehen-Fenster ⋯ – bp/versand.js): Projekt des Antrags, im Verlauf als „Bauantrag“ */
+/* Vorgaben für „Per Mail senden“ (Druckseite ✉, Ansehen-Fenster ⋯ – bp/versand.js): Projekt des Antrags, im Protokoll der Kommunikation als „Bauantrag“ */
 window.bpMailStandard = () => { const p = (L && L.projekte.find((x) => x.id === PID)) || {}; return { art: 'bauantrag', pid: PID, projekt: p.name || '', link: 'bauantrag:' }; };
 function pdf() {   // ein Druck für alles: auf der Druckseite (bpDruck, Baukasten) ankreuzen, was ins PDF soll
   if (!D) return;

@@ -191,7 +191,7 @@ function zeichnen() {
     side.innerHTML = `<h3>Mit wem${F.alle ? '' : ' in diesem Projekt'}</h3>` + (L.length ? L.map((x, k) => `<button type="button" class="si" data-ki="${k}"><span><b>${esc(x.name)}</b><small>${esc([x.gewerk, x.ansprech].filter(Boolean).join(' · ') || x.email || '')} · zuletzt ${kurzDatum(x.letzte)}</small></span><i>${x.n}</i></button>`).join('')
       : '<p class="mute" style="padding:0 .9rem;font-size:.88rem">Noch niemand.</p>');
   }
-  // rechts: Verlauf nach Tagen
+  // rechts: Protokoll nach Tagen
   const E = [...(D.eintraege || []), ...VG.map((v) => ({ ...v, ts: v.zeit, _vg: 1 }))].sort((a, b) => String(b.ts).localeCompare(String(a.ts)));
   if (!E.length) {
     $('#list').innerHTML = `<div class="leer">${F.q || F.arten.size || F.ich ? 'Nichts gefunden – Filter oder Suche ändern.' : K ? `An ${esc(K.name)} wurde noch nichts verschickt.` : !F.alle && p ? `In ${esc(p.name)} wurde noch nichts verschickt.<br><small>Hier erscheinen Planversand, Mängel- und Terminrügen – sobald sie aus den Apps verschickt werden.</small>` : 'Noch nichts verschickt.'}</div>`;
@@ -212,7 +212,7 @@ function zeichnen() {
         <div class="mute">${esc(new Date(x.ts).toLocaleString('de-DE'))}${x.projekt ? ' · ' + esc(x.projekt) : ''}</div>
         ${quelle(x) ? `<a href="${esc(quelle(x))}" data-qp="${x.project_id || ''}">↗ ${x.art === 'planversand' || x.art === 'plotauftrag' ? 'Planversandliste' : x.art.endsWith('ruege') ? 'Aufgaben & Mängel' : String(x.link || '').startsWith('ava:') ? 'In der Ausschreibung' : 'Quelle'} öffnen</a>` : ''}
         ${x.contact_id && !K ? ` · <a href="#" data-kc="${x.contact_id}">alles mit ${esc(x.kontakt)}</a>` : ''}
-        ${ME && (ME.is_admin || x.von === ME.full) ? ` · <a href="#" class="kweg" data-kweg="${x.id}" title="Aus dem Verlauf löschen (z. B. Testversand) – liegt danach im Papierkorb, steht im Protokoll">Löschen</a>` : ''}</div></details>`;
+        ${ME && (ME.is_admin || x.von === ME.full) ? ` · <a href="#" class="kweg" data-kweg="${x.id}" title="Aus dem Protokoll löschen (z. B. Testversand) – liegt danach im Papierkorb, steht im Protokoll">Löschen</a>` : ''}</div></details>`;
     for (const a of (ANT[x.id] || []).sort((p, q) => String(p.zeit).localeCompare(String(q.zeit)))) {
       h += `<details class="e ant"><summary><span class="ic">↩</span><span class="h"><span class="art an">Antwort</span><b>${esc(a.von_name || a.von)}</b> – ${esc(a.betreff)}</span><span class="z">${uhr(a.zeit)}</span>
         <span class="s">${esc(a.vorschau.slice(0, 140))}${a.anhaenge && a.anhaenge.length ? ` · 📎 ${a.anhaenge.length}` : ''}</span></summary>
@@ -240,7 +240,7 @@ function vlVerwalten() {
   });
 }
 /* ---------- Neue Nachricht und Vorgang dokumentieren (Desktop: Fenster mit zwei Spalten, Handy: Vollbild über ＋ unten rechts) ---------- */
-let VA = null, BET = { pid: null, L: [] }, VG = [];   // VA: Arten der Vorgänge · BET: Beteiligte des Projekts · VG: Vorgänge (nur festgehaltene) im Verlauf
+let VA = null, BET = { pid: null, L: [] }, VG = [];   // VA: Arten der Vorgänge · BET: Beteiligte des Projekts · VG: Vorgänge (nur festgehaltene) im Protokoll
 const KURZ = (n) => (((n || '').split(' ')[0] || '').match(/^[A-Za-z]{1,4}\d{2,6}$/) || [''])[0];
 async function beteiligte(pid) { if (BET.pid !== pid) { BET = { pid, L: await api('api/beteiligte?pid=' + pid).catch(() => []) }; } return BET.L; }
 function verfassen(modus, mit) {   // mit: Übergabe aus der Leiste „＋ Neu“ (an, betreff, text, Dateien)
@@ -300,7 +300,7 @@ function verfassen(modus, mit) {   // mit: Übergabe aus der Leiste „＋ Neu�
       + `<button type="button" class="kv-plus" data-kvan>＋ Firma, Person</button><input class="kv-mail" data-enter placeholder="oder E-Mail eintippen, Enter" autocomplete="off" inputmode="email">`;
     $b('.kv-fs').innerHTML = S.dateien.map((f, i) => `<span class="kv-f" title="${esc(f.name)}">${f.type.startsWith('image/') ? `<img src="${f._url || (f._url = URL.createObjectURL(f))}" alt="">` : `<i>📄</i><small>${esc(f.name)}</small>`}<button type="button" data-kvfweg="${i}" aria-label="entfernen">✕</button></span>`).join('');
     const mb = S.dateien.reduce((a, f) => a + f.size, 0) / 1048576;
-    $b('.kv-hint').textContent = (S.senden ? 'Das PDF des Vorgangs (auf dem Briefbogen, mit den Fotos) geht an die Firma.' : 'Steht danach im Verlauf des Projekts.') + (mb ? ` · ${mb.toFixed(1).replace('.', ',')} MB` : '');
+    $b('.kv-hint').textContent = (S.senden ? 'Das PDF des Vorgangs (auf dem Briefbogen, mit den Fotos) geht an die Firma.' : 'Steht danach im Protokoll des Projekts.') + (mb ? ` · ${mb.toFixed(1).replace('.', ',')} MB` : '');
   };
   const neuDatei = (fs) => { for (const f of fs) { if (S.dateien.length >= 12) { toast('Höchstens 12 Dateien.', true); break; } S.dateien.push(f); } zeichne(); };
   bg.addEventListener('click', (e) => {
@@ -335,7 +335,7 @@ function verfassen(modus, mit) {   // mit: Übergabe aus der Leiste „＋ Neu�
   zeichne();
   if (innerWidth > 760) setTimeout(() => { const f = bg.querySelector('#kvText'); if (f) f.focus(); }, 50);   // am Handy nicht gleich die Tastatur öffnen
 }
-/* Vorgänge im Verlauf (nur die festgehaltenen – verschickte stehen schon als Sendung darin) */
+/* Vorgänge im Protokoll (nur die festgehaltenen – verschickte stehen schon als Sendung darin) */
 function vgEintrag(v) {
   const d = (v.zeit || '').replace('T', ' '), F = v.dateien || [];
   if (v.art === 'abnahme') {   // Abnahme: öffnet den Ablauf (Entwurf weiter bearbeiten, unterschrieben ansehen/senden/Nachtrag) – kom-abnahme.js
@@ -376,7 +376,7 @@ document.addEventListener('click', async (e) => {
   if (t.closest('[data-mehr]')) { N += 500; laden(); return; }
   const kw = t.closest('[data-kweg]'); if (kw) {   // Sendung löschen (Testversand …): Papierkorb + Protokoll, Rückgängig
     e.preventDefault(); const x = (D.eintraege || []).find((y) => y.id === +kw.dataset.kweg); if (!x) return;
-    if (!(await bpFrage(`„${x.betreff || x.art_name}“ aus dem Verlauf löschen?\nDas ist ein Eingriff ins Protokoll: Die Sendung liegt danach im Papierkorb, und das Löschen wird protokolliert.`, { ok: 'Löschen', gefahr: true }))) return;
+    if (!(await bpFrage(`„${x.betreff || x.art_name}“ aus dem Protokoll löschen?\nDas ist ein Eingriff ins Protokoll: Die Sendung liegt danach im Papierkorb, und das Löschen wird protokolliert.`, { ok: 'Löschen', gefahr: true }))) return;
     try { const r = await api('api/kom/' + x.id, 'DELETE'); await laden(); rueckgaengig('Sendung gelöscht', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await laden(); }); toast('Sendung gelöscht – im Papierkorb.'); } catch (er) { toast(er.message, true); }
     return;
   }

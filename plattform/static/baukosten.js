@@ -30,8 +30,7 @@ const versionen = () => (B ? LIST.filter((x) => x.project_id === B.project_id).s
 function vo() {
   const V2 = versionen(), G = V2.find((x) => x.gueltig);
   return { aktuell: B && B.id, gueltig: G ? G.id : null, liste: V2.map((x) => ({ id: x.id, name: x.name, datum: dkurz(x.updated), wer: x.updated_by, archiviert: x.archived })),
-    onWahl: async (id) => { await oeffnen(+id); }, onGueltig: gilt, onNeu: neueVersion, onUmbenennen: umbenennen, onVerwalten: versionLoeschen,
-    onVerlauf: () => BPHead.verlauf({ bereich: 'bkp:' + B.id, nach: () => oeffnen(B.id) }) };
+    onWahl: async (id) => { await oeffnen(+id); }, onGueltig: gilt, onNeu: neueVersion, onUmbenennen: umbenennen, onVerwalten: versionLoeschen };
 }
 /* Version löschen – wie in den anderen Apps über das Versionsmenü („Archivieren / löschen …“), auch die gültige; immer über den Papierkorb mit Rückgängig (20.11.2026) */
 async function versionLoeschen() {
@@ -240,7 +239,7 @@ V.addEventListener('change', (e) => {
   if (!TABS.some((t) => t[0] === tab)) tab = 'uebersicht';
   await laden(hb ? +hb[1] : undefined);
 })().catch((e) => toast(e.message, true));
-window.bpNachVerlauf = () => (B ? oeffnen(B.id) : location.reload());
+window.bpAeltereStaende = () => (B ? () => BPHead.verlauf({ bereich: 'bkp:' + B.id, nach: () => oeffnen(B.id) }) : null);   // Rückgängig ▾ → „Ältere Stände …“
 window.bpMailStandard = () => ({ art: 'baukosten', pid: (B && B.project_id) || null, link: 'baukosten:' });
 
 /* Links ⇄ rechts (19.11.2026): Kostenzeile und Karte im Reiter „Bauteile“ leuchten gemeinsam auf; Klick holt die andere Seite ins Bild.

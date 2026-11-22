@@ -101,7 +101,7 @@ export async function ganttHeftPruefen(browser, repo) {
     await p.evaluate(() => { const g = document.querySelector('#gridBody'), r = g.getBoundingClientRect(); g.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: r.left + 60, clientY: r.top + 10 })); });
     await p.waitForSelector('.ctx', { timeout: 5000 });
     const km = await p.evaluate(() => [...document.querySelectorAll('.ctx div')].map((x) => x.textContent.trim()));
-    pruef(km.some((t) => t.startsWith('Leistung einfügen')) && ['Ganzer Plan', 'Drucken', 'Verlauf'].every((t) => km.includes(t)), `Stufe 2: Befehle der Leiste fehlen im Kontextmenü – ${km.join(' | ')}`);
+    pruef(km.some((t) => t.startsWith('Leistung einfügen')) && ['Ganzer Plan', 'Drucken', 'Export'].every((t) => km.includes(t)), `Stufe 2: Befehle der Leiste fehlen im Kontextmenü – ${km.join(' | ')}`);
     // Entscheidung A: Gruppen nur als Trennlinie (keine Überschriften), nichts doppelt, keine ‹ › des Suchfelds
     pruef(!['Gliederung', 'Bearbeiten', 'Finden', 'Planen'].some((t) => km.includes(t)), `Kontextmenü zeigt Gruppen-Überschriften – ${km.join(' | ')}`);
     pruef(km.filter((t) => /^Kopieren/.test(t)).length === 1 && !km.some((t) => /^[‹›<>]$/.test(t)), `Kontextmenü: „Kopieren“ doppelt oder ‹ › als Punkt – ${km.join(' | ')}`);

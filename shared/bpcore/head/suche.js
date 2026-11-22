@@ -33,7 +33,6 @@
     ['allgemein', 'KI', 'KI im Büro', 'KI künstliche Intelligenz Ollama Claude Gemini ChatGPT Schlüssel Modell an aus Positionsvorschlag', ''],
     ['kataloge', 'Kataloge erzeugen', 'Kataloge erzeugen', 'Katalog Allplan kukat Vorbemerkungen Positionen Bauteil-Vorlagen KI', ''],
     ['apps', 'Apps', 'Apps im Büro', 'Apps abschalten einschalten Kacheln', ''],
-    ['verlauf', 'System', 'Verlauf', 'Verlauf Änderungen zurück Version Stand wiederherstellen', ''],
     ['app:portal', 'Apps', 'Startseite', 'Startseite Kacheln Anordnung Posteingang To-dos', ''],
     ['app:aufgaben~erinnerungen', 'Apps', 'Aufgaben: Erinnerungen', 'Erinnerung Vorlauf Uhrzeit Mail Bauzeitenplan Firma Einsatz', ''],
     ['app:aufgaben~todo', 'Apps', 'Aufgaben: Regeln der To-dos', 'To-do Regeln automatisch Vergabe Mängel Rechnung Frist', ''],

@@ -825,8 +825,7 @@ function menu(anchor, list) {
   return o;
 }
 $('#newBtn').onclick = () => newDialog();
-window.bpVerlaufBereich = () => (L && tab !== 'uebersicht' ? 'avalv:' + L.id : null);   // Rückgängig-Dock → „Ältere Stände im Verlauf“
-window.bpVerlaufNach = async () => { L = await api('api/lv/' + L.id); render(); };
+window.bpAeltereStaende = () => (L && tab !== 'uebersicht' ? lvVerlauf : null);   // Rückgängig ▾ → „Ältere Stände …“
 async function lvVerlauf() { if (!L || !window.BPHead) { toast('Erst ein LV öffnen – der Verlauf gilt je Leistungsverzeichnis.'); return; } await flush(); BPHead.verlauf({ bereich: 'avalv:' + L.id, nach: () => openLv(L.id) }); }
 window.bpNachVerlauf = () => (L ? openLv(L.id) : location.reload());
 /* Stammdaten: Projekt (gemeinsame Maske), LV mit Auftrag, Angebot */
@@ -930,7 +929,6 @@ async function lvDaten(reiter, nur) {   // reiter: z. B. 'Abzüge' – gleich di
       else if (nur && nur.nachher) nur.nachher();
       return { werte: werte(), hinweis: 'Gespeichert.' };
     },
-    knoepfe: BPHead.verlaufKnopf ? BPHead.verlaufKnopf('avalv:' + id, 'Verlauf') : '',
   });
 }
 async function angebotDaten(aid) {

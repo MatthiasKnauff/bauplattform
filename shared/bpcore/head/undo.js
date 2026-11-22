@@ -29,7 +29,7 @@ function bpUndoGruppe() {   // Inhalt der Gruppe „Rückgängig“ (Knöpfe wie
   const n = _undoN(), rk = _redoKann(), t = _undoText(), k = (u, ic, text, aus, tip, mehr = '') => `<button type="button" class="bf-k" data-u="${u}"${aus ? ' disabled' : ''} title="${_uEsc(tip)}"${mehr}>${ic}<span class="bf-t">${text}</span></button>`;
   const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
   return k('eins', svg(_UI.z), 'Zurück', !n, n ? `Rückgängig: ${t} (Strg+Z)` : 'Nichts rückgängig zu machen') + k('redo', svg(_UI.v), 'Wieder', !rk, rk ? 'Wiederholen (Strg+Y)' : 'Nichts zu wiederholen')
-    + k('liste', '<span class="bf-z" aria-hidden="true">▾</span>', String(n), UNDO.s.length < 2, UNDO.s.length < 2 ? 'Verlauf – ab zwei Schritten' : `Verlauf: ${UNDO.s.length} Schritte – bis zu einem Schritt zurück`, ` aria-expanded="${!!UNDO.offen}" aria-haspopup="true"`);
+    + k('liste', '<span class="bf-z" aria-hidden="true">▾</span>', String(n), !_liste(), UNDO.s.length >= 2 ? `Schritte: ${UNDO.s.length} Schritte – bis zu einem Schritt zurück` : _aelter() ? 'Ältere Stände …' : 'Liste der Schritte – ab zwei Schritten', ` aria-expanded="${!!UNDO.offen}" aria-haspopup="true"`);
 }
 function _undoOben() {   // Gruppe in jeder sichtbaren Befehlsleiste füllen; gibt es keine: zwei kleine Knöpfe ↶ ↷ in der Kopfleiste (20.11.2026 –
   // keine eigene Zeile unter der Kopfleiste mehr, nichts rückt nach; wie auf der Startseite)
@@ -61,7 +61,7 @@ function _undoUnten() {   // Höhe einer Leiste am unteren Rand (Tab-Leiste der 
 }
 function _undoKopf(n) {   // ↶ n in der Kopfleiste (nur am Handy)
   const hlp = document.querySelector('.bph .bph-hlp'); let k = document.querySelector('.bph .bph-undo');
-  if (!_handy() || (!n && !_redoKann())) { if (k) k.remove(); return; }
+  if (!_handy() || (!n && !_redoKann() && !_aelter())) { if (k) k.remove(); return; }
   if (!k) { k = document.createElement('button'); k.type = 'button'; k.className = 'bph-ic bph-undo'; k.setAttribute('aria-haspopup', 'dialog');
     k.addEventListener('click', (e) => { e.stopPropagation(); UNDO.offen = true; clearTimeout(UNDO.t); _undoZeichnen(false); }); hlp.before(k); }
   k.title = `Rückgängig – ${n} ${n === 1 ? 'Schritt' : 'Schritte'}`; k.setAttribute('aria-label', k.title);
@@ -76,12 +76,12 @@ function _undoBlatt() {   // Verlauf als Blatt von unten (Handy); schließt nur 
     <div class="bp-undo-bl">${UNDO.s.slice().reverse().map((u, i) => `<button type="button" data-u="bis" data-i="${i}"><i>${_undoIc(u)}</i><span>${_uEsc(u.text)}</span><small>${_undoAlter(u.t)}</small></button>`).join('') || '<p>Nichts mehr rückgängig zu machen.</p>'}</div>
     <p class="bp-undo-bh">Tippen auf einen Schritt: bis dahin zurück</p>
     <div class="bp-undo-ba"><button type="button" class="bp-undo-u" data-u="eins"${n ? '' : ' disabled'}>↶ Letzten Schritt zurück</button><button type="button" data-u="redo"${_redoKann() ? '' : ' disabled'}>↷ Wiederholen</button></div>
-    ${_verlaufB() ? '<button type="button" class="bp-undo-vl" data-u="verlauf">🕘 Ältere Stände im Verlauf …</button>' : ''}</div>`;
+    ${_aelter() ? '<button type="button" class="bp-undo-vl" data-u="verlauf">🕘 Ältere Stände …</button>' : ''}</div>`;
 }
 function _undoZeichnen(kurz) {
   let el = UNDO.el; const n = _undoN(), rk = _redoKann();
   _undoKopf(n); _undoBlatt();
-  if (!n && !rk) { if (el) el.remove(); UNDO.el = null; UNDO.offen = false; _undoBlatt(); if (!_handy()) _undoOben(); return; }
+  if (!n && !rk && !_aelter()) { if (el) el.remove(); UNDO.el = null; UNDO.offen = false; _undoBlatt(); if (!_handy()) _undoOben(); return; }
   if (_handy()) {   // Handy: nur die kurze Leiste direkt nach einer Änderung, sonst nichts Schwebendes
     if (!kurz || UNDO.offen || !n) { if (el) el.remove(); UNDO.el = null; return; }
     if (!el) { el = UNDO.el = document.createElement('div'); el.className = 'bp-undo bp-undo-h'; el.setAttribute('role', 'status'); document.body.appendChild(el); el.addEventListener('click', _undoKlick); }
@@ -91,10 +91,10 @@ function _undoZeichnen(kurz) {
   }
   if (el && el.classList.contains('bp-undo-h')) { el.remove(); el = UNDO.el = null; }   // vom Handy auf breit gedreht
   _undoOben();
-  if (!UNDO.offen || UNDO.s.length < 2) { if (el) el.remove(); UNDO.el = null; UNDO.offen = false; return; }
-  if (!el) { el = UNDO.el = document.createElement('div'); el.className = 'bp-undo bp-undo-oben'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Verlauf'); document.body.appendChild(el);
+  if (!UNDO.offen || !_liste()) { if (el) el.remove(); UNDO.el = null; UNDO.offen = false; return; }
+  if (!el) { el = UNDO.el = document.createElement('div'); el.className = 'bp-undo bp-undo-oben'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Schritte'); document.body.appendChild(el);
     el.addEventListener('click', _undoKlick); el.addEventListener('mouseover', _undoHover); el.addEventListener('mouseout', _undoHover); }
-  el.innerHTML = `<div class="bp-undo-l" role="list"><div class="bp-undo-lk"><span>Verlauf</span><span class="bp-undo-t">Klick = bis hierher zurück</span></div>${UNDO.s.slice().reverse().map((u, i) => `<button type="button" role="listitem" data-u="bis" data-i="${i}"><i>${_undoIc(u)}</i><span>${_uEsc(u.text)}</span><small>${_undoAlter(u.t)}</small></button>`).join('')}${_verlaufB() ? '<button type="button" data-u="verlauf"><i>🕘</i><span>Ältere Stände im Verlauf …</span></button>' : ''}</div>`;
+  el.innerHTML = `<div class="bp-undo-l" role="list">${UNDO.s.length ? '<div class="bp-undo-lk"><span>Schritte</span><span class="bp-undo-t">Klick = bis hierher zurück</span></div>' : ''}${UNDO.s.slice().reverse().map((u, i) => `<button type="button" role="listitem" data-u="bis" data-i="${i}"><i>${_undoIc(u)}</i><span>${_uEsc(u.text)}</span><small>${_undoAlter(u.t)}</small></button>`).join('')}${_aelter() ? '<button type="button" class="bp-undo-vl" data-u="verlauf"><i>🕘</i><span>Ältere Stände …</span></button>' : ''}</div>`;
   const a = [...document.querySelectorAll('.bf-undo [data-u="liste"]')].find((x) => x.offsetParent), r = a ? a.getBoundingClientRect() : { left: 16, bottom: 60 };
   Object.assign(el.style, { left: Math.max(8, Math.min(innerWidth - el.offsetWidth - 8, r.left)) + 'px', top: (r.bottom + 4) + 'px' });
 }
@@ -132,12 +132,13 @@ async function _redo() {
   finally { UNDO.busy = false; }
   _undoZeigen();
 }
-// Verbindung zum gespeicherten Verlauf: Seiten nennen ihren Bereich über window.bpVerlaufBereich() (z. B. 'avalv:12')
-const _verlaufB = () => { try { return window.bpVerlaufBereich && window.BPHead && BPHead.verlauf ? window.bpVerlaufBereich() : null; } catch { return null; } };
+// Ältere Stände – der einzige Zugang zum Verlauf (22.11.2026): die Seite nennt über window.bpAeltereStaende() die Funktion, die ihren Verlauf öffnet (oder null)
+const _aelter = () => (window.bpAeltereStaende ? window.bpAeltereStaende() : null);
+const _liste = () => UNDO.s.length >= 2 || !!_aelter();   // ▾ öffnet die Schritte und darunter „Ältere Stände …“
 function _undoKlick(e) {
   const b = e.target.closest('[data-u]'); if (!b || b.disabled) return; e.stopPropagation(); const a = b.dataset.u;
   if (a === 'eins') return _undoBis(0);
-  if (a === 'verlauf') { const b = _verlaufB(); UNDO.offen = false; _undoZeichnen(false); if (b) BPHead.verlauf({ bereich: b, nach: window.bpVerlaufNach }); return; }
+  if (a === 'verlauf') { const f = _aelter(); UNDO.offen = false; _undoZeichnen(false); if (f) f(); return; }
   if (a === 'redo') return _redo();
   if (a === 'bis') return _undoBis(+b.dataset.i);
   if (a === 'liste') { UNDO.offen = !UNDO.offen; UNDO.hov = null; clearTimeout(UNDO.t); _undoZeichnen(true); return; }

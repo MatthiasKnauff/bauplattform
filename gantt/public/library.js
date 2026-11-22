@@ -632,13 +632,11 @@ async function kstSichern() {
 }
 async function kstListe() {
   let D; try { D = await fetch('api/katalog/staende').then(j); } catch (e) { toast(e.message, true); return; }
-  const H = window.BPHead || {}, vb = (b, l) => (H.verlaufKnopf ? H.verlaufKnopf(b, l) : '');
   const html = () => `<div class="hint" style="margin:0 0 6px">Jetzt: ${kstZ(D.jetzt)}</div>
     <div class="kst-l">${D.staende.map((x) => `<div class="kst${x.fest ? ' fest' : ''}" data-sid="${x.id}"><div><b>${x.fest ? '⭐ ' : ''}${esc(x.name)}</b><small>${kstDe(x.am)} · ${esc(x.von || '')} · ${kstZ(x.zahlen)}</small><div class="kst-d" hidden></div></div>
       <div class="kst-a"><button type="button" class="btn sm" data-kv>Vergleichen</button>${D.admin ? `<button type="button" class="btn sm" data-kz>Zurückholen …</button><button type="button" class="btn sm" data-kf title="${x.fest ? 'Schutz aufheben' : 'Schützen – wird nie automatisch weggeräumt'}">${x.fest ? '☆' : '⭐'}</button>${x.fest ? '' : '<button type="button" class="btn sm" data-kx title="Löschen">✕</button>'}` : ''}</div></div>`).join('') || '<div class="hint">Noch kein gesicherter Stand.</div>'}</div>
-    <div class="g-sec">Automatisch bei jeder Änderung</div><div style="display:flex;gap:6px;flex-wrap:wrap">${vb('gs:library', 'Leistungen')}${vb('gs:phases', 'Abschnitte')}${vb('gs:catfirms', 'Firmen-Vorgaben')}${vb('gs:catscope', 'Bezug')}</div>
     <div class="g-sec">Als Datei</div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><a class="btn sm" href="api/katalog/datei" download>⬇ Herunterladen</a>${D.admin ? '<label class="btn sm">⬆ Datei einlesen<input type="file" accept=".json,application/json" data-kdatei hidden></label><span class="hint">Eingelesene Dateien erscheinen oben als Stand – zurückgeholt wird erst auf Wunsch.</span>' : ''}</div>`;
-  const bg = modal('Leistungskatalog – Stände & Verlauf', `<div id="kstBox">${html()}</div>`, [{ label: 'Schließen', cls: 'primary', primary: true }]);
+  const bg = modal('Leistungskatalog – Stände', `<div id="kstBox">${html()}</div>`, [{ label: 'Schließen', cls: 'primary', primary: true }]);
   bg.querySelector('.modal').style.width = 'min(820px, 96vw)';
   const neu = (d) => { if (d && d.staende) D.staende = d.staende; bg.querySelector('#kstBox').innerHTML = html(); };
   const api2 = (u, m, b) => fetch(u, { method: m, headers: { 'Content-Type': 'application/json' }, body: b ? JSON.stringify(b) : undefined }).then(j);

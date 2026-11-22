@@ -68,7 +68,7 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
     const pres = document.createElement('span'); pres.className = 'bp-pres'; pres.id = 'bpPres'; pres.hidden = true;
     // die Leiste über den Reitern entfällt: alles rechts in die Reiterzeile (neben die Suche)
     const r = document.createElement('span'); r.className = 'tb-r';
-    const st = document.createElement('span'); st.id = 'saveState'; st.title = 'Es wird automatisch gespeichert. Zwischenstände: 🕘 Verlauf in der Versionsleiste';
+    const st = document.createElement('span'); st.id = 'saveState'; st.title = 'Es wird automatisch gespeichert. Ältere Stände: Rückgängig ▾';
     r.append(pres, link, ...[...tb.querySelectorAll('.ticon')], st);
     ($('#tabs') || tb).appendChild(r);
   }

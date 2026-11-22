@@ -1,11 +1,11 @@
 'use strict';
 /* Bauantrag einreichen (F5, 13.11.2026): Klick auf „eingereicht“ fragt nach dem Weg (Papier, Bauportal, E-Mail), Datum, Aktenzeichen
-   und Notiz; auf Wunsch kommen Antragspaket und Begleitliste in den Projektordner. Jede Einreichung steht im Verlauf unter „Stand“.
+   und Notiz; auf Wunsch kommen Antragspaket und Begleitliste in den Projektordner. Jede Einreichung steht im Protokoll unter „Stand“.
    Server: plattform/bauantrag_einreichen.py. Nutzt D, AID, L, zeichne(), laden() aus bauantrag.js. */
 const EIN_WEGE = { papier: ['📮', 'Papier', 'Post oder persönlich'], bauportal: ['🌐', 'Bauportal', 'Online-Portal des Landes'], email: ['✉', 'E-Mail', 'an die Bauaufsicht'] };
 const einDe = (t) => (t ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)}` : '');
 
-function einreichVerlauf() {   // unter „Stand“: wann, wie, Aktenzeichen, wo abgelegt
+function einreichProtokoll() {   // unter „Stand“: wann, wie, Aktenzeichen, wo abgelegt
   const E = (D && D.einreichungen) || [];
   if (!E.length) return '';
   return `<div class="ba-ev">${E.slice().reverse().map((e) => `<div><b>${einDe(e.datum)}</b> eingereicht ${EIN_WEGE[e.weg] ? EIN_WEGE[e.weg][0] + ' ' + EIN_WEGE[e.weg][1] : ''}${e.aktenzeichen ? ` · Az. ${esc(e.aktenzeichen)}` : ''}
@@ -38,7 +38,7 @@ function einreichenDialog() {
     <div class="row"><label>Eingereicht am<input type="date" id="einDat" value="${new Date().toISOString().slice(0, 10)}"></label><label>Aktenzeichen (falls schon bekannt)<input id="einAz" value="${esc(az)}" autocomplete="off"></label></div>
     <div class="row"><label>Notiz<textarea id="einNotiz" rows="2" placeholder="z. B. Vorgangsnummer des Portals, Eingangsbestätigung abwarten"></textarea></label></div>
     <label class="chk"><input type="checkbox" id="einAbl" checked> Antragspaket und Begleitliste im Projektordner ablegen</label>
-    <p class="ba-hilfe">Danach sind die Angaben gesperrt (zum Ändern zurück auf „Entwurf“). Die Einreichung steht im Verlauf unter „Stand“.</p>
+    <p class="ba-hilfe">Danach sind die Angaben gesperrt (zum Ändern zurück auf „Entwurf“). Die Einreichung steht im Protokoll unter „Stand“.</p>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">${hart ? 'Trotzdem eingereicht' : 'Eingereicht'}</button></div>`,
   async (m, bg, close, btn) => {
     if (m === 'x') { close(); return; }

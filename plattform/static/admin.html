@@ -224,8 +224,7 @@ const REGS = [['ich', 'Persönlich', 'ich', 'var(--c-t)', [['ich:konto', 'Mein K
   ['druck', 'Druck & Vorlagen', 'protokoll', 'var(--c-t)', [['druck', 'Druck-Layouts'], ['vorlagen', 'E-Mail-Vorlagen']]],
   ['ki', 'KI', 'buero', 'var(--c-v)', [['allgemein', 'KI'], ['datenschutz', 'Datenschutz']]],
   ['kataloge', 'Kataloge erzeugen', 'projekte', 'var(--c-g)', [['kataloge', 'Kataloge erzeugen']]],   // admin-kataloge.js
-  ['bauherren', 'Bauherrenportal', 'users', 'var(--c-v)', [['bauherren', 'Bauherrenportal'], ['bhbenutzer', 'Benutzer']]],   // admin-bauherren.js, admin-bhbenutzer.js
-  ['verlauf', 'Verlauf aller Änderungen', 'protokoll', '', [['verlauf', 'Verlauf']]]];
+  ['bauherren', 'Bauherrenportal', 'users', 'var(--c-v)', [['bauherren', 'Bauherrenportal'], ['bhbenutzer', 'Benutzer']]]];   // admin-bauherren.js, admin-bhbenutzer.js
 const regVon = (st) => REGS.find((r) => r[4].some(([k]) => k === String(st).split('~')[0])) || REGS.find((r) => r[0] === (ADMIN() ? 'ki' : 'ich'));
 const ADMIN = () => !!(me && me.is_admin);   // ohne Verwaltungsrecht: nur „Persönlich“ und die Seiten der eigenen Apps (Server prüft genauso)
 function appRegs() {   // je App, die diese:r benutzen darf, eine Seite mit ihren Einstellungen (⚙ in der App springt hierher)
@@ -240,8 +239,8 @@ function admNav() {
   bpNav($('#navL'), { kopf: { titel: 'Verwaltung', klein: '' }, lage: true, attr: 'adm', aktiv: akt,
     gruppen: [{ titel: 'Für mich' + (me && me.name ? ' – ' + me.name : ''), klasse: 'ng-ich', punkte: [P('i:konto', 'Mein Konto', 'ich', 'var(--c-t)'), P('i:look', 'Darstellung', 'look', 'var(--c-t)'), P('i:ki', 'KI', 'kistern', 'var(--c-t)'), P('i:meldungen', 'Benachrichtigungen', 'glocke', 'var(--c-t)')] },   // abgesetzt von den Büro-Einstellungen (Mock „Persönlich in der Verwaltung“ A1, 19.11.2026)
       { titel: 'Büro', punkte: [P('e:buero', 'Büro & Standort', 'buero', 'var(--c-b)'), P('projekte', 'Projekte', 'projekte', 'var(--c-b)'), P('meldungen', 'Benachrichtigungen (alle)', 'glocke', 'var(--c-o)')] },
-      { titel: 'Einstellungen', punkte: [P('menschen', 'Mitarbeiter & Rechte', 'users', 'var(--c-v)'), ...REGS.filter((r) => !['ich', 'buero', 'verlauf'].includes(r[0])).map(([k, l, ic, f]) => P('e:' + k, l, ic, f))] },
-      { titel: 'System', punkte: [...SYS.map(([k, l]) => P('s:' + k, l, k, k === 'fehler' || k === 'bugs' ? 'var(--c-r)' : '')), P('e:verlauf', 'Verlauf', 'protokoll', '')] }]
+      { titel: 'Einstellungen', punkte: [P('menschen', 'Mitarbeiter & Rechte', 'users', 'var(--c-v)'), ...REGS.filter((r) => !['ich', 'buero'].includes(r[0])).map(([k, l, ic, f]) => P('e:' + k, l, ic, f))] },
+      { titel: 'System', punkte: [...SYS.map(([k, l]) => P('s:' + k, l, k, k === 'fehler' || k === 'bugs' ? 'var(--c-r)' : ''))] }]
       .map((gr) => ({ ...gr, punkte: gr.punkte.filter((x) => darfNav(x.id)) })).filter((gr) => gr.punkte.length) });   // je Rolle nur, was sie sehen darf (admin-wer.js)
   bpNav.breite($('#navL'), { key: 'verwaltung' });
 }
@@ -598,10 +597,6 @@ async function loadSettings() {
     $('#main').innerHTML = stNav() + (ap && ap.allowed && ap.einst === false ? `<section class="card st"><p class="mute" style="margin:0">${esc(ap.name)} hat keine eigenen Einstellungen.</p></section>` : ap && ap.allowed ? `<iframe class="adm-app" title="Einstellungen ${esc(ap.name)}" src="${esc(appUrl(ap))}/?einbetten=1#bpeinst${teil ? '-' + esc(teil) : ''}"></iframe>` : '<p class="mute">Diese App ist im Büro abgeschaltet oder für dich nicht freigegeben.</p>');
     return;
   }
-  if (t === 'verlauf') {
-    $('#main').innerHTML = stNav() + '<section class="card st" id="verlaufBox"></section>';
-    if (window.BPHead && BPHead.verlaufAlle) BPHead.verlaufAlle({ into: $('#verlaufBox') }); return;
-  }
   $('#main').innerHTML = stNav() + '<p class="mute">Lade …</p>';
   data.bt = await api('api/bt/settings');
   if (t === 'sicherung') data.bk = (await api('api/bt/backups')).items || [];
@@ -626,9 +621,9 @@ function renderSettings() {
     ${keyRow('claude', 'Claude (Anthropic)', K.claude, `<select data-k="claude.model">${Object.entries(K.claude.models).map(([k, n]) => `<option value="${k}"${K.claude.model === k ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`)}
     ${keyRow('gemini', 'Gemini (Google)', K.gemini)}
     ${keyRow('chatgpt', 'ChatGPT (OpenAI)', K.chatgpt)}
-    <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-sa="saveki">KI-Einstellungen speichern</button>${vk('gs:settings', 'Verlauf Claude')}${vk('gs:plattform', 'Verlauf Gemini/ChatGPT')}</div></section>
+    <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-sa="saveki">KI-Einstellungen speichern</button></div></section>
   <section class="card st"><h2>Einstellungen in den Apps</h2><p class="mute">Alle Einstellungen erreichst du in jeder App über ⚙ oben rechts: <b>Diese App</b> (z. B. Raumtypen der Baukosten, Erinnerungen, Plannummerierung, Berichte des Bautagebuchs), <b>Für mich</b> (Unterschrift, Signatur, Absender:in, Kalender, Darstellung) und <b>Büro</b> (diese Seite).</p>
-    <p class="mute" style="margin-top:.6rem">Jede Speicherung wird automatisch als Stand festgehalten. Mit <b>🕘 Verlauf</b> neben dem Speichern-Knopf oder unter „Verlauf“ lässt sich jeder frühere Stand ansehen und wiederherstellen.</p></section>`;
+    <p class="mute" style="margin-top:.6rem">Jede Speicherung wird automatisch als Stand festgehalten. Über Rückgängig ▾ → „Ältere Stände …“ lässt sich jeder frühere Stand ansehen und wiederherstellen.</p></section>`;
 
   document.querySelectorAll('[data-swp]').forEach((sw) => { sw.onclick = (e) => { const b = e.target.closest('[data-sw]'); if (!b) return; const pv = sw.dataset.swp;
     if (b.dataset.sw === 'aus') data.aus.add(pv); else data.aus.delete(pv); data.ausGeaendert = true;
@@ -667,8 +662,7 @@ const stIn = (k, l, w, o = {}) => (!stSicht(k) ? '' : `<label class="${w ? 'w' :
 const ST_VS = { co_bv_beruf: 'beruf', co_bv_kammer: 'kammer' };   // Auswahl + frei: Vorschläge aus dem Kern (stammdaten.LISTEN)
 const stSel = (k, l, opts, def) => (!stSicht(k) ? '' : `<label class="w">${l}<select data-st="${k}">${opts.map(([v, n]) => `<option value="${v}"${(data.bt[k] || def) === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>`);
 const fsize = (b) => b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
-const vk = (b, l) => `<button type="button" class="btn" data-bph-verlauf="${b}" title="Frühere Stände ansehen und wiederherstellen">🕘 ${l || 'Verlauf'}</button>`;
-const SAVEF = () => `<div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-bs="save">Speichern</button>${vk('einst:bt')}</div>`;
+const SAVEF = () => `<div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-bs="save">Speichern</button></div>`;
 /* ---------- Posteingang: Microsoft-365-Postfächer den Benutzern zuweisen (wie im Mail-Archiver) ---------- */
 let PZ = null;
 async function pzLaden() { try { PZ = await api('api/bp/post/zuweisung'); } catch (e) { $('#pzBox').innerHTML = `<p class="mute">${esc(e.message)}</p>`; return; } pzZeigen(); }
@@ -727,7 +721,7 @@ function renderBtSettings() {
     <div style="margin-top:.8rem;padding:.7rem .8rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1))"><b>Was die Apps ablegen</b>
       <p class="mute" style="font-size:.85rem;margin:.3rem 0 .5rem">Der Zugang oben gilt für alle Apps. Wohin und unter welchem Namen eine App ablegt, steht seit 17.11.2026 in den Einstellungen der App.</p><div id="ablApps" class="mute">Lade …</div></div>
     <div id="bpoBox" style="margin-top:.8rem;padding:.7rem .8rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1))"></div>
-    <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-bs="save">Speichern</button>${vk('einst:bt')}${m !== 'off' ? '<button class="btn" data-bs="storetest">Verbindung testen</button><button class="btn" data-bs="storerun">Jetzt übertragen</button>' : ''}${S.store_pass_set && m === 'smb' ? '<button class="btn danger" data-bs="clear" data-k="store_pass">Gespeichertes Kennwort löschen</button>' : ''}<span class="mute st-r" id="bsOut"></span></div></section>${darfSeite('ordner') ? '<section class="card st" id="ordBox"></section>' : ''}`;
+    <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-bs="save">Speichern</button>${m !== 'off' ? '<button class="btn" data-bs="storetest">Verbindung testen</button><button class="btn" data-bs="storerun">Jetzt übertragen</button>' : ''}${S.store_pass_set && m === 'smb' ? '<button class="btn danger" data-bs="clear" data-k="store_pass">Gespeichertes Kennwort löschen</button>' : ''}<span class="mute st-r" id="bsOut"></span></div></section>${darfSeite('ordner') ? '<section class="card st" id="ordBox"></section>' : ''}`;
   else if (t === 'mail') {
     const B = data.bt, prov = B.mail_provider || 'gmail', ausOk = !!(B.mail_user && S.mail_pass_set), einOk = !!(B.m365_tenant && B.m365_client && S.m365_secret_set);
     const ICM = { aus: '<path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/>', ein: '<path d="M4 13h4l2 3h4l2-3h4"/><path d="M4 13l2-7h12l2 7v5H4z"/>', zu: '<circle cx="9" cy="8" r="3"/><path d="M3 19a6 6 0 0 1 12 0"/><path d="M17 8h4M19 6v4"/>' };
@@ -745,7 +739,7 @@ function renderBtSettings() {
       <div class="sf"><label class="w">Anbieter<select data-st="mail_provider" data-provwahl>${ANB.map(([v, n]) => `<option value="${v}"${prov === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
         <div class="w sf" data-andere style="grid-column:1/-1;${prov === 'andere' ? '' : 'display:none'}">${stIn('mail_host', 'SMTP-Server', 0, { ph: 'smtp.firma.de' })}${stIn('mail_port', 'Port', 0, { ph: '587 (STARTTLS) oder 465 (SSL)' })}</div>
         ${stIn('mail_user', 'Benutzername / Adresse', 0, { ph: 'bautagebuch@firma.de' })}${stIn('mail_from', 'Absender:in (leer = Postfach)', 0, { ph: 'mail@ihr-buero.de' })}${pw('mail_pass', 'Kennwort / App-Passwort')}${stIn('app_url', 'Adresse in den Links (optional)', 1, { ph: 'https://bauportal.firma.de' })}</div>
-      <div class="st-a"><button class="btn pri" data-bs="save">Speichern</button><button class="btn" data-bs="mailtest">Testmail an mich</button>${vk('einst:bt')}${S.mail_pass_set ? '<button class="btn danger" data-bs="clear" data-k="mail_pass">Kennwort löschen</button>' : ''}<span class="mute st-r" id="bsOut"></span></div>
+      <div class="st-a"><button class="btn pri" data-bs="save">Speichern</button><button class="btn" data-bs="mailtest">Testmail an mich</button>${S.mail_pass_set ? '<button class="btn danger" data-bs="clear" data-k="mail_pass">Kennwort löschen</button>' : ''}<span class="mute st-r" id="bsOut"></span></div>
       <details class="hilfe"><summary>Hilfe</summary><p>Als Absender:in steht die <b>Absenderadresse</b> in den Mails – jede:r Benutzer:in kann unter ⚙ → Persönlich stattdessen seine eigene wählen. Ist die Absender:in nicht das Postfach selbst, muss das Postfach in seinem Namen senden dürfen (Microsoft 365: „Senden als“ bzw. freigegebenes Postfach; Gmail: „Senden als“-Adresse).</p>
         <p><b>Office 365:</b> „Authentifizierter SMTP-Versand“ muss für das Postfach erlaubt sein. <b>Gmail, GMX, WEB.DE & Co.:</b> meist ein „App-Passwort“ und eingeschaltetes SMTP/IMAP in den Einstellungen des Postfachs. <b>T-Online:</b> eigenes E-Mail-Passwort aus dem Kundencenter. Die Testmail geht an deine Adresse unter „Benutzer:in & Rechte“.</p></details></section>
     <section class="card st" id="m-ein"><h2>Posteingang lesen <span class="mute" style="font-weight:400;font-size:.85rem">Microsoft 365 · optional</span></h2><p class="mute">Die Startseite zeigt jedem einmal am Tag die Mails zu <b>seinen</b> Projekten – nur lesend.</p>
@@ -866,7 +860,7 @@ $('#main').addEventListener('click', async (e) => {
     if (a === 'ausschreibung') {   // Vorgaben für Ausschreibungen – unterste Ebene (Büro → Projekt → LV), gleiche Maske wie die Ausschreibungsdaten
       const D = await api('api/ausschreibung');
       BPHead.datenMaske({ titel: 'Vorgaben für Ausschreibungen', unter: 'gelten, wo Projekt und LV nichts anderes eintragen', gruppen: D.felder.map((g, i) => ({ ...g, offen: !i })), werte: D.werte, abschnitte: 'buero-aus',
-        speichern: async (W) => ({ werte: (await api('api/ausschreibung', 'PUT', { werte: W })).werte, hinweis: 'Gespeichert – gilt ab jetzt für alle offenen LVs ohne eigene Angabe.' }), knoepfe: BPHead.verlaufKnopf ? BPHead.verlaufKnopf('bp:ausschreibung', 'Verlauf') : '' });
+        speichern: async (W) => ({ werte: (await api('api/ausschreibung', 'PUT', { werte: W })).werte, hinweis: 'Gespeichert – gilt ab jetzt für alle offenen LVs ohne eigene Angabe.' }) });
       return;
     }
     if (a === 'dellogo') { if (!confirmTwice(b)) return; await api('api/bt/logo', 'DELETE'); toast('Logo entfernt.'); return loadSettings(); }
@@ -1075,7 +1069,7 @@ document.addEventListener('click', async (e) => {
   if (a === 'hfilt') { data.hfilt = b.dataset.hf; renderHilfe(); return; }
   let H = null; try { H = window.top !== window && window.top.BPHead ? window.top.BPHead : window.BPHead; } catch { H = window.BPHead; }
   if (a === 'hauf') { if (H && H.hilfe) H.hilfe({ id: +b.dataset.hid }); return; }
-  if (!(await bpFrage('Diese Anfrage samt Verlauf löschen?', { ok: 'Löschen', gefahr: true }))) return;
+  if (!(await bpFrage('Diese Anfrage samt Nachrichten löschen?', { ok: 'Löschen', gefahr: true }))) return;
   try { await api('api/bp/hilfe/' + b.dataset.hid, 'DELETE'); data.h = await api('api/bp/hilfe?alle=1'); renderHilfe(); toast('Anfrage gelöscht.'); } catch (er) { toast(er.message, true); }
 });
 document.addEventListener('change', async (e) => {
@@ -1118,6 +1112,7 @@ function renderAudit() {
   await header('Verwaltung', me, conf);
   renderTabs(); load();
 })().catch(e => toast(e.message, true));
+window.bpAeltereStaende = () => () => BPHead.verlaufAlle({ titel: 'Ältere Stände' });   // Rückgängig ▾ → „Ältere Stände …“ – alle gespeicherten Stände
 window.bpNachVerlauf = () => (location.hash.startsWith('#einstellungen') ? loadSettings().catch((er) => toast(er.message, true)) : location.reload());
 </script>
 </body>

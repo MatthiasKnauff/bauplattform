@@ -102,7 +102,6 @@ body.emb .lw{height:calc(100vh - 44px)}body.emb>.bph,body.emb>header.bph{display
   </div>
   <aside class="r" id="props"></aside>
 </div>
-<button hidden id="verlBtn"></button>
 <script src="bp/baukasten.js"></script>
 <script>
 const LS = { get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* egal */ } } };
@@ -157,7 +156,6 @@ function vl() {
     onWahl: async (id) => { await sofort(); D = await api('api/layouts/' + B, 'PUT', { aktiv: id }); V = D.versionen.find((x) => x.id === D.aktiv); HIST = []; LG = []; bpUndo.wegArt('lay'); SEL.clear(); vl(); zeichne(); props(); toast(`Version „${V.name}“ ist aktiv – danach wird gedruckt.`); },
     onNeu: async () => { const n = await bpEingabe('Name der neuen Version (Kopie von „' + V.name + '“):', ''); if (!n) return; await sofort(); D = await api('api/layouts/' + B, 'PUT', { neu: { name: n, von: V.id } }); V = D.versionen.find((x) => x.id === D.aktiv); vl(); zeichne(); props(); },
     onUmbenennen: async () => { const n = await bpEingabe('Name der Version:', V.name); if (!n) return; D = await api('api/layouts/' + B, 'PUT', { version: V.id, name: n }); V = D.versionen.find((x) => x.id === V.id); vl(); },
-    onVerlauf: () => { const b = $('#verlBtn'); b.dataset.bphVerlauf = 'bp:layout:' + B; b.click(); },
     onVerwalten: () => {
       const n = D.versionen.length;
       modalBox(`<h2 style="margin-top:0">Version „${esc(V.name)}“</h2><p class="mute">${V.archiviert ? 'Die Version ist archiviert.' : 'Archivierte Versionen bleiben erhalten, stehen aber unten in der Liste.'}${V.id === D.aktiv ? ' Sie ist gerade aktiv für den Druck.' : ''}</p>
@@ -519,7 +517,7 @@ window.layoutSichern = () => sofort();   // „Fertig“ im Fenster der App: ers
   const [me, PC] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(me);   // gleichzeitig
   if (EMB) document.body.classList.add('emb');   // eingebettet (Verwaltung → Büro-Einstellungen → Druck, oder aus dem Druckdialog): Kopfleiste ausgeblendet, Versionen bleiben
   await header('Verwaltung', me, PC);
-  window.bpNachVerlauf = () => laden();
+  window.bpAeltereStaende = () => () => BPHead.verlauf({ bereich: 'bp:layout:' + B, nach: laden });   // Rückgängig ▾ → „Ältere Stände …“
   await laden();
 })().catch((e) => toast(e.message, true));
 addEventListener('hashchange', async () => { const h = location.hash.slice(1); if (h && h !== B) { await sofort(); B = h; laden(); } });

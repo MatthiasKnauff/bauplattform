@@ -1,5 +1,13 @@
 [
  {
+  "id": "aeltere-staende-2211",
+  "datum": "2026-11-22",
+  "app": "alle",
+  "titel": "Ältere Stände nur noch über Rückgängig",
+  "text": "Die vielen „🕘 Verlauf“-Knöpfe sind weg. Frühere Stände holst du jetzt überall gleich: am kleinen ▾ neben Zurück · Wieder → „Ältere Stände …“. Aufgezeichnet wird wie bisher. In Kommunikation und Bauantrag heißt die Mitschrift jetzt „Protokoll“.",
+  "ziel": ".bf-undo [data-u=\"liste\"]"
+ },
+ {
   "id": "nichts-springt-2211",
   "datum": "2026-11-22",
   "app": "gebaeudemodell",

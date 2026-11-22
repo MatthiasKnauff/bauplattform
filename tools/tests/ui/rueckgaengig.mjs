@@ -103,6 +103,18 @@ export async function rueckgaengigPruefen(browser, repo) {
     await p.click('#hoch'); await p.waitForTimeout(200); await p.click('#bfl [data-u="eins"]'); await p.waitForTimeout(300);
     pruef(!(await stand(p, '#bfl')).redo, 'Hochladen (FormData) gilt als wiederholbar');
   });
+  await lauf('Ältere Stände', true, async (p) => {
+    // 22.11.2026: der einzige Zugang zum Verlauf – ▾ an Rückgängig, auch ohne Schritte, sobald die Seite bpAeltereStaende nennt
+    pruef(!(await stand(p, '#bfl')).liste, '▾ ohne Schritte und ohne ältere Stände nicht grau');
+    await p.evaluate(() => { window.bpAeltereStaende = () => () => LOG.push('aelter'); bpUndo.zeichnen(); });
+    pruef((await stand(p, '#bfl')).liste, '▾ öffnet ohne Schritte nicht, obwohl die Seite ältere Stände hat');
+    await p.click('#bfl [data-u="liste"]'); await p.waitForSelector('.bp-undo-oben [data-u="verlauf"]');
+    pruef(/^🕘\s*Ältere Stände …$/.test((await p.textContent('.bp-undo-oben [data-u="verlauf"]')).trim()), 'Punkt heißt nicht „Ältere Stände …“');
+    await p.click('.bp-undo-oben [data-u="verlauf"]'); await p.waitForFunction(() => LOG.includes('aelter'));
+    pruef(!(await p.$('.bp-undo-oben')), 'Liste bleibt nach „Ältere Stände …“ offen');
+    await p.evaluate(() => { window.bpAeltereStaende = () => null; bpUndo.zeichnen(); });
+    pruef(!(await stand(p, '#bfl')).liste, '▾ bleibt offen, obwohl die Seite gerade keine älteren Stände hat');
+  });
   await lauf('ohne Befehlsleiste', false, async (p) => {
     // 20.11.2026: keine eigene Zeile unter der Kopfleiste mehr – ohne Befehlsleiste und ohne Platz im Inhalt stehen ↶ ↷ klein IN der Kopfleiste
     const oben0 = await p.evaluate(() => document.querySelector('.bph').getBoundingClientRect().bottom);

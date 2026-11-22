@@ -69,8 +69,7 @@
 .vk-h{border-top:1px solid var(--line,#d5d9de);padding-top:.5rem;display:flex;flex-direction:column;gap:.3rem}.vk-h small{opacity:.75}.vk-h.vk-blink{box-shadow:inset 3px 0 0 var(--red,#c62f2a);padding-left:.5rem}.vk-h .vk-grp{display:flex;gap:.35rem;flex-wrap:wrap}
 .vk-n{font-size:.8rem;opacity:.75;margin:0}
 .vk-opt{display:flex;gap:.5rem;align-items:flex-start;border:1px solid var(--line,#d5d9de);border-radius:calc(8px*var(--rk,1));padding:.45rem .6rem;cursor:pointer}.vk-opt small{opacity:.75}
-.vk-wl{display:flex;flex-direction:column;gap:.3rem;margin:.6rem 0;max-height:50vh;overflow:auto}.vk-vlg{max-height:60vh;overflow:auto;display:flex;flex-direction:column;gap:.25rem;margin:.6rem 0}
-.vk-vlg div{display:flex;gap:.6rem;justify-content:space-between}.vk-vlg small{opacity:.65;white-space:nowrap}.vk-vlg .zr{opacity:.45;text-decoration:line-through}
+.vk-wl{display:flex;flex-direction:column;gap:.3rem;margin:.6rem 0;max-height:50vh;overflow:auto}
 .vk-mittel .vk-wrap,.vk-eng .vk-wrap{grid-template-columns:minmax(0,1fr)}
 .vk-eng .vk-bild{grid-template-columns:minmax(0,1fr);gap:.6rem;padding:.6rem}.vk-eng .vk-svg{display:none}.vk-eng .vk-weg{grid-template-columns:minmax(0,1fr)}`;
   function stil(doc) { if (doc.getElementById('vk-stil')) return; const s = doc.createElement('style'); s.id = 'vk-stil'; s.textContent = STIL; doc.head.appendChild(s); }
@@ -126,7 +125,7 @@
     }
     function feld() {
       const l = Z.app && link(Z.app), c = l && (C.find((x) => x[0] === Z.app) || ABSEITS.find((x) => x[0] === Z.app));
-      const L = Z.D.links || [], V = Z.D.verlauf || {};
+      const L = Z.D.links || [];
       if (Z.app === '_plan') {   // A2: Planstände des Gebäudemodells, ★ gilt
         const S = Z.D.staende || [];
         return `<h3><span>IFC-Datei und Planstände</span></h3><p class="vk-n">Es gilt immer genau ein Planstand (R1). Einen anderen wählen, um ihn gelten zu lassen.</p>
@@ -137,7 +136,7 @@
         const leb = L.filter((x) => x.zustand === 'lebendig'), alle = leb.length && leb.every((x) => x.uebernahme === leb[0].uebernahme) ? leb[0].uebernahme : '';
         return `<h3><span>Verknüpfungen</span></h3><p class="vk-n">Eine App antippen: dort stellst du ein, wie Änderungen aus dem Modell ankommen, welche Version der App gilt, und arbeitest die wartenden Hinweise ab. Die Richtung steht im Konzept (grün holt aus dem Modell, lila holt ein abgelegtes Ergebnis).</p>
           <div class="vk-f"><label>Alle Apps</label><div class="vk-seg">${UEB.slice(0, 2).map(([v, t]) => `<button type="button" data-alle="${v}" class="${alle === v ? 'on' : ''}">${t}</button>`).join('')}</div></div>
-          <div style="display:flex;gap:.4rem;flex-wrap:wrap"><button type="button" class="vk-b" data-vk="verlauf">Verlauf</button><button type="button" class="vk-b" data-vk="standard"${L.some((x) => x.abweichend) ? '' : ' disabled'}>Standard wiederherstellen</button></div>`;
+          <div style="display:flex;gap:.4rem;flex-wrap:wrap"><button type="button" class="vk-b" data-vk="standard"${L.some((x) => x.abweichend) ? '' : ' disabled'}>Standard wiederherstellen</button></div>`;
       }
       const u = ueb(l), S = appStaende(l.app), fest = l.zustand === 'fest', H = Z.hin[l.app], cc = C.find((x) => x[0] === l.app), a = appConf(cc ? cc[6] : c[2]), nm = nameVon(l.app);
       return `<h3><span>${esc(nm)} ↔ Gebäudemodell</span>${l.offen ? `<i class="vk-z">${l.offen}</i>` : ''}</h3>
@@ -242,10 +241,6 @@
         if (a === 'std1') return tu('/standard', 'POST', { app: Z.app }, '', 'Standard der Verknüpfung');
         if (a === 'festhalten' && l) { const w = await standWahl(l, nameVon(l.app)); if (w) return setze(l.app, { zustand: 'fest', ...w }); return; }
         if (a === 'standard') { if (await bpFrage('Alle Verknüpfungen auf den Standard zurücksetzen? Alle Apps folgen dann dem Modell „mit Übernahme“.', { ok: 'Zurücksetzen' })) return tu('/standard', 'POST', {}, '', 'Standard aller Verknüpfungen'); return; }
-        if (a === 'verlauf') {
-          const E = ((Z.D.verlauf || {}).eintraege || []);
-          return modalBox(`<h3>Verlauf der Verknüpfungen</h3><div class="vk-vlg">${E.length ? E.map((x) => `<div class="${x.zurueck ? 'zr' : ''}"><span>${esc(x.text)}</span><small>${esc(tag(x.wann))} · ${esc(x.wer || '')}</small></div>`).join('') : '<p class="vk-n">Noch nichts geändert – es gilt der Standard.</p>'}</div><div class="row" style="flex-direction:row;justify-content:flex-end"><button type="button" class="btn primary" data-m="zu">Schließen</button></div>`, (m, bg, close) => { if (m === 'zu') close(); });
-        }
         return;
       }
       const box = q('[data-app]'); if (box) { Z.app = Z.app === box.dataset.app ? null : box.dataset.app; zeichne(); }

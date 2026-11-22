@@ -1,5 +1,13 @@
 [
  {
+  "id": "filter-springt-2211",
+  "datum": "2026-11-22",
+  "app": "adressen",
+  "titel": "Adressen: Navigation springt nicht mehr",
+  "text": "Ein Klick auf ein Gewerk weiter unten in der Navigation lässt die Navigation stehen – sie rollt nicht mehr nach oben zum Suchfeld.",
+  "ziel": "#navL"
+ },
+ {
   "id": "gantt-zeitstand-details-2211",
   "datum": "2026-11-22",
   "app": "gantt",

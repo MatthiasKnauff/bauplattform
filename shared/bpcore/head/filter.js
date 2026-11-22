@@ -64,7 +64,7 @@
           <div class="bpf-k"><span>${esc(A[g.art].name)}</span><button type="button" class="bpf-x" data-bpf-gx="${i}" title="Filter „${esc(A[g.art].name)}“ entfernen" aria-label="Filter entfernen">✕</button></div>
           <div class="bpf-w">${g.w.map((v, k) => `${k ? `<button type="button" class="bpf-op" data-bpf-op="${i}" title="Verknüpfung innerhalb – Klick: ODER ↔ UND">${OPW[g.op]}</button>` : ''}<span class="bpf-v${v.n ? ' nicht' : ''}" data-bpf-n="${i}:${k}" title="${v.n ? 'NICHT – Klick: wieder normal' : 'Klick: NICHT (ausschließen)'}"><span>${esc(v.w)}</span><button type="button" class="bpf-x" data-bpf-vx="${i}:${k}" aria-label="Wert entfernen">✕</button></span>`).join('')}</div></div>`).join('')
         + (S.g.length || S.q.trim() ? `<div class="bpf-satz">${esc(satz())}</div>` : '');
-      if (fokus) { const n = el.querySelector('.bpf-in'); n.focus(); if (pos != null) n.setSelectionRange(pos, pos); }
+      if (fokus) { const n = el.querySelector('.bpf-in'); n.focus({ preventScroll: true }); if (pos != null) n.setSelectionRange(pos, pos); }
     }
     function pruefe(it) {
       let erg = null;
@@ -132,11 +132,12 @@
     });
     let fokus = false;   // gemerkt, damit das Feld nach dem Neuzeichnen der Navigation (einhaengen) den Fokus behält
     el.addEventListener('focusin', () => { fokus = true; });
-    el.addEventListener('focusout', (e) => { if (e.relatedTarget && el.contains(e.relatedTarget)) return; setTimeout(() => { if (el.isConnected && !el.contains(document.activeElement)) { fokus = false; zu(); } }, 150); });
+    el.addEventListener('focusout', (e) => { if (e.relatedTarget && el.contains(e.relatedTarget)) return; if (e.relatedTarget) { fokus = false; zu(); return; }   // bewusst woandershin (z. B. Punkt der Navigation): Fokus gleich abgeben
+      setTimeout(() => { if (el.isConnected && !el.contains(document.activeElement)) { fokus = false; zu(); } }, 150); });
     zeichnen();
     return {
       el, pruefe, satz,
-      einhaengen(platz) { if (!platz || el.parentElement === platz) return; const n = el.querySelector('.bpf-in'), pos = n.selectionStart; platz.appendChild(el); if (fokus && document.activeElement !== n) { n.focus(); n.setSelectionRange(pos, pos); } },
+      einhaengen(platz) { if (!platz || el.parentElement === platz) return; const n = el.querySelector('.bpf-in'), pos = n.selectionStart; platz.appendChild(el); if (fokus && document.activeElement !== n) { n.focus({ preventScroll: true }); n.setSelectionRange(pos, pos); } },   // ohne Rollen: ein Klick weiter unten in der Navigation bleibt, wo er ist (Video 22.11.2026)
       wert(art) { const g = S.g.find((x) => x.art === art); return g && g.w.length === 1 && !g.w[0].n ? g.w[0].w : ''; },
       setzen(art, w) { const g = S.g.find((x) => x.art === art); if (g) g.w = [{ w, n: false }]; else S.g.push({ art, op: 'oder', w: [{ w, n: false }] }); geaendert(); },
       weg(art) { const i = S.g.findIndex((x) => x.art === art); if (i < 0) return; S.g.splice(i, 1); S.zw.splice(Math.max(0, i - 1), 1); geaendert(); },

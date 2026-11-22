@@ -257,6 +257,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Handyansicht Etappe 2: Startseite, Aufgaben & Post, Adressen voll **ca. 2 h**; Etappe 3: Ansichten der übrigen Apps je **30–60 min**, Verwaltung nur „Für mich“
 
 ## Erledigt
+- ~~Filterfeld (bp/filter.js): Klick in die Navigation holte den Fokus zurück ins Suchfeld und rollte nach oben (Adressen)~~ (22.11.2026)
 - ~~Bauzeitenplan „Zeit und Stand“: Grund auch als eigener Text, Block auch rechts unter Details, Felder bündig, Meilenstein ohne Fortschritt/Überzug~~ (22.11.2026)
 - ~~Bauzeitenplan: Gruppen füllen sich wie die Balken (Mock SI2-2 A nachgezogen), „0 %“ im Balken~~ (22.11.2026)
 - ~~Gebäudemodell: Klick im Grundriss baute den Bereich rechts neu auf (Liste sprang nach oben), „undefined“ über dem Bauteil-Baum~~ (22.11.2026)

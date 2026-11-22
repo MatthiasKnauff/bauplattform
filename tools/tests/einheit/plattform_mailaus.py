@@ -17,7 +17,8 @@ def _db():
         CREATE TABLE users(id INTEGER PRIMARY KEY, name TEXT, email TEXT);
         INSERT INTO users VALUES (1, 'Anna', 'Anna@buero.de'), (2, 'Ben', 'ben@buero.de'), (3, 'Cem', '');
         CREATE TABLE erinnerungen(id INTEGER PRIMARY KEY, status TEXT, gesendet TEXT, termin TEXT);
-        CREATE TABLE items(id INTEGER PRIMARY KEY, due TEXT, reminded TEXT, done INTEGER, remind_user INTEGER);""")
+        CREATE TABLE items(id INTEGER PRIMARY KEY, due TEXT, reminded TEXT, done INTEGER, remind_user INTEGER);
+        CREATE TABLE settings(key TEXT PRIMARY KEY, value TEXT);""")
     return c
 
 
@@ -211,7 +212,7 @@ def test_mailversand_deaktiviert():
             gleich(raus, ["Erinnerung", "LV"], "wieder eingeschaltet: beides geht")
             # ohne die Einstellung in cf (andere Stelle baut cf selbst): der gemerkte Stand aus der Datenbank gilt
             c = _db()
-            c.executescript("CREATE TABLE settings(key TEXT PRIMARY KEY, value TEXT); INSERT INTO settings VALUES ('mail_aus', '1');")
+            c.execute("INSERT INTO settings VALUES ('mail_aus', '1')")
             mailaus._MERK.update(bis=9e12, k=mailaus._karte(c))
             gleich((mail.versand_aus({"mail_user": "x"}), mail.app("todo", {"mail_user": "x"}, "anna@buero.de", "A", "B")), (True, "aus"), "Stand aus der Datenbank")
         finally:

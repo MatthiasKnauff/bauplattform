@@ -129,19 +129,12 @@ def connect():
 
 _pool, _plock = [], threading.Lock()
 VORRAT, RUHE = 3, 45   # je Prozess höchstens so viele freie Verbindungen, länger unbenutzte werden geschlossen. Die Datenbank nimmt 100
-#                        Verbindungen an; 23 Apps × 2 Prozesse × 8 freie reichten, sie zu erschöpfen („too many clients“ – so scheiterte am
-#                        20.11.2026 der Rauchtest der Freigabe v312).
+#                        Verbindungen an (max_connections=300 in den Stack-Dateien – 23 Apps × 2 Prozesse × 4 Threads); 8 freie je Prozess
+#                        hatten sie erschöpft („too many clients“ – so scheiterte am 20.11.2026 der Rauchtest der Freigabe v312).
 
 
 def _neu():
-    """Neue Verbindung; ist die Datenbank gerade voll („too many clients“), kurz warten und noch einmal versuchen."""
-    for n in range(6):
-        try:
-            return Con(psycopg.connect(DSN))
-        except psycopg.OperationalError as e:
-            if n == 5 or "too many clients" not in str(e):
-                raise
-            time.sleep(0.25 * (n + 1))
+    return Con(psycopg.connect(DSN))
 
 
 def _zurueck(con, jetzt=None):

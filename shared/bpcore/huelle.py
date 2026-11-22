@@ -8,6 +8,7 @@ huelle(c, pid)                       → {"bauteile": [...], "quellen": [...]}  
 abgleich(vorhanden, bauteile)        → Hinweise für eine App, die Hüllbauteile führt (rein): neu · flaeche · vorschlag
 hinweise_abgleichen(c, pid, app, …)  → legt die Hinweise an der Linie ab (pm_hinweis), räumt überholte weg, lässt Entschiedenes in Ruhe
 """
+import json
 import re
 
 from . import modell
@@ -76,7 +77,6 @@ def aus_liste(L):
     return out
 
 
-KURZ = 80   # so lang speicherte der Wärmeschutz den Verweis früher höchstens
 
 
 def _zeile(ref):
@@ -180,7 +180,7 @@ def abgleich(vorhanden, bauteile):
     arten = {b.get("typ") for b in vorhanden}
     H = []
     for x in bauteile:
-        b = nach_ref.get(x["ref"]) or next((v for r, v in nach_ref.items() if len(r) == KURZ and x["ref"].startswith(r)), None)   # KURZ: bis 20.11.2026 abgeschnitten gespeichert
+        b = nach_ref.get(x["ref"])
         if not b and _zeile(x["ref"]):
             v = nach_zeile.get(_zeile(x["ref"]))
             if v:   # dieselbe Zeile des Gebäudemodells ist dasselbe Bauteil – gleich, über welche Version der Kosten sie kam
@@ -252,3 +252,25 @@ def zurueck(c, pid, von_app, an, titel, daten, wer=""):
 
 
 __all__ = ["huelle", "abgleich", "hinweise_abgleichen", "zurueck", "aus_kosten", "aus_assistent", "art_von"]
+
+
+def refs_ergaenzen(c):
+    """Einmal je Start (Dienste): Verweise, die der Wärmeschutz bis 20.11.2026 bei 80 Zeichen abgeschnitten gespeichert hat, auf die ganze
+    Kennung der Zeile ergänzen – eindeutig über den Anfang. Danach gibt es nur noch ganze Verweise; nichts sonst rechnet mit gekürzten."""
+    n = 0
+    for r in c.execute("SELECT id, project_id, data FROM ws_nachweis").fetchall():
+        d = _j(r["data"], {}) or {}
+        B = d.get("bauteile") or []
+        kurz = [b for b in B if isinstance(b, dict) and str(b.get("ref") or "").startswith("bk:") and len(b["ref"]) == 80]
+        if not kurz or not r["project_id"]:
+            continue
+        ganz = [x["ref"] for x in huelle(c, r["project_id"])["bauteile"] if len(x["ref"]) > 80]
+        neu = 0
+        for b in kurz:
+            T = [x for x in ganz if x.startswith(b["ref"]) or (_zeile(b["ref"]) and _zeile(x).startswith(_zeile(b["ref"])))]
+            if len(T) == 1:
+                b["ref"], neu = T[0], neu + 1
+        if neu:
+            c.execute("UPDATE ws_nachweis SET data=? WHERE id=?", (json.dumps(d, ensure_ascii=False), r["id"]))
+            n += neu
+    return n

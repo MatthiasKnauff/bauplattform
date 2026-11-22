@@ -40,11 +40,8 @@ def stau(c, jetzt=None):
     g = grenze(jetzt)
     n = lambda sql: c.execute(sql, (g,)).fetchone()["n"]   # noqa: E731
     out = {"grenze": g, "tage": STAU_TAGE}
-    try:
-        out["erinnerungen"] = n("SELECT COUNT(*) AS n FROM erinnerungen WHERE status='offen' AND gesendet='' AND termin!='' AND termin<?")
-        out["bautagebuch"] = n("SELECT COUNT(*) AS n FROM items WHERE due!='' AND due<? AND reminded='' AND done=0 AND remind_user IS NOT NULL")
-    except Exception:   # Tabellen einer App fehlen (Tests): keine Zahl
-        pass
+    out["erinnerungen"] = n("SELECT COUNT(*) AS n FROM erinnerungen WHERE status='offen' AND gesendet='' AND termin!='' AND termin<?")
+    out["bautagebuch"] = n("SELECT COUNT(*) AS n FROM items WHERE due!='' AND due<? AND reminded='' AND done=0 AND remind_user IS NOT NULL")
     return out
 
 
@@ -195,11 +192,8 @@ def token_uid(c, tok):
 
 
 def _versand_aus(c):
-    try:
-        r = c.execute("SELECT value FROM settings WHERE key='mail_aus'").fetchone()
-        return bool(r) and r["value"] == "1"
-    except Exception:   # Tabelle fehlt (Tests)
-        return False
+    r = c.execute("SELECT value FROM settings WHERE key='mail_aus'").fetchone()
+    return bool(r) and r["value"] == "1"
 
 
 def _karte(c):

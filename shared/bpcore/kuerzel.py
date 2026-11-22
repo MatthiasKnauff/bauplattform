@@ -243,10 +243,7 @@ def vorschlag(c, z, kg, dicke_m=0.0, innen_mit=False):
 
 # ------------------------------------------------------------------ Gelerntes (D1)
 def gelernt(c, norm):
-    try:
-        r = c.execute("SELECT data FROM bp_store WHERE key='kuerzel:gelernt'").fetchone()
-    except Exception:   # noqa: BLE001 – ohne Speicher (Werkzeuge, Tests) nichts Gelerntes
-        return None
+    r = c.execute("SELECT data FROM bp_store WHERE key='kuerzel:gelernt'").fetchone()
     try:
         G = json.loads(r["data"]) if r and r["data"] else {}
     except ValueError:

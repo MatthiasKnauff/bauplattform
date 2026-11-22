@@ -602,22 +602,19 @@ def _a_honorar(c, u, R, P, ok):
             seit = _d_iso(au.get("datum"))
             if seit and seit <= heute - timedelta(days=n):
                 out.append(_e("honorar", f"vt{x['id']}", f"Architektenvertrag fehlt: {x['name']}", f"beauftragt am {_d(au['datum'])}", x["project_id"], P, au["datum"], link))
-    try:   # gestellte Honorarrechnungen über dem Zahlungsziel (Einstellung honorar_zahlungsziel, Vorgabe 14 Tage)
-        with c.savepoint():
-            z = c.execute("SELECT value FROM settings WHERE key='honorar_zahlungsziel'").fetchone()
-            ziel = int((z["value"] if z else "") or 14)
-            R2 = c.execute("SELECT r.id, r.nr, r.datum, r.brutto, a.id AS aid, a.name, a.project_id FROM honorar_rechnung r "
-                           "JOIN honorar_auftrag a ON a.id=r.auftrag_id WHERE r.status='gestellt'").fetchall()
-        for x in R2:
-            p, d = P.get(x["project_id"]), _d_iso(x["datum"])
-            if (p and p["archived"]) or not d or d + timedelta(days=ziel) >= heute:
-                continue
-            betrag = f"{x['brutto']:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            out.append(_e("honorar", f"re{x['id']}", f"Honorarrechnung überfällig: Nr. {x['nr']}",
-                          f"{x['name']} · {betrag} € brutto · gestellt {_d(x['datum'])}, fällig seit {(heute - d).days - ziel} Tagen",
-                          x["project_id"], P, x["datum"], f"honorar:#a{x['aid']}", 1))
-    except Exception:   # noqa: BLE001 – Tabelle noch nicht da (vor Migration 0048)
-        pass
+    # gestellte Honorarrechnungen über dem Zahlungsziel (Einstellung honorar_zahlungsziel, Vorgabe 14 Tage)
+    z = c.execute("SELECT value FROM settings WHERE key='honorar_zahlungsziel'").fetchone()
+    ziel = int(z["value"]) if z and str(z["value"] or "").strip().isdigit() else 14
+    R2 = c.execute("SELECT r.id, r.nr, r.datum, r.brutto, a.id AS aid, a.name, a.project_id FROM honorar_rechnung r "
+                   "JOIN honorar_auftrag a ON a.id=r.auftrag_id WHERE r.status='gestellt'").fetchall()
+    for x in R2:
+        p, d = P.get(x["project_id"]), _d_iso(x["datum"])
+        if (p and p["archived"]) or not d or d + timedelta(days=ziel) >= heute:
+            continue
+        betrag = f"{x['brutto']:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        out.append(_e("honorar", f"re{x['id']}", f"Honorarrechnung überfällig: Nr. {x['nr']}",
+                      f"{x['name']} · {betrag} € brutto · gestellt {_d(x['datum'])}, fällig seit {(heute - d).days - ziel} Tagen",
+                      x["project_id"], P, x["datum"], f"honorar:#a{x['aid']}", 1))
     return out
 
 
@@ -625,10 +622,7 @@ def _a_formulare(c, u, R, P, ok):
     from . import bauantrag_formulare as BF, sso
     if not sso.has_app(u, "bauantrag"):
         return []
-    try:
-        F = BF.offen(c)
-    except Exception:   # noqa: BLE001 – Tabelle noch nicht da
-        return []
+    F = BF.offen(c)
     K = [_e("formulare", f"portal:{land}", f"Formular-Portal {BF.LAENDER.get(land, land)} nicht lesbar – Formulare bitte selbst hochladen", fehler[:160],
             None, P, None, "bauantrag:#formulare", 1, info=True) for land, fehler in BF.kaputt(c)]
     return K + [_e("formulare", f"{x['id']}:{x['geaendert']}", f"{'Neues' if x['status'] == 'neu' else 'Geändertes'} Bauantragsformular {x['land']}: {('Anlage ' + x['nr'] + ' ') if x['nr'] else ''}{x['titel']}"[:200],

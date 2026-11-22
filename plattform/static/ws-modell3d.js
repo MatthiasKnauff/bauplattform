@@ -13,11 +13,10 @@ function ws3Baustein() {
   const [b, v] = window.BP_HEAD_BASIS || ['bp/', ''];
   return new Promise((ok, nein) => { const s = document.createElement('script'); s.src = b + 'ansicht3d.js' + v; s.onload = ok; s.onerror = () => nein(new Error('Die 3D-Ansicht konnte nicht geladen werden.')); document.head.appendChild(s); });
 }
-/* Bauteil des Nachweises → Nummern im Plan. Verweise waren bis 20.11.2026 auf 80 Zeichen gekürzt – dann gilt die eine Zeile, die so anfängt. */
+/* Bauteil des Nachweises → Nummern im Plan (gekürzte Verweise von vor dem 20.11.2026 ergänzen die Dienste beim Start: huelle.refs_ergaenzen). */
 function ws3Ids(b) {
   if (!b || !WS3_Z) return []; const ref = b.ref || (b.bk ? 'bk:' + b.bk : ''); if (!ref.startsWith('bk:')) return [];
-  const k = ref.replace(/^bk:[^:]*:/, ''); if (WS3_Z[k]) return WS3_Z[k];
-  if (ref.length !== 80) return []; const T = Object.keys(WS3_Z).filter((z) => z.startsWith(k)); return T.length === 1 ? WS3_Z[T[0]] : [];
+  return WS3_Z[ref.replace(/^bk:[^:]*:/, '')] || [];
 }
 /* Bauteil im Plan (Nummer) → Bauteil des Nachweises */
 function ws3Karte() {

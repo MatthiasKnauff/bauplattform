@@ -81,10 +81,7 @@ def _positionen(c, codes):
     codes = sorted({x for x in codes if x})
     if not codes:
         return {}
-    try:
-        return {r["code"]: r["kurz"] or "" for r in c.execute(f"SELECT code, kurz FROM pdb_position WHERE katalog='gk3' AND code IN ({','.join('?' * len(codes))})", codes).fetchall()}
-    except Exception:   # noqa: BLE001 – ohne Positionsdatenbank (Tests, Werkzeuge): nur aus den Optionen
-        return {}
+    return {r["code"]: r["kurz"] or "" for r in c.execute(f"SELECT code, kurz FROM pdb_position WHERE katalog='gk3' AND code IN ({','.join('?' * len(codes))})", codes).fetchall()}
 
 
 def gelernt(c):

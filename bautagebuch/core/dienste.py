@@ -34,6 +34,14 @@ def einrichten():
     except Exception as e:   # noqa: BLE001
         fehler.still("dienste", "Apps je Person in Ausnahmen übernehmen", e)
     try:
+        from bpcore import huelle
+        with db.tx() as c:
+            n = huelle.refs_ergaenzen(c)   # gekürzte Verweise des Wärmeschutzes (bis 20.11.2026) einmal auf die ganze Kennung
+        if n:
+            print(f"Dienste: {n} Verweise im Wärmeschutz ergänzt", flush=True)
+    except Exception as e:   # noqa: BLE001
+        fehler.still("dienste", "Verweise im Wärmeschutz ergänzen", e)
+    try:
         from . import buero_doku
         print("Dienste:", buero_doku.ablegen(), flush=True)   # ToDo-Liste der Bauplattform → Pläne & Dateien, Projekt „Büro“
     except Exception as e:   # noqa: BLE001 – ohne ToDo-Liste läuft alles weiter

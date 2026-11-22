@@ -69,11 +69,12 @@ def db():
     c = sqlite3.connect(":memory:")
     c.row_factory = sqlite3.Row
     c.execute("CREATE TABLE pdb_vorlage(id, kg, name, einheit, daten, tags, sort)")
-    c.execute("CREATE TABLE pdb_position(katalog, code, hinweis)")
+    c.execute("CREATE TABLE pdb_position(katalog, code, hinweis, kurz)")
+    c.execute("CREATE TABLE bp_store(key TEXT PRIMARY KEY, data TEXT, updated TEXT, updated_by TEXT)")
     c.execute("INSERT INTO pdb_vorlage VALUES('334.15','334','Fenstertausch Bestand je St','St',?,'altbau',1)",
               ('{"schichten":[{"name":"Fenster neu","optionen":[{"k":"Kunststoff","t":"Kunststofffenster","std":true},{"k":"Holz","t":"Holzfenster","std":true}]},'
                '{"name":"Rollladenkasten","optionen":[{"k":"","t":"","std":true},{"k":"Kasten dämmen","t":"Kasten dämmen"}]}]}',))
-    c.execute("INSERT INTO pdb_position VALUES('gk3e','334.15.001','Aufbau 334.15:0.0')")
+    c.execute("INSERT INTO pdb_position(katalog, code, hinweis) VALUES('gk3e','334.15.001','Aufbau 334.15:0.0')")
     return c
 
 

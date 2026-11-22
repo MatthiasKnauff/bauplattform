@@ -1440,11 +1440,8 @@ def blueprint(get_user=None):
         if not sso.has_app(u, "zeiten"):
             return jsonify(ok=False)
         b = request.get_json(silent=True) or {}
-        try:
-            with db.tx() as c:
-                zeiten.puls(c, uid, b.get("app"), b.get("bereich"), b.get("projekt"))
-        except Exception:   # noqa: BLE001 – vor dem Update der Datenbank (Tabelle fehlt) still bleiben
-            return jsonify(ok=False)
+        with db.tx() as c:
+            zeiten.puls(c, uid, b.get("app"), b.get("bereich"), b.get("projekt"))
         return jsonify(ok=True)
 
     # ---- Urlaubsanträge in jeder App (head/antrag.js): entscheiden, Rückmeldungen – Regeln in bpcore.zeiten

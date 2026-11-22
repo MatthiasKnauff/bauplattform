@@ -82,10 +82,7 @@ def kontext(c, pid, u, frage):
         ava = "ava" in (sso.apps_of(u) if u is not None else [])
         treffer, gesehen = [], set()
         for w in W[:3]:
-            try:
-                rows, _ = baudaten.suche(c, {"q": w}, n=8)
-            except Exception:   # noqa: BLE001 – ohne Preisdatenbank (Tests, frische Installation)
-                rows = []
+            rows, _ = baudaten.suche(c, {"q": w}, n=8)
             for r in rows:
                 if r["id"] not in gesehen:
                     gesehen.add(r["id"]); treffer.append(r)

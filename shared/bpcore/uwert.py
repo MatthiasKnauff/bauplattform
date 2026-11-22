@@ -207,13 +207,10 @@ def _baustoffe(c, keys):
     if not keys:
         return {}
     out = {}
-    try:
-        for r in c.execute("SELECT * FROM ws_baustoff WHERE schluessel IN (" + ",".join("?" * len(keys)) + ")", tuple(keys)).fetchall():
-            r = dict(r)
-            out[r["schluessel"]] = {"id": r["schluessel"], "name": r.get("name") or "", "lambda": r.get("lambda"), "rho": r.get("rho"), "mu": r.get("mu") if r.get("mu") is not None else 1,
-                                    "c": r.get("c") or 1000, **({"holz": r["holz"]} if r.get("holz") else {})}
-    except Exception:   # noqa: BLE001 – Tabelle noch nicht angelegt (Wärmeschutz nie geöffnet): eingebaute Werte
-        pass
+    for r in c.execute("SELECT * FROM ws_baustoff WHERE schluessel IN (" + ",".join("?" * len(keys)) + ")", tuple(keys)).fetchall():
+        r = dict(r)
+        out[r["schluessel"]] = {"id": r["schluessel"], "name": r.get("name") or "", "lambda": r.get("lambda"), "rho": r.get("rho"), "mu": r.get("mu") if r.get("mu") is not None else 1,
+                                "c": r.get("c") or 1000, **({"holz": r["holz"]} if r.get("holz") else {})}
     if len(out) < len(keys):
         for e in json.load(open(os.path.join(os.path.dirname(__file__), "ws_baustoffe.json"), encoding="utf-8"))["baustoffe"]:
             if e["k"] in keys and e["k"] not in out:

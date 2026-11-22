@@ -1,4 +1,7 @@
 """Gebäudehülle im Projektmodell (bpcore/huelle.py): Bauteile aus den Baukosten, Vorschläge aus dem Assistenten, Abgleich mit einer App – ohne Datenbank."""
+import json
+import sqlite3
+
 from lib import gleich, pruefe
 
 from bpcore import huelle as H
@@ -87,14 +90,24 @@ def test_aus_dem_gebaeudemodell_ohne_kosten():
 
 def test_lange_kennung_bleibt_dasselbe_bauteil():
     """Zeilen aus dem Plan haben lange Kennungen (Art, Schichten, Dicke …). Der Wärmeschutz kürzte den Verweis früher auf 80 Zeichen –
-    das Bauteil fand sich nicht wieder (3D: „nicht im Nachweis“, Hinweis kam erneut). Jetzt bleibt er ganz; alte, gekürzte gelten weiter."""
+    das Bauteil fand sich nicht wieder (3D: „nicht im Nachweis“, Hinweis kam erneut). Jetzt bleibt er ganz; alte, gekürzte ergänzen die Dienste
+    einmal beim Start auf die ganze Kennung (refs_ergaenzen) – danach rechnet nichts mehr mit gekürzten."""
     import waermeschutz as W
     zid = "331|Wand|Kalksandstein 17,5 cm, Mineralwolle 14 cm, Luftschicht 2 cm, Klinker 11,5 cm|0.45|m²||neu"
     L = {"zeilen": [{"id": zid, "kg": "331", "name": "Außenwand KS Klinker", "menge": 88, "einheit": "m²", "aussen": True, "status": "neu"}]}
     B = H.aus_liste(L)
     pruefe(len(B) == 1 and len(B[0]["ref"]) > 80, "Kennung ist länger als 80 Zeichen")
     gleich(W._bauteil({"ref": B[0]["ref"], "typ": "wand", "name": "AW", "flaeche": 88})["ref"], B[0]["ref"], "Verweis wird nicht mehr gekürzt")
-    for ref in (B[0]["ref"], B[0]["ref"][:80]):   # neu ganz · früher gekürzt gespeichert
-        A = H.abgleich([{"id": "x1", "ref": ref, "typ": "wand", "flaeche": 88}], B)
-        pruefe(not [h for h in A if h["art"] == "neu"], f"schon angelegt – kein Hinweis „Neu“ ({len(ref)} Zeichen)")
+    A = H.abgleich([{"id": "x1", "ref": B[0]["ref"], "typ": "wand", "flaeche": 88}], B)
+    pruefe(not [h for h in A if h["art"] == "neu"], "schon angelegt – kein Hinweis „Neu“")
+    c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row
+    c.execute("CREATE TABLE ws_nachweis(id INTEGER PRIMARY KEY, project_id INTEGER, data TEXT)")
+    c.execute("INSERT INTO ws_nachweis VALUES (1, 7, ?)", (json.dumps({"bauteile": [{"id": "x1", "ref": B[0]["ref"][:80]}, {"id": "x2", "ref": "bk:0:kurz"}]}),))
+    alt = H.huelle
+    H.huelle = lambda c, pid: {"bauteile": B}   # noqa: E731
+    try:
+        gleich((H.refs_ergaenzen(c), H.refs_ergaenzen(c)), (1, 0), "gekürzter Verweis einmal ergänzt, beim nächsten Start nichts mehr")
+    finally:
+        H.huelle = alt
+    gleich([b["ref"] for b in json.loads(c.execute("SELECT data FROM ws_nachweis").fetchone()["data"])["bauteile"]], [B[0]["ref"], "bk:0:kurz"], "ganze Kennung gespeichert, kurze bleiben")
 

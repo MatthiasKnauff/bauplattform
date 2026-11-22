@@ -15,16 +15,11 @@ def soll(r):
         rep = c.execute("SELECT id, project_id, date FROM reports WHERE id=?", (r,)).fetchone()
         if not rep:
             return jsonify(error="Bericht nicht gefunden"), 404
-        try:   # Bauantrag: Bauvorlagen „wird nachgereicht“ mit Erinnerung im Bautagebuch, deren Frist erreicht ist
-            from bpcore import bauantrag as BA
-            nach = [{k: x[k] for k in ("aid", "key", "name", "liefert", "frist", "antrag")} for x in BA.nachreichen_offen(c, {rep["project_id"]})
-                    if x["bt"] and x["frist"] and x["frist"] <= rep["date"]]
-        except Exception:   # noqa: BLE001 – ohne Bauantrag keine Hinweise
-            nach = []
-        try:
-            pl = plan.plans(c, rep["project_id"])
-        except Exception:   # Bauzeitenplan-Tabelle fehlt (Bautagebuch ohne Bauplattform)
-            return jsonify(firmen=[], plaene=[], nachreichen=nach)
+        # Bauantrag: Bauvorlagen „wird nachgereicht“ mit Erinnerung im Bautagebuch, deren Frist erreicht ist
+        from bpcore import bauantrag as BA
+        nach = [{k: x[k] for k in ("aid", "key", "name", "liefert", "frist", "antrag")} for x in BA.nachreichen_offen(c, {rep["project_id"]})
+                if x["bt"] and x["frist"] and x["frist"] <= rep["date"]]
+        pl = plan.plans(c, rep["project_id"])
         if not pl:
             return jsonify(firmen=[], plaene=[], nachreichen=nach)
         ohne = {}

@@ -185,6 +185,15 @@ export async function ganttHeftPruefen(browser, repo) {
       const gr = await p.evaluate(() => { P.tasks[0].pct = 90; CAL = schedule(); render(); const g = document.querySelector('#chartBody .bar[data-i="0"]'); return { gruen: !!g.querySelector('circle.vz:not(.rot)'), st: document.querySelector('text.bst[data-st="0"]').textContent }; });
       pruef(gr.gruen && !/Verzug/.test(gr.st), `voraus: grüner Punkt, kein Verzug – ${JSON.stringify(gr)}`);
       await p.evaluate(() => { GVGL.soll = window.__soll; });
+      // 23.11.2026: neue Leistung mit der Maus gezogen, ungefähr am Ende einer Leistung begonnen → Ende → Anfang verknüpft
+      const pz = await p.evaluate(() => { P.tasks = [fillTask({ uid: 1, name: 'Rohbau', dur: 5, lvl: 0, preds: [] })]; P.start = snapWork(todayN()); CAL = schedule(); render();
+        chartPane.scrollTop = 0; const r = chartBody.getBoundingClientRect(), x0 = X(fromW(toW(CAL.fd[0]) + 1)) + 3, x1 = X(fromW(toW(CAL.fd[0]) + 4)) - 3;
+        return { a: r.left + x0, b: r.left + x1, y: r.top + RH * 2 + 10, vis: chartPane.getBoundingClientRect().bottom }; });
+      await p.mouse.move(pz.a, pz.y); await p.mouse.down(); await p.mouse.move((pz.a + pz.b) / 2, pz.y, { steps: 3 }); await p.mouse.move(pz.b, pz.y, { steps: 3 });
+      const tip = await p.evaluate(() => (document.querySelector('#tip, .tip') || {}).textContent || '');
+      await p.mouse.up(); await p.waitForTimeout(250); await p.keyboard.press('Escape');
+      const nz = await p.evaluate(() => { const t = P.tasks[1]; return t ? { preds: t.preds, cons: t.cons, sd: CAL.sd[1], ende: CAL.fd[0] } : null; });
+      pruef(nz && nz.preds.length === 1 && nz.preds[0].uid === 1 && nz.preds[0].type === 'FS' && nz.sd > nz.ende && /Vorgänger:\s*Rohbau/.test(tip), `gezogene Leistung am Ende des Vorgängers: EA verknüpft – ${JSON.stringify({ nz, tip })}`);
     }
     {   // Soll und Ist (Mock „Soll und Ist“, 22.11.2026): Überziehung schiebt die Nachfolger (SI-3); das Soll liegt darunter, „Soll aus“ (SI-2)
       const T0 = [{ uid: 1, name: 'A', dur: 2, lvl: 0, preds: [] }, { uid: 2, name: 'B', dur: 3, lvl: 0, preds: [{ uid: 1, type: 'FS', lag: 0 }] }];

@@ -207,8 +207,9 @@ addEventListener('mousemove', (e) => {
     if (!pv) { pv = document.createElementNS('http://www.w3.org/2000/svg', 'rect'); pv.id = 'drawPrev'; pv.setAttribute('class', 'drawprev'); svg.appendChild(pv); }
     const x1 = X(s0), x2 = X(fromW(toW(s0) + nd - 1) + 1);
     pv.setAttribute('x', x1); pv.setAttribute('y', drag.r * RH + 6); pv.setAttribute('width', Math.max(2, x2 - x1)); pv.setAttribute('height', 12);
-    drag.val = { start: s0, dur: nd };
-    showTip(e, `<b>Neue Leistung</b><table><tr><td>Anfang:</td><td>${fmtD(s0)}</td></tr><tr><td>Ende:</td><td>${fmtD(fromW(toW(s0) + nd - 1))}</td></tr><tr><td>Dauer:</td><td>${fmtDur(nd)}</td></tr></table>`);
+    const vg = zeichnenVorgaenger(s0);
+    drag.val = { start: s0, dur: nd, vg };
+    showTip(e, `<b>Neue Leistung</b><table><tr><td>Anfang:</td><td>${fmtD(s0)}</td></tr><tr><td>Ende:</td><td>${fmtD(fromW(toW(s0) + nd - 1))}</td></tr><tr><td>Dauer:</td><td>${fmtDur(nd)}</td></tr>${vg != null ? `<tr><td>Vorgänger:</td><td>${esc(P.tasks[vg].name)} (EA)</td></tr>` : ''}</table>`);
     return;
   }
   const i = drag.i, t = P.tasks[i], g = geo[i];
@@ -294,7 +295,8 @@ addEventListener('mouseup', () => {
     let uid;
     const ok = act(() => {
       const last = vis.length ? P.tasks[vis[vis.length - 1]] : null;
-      const t = newTask('Neue Leistung', d.val.dur); t.cons = d.val.start; t.lvl = last ? last.lvl : 0;
+      const t = newTask('Neue Leistung', d.val.dur); t.lvl = last ? last.lvl : 0;
+      if (d.val.vg != null) t.preds = [{ uid: P.tasks[d.val.vg].uid, type: 'FS', lag: 0 }]; else t.cons = d.val.start;   // am Ende eines Vorgängers begonnen: EA verknüpft, beginnt genau danach
       P.tasks.push(t); uid = t.uid; sel = new Set([uid]);
     });
     if (ok) { cur.r = rowOfIdx(idxOfUid(uid)); cur.c = 'name'; anchorR = cur.r; updateSel(); startEdit(cur.r, 'name'); }
@@ -312,6 +314,13 @@ addEventListener('mouseup', () => {
   else render();
 });
 
+/* Neue Leistung gezogen (23.11.2026): beginnt sie ungefähr am Ende einer Leistung (±1 Arbeitstag), wird sie mit ihr Ende → Anfang verknüpft –
+   bei mehreren die mit dem genauesten Ende, sonst die weiter unten im Plan */
+function zeichnenVorgaenger(s0) {
+  const w0 = toW(s0); let b = null, bd = 2;
+  vis.forEach((i) => { if (CAL.summ[i]) return; const d = Math.abs(w0 - (toW(CAL.fd[i]) + 1)); if (d < bd || (d === bd && b != null)) { b = i; bd = d; } });
+  return bd <= 1 ? b : null;
+}
 chartBody.addEventListener('dblclick', (e) => {
   const lk = e.target.closest('.lk');
   if (lk) { linkDialog(+lk.dataset.s, +lk.dataset.k); return; }

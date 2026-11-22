@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-ziehen-ea-2311",
+  "datum": "2026-11-23",
+  "app": "gantt",
+  "titel": "Gezogene Leistungen hängen sich an",
+  "text": "Ziehst du unter dem Plan mit der Maus eine neue Leistung und beginnst ungefähr am Ende einer anderen, wird sie mit ihr Ende → Anfang verknüpft. Der Hinweis beim Ziehen zeigt den Vorgänger.",
+  "ziel": "#chartBody"
+ },
+ {
   "id": "gm-raeume-3d-2311",
   "datum": "2026-11-23",
   "app": "gebaeudemodell",

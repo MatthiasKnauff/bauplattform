@@ -197,7 +197,8 @@ function renderChart() {
     <marker id="ah" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0.6L8,4L0,7.4z" class="ahp"/></marker>
     <marker id="ahc" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0.6L8,4L0,7.4z" class="ahp crit"/></marker>
     <marker id="ahpre" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0.6L8,4L0,7.4z" class="ahp pre"/></marker>
-    <marker id="ahsuc" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0.6L8,4L0,7.4z" class="ahp suc"/></marker></defs>`;
+    <marker id="ahsuc" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0.6L8,4L0,7.4z" class="ahp suc"/></marker>
+    <pattern id="ueSchraff" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" class="ue-h"/><rect width="3" height="6" class="ue-s"/></pattern></defs>`;
   if (ppd >= 3) {
     for (let d = view.start; d < view.end; d++) {
       if (isWork(d)) continue;
@@ -249,20 +250,25 @@ function renderChart() {
       const gc = effColor(t);
       const bst = gc ? ` style="fill:${gc};stroke:${cr ? '#c00000' : shade(gc, 0.7)};stroke-width:${cr ? 2 : 1}"` : '';
       const pst = gc ? ` style="fill:${shade(gc, 0.42)}"` : '';
-      const F = pctTeile(g, t.dur, t.pct || 0); let h = '', px = F.px;
+      /* Überzug (Mock „Überzug und Fortschritt“, 22.11.2026: ÜF-1 A … ÜF-4 A, Farben V1): der Balken läuft schraffiert orange weiter bis zum neuen Ende;
+         im Balken zwei Bälkchen – oben die Zeit (geplant hell, Überzug orange), unten der Fortschritt. Ohne Überzug wie bisher ein Fortschrittsstreifen. */
+      const F = pctTeile(g, t.pct || 0), py = g.ue ? y + 12 : y + 10, ph = g.ue ? 3 : 4; let h = '', px = F.px;
       g.segs.forEach((sg, k) => {
         const w = Math.max(2, sg.x2 - sg.x1);
         if (k) h += `<line class="segc" x1="${g.segs[k - 1].x2}" y1="${y + 12}" x2="${sg.x1}" y2="${y + 12}"/>`;
         h += `<g class="sg" data-seg="${k}"><rect class="b" data-seg="${k}" x="${sg.x1}" y="${y + 6}" width="${w}" height="12"${bst}/>`
-          + `<rect class="p" x="${sg.x1}" y="${y + 10}" width="${F.w[k]}" height="4"${pst}/></g>`;   // auch bei 0 %: das Ziehen am Fortschritt füllt sie
+          + (g.ue ? `<rect class="zt" x="${sg.x1 + 1}" y="${y + 8}" width="${Math.max(0, w - 1)}" height="3"/>` : '')
+          + `<rect class="p" x="${sg.x1}" y="${py}" width="${F.w[k]}" height="${ph}"${pst}/></g>`;   // auch bei 0 %: das Ziehen am Fortschritt füllt sie
       });
-      if (t.ueber && t.ueber.at) { const w = Math.max(2, g.x2 - g.xp); px = g.x2;   // K7/SI-3: fertig später – rote Verlängerung vom geplanten bis zum neuen Ende
-        h += `<rect class="ue" x="${g.xp}" y="${y + 9}" width="${w}" height="6"><title>Fertig ${t.ueber.at} AT später als geplant – ${esc((typeof UEBER_GRUND !== 'undefined' ? UEBER_GRUND : {})[t.ueber.grund] || t.ueber.grund)}</title></rect>`; }
+      if (g.ue) { const w = Math.max(2, g.x2 - g.xp);
+        h += `<g class="ueg"><rect class="ue" x="${g.xp}" y="${y + 6}" width="${w}" height="12"><title>Fertig ${t.ueber.at} AT später als geplant – ${esc(UEBER_GRUND[t.ueber.grund] || t.ueber.grund)}</title></rect>`
+          + `<rect class="ut" x="${g.xp}" y="${y + 8}" width="${Math.max(0, w - 1)}" height="3"/><rect class="p" x="${g.xp}" y="${py}" width="${F.w[g.segs.length]}" height="${ph}"${pst}/></g>`; }
       const sp = g.segs.length > 1;   // unterbrochen: jedes Abschnittsende anfassbar, jeder Abschnitt verknüpfbar (13.11.2026)
       bars += `<g class="bar${cr ? ' crit' : ''}${sp ? ' split' : ''}" data-i="${i}">${h}`
         + (sp ? g.segs.map((sg, k) => `<rect class="lh" data-seg="${k}" x="${sg.x1 - 3}" y="${y + 4}" width="7" height="16"/><rect class="rh" data-seg="${k}" x="${sg.x2 - 5}" y="${y + 4}" width="8" height="16"/>`
           + (k < g.segs.length - 1 ? `<circle class="lkdot" data-seg="${k}" cx="${sg.x2 + 4}" cy="${y + 3}" r="3"/>` : '')).join('')
           : `<rect class="lh" x="${g.x1 - 3}" y="${y + 4}" width="7" height="16"/><rect class="rh" x="${(g.xp || g.x2) - 5}" y="${y + 4}" width="8" height="16"/>`)
+        + `<rect class="uh" x="${g.x2 - 5}" y="${y + 4}" width="8" height="8"/>`   // ÜF-4 A: oben am Balkenende ziehen = später fertig (Überzug)
         + `<path class="ph" d="M${px},${y + 17}l4,5h-8z"/><circle class="lkdot" cx="${g.x2 + 7}" cy="${y + 12}" r="3.5"/></g>`;
     }
     bars += barLabels(i, g, y);
@@ -276,9 +282,11 @@ function renderChart() {
 }
 
 /* ---------- Balkengeometrie (auch für den Druck) ---------- */
-/* Fortschritt eines Balkens: gefüllte Breite je Abschnitt (w[k]) und die Spitze px – Zeichnen und Ziehen rechnen gleich */
-function pctTeile(g, dur, pct) {
-  let rest = dur * pct / 100, px = g.x1; const w = g.segs.map((sg) => { const b = Math.max(2, sg.x2 - sg.x1), f = Math.max(0, Math.min(1, rest / sg.d)); rest -= sg.d; if (f > 0) px = sg.x1 + b * f; return b * f; });
+/* Fortschritt eines Balkens: gefüllte Breite je Abschnitt (w[k], zuletzt der Überzug) und die Spitze px – Zeichnen und Ziehen rechnen gleich.
+   Bezug ist die ganze Zeit einschließlich Überzug (Mock „Überzug und Fortschritt“ ÜF-2 A): 50 % = halbe Länge, nie länger als die Zeit. */
+function pctTeile(g, pct) {
+  const T = g.ue ? [...g.segs, { x1: g.xp, x2: g.x2, d: g.ue }] : g.segs, ges = T.reduce((s, x) => s + x.d, 0);
+  let rest = ges * pct / 100, px = g.x1; const w = T.map((sg) => { const b = Math.max(2, sg.x2 - sg.x1), f = Math.max(0, Math.min(1, rest / sg.d)); rest -= sg.d; if (f > 0) px = sg.x1 + b * f; return b * f; });
   return { w, px };
 }
 function barGeo(i, y, Xf, ppd) {
@@ -289,7 +297,7 @@ function barGeo(i, y, Xf, ppd) {
   const ue = t.ueber && t.ueber.at > 0 ? t.ueber.at : 0, m = S.length;   // überzogen: der Balken endet am geplanten Ende, rot bis zum neuen (x2)
   const segs = S.map((st, k) => { const e = k === m - 1 ? E[k] - ue : E[k]; return { x1: Xf(fromW(st)), x2: Xf(fromW(e - 1) + 1), d: D[k], s: st, e }; });
   const x1 = segs[0].x1, xe = Xf(fromW(E[m - 1] - 1) + 1);
-  return { x1, x2: xe, xp: segs[m - 1].x2, cx: x1 + Math.min(6, (segs[0].x2 - x1) / 2), y, segs };
+  return { x1, x2: xe, xp: segs[m - 1].x2, ue, cx: x1 + Math.min(6, (segs[0].x2 - x1) / 2), y, segs };
 }
 function segAnchor(g, k) {
   if (k == null || !g.segs || !g.segs[k]) return g;

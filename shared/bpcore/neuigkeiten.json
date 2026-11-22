@@ -1,5 +1,13 @@
 [
  {
+  "id": "ueberzug-2211",
+  "datum": "2026-11-22",
+  "app": "gantt",
+  "titel": "Später fertig und Fortschritt getrennt",
+  "text": "Eine Leistung kann jetzt „2 Wochen länger, 50 % fertig“ sein. Der Balken läuft orange schraffiert weiter; darin oben die Zeit, unten der Fortschritt. Ziehen: das Dreieck unten = Fortschritt, oben am Balkenende = später fertig (mit Grund). Die Nachfolger rücken mit.",
+  "ziel": "#chartBody"
+ },
+ {
   "id": "aeltere-staende-2211",
   "datum": "2026-11-22",
   "app": "alle",

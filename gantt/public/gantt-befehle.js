@@ -429,8 +429,8 @@ function taskDialog(i) {
       if (!isS) {
         const d = parseDur(v('#fDur')); if (d == null) throw new UErr('Ungültige Dauer.'); t.dur = d;
         t.pct = Math.max(0, Math.min(100, Math.round(+v('#fPct') || 0)));
-        const ue = Math.max(0, Math.min(365, Math.round(+v('#fUe') || 0)));   // K7: überzogen – wie Fortschritts-Griff über das Ende hinaus
-        if (ue) { t.ueber = { at: ue, grund: v('#fUeG') }; t.pct = 100; } else delete t.ueber;
+        const ue = Math.max(0, Math.min(365, Math.round(+v('#fUe') || 0)));   // Überzug – unabhängig vom Fortschritt (ÜF-1 A), wie der Griff oben am Balkenende
+        if (ue) t.ueber = { at: ue, grund: v('#fUeG') }; else delete t.ueber;
       }
       const cs = v('#fCons'); t.cons = cs ? snapWork(parseDate(cs)) : null;
       t.res = v('#fRes').trim(); t.notes = v('#fNotes');

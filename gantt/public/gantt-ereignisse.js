@@ -151,6 +151,7 @@ chartBody.addEventListener('mousedown', (e) => {
   let mode;
   if (cl.contains('lkdot')) mode = 'link';
   else if (CAL.summ[i]) mode = 'link';
+  else if (cl.contains('uh')) mode = 'ueber';
   else if (cl.contains('rh')) mode = k != null && k < geo[i].segs.length - 1 ? 'segende' : 'resize';   // unterbrochen: Ende eines Abschnitts (nicht des letzten)
   else if (cl.contains('lh')) mode = k > 0 ? 'segstart' : 'lresize';   // … Anfang eines späteren Abschnitts
   else if (cl.contains('ph')) mode = 'pct';
@@ -184,6 +185,7 @@ addEventListener('mousemove', (e) => {
         const i = +b.dataset.i, cl = e.target.classList;
         if (cl.contains('lkdot')) showTip(e, e.target.dataset.seg != null ? `<b>Verknüpfen ab Abschnitt ${+e.target.dataset.seg + 1}</b>Ziehen auf die nachfolgende Leistung (auf einen Abschnitt, falls sie unterbrochen ist)` : '<b>Verknüpfen</b>Ziehen auf die nachfolgende Leistung');
         else if (cl.contains('ph')) showTip(e, `<b>Fortschritt</b>${Math.round(CAL.pct[i])}% – ziehen zum Ändern`);
+        else if (cl.contains('uh')) { const u = P.tasks[i].ueber; showTip(e, `<b>Später fertig</b>${u ? `${u.at} AT später als geplant – ` : ''}nach rechts ziehen = Überzug, ganz zurück = wie geplant`); }
         else if (cl.contains('lh')) showTip(e, e.target.dataset.seg > 0 ? `<b>Anfang von Abschnitt ${+e.target.dataset.seg + 1}</b>Ziehen ändert Anfang und Dauer des Abschnitts, die Pause davor passt sich an` : '<b>Anfang verschieben</b>Ziehen ändert Anfang und Dauer, das Ende bleibt');
         else if (cl.contains('rh') && e.target.dataset.seg != null && +e.target.dataset.seg < geo[i].segs.length - 1) showTip(e, `<b>Ende von Abschnitt ${+e.target.dataset.seg + 1}</b>Ziehen ändert die Dauer des Abschnitts, der nächste bleibt stehen`);
         else showTip(e, taskTip(i));
@@ -253,7 +255,7 @@ addEventListener('mousemove', (e) => {
     const last = g.segs.length - 1, sg = g.segs[last];
     const rect = drag.el.querySelector(`rect.b[data-seg="${last}"]`);
     rect.setAttribute('width', Math.max(ppd, sg.x2 - sg.x1 + dx));
-    const end = fromW(CAL.segE[i][last] - 1) + Math.round(dx / ppd);
+    const end = fromW(CAL.segE[i][last] - g.ue - 1) + Math.round(dx / ppd);   // geplantes Ende – ohne Überzug
     const nd = Math.max(1, toW(end + 1) - CAL.segS[i][last]);
     drag.val = nd;
     const tot = t.dur - sg.d + nd;
@@ -268,15 +270,21 @@ addEventListener('mousemove', (e) => {
       showTip(e, `<b>${esc(t.name)}</b><table><tr><td>Anfang:</td><td>${fmtD(ns)}</td></tr><tr><td>Dauer:</td><td>${fmtDur(t.dur - sg.d + d0)}</td></tr></table>`);
     }
   } else if (drag.mode === 'pct') {
-    const p = svgXY(e); let done = 0;
-    for (const sg of g.segs) { if (p.x >= sg.x2) done += sg.d; else if (p.x > sg.x1) done += (p.x - sg.x1) / (sg.x2 - sg.x1) * sg.d; }
-    const v = Math.max(0, Math.min(100, Math.round(done / t.dur * 20) * 5));
-    const ende = g.segs.length ? g.segs[g.segs.length - 1].x2 : g.x2, ueber = p.x > ende + ppd / 2 ? Math.max(1, Math.round((p.x - ende) / ppd * 5 / 7)) : 0;   // K7: über das geplante Ende hinaus = fertig später (in AT)
-    drag.val = v; drag.ueber = ueber;
-    const F = pctTeile(g, t.dur, v), F0 = pctTeile(g, t.dur, t.pct || 0);   // Balken füllt sich mit, die Spitze rastet auf 5 % ein
+    const p = svgXY(e), T = g.ue ? [...g.segs, { x1: g.xp, x2: g.x2, d: g.ue }] : g.segs; let done = 0;   // Bezug: die ganze Zeit einschließlich Überzug
+    for (const sg of T) { if (p.x >= sg.x2) done += sg.d; else if (p.x > sg.x1) done += (p.x - sg.x1) / (sg.x2 - sg.x1) * sg.d; }
+    const v = Math.max(0, Math.min(100, Math.round(done / (t.dur + g.ue) * 20) * 5));
+    drag.val = v;
+    const F = pctTeile(g, v), F0 = pctTeile(g, t.pct || 0);   // Balken füllt sich mit, die Spitze rastet auf 5 % ein
     drag.el.querySelectorAll('rect.p').forEach((r, k) => r.setAttribute('width', F.w[k]));
-    const ph = drag.el.querySelector('.ph'); if (ph) ph.setAttribute('transform', `translate(${(ueber ? p.x : F.px) - F0.px},0)`);
-    showTip(e, ueber ? `<b>Fertig ${ueber} AT später</b>als geplant – beim Loslassen kurz der Grund` : `<b>Fortschritt</b>${v}% abgeschlossen`);
+    const ph = drag.el.querySelector('.ph'); if (ph) ph.setAttribute('transform', `translate(${F.px - F0.px},0)`);
+    showTip(e, `<b>Fortschritt</b>${v}% abgeschlossen`);
+  } else if (drag.mode === 'ueber') {   // ÜF-4 A: Balkenende oben = später fertig als geplant (AT), beim Loslassen der Grund
+    const Ep = CAL.segE[i][g.segs.length - 1] - g.ue, end = fromW(Ep + g.ue - 1) + Math.round(dx / ppd), at = Math.max(0, Math.min(365, toW(end + 1) - Ep));
+    drag.val = at;
+    let r = drag.el.querySelector('rect.ue');
+    if (!r) { r = document.createElementNS('http://www.w3.org/2000/svg', 'rect'); r.setAttribute('class', 'ue'); r.setAttribute('x', g.xp); r.setAttribute('y', g.y + 6); r.setAttribute('height', 12); drag.el.insertBefore(r, drag.el.querySelector('.lh')); }
+    r.setAttribute('width', Math.max(0, X(fromW(Ep + at - 1) + 1) - g.xp));
+    showTip(e, at ? `<b>Fertig ${at} AT später</b>als geplant – beim Loslassen der Grund` : '<b>Wie geplant</b>kein Überzug');
   } else if (drag.mode === 'link') {
     let ln = svg.querySelector('.dragline');
     if (!ln) { ln = document.createElementNS('http://www.w3.org/2000/svg', 'line'); ln.setAttribute('class', 'dragline'); svg.appendChild(ln); }
@@ -320,8 +328,8 @@ addEventListener('mouseup', () => {
   else if (d.mode === 'segstart' && d.val) act(() => { const k = d.k; t.dur += d.val.d - t.segs[k].d; t.segs[k].d = d.val.d; t.segs[k].gap = d.val.gap; });
   else if (d.mode === 'resize' && d.val != null) act(() => { if (segList(t)) { const L = t.segs.length - 1; t.dur += d.val - t.segs[L].d; t.segs[L].d = d.val; } else t.dur = d.val; });
   else if (d.mode === 'lresize' && d.val) act(() => { t.cons = d.val.ns; if (segList(t)) { t.dur += d.val.d0 - t.segs[0].d; t.segs[0].d = d.val.d0; } else t.dur = d.val.d0; });
-  else if (d.mode === 'pct' && d.ueber) ueberGrund(d.i, d.ueber, d.el);
-  else if (d.mode === 'pct' && d.val != null) act(() => { t.pct = d.val; delete t.ueber; });
+  else if (d.mode === 'pct' && d.val != null) act(() => { t.pct = d.val; });
+  else if (d.mode === 'ueber' && d.val != null) { if (!d.val) act(() => { delete t.ueber; }); else if (t.ueber) act(() => { t.ueber.at = d.val; }); else ueberGrund(d.i, d.val, d.el); }
   else if (d.mode === 'link' && d.target != null) addLinkSeg(d.i, d.target, d.ps, d.ss);
   else render();
 });
@@ -362,7 +370,7 @@ chartBody.addEventListener('contextmenu', (e) => {
     '-',
     { label: 'Fortschritt 0 %', fn: () => act(() => { t.pct = 0; }) },
     { label: 'Fortschritt 50 %', fn: () => act(() => { t.pct = 50; }) },
-    { label: 'Fortschritt 100 %', fn: () => act(() => { t.pct = 100; delete t.ueber; }) },
+    { label: 'Fortschritt 100 %', fn: () => act(() => { t.pct = 100; }) },
     ...(t.ueber ? [{ label: `Überzogen (${t.ueber.at} AT, ${UEBER_GRUND[t.ueber.grund] || 'anderes'}) zurücksetzen`, fn: () => act(() => { delete t.ueber; }) }] : []),
     ...(window.BP && BP.kannRuege && BP.kannRuege() ? [{ label: 'Terminrüge …', dis: (t.pct || 0) >= 100, fn: () => BP.terminruege(t.uid) }] : []),
     '-',
@@ -492,14 +500,14 @@ document.addEventListener('keydown', (e) => {
   if (k.length === 1 && !ctrl && !e.altKey && EDITABLE.has(cur.c)) { e.preventDefault(); startEdit(cur.r, cur.c, k); }
 });
 
-/* Fortschritt über 100 % (Mock „Leistungskatalog: Abhängigkeiten“ K7, 22.11.2026): fertig X AT später als geplant – mit Grund.
-   Nur „liegt an der Leistung“ zählt fürs Lernen (gantt/lernen.py); Wetter, Firma, Bauherrschaft, anderes nicht. Die Nachfolger
-   verschieben sich davon nicht – es ist der Ist-Stand der Leistung, rot am Balken. */
+/* Später fertig als geplant (K7; Mock „Überzug und Fortschritt“ ÜF-1 A, 22.11.2026): X AT Überzug mit Grund – unabhängig vom Fortschritt.
+   Nur „liegt an der Leistung“ zählt fürs Lernen (gantt/lernen.py); Wetter, Firma, Bauherrschaft, anderes nicht.
+   Die Nachfolger hängen am neuen Ende (Ist, SI-3 – gantt-kern.js schedule). */
 const UEBER_GRUND = { leistung: 'liegt an der Leistung', wetter: 'Wetter', firma: 'Firma kam nicht / zu wenig Leute', bauherr: 'Bauherrschaft / Änderungen', anders: 'anderes' };
 function ueberGrund(i, at, el) {
   const t = P.tasks[i]; if (!t) return render();
   const a = (el && el.querySelector('.b')) || el || document.body;
   pickMenu(a, { items: Object.entries(UEBER_GRUND).map(([k, n]) => ({ value: k, title: n, sub: k === 'leistung' ? 'zählt fürs Lernen im Leistungskatalog' : '' })),
-    onPick: (g) => act(() => { t.pct = 100; t.ueber = { at, grund: g }; }) });
+    onPick: (g) => act(() => { t.ueber = { at, grund: g }; }) });
   render();
 }

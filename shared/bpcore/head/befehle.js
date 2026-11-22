@@ -117,7 +117,7 @@
       const A = S && [...S.children].find((x) => !x.matches('.sr-r,.sr-flo,[hidden]'));
       if (A && A !== o.vor._heftA) { o.vor._heftA = A; o.vor._heftRo.observe(A); }
       b.style.right = Math.max(0, R.right - (A ? A.getBoundingClientRect().right : R.right)) + 4 + 'px';
-      b.style.top = Math.max(0, (S ? S.getBoundingClientRect().top : R.top) - R.top) + 3 + 'px';   // oben am Arbeitsbereich – Hinweiszeilen darüber (z. B. GAEB) bleiben frei
+      b.style.top = Math.max(0, (S ? S.getBoundingClientRect().top : R.top) - z.getBoundingClientRect().top) + 3 + 'px';   // oben am Arbeitsbereich, gemessen von der Heftzwecke selbst – was dazwischen liegt (Hinweiszeilen, Soll-Band im Bauzeitenplan), bleibt frei
     };
     /* Eingeklappt: mit der Maus an die Oberkante fahren zeigt Kopf und Leiste über dem Inhalt – wie die Navigation links (17.11.2026);
        nichts verschiebt sich, weg sind sie, sobald die Maus sie verlässt (nicht, solange darin getippt wird) */

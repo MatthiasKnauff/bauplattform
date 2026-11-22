@@ -71,7 +71,10 @@ def _hinweise(c, n):
     soll, linie = huelle.hinweise_abgleichen(c, n["project_id"], "waermeschutz", huelle.abgleich(da, H["bauteile"]), g.user["name"], f"n{n['id']}|")
     return {"hinweise": [dict({k: h.get(k) for k in ("id", "art", "titel", "text", "quelle", "da")}, typ=h["bauteil"]["art"], ref=h["bauteil"]["ref"],
                               **({"aussen": h["bauteil"]["aussen"]} if isinstance(h["bauteil"].get("aussen"), bool) else {})) for h in soll],
-            "linie": {k: linie[k] for k in ("richtung", "uebernahme", "zustand")}, "quellen": H["quellen"]}, soll
+            "linie": {k: linie[k] for k in ("richtung", "uebernahme", "zustand")}, "quellen": H["quellen"],
+            # Hülle je Zeile des Gebäudemodells (Baum links, Mock „Wärmeschutz: Bauteile-Baum“ WB-2 A): welche Zeilen dazugehören und als was – entscheidet der Kern
+            "huelle": [dict(zeile=huelle._zeile(x["ref"]), art=x["art"], ref=x["ref"], **({"aussen": x["aussen"]} if isinstance(x.get("aussen"), bool) else {}))
+                       for x in H["bauteile"] if huelle._zeile(x["ref"])]}, soll
 
 
 @app.get("/api/nachweise/<int:nid>/modell")

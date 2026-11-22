@@ -168,7 +168,7 @@ async function modellLaden() {
   catch { MOD = null; }   // ohne Modell geht der Nachweis genauso
 }
 function modellHtml() {
-  const H = MOD ? MOD.hinweise.filter(wsSicht) : []; if (!H.length) return '';
+  const H = MOD ? MOD.hinweise.filter((h) => wsSicht(h) && !(h.art === 'neu' && wsZeileVon(h.ref) && wsHu().has(wsZeileVon(h.ref)))) : []; if (!H.length) return '';   // „neu“ aus dem Gebäudemodell: im Baum links („＋ in den Nachweis“, WB-4 A)
   const arten = R7.TYPEN.filter(([k]) => k !== 'innenwand');
   return `<div class="ws-mod"><div class="ws-modk"><span class="ws-modz">${H.length}</span><b>${H.length === 1 ? 'Hinweis' : 'Hinweise'} aus dem Projektmodell – nichts wird ohne dich geändert</b></div>
     <ul>${H.map((h) => `<li data-wshin="${h.id}"${h.ref ? ' title="Anklicken: im 3D-Modell zeigen"' : ''}><div class="t"><b>${esc(h.titel)}</b><p>${esc(h.text)}</p><small>Quelle: ${esc(h.quelle)}</small></div>
@@ -179,11 +179,11 @@ function modellHtml() {
 const herkunftHtml = (b) => { const r = b.ref || (b.bk ? 'bk:' + b.bk : '');
   return `<p class="ws-hin ws-her">${b.einordnung ? `<span class="mute">${esc(b.einordnung)}</span> · ` : ''}Herkunft: ${r.startsWith('bk:') ? '<span class="ws-tag">Projektmodell · Baukosten</span>' : r.startsWith('as:') ? '<span class="ws-tag w">Projektmodell · Vorschlag des Assistenten</span>' : '<span class="ws-tag m">von Hand</span>'}
     ${(b.schichten || []).length || b.uw > 0 ? '<button type="button" class="btn sm" data-wszurueck title="Den festgelegten Aufbau als Hinweis an Kosten und Ausschreibung geben – dort entscheidet wieder ein Mensch">Aufbau an Kosten und Ausschreibung melden</button>' : ''}</p>`; };
-async function modellEntscheiden(hid, tun) {
-  const sel = V.querySelector(`[data-wsmodtyp="${hid}"]`);
+async function modellEntscheiden(hid, tun, typ) {   // typ: Art im Nachweis, wenn sie schon feststeht (Baum links: aus der Hülle des Kerns)
+  const sel = typ ? null : V.querySelector(`[data-wsmodtyp="${hid}"]`);
   if (tun === 'uebernehmen' && sel && !sel.value) { toast('Bitte erst die Art wählen – z. B. Kellerdecke oder oberste Geschossdecke.', true); sel.focus(); return; }
   try {
-    const r = await api(`api/nachweise/${NID}/modell`, 'POST', { hid, tun, typ: sel ? sel.value : undefined }), vorher = r.vorher, nid = NID, n0 = D.bauteile.length;
+    const r = await api(`api/nachweise/${NID}/modell`, 'POST', { hid, tun, typ: typ || (sel ? sel.value : undefined) }), vorher = r.vorher, nid = NID, n0 = D.bauteile.length;
     MOD = r.modell; delete r.modell; D = r; delete D.vorher;
     if (D.bauteile.length > n0) BID = D.bauteile[D.bauteile.length - 1].id;   // das neue Bauteil gleich zeigen
     zeichne();

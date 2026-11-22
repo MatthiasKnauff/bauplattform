@@ -19,9 +19,11 @@ export async function wsModellPruefen(browser, repo) {
   const S = { bauteile: [AW, IW], posts: [], zurueck: [], puts: [],
     hin: [{ id: 11, art: 'flaeche', titel: 'AW1: Fläche 212 → 228 m²', text: 'Fläche geändert.', quelle: 'Baukosten „KB“', typ: 'wand', ref: 'bk:3:b1', da: 'aw1' },
       { id: 12, art: 'neu', titel: 'Neu: Decke über EG 90 m²', text: 'Die Art bitte wählen.', quelle: 'Baukosten „KB“ · KG 351', typ: '', ref: 'bk:3:b5' },
-      { id: 13, art: 'vorschlag', titel: 'Vorschlag: Kellerwand gegen Erdreich fehlt', text: 'Keller laut Assistent.', quelle: 'Planungsassistent', typ: 'erdwand', ref: 'as:erdwand' }] };
+      { id: 13, art: 'vorschlag', titel: 'Vorschlag: Kellerwand gegen Erdreich fehlt', text: 'Keller laut Assistent.', quelle: 'Planungsassistent', typ: 'erdwand', ref: 'as:erdwand' },
+      { id: 14, art: 'neu', titel: 'Neu: Dach 168 m²', text: 'Aus dem Gebäudemodell.', quelle: 'Gebäudemodell', typ: 'steildach', ref: 'bk:0:b7' }] };
   const detail = () => ({ nachweis: { id: 5, project_id: 7, name: 'Nachweis', status: 'bauteile', erstellt: '', geaendert: '', von: '' }, projekt: 'Testprojekt', grundlagen: { vorhaben: 'neubau', zone: '19' }, bauteile: S.bauteile, bauantrag: null });
-  const modell = () => ({ hinweise: S.hin, linie: { richtung: 'zur_app', uebernahme: 'uebernahme', zustand: 'lebendig' }, quellen: ['KB', 'Planungsassistent'] });
+  const modell = () => ({ hinweise: S.hin, linie: { richtung: 'zur_app', uebernahme: 'uebernahme', zustand: 'lebendig' }, quellen: ['KB', 'Planungsassistent'],
+    huelle: [{ zeile: 'b1', art: 'wand', ref: 'bk:3:b1' }, { zeile: 'b7', art: 'steildach', ref: 'bk:0:b7' }] });   // Baum links (WB-2 A): nur diese Zeilen
   await p.route('http://portal.test/**', (r) => {
     const q = r.request(), pf = new URL(q.url()).pathname.replace(/^\//, ''), J = (o, st = 200) => r.fulfill({ status: st, contentType: 'application/json', body: JSON.stringify(o) });
     if (pf === 'waermeschutz') return r.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(STAT, 'waermeschutz.html'), 'utf8') });
@@ -39,7 +41,8 @@ export async function wsModellPruefen(browser, repo) {
       if (b.tun === 'uebernehmen' && h.art === 'flaeche') S.bauteile = S.bauteile.map((x) => (x.id === h.da ? { ...x, flaeche: 228 } : x));
       else if (b.tun === 'uebernehmen') S.bauteile = [...S.bauteile, { id: 'n' + h.id, name: h.titel.replace(/^\w+: /, ''), typ: b.typ || h.typ, flaeche: 0, ref: h.ref, schichten: [] }];
       S.hin = S.hin.filter((x) => x !== h); return J({ ...detail(), vorher, modell: modell() }); }
-    if (pf === 'api/bp/modell/7') return J({ modell: { bauteilliste: { zeilen: [{ id: 'b1', name: 'Außenwand 36,5 cm', status: 'neu', ids: [10], nummern: [] }] } } });
+    if (pf === 'api/bp/modell/7') return J({ modell: { bauteilliste: { zeilen: [{ id: 'b1', name: 'Außenwand 36,5 cm', bereich: 'rohbau', kg: '331', menge: 212, einheit: 'm²', status: 'neu', ids: [10], nummern: [] },
+      { id: 'b7', name: 'Dach Sparren', bereich: 'rohbau', kg: '361', menge: 168, einheit: 'm²', status: 'neu', ids: [20], nummern: [] }, { id: 'x9', name: 'Innenwand GK', bereich: 'rohbau', kg: '342', menge: 80, einheit: 'm²', status: 'neu', ids: [], nummern: [] }] } }, rev: 1 });
     if (pf === 'api/bp/modell/7/netz') { const q3 = (x0, y0, z0, x1, y1, z1) => { const P = [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]];
       return [[0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]].flatMap(([a, b, c, d]) => [...P[a], ...P[b], ...P[c], ...P[a], ...P[c], ...P[d]]); };
       return J({ e: [{ i: 10, t: 'w', g: 0, c: '', a: 0, v: q3(-500, -100, 0, 500, 100, 1500) }, { i: 20, t: 'r', g: 1, c: '', a: 0, v: q3(-600, -300, 1500, 600, 300, 1600) }], geschosse: [{ n: 'Erdgeschoss', z: 0 }, { n: 'Dach', z: 3 }], dreiecke: 24, voll: true }); }
@@ -55,7 +58,7 @@ export async function wsModellPruefen(browser, repo) {
     const b = await p.evaluate(() => ({ n: document.querySelectorAll('.ws-mod li').length, z: document.querySelector('.ws-modz').textContent, stufe: document.querySelector('[data-wsstufe="bauteile"] small').textContent,
       alt: [...document.querySelectorAll('#bfl button')].some((x) => /Aus Baukosten/.test(x.textContent)), her: (document.querySelector('.ws-her') || {}).textContent || '' }));
     pruef(b.n === 3 && b.z === '3', `Hinweise im Kasten: ${b.n}, rote Zahl ${b.z}`);
-    pruef(/3 Hinweise/.test(b.stufe), `Stufe „Bauteile“ nennt die Hinweise nicht (${b.stufe})`);
+    pruef(/4 Hinweise/.test(b.stufe), `Stufe „Bauteile“ nennt die Hinweise nicht (${b.stufe})`);
     pruef(!b.alt, 'Knopf „Aus Baukosten“ ist noch in der Befehlsleiste');
     pruef(/Projektmodell · Baukosten/.test(b.her), `Herkunft des Bauteils fehlt (${b.her.trim().slice(0, 60)})`);
     await p.click('[data-wsmod="uebernehmen"][data-hid="12"]'); await p.waitForTimeout(200);
@@ -111,6 +114,18 @@ export async function wsModellPruefen(browser, repo) {
         pruef(vor[0] && vor[1] === '1' && nach[0] && nach[1] === '0', '3D: „Auswahl aufheben“ – ' + JSON.stringify({ vor, nach }));
       }
       if (process.env.BILD3) await p.screenshot({ path: process.env.BILD3 });
+    }
+    {   // Baum links (Mock „Wärmeschutz: Bauteile-Baum“ WB-1 B … WB-4 A): nur die Hülle, Hüllfläche › Typ, im Nachweis, „＋ in den Nachweis“
+      await p.click('#navL [data-wsfi="aussen"]').catch(() => {}); await p.waitForSelector('#navL .ws-baum .bt-baum', { timeout: 8000 });
+      for (let n = 0; n < 4; n++) { const z = await p.$('#navL .ws-baum tr.bt-bh .car.zu'); if (!z) break; await z.click(); await p.waitForTimeout(80); }
+      const t = await p.evaluate(() => ({ k: [...document.querySelectorAll('#navL .ws-baum tr.bt-bh b')].map((b) => b.textContent), z: [...document.querySelectorAll('#navL .ws-baum tr[data-btz]')].map((r) => r.dataset.btz),
+        plus: !!document.querySelector('#navL .ws-baum [data-wsplus="b7"]'), nur: !!document.querySelector('#navL .ws-baum [data-wsneu]'), kasten: [...document.querySelectorAll('.ws-mod li')].some((l) => /Dach 168/.test(l.textContent)) }));
+      pruef(t.k[0] === 'Außenwände' && t.k.includes('Dach und oberste Geschossdecke') && t.k.includes('Nur im Nachweis') && !t.z.includes('x9') && t.plus && t.nur && !t.kasten,
+        `Baum: Hüllfläche, nur Hülle, ＋ in den Nachweis statt Hinweis im Kasten – ${JSON.stringify(t)}`);
+      const n0 = S.posts.length; await p.click('#navL .ws-baum [data-wsplus="b7"]'); for (let i = 0; i < 40 && S.posts.length === n0; i++) await p.waitForTimeout(50);
+      pruef(JSON.stringify(S.posts[n0]) === JSON.stringify({ hid: 14, tun: 'uebernehmen', typ: 'steildach' }), `＋ in den Nachweis schickt ${JSON.stringify(S.posts[n0])}`);
+      await p.click('#navL .ws-baum tr[data-btz="b1"] td:nth-child(2)'); await p.waitForTimeout(200);
+      pruef(await p.evaluate(() => BID === 'aw1'), 'Klick auf die Zeile öffnet das Bauteil des Nachweises');
     }
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n').slice(0, 3).join(' ')); }
   await ctx.close();

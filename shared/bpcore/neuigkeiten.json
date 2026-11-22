@@ -1,5 +1,13 @@
 [
  {
+  "id": "ws-baum-2026-11-22",
+  "datum": "2026-11-22",
+  "app": "waermeschutz",
+  "titel": "Bauteile-Baum im Wärmeschutz",
+  "text": "Links unter „Nachweis“ steht jetzt der Baum der Bauteile aus dem Gebäudemodell – nur die Hülle, gruppiert nach Hüllfläche. Rechts siehst du, ob ein Bauteil schon im Nachweis ist (U-Wert ✓/✗), sonst übernimmst du es mit „＋ in den Nachweis“. Was im Modell fehlt, legst du unten unter „Nur im Nachweis“ an.",
+  "ziel": ".ws-baum"
+ },
+ {
   "id": "gantt-suchvorschlag-2211",
   "datum": "2026-11-22",
   "app": "gantt",

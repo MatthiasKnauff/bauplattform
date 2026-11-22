@@ -49,7 +49,7 @@
   const berKnopf = (z) => { const an = !!z.berechnen, aus = z.status === 'offen';
     return `<button type="button" class="bt-zl${an ? ' an' : ''}" data-btber aria-pressed="${an}"${aus ? ' disabled' : ''} title="${aus ? 'Erst eine Maßnahme wählen' : an ? 'zählt in Kosten und LV – Klick: zählt nicht' : 'zählt nicht in Kosten und LV – Klick: zählt'}">${an ? 'zählt' : 'zählt nicht'}</button>`; };
   const GRP0 = ['art', 'typ'];   // Vorgabe (22.11.2026): Bauteilart › Typ – Außenwände › AW-01 …, Gruppen anfangs zu
-  const grpLies = () => { try { const v = JSON.parse(localStorage.getItem('bp.bt.grp3')); return Array.isArray(v) && v.length ? v.filter((k) => k in GRUPPEN) : GRP0; } catch { return GRP0; } };   // Vorgabe seit 22.11.2026: nach Typ (neuer Schlüssel – die frühere Vorgabe „Bereich“ gilt nicht weiter)
+  const grpLies = (key, G, d) => { try { const v = JSON.parse(localStorage.getItem(key)); return Array.isArray(v) && v.length ? v.filter((k) => k in G) : d; } catch { return d; } };   // Vorgabe seit 22.11.2026: nach Typ (neuer Schlüssel – die frühere Vorgabe „Bereich“ gilt nicht weiter)
   const BEREICH = [['rohbau', 'Rohbau'], ['oeffnung', 'Öffnungen – Fenster und Türen'], ['raum', 'Räume – Oberflächen'], ['ausbau', 'Küche und Bad'], ['frage', 'Nicht im Modell – bitte beantworten'], ['hand', 'Von Hand'], ['leistung', 'Leistungen ohne Bauteil']];
   const HAND = ['hand', 'leistung'];   // Name/Menge hier änderbar, entfernen möglich
   let KONTEXT = null; document.addEventListener('bph:kontext', (e) => { if (KONTEXT) KONTEXT(e); });
@@ -103,7 +103,8 @@ table.bt-baum{table-layout:fixed;width:100%}table.bt-baum th:nth-child(2){width:
 .bt-mwl{position:sticky;bottom:0;z-index:3;box-shadow:0 -4px 12px rgba(0,0,0,.08);display:flex;flex-wrap:wrap;gap:.4rem .8rem;align-items:center;background:color-mix(in srgb,#7b2ff7 9%,var(--card,#fff));border:1px solid color-mix(in srgb,#7b2ff7 45%,transparent);border-radius:calc(8px*var(--rk,1));padding:.35rem .6rem;font-size:.86rem}
 .bt-mwg{display:inline-flex;flex-wrap:wrap;gap:.25rem;align-items:center}.bt-mwl button:not(.btn),.bt-mwd .bt-o button{font:inherit;font-size:.82rem;border:1px solid var(--line,#d6dce3);background:var(--card,#fff);color:inherit;border-radius:12px;padding:.1rem .55rem;cursor:pointer}
 .bt-mwl button.on,.bt-mwd .bt-o button.on{background:#7b2ff7;border-color:#7b2ff7;color:#fff}.bt-mwl select,.bt-mwd select{font:inherit;font-size:.84rem;max-width:22rem}.bt-mwv{color:#8a5a00;font-style:italic;font-size:.82rem}
-.bt-mwb{display:inline-flex;gap:.3rem;align-items:center}.bt-mwt{margin:0;font-size:1rem}.bt-mwh{margin:0 .35rem 0 0;vertical-align:-2px}tr.bt-ziel>td{background:color-mix(in srgb,#2f6fd6 12%,transparent);box-shadow:inset 0 0 0 1px #2f6fd6}tr.bt-nein>td{opacity:.55}tr.bt-cut>td{opacity:.5}
+.bt-mwb{display:inline-flex;gap:.3rem;align-items:center}.bt-mwt{margin:0;font-size:1rem}.bt-mwh{margin:0 .35rem 0 0;vertical-align:-2px}table.bt-baum.bt-kompakt th:nth-child(2){width:20%}table.bt-baum.bt-kompakt th:nth-child(3){width:13%}table.bt-baum.bt-kompakt th:nth-child(4){width:27%}
+tr.bt-ziel>td{background:color-mix(in srgb,#2f6fd6 12%,transparent);box-shadow:inset 0 0 0 1px #2f6fd6}tr.bt-nein>td{opacity:.55}tr.bt-cut>td{opacity:.5}
 .bt-geist{position:fixed;left:-999px;top:0;background:#fff;border:1px solid #2f6fd6;color:#2f6fd6;border-radius:6px;padding:3px 9px;font:600 12px system-ui,sans-serif;box-shadow:0 6px 16px rgba(30,60,120,.18)}
 tr.bt-mwz>td{background:color-mix(in srgb,#7b2ff7 8%,transparent)}
 .bt-rwl{display:flex;gap:.6rem;align-items:center;border:1px solid var(--y,#2f6fb3);border-radius:calc(8px*var(--rk,1));padding:.3rem .6rem;font-size:.86rem}.bt-rwl span{flex:1}
@@ -178,7 +179,12 @@ tr.bt-mwz>td{background:color-mix(in srgb,#7b2ff7 8%,transparent)}
   function mount(el, pid, opt = {}) {
     stil();
     const H = window.BPHead || {};
-    const Z = { d: null, auf: null, vorl: {}, vorlD: {}, blk: {}, laeuft: false, kg: {}, ps: [], an: null, rw: null, rwW: {}, sel: null, det: null, mw: [], grp: grpLies(), gk: [], schnell: null, pop: null, popU: 'an' };   // sel: markierte Zeile (Baumtabelle), det: Feld „Details“ rechts   // rw: Vorschläge der Apps (Rückweg), rwW: Wahl je Vorschlag   // an: Planstand, der gerade angesehen wird (gilt nicht)
+    /* Für andere Apps (22.11.2026, Wärmeschutz – Mock „Wärmeschutz: Bauteile-Baum“ WB-1 B): opt.filter(z) – nur diese Zeilen; opt.gruppenExtra
+       { key: [Name, (z) => Wert] } – eigene Ebenen; opt.grp0 / opt.grpKey – Vorgabe und Merk-Schlüssel; opt.kompakt – nur Bauteil · Menge · U ·
+       letzte Spalte; opt.letzte { kopf, zelle(z), gruppe(R) } statt „in Kosten/LV“; opt.nachher() – Zeilen der App unter dem Baum */
+    const GX = opt.gruppenExtra || {}, GR = { ...GRUPPEN, ...Object.fromEntries(Object.entries(GX).map(([k, [n]]) => [k, n])) };
+    const grpKey = opt.grpKey || 'bp.bt.grp3', grp0 = opt.grp0 || GRP0, KOMP = !!opt.kompakt, NS = KOMP ? 4 : 6;
+    const Z = { d: null, auf: null, vorl: {}, vorlD: {}, blk: {}, laeuft: false, kg: {}, ps: [], an: null, rw: null, rwW: {}, sel: null, det: null, mw: [], grp: grpLies(grpKey, GR, grp0), gk: [], schnell: null, pop: null, popU: 'an' };   // sel: markierte Zeile (Baumtabelle), det: Feld „Details“ rechts   // rw: Vorschläge der Apps (Rückweg), rwW: Wahl je Vorschlag   // an: Planstand, der gerade angesehen wird (gilt nicht)
     const G = () => (Z.d && Z.d.modell && Z.d.modell.bauteilliste) || { zeilen: [], raeume: [], quelle: {} };
     const L = () => (Z.an ? Z.an.liste : G());
     const gilt = () => (G().quelle || {}).planstand || null;
@@ -776,14 +782,14 @@ tr.bt-mwz>td{background:color-mix(in srgb,#7b2ff7 8%,transparent)}
     const ganzVerteilt = (z) => z.menge_basis != null && !z.anzahl && z.verteilt;
     const ort = (z) => z.bereich !== 'hand' ? z.bereich : /^3[2-6]/.test(z.kg || '') ? 'rohbau' : /^41/.test(z.kg || '') ? 'ausbau' : 'hand';   // „＋ Zeile“ in einer Gruppe: die Zeile steht dort
     const artVon = (z) => { if (ort(z) === 'rohbau') { const g = ROHG.find((x) => x[3](z)); return g ? g[1] : 'Sonstiges'; } return (BEREICH.find(([b]) => b === ort(z)) || [, 'Sonstiges'])[1]; };
-    const wert = (z, k) => (k === 'bereich' ? (BEREICH.find(([b]) => b === ort(z)) || [, 'Sonstiges'])[1] : k === 'teil' ? z.teil || 'ohne Gebäudeteil' : k === 'art' ? artVon(z)
+    const wert = (z, k) => (GX[k] ? GX[k][1](z) : k === 'bereich' ? (BEREICH.find(([b]) => b === ort(z)) || [, 'Sonstiges'])[1] : k === 'teil' ? z.teil || 'ohne Gebäudeteil' : k === 'art' ? artVon(z)
       : k === 'aufbau' ? z.kurz || 'ohne Aufbau' : k === 'mat' ? material(z) || 'Material offen' : k === 'typ' ? typName(z.typ) : (z.bereich === 'frage' ? WORT_FRAGE : WORT)[z.status] || z.status || '–');
     function baumZeichnen() {
-      const Li = L(), [ZZ, tw] = teilFilter((Li.zeilen || []).filter((z) => !ganzVerteilt(z))), nRw = ((Z.rw && Z.rw.vorschlaege) || []).length, leer = !ZZ.length;
+      const Li = L(), [ZZ, tw] = teilFilter((Li.zeilen || []).filter((z) => !ganzVerteilt(z) && (!opt.filter || opt.filter(z)))), nRw = opt.filter ? 0 : ((Z.rw && Z.rw.vorschlaege) || []).length, leer = !ZZ.length;
       const an = Z.an ? `<div class="bt-an"><span>Du siehst die Version <b>${esc(Z.an.name)}</b> – nur zum Ansehen. Gegenüber dem Arbeitsstand: ${Z.an.abgleich.neu.length} neu · ${Z.an.abgleich.geaendert.length} geändert · ${Z.an.abgleich.entfaellt.length} entfällt.</span>
         <button type="button" class="btn" data-btzurueck>Zurück zum Arbeitsstand</button><button type="button" class="btn primary" data-btgilt>Als Arbeitsstand zurückholen</button></div>` : '';
       const rwl = nRw && !Z.an ? `<div class="bt-rwl"><span>${nRw} Vorschl${nRw === 1 ? 'ag' : 'äge'} fürs Modell (aus den Apps${(Z.rw.vorschlaege || []).some((h) => h.daten && h.daten.extern) ? ' und der externen KI' : ''})</span><button type="button" class="btn sm" data-btrwzeig>ansehen</button></div>` : '';
-      const nZ = !Z.an && Li.zeilen ? zeichnerListe().length : 0;
+      const nZ = !Z.an && Li.zeilen && !opt.filter ? zeichnerListe().length : 0;
       const zl = nZ ? `<div class="bt-rwl"><span>${nZ} Hinweis${nZ === 1 ? '' : 'e'} an den Zeichner (Plan und Modell weichen ab, Kürzel fehlen)</span><button type="button" class="btn sm" data-btzeichner>ansehen</button></div>` : '';
       /* Einzelne Bauteile unter einer Zeile (22.11.2026, „einzelne Wände sehe ich links gar nicht“): nur mit opt.einzeln (Gebäudemodell) – je Bauteil
          eine Zeile mit Geschoss, Himmelsrichtung, Menge; Klick wählt nur dieses Bauteil (auch im 3D), im 3D angeklickt → genau diese Zeile */
@@ -791,8 +797,8 @@ tr.bt-mwz>td{background:color-mix(in srgb,#7b2ff7 8%,transparent)}
         const I = nur || z.ids || [], je = z.je || {}, rj = z.rj || {}, RN = { N: 'Nord', O: 'Ost', S: 'Süd', W: 'West' };
         const zz = I.slice(0, 300).map((i) => { const k = (z.ids || []).indexOf(i), nr = (z.nummern || [])[k] || '', inf = elInfo(i);
           const lab = [nr && !/^\d+$/.test(nr) ? nr : '', inf.g, RN[rj[i]] || ''].filter(Boolean).join(' · ') || `Bauteil ${k + 1}`;
-          return `<tr class="bt-el${Z.selE === i ? ' akt' : ''}" data-btz="${esc(z.id)}" data-bte="${i}">${bpBaum.zelle({ tiefe: t + 1, html: `<span class="bt-tn">${esc(lab)}</span>` })}<td class="r">${je[i] != null ? `${zahl(je[i])}&nbsp;${esc(z.einheit)}` : ''}</td><td colspan="4"></td></tr>`; }).join('');
-        return zz + (I.length > 300 ? `<tr class="bt-el"><td colspan="6" class="bt-nr">… ${I.length - 300} weitere</td></tr>` : '');
+          return `<tr class="bt-el${Z.selE === i ? ' akt' : ''}" data-btz="${esc(z.id)}" data-bte="${i}">${bpBaum.zelle({ tiefe: t + 1, html: `<span class="bt-tn">${esc(lab)}</span>` })}<td class="r">${je[i] != null ? `${zahl(je[i])}&nbsp;${esc(z.einheit)}` : ''}</td><td colspan="${NS - 2}"></td></tr>`; }).join('');
+        return zz + (I.length > 300 ? `<tr class="bt-el"><td colspan="${NS}" class="bt-nr">… ${I.length - 300} weitere</td></tr>` : '');
       };
       const zeilenHtml = (z, t, titel, nur) => {   // titel: die Zeile steht für ihren Typ (eine Zeile je Typ); nur: Teil der Bauteile (Gruppe Geschoss)
         const fr = z.bereich === 'frage', w = (fr ? WORT_FRAGE : WORT)[z.status] || z.status;
@@ -802,9 +808,9 @@ tr.bt-mwz>td{background:color-mix(in srgb,#7b2ff7 8%,transparent)}
         const einz = !!(opt.einzeln && (z.ids || []).length && !fr && !Z.an), elOffen = einz && (Z.elAuf === z.id || Z.schnell === z.id);
         const sn = Z.schnell === z.id && !Z.an && z.bereich !== 'frage';
         return `<tr data-btz="${esc(z.id)}"${Z.an ? '' : ' draggable="true"'} class="${Z.sel === z.id ? 'akt' : ''}${Z.mw.includes(z.id) ? ' bt-mwz' : ''}${Z.clip && Z.clip.cut && Z.clip.ids.includes(z.id) ? ' bt-cut' : ''}${z.status === 'offen' ? ' offen' : ''}${z.entfaellt ? ' weg' : ''}${z.ergaenzt ? ' bt-erg' : ''}">${bpBaum.zelle({ tiefe: t, auf: Z.an || z.bereich === 'frage' ? undefined : sn || elOffen, car: ` data-btschnell title="${sn || elOffen ? 'zuklappen' : einz ? 'Einzelne Bauteile und Aufbau schnell wählen – Doppelklick: alle Eigenschaften' : 'Aufbau schnell wählen – Doppelklick: alle Eigenschaften'}"`, html: `${Z.an ? '' : `<input type="checkbox" class="bt-mwh" data-btmw${Z.mw.includes(z.id) || (!Z.mw.length && Z.sel === z.id) ? ' checked' : ''} title="Mehrere Zeilen wählen und gemeinsam ändern" aria-label="${esc(z.name)} wählen">`}${titel ? `<b class="bt-tn">${esc(titel)}</b> <small class="bt-nr">${esc(mitTeil(z))}${einz ? ` · ${(nur || z.ids).length}` : ''}</small>` : `<span class="bt-tn">${esc(mitTeil(z))}</span>`}${z.einordnung && !titel ? `<small class="bt-nr"> ${esc(z.einordnung)}</small>` : ''}${typeof bpWk === 'function' ? bpWk([z.name, z.material]) : ''}${(z.nummern || []).length && t < 2 ? `<small class="bt-nr"> ${esc(z.nummern.length > 6 ? z.nummern[0] + ' … ' + z.nummern[z.nummern.length - 1] : z.nummern.join(' · '))}</small>` : ''}` })}
-          <td class="r">${z.bereich === 'hand' && !z.menge ? '<span class="bt-chip gelb" title="Menge fehlt – die Zeile wird mit 0 gerechnet. Eintragen rechts unter „Details“.">Menge fehlt</span>' : menge}</td><td><span class="bt-chip${z.status === 'offen' ? ' bt-ext' : ''}">${esc(w)}</span>${z.ergaenzt ? ' <span class="bt-chip gelb" title="Neben dem Plan ergänzt">ergänzt</span>' : ''}${z.entfaellt ? ' <span class="bt-chip">entfällt</span>' : ''}${z.kuerzel && !z.bestaetigt && !z.entfaellt ? ' <span class="bt-chip gelb" title="Aufbau aus dem Kürzel im Plan – bitte bestätigen">bestätigen</span>' : ''}</td>
-          <td class="bt-kz" title="${esc(z.kurz || '')}">${esc(z.kurz || (z.berechnen ? 'kein Aufbau' : ''))}</td><td class="r" data-btu="${esc(z.id)}"></td><td class="c">${Z.an ? (z.berechnen ? 'zählt' : '–') : berKnopf(z)}</td></tr>`
-          + (sn ? `<tr class="bt-snz" data-btz="${esc(z.id)}"><td colspan="6"><div class="bt-sn" style="${'padding-left:' + (1.2 * (t + 1) + 1) + 'rem'}">${schnellHtml(z)}</div></td></tr>` : '')
+          <td class="r">${z.bereich === 'hand' && !z.menge ? '<span class="bt-chip gelb" title="Menge fehlt – die Zeile wird mit 0 gerechnet. Eintragen rechts unter „Details“.">Menge fehlt</span>' : menge}</td>${KOMP ? '' : `<td><span class="bt-chip${z.status === 'offen' ? ' bt-ext' : ''}">${esc(w)}</span>${z.ergaenzt ? ' <span class="bt-chip gelb" title="Neben dem Plan ergänzt">ergänzt</span>' : ''}${z.entfaellt ? ' <span class="bt-chip">entfällt</span>' : ''}${z.kuerzel && !z.bestaetigt && !z.entfaellt ? ' <span class="bt-chip gelb" title="Aufbau aus dem Kürzel im Plan – bitte bestätigen">bestätigen</span>' : ''}</td>`}
+          ${KOMP ? '' : `<td class="bt-kz" title="${esc(z.kurz || '')}">${esc(z.kurz || (z.berechnen ? 'kein Aufbau' : ''))}</td>`}<td class="r" data-btu="${esc(z.id)}"></td><td class="c">${opt.letzte ? opt.letzte.zelle(z) : Z.an ? (z.berechnen ? 'zählt' : '–') : berKnopf(z)}</td></tr>`
+          + (sn ? `<tr class="bt-snz" data-btz="${esc(z.id)}"><td colspan="${NS}"><div class="bt-sn" style="${'padding-left:' + (1.2 * (t + 1) + 1) + 'rem'}">${schnellHtml(z)}</div></td></tr>` : '')
           + (elOffen ? elZeilen(z, t, nur) : '');
       };
       /* Eine Baumtabelle für alles (17.11.2026, „konsequent“): alle Bereiche und Gruppen stehen immer da – leer mit 0 und „＋ Zeile“, gefüllt
@@ -818,7 +824,7 @@ tr.bt-mwz>td{background:color-mix(in srgb,#7b2ff7 8%,transparent)}
         const gs = B.length && !Z.an ? `<button type="button" class="bt-zl${nb === B.length ? ' an' : nb ? ' teils' : ''}" data-btberg="${esc(k)}" title="für alle ${B.length} Zeilen dieser Gruppe umschalten">${nb === B.length ? 'zählt' : nb ? 'teils' : 'zählt nicht'}</button>` : '';
         const nw = R.filter((z) => Z.mw.includes(z.id) || (!Z.mw.length && Z.sel === z.id)).length;   // US-3 A: Haken an der Gruppe wählt alle darin (halb = einige)
         const hk = R.length && !Z.an ? `<input type="checkbox" class="bt-mwh" data-btgw="${esc(k)}"${nw && nw === R.length ? ' checked' : ''}${nw && nw < R.length ? ' data-teil' : ''} title="Alle ${R.length} dieser Gruppe wählen" aria-label="${esc(t)}: alle wählen">` : '';
-        return [zu, `<tr class="bt-bh" data-btgk="${esc(k)}">${bpBaum.zelle({ tiefe, auf: R.length ? !zu : null, klapp: R.length ? kk : null, html: `${hk}<b>${esc(t)}</b> <small class="bt-nr">${R.length}${offen ? ` · <span class="bt-ro">${offen} offen</span>` : ''}</small>${extra || ''}` })}<td colspan="4"></td><td class="c">${gs}</td></tr>`];
+        return [zu, `<tr class="bt-bh" data-btgk="${esc(k)}">${bpBaum.zelle({ tiefe, auf: R.length ? !zu : null, klapp: R.length ? kk : null, html: `${hk}<b>${esc(t)}</b> <small class="bt-nr">${R.length}${offen ? ` · <span class="bt-ro">${offen} offen</span>` : ''}</small>${extra || ''}` })}<td colspan="${NS - 2}"></td><td class="c">${opt.letzte ? opt.letzte.gruppe(R) : gs}</td></tr>`];
       };
       const PLUS = { ausbau: '412', hand: '300' };
       const elInfo = (i) => (opt.elementInfo && opt.elementInfo(i)) || {}, GR_RANG = new Map();
@@ -829,18 +835,18 @@ tr.bt-mwz>td{background:color-mix(in srgb,#7b2ff7 8%,transparent)}
       };
       {   // Ebenen, die hier nichts unterscheiden, im ＋-Menü ausgegraut (22.11.2026)
         const viele = (f) => { const S = new Set(); for (const z of ZZ) { f(z).forEach((v) => S.add(v)); if (S.size > 1) return true; } return false; };
-        const aw = (k) => (z) => [k === 'teil' ? z.teil || '' : k === 'typ' ? z.typ || '' : k === 'mat' ? material(z) || '' : k === 'aufbau' ? z.kurz || '' : k === 'mass' ? z.status || '' : k === 'bereich' ? z.bereich : z.kg || ''];
+        const aw = (k) => (z) => [GX[k] ? GX[k][1](z) : k === 'teil' ? z.teil || '' : k === 'typ' ? z.typ || '' : k === 'mat' ? material(z) || '' : k === 'aufbau' ? z.kurz || '' : k === 'mass' ? z.status || '' : k === 'bereich' ? z.bereich : z.kg || ''];
         Z.grpAus = {};
-        for (const k of Object.keys(GRUPPEN)) if (!(k === 'geschoss' ? viele((z) => ((z.ids || []).length ? z.ids.map((i) => elInfo(i).g || '') : [z.geschoss || ''])) : viele(aw(k)))) Z.grpAus[k] = 'unterscheidet in diesem Projekt nichts';
+        for (const k of Object.keys(GR)) if (!(k === 'geschoss' ? viele((z) => ((z.ids || []).length ? z.ids.map((i) => elInfo(i).g || '') : [z.geschoss || ''])) : viele(aw(k)))) Z.grpAus[k] = 'unterscheidet in diesem Projekt nichts';
       }
       let body = ''; Z.gk = []; Z.grpIds = {}; Z.grpZiel = {};
-      const G = Z.grp.includes('typ') && (leer || !Object.keys(Li.typen || {}).length) ? ['bereich'] : Z.grp, gewohnt = G.length === 1 && G[0] === 'bereich';   // noch keine Typen (leer, nur von Hand): der Standardbaum
+      const ohneTyp = Z.grp.filter((k) => k !== 'typ'), G = Z.grp.includes('typ') && (leer || !Object.keys(Li.typen || {}).length) ? (ohneTyp.length && !(ohneTyp.length === 1 && ohneTyp[0] === 'art') ? ohneTyp : ['bereich']) : Z.grp, gewohnt = G.length === 1 && G[0] === 'bereich';   // noch keine Typen (leer, nur von Hand): ohne die Ebene Typ – nur Bauteilart allein = der Standardbaum
       if (!gewohnt) {   // Ebenen aus der Leiste oben, außen vor innen – je Ebene klappbar
         const ebene = (X, i, pfad, W) => {   // X = [{ z, nur }] – nur: Teil der Bauteile einer Zeile (Gruppe Geschoss), sonst null; W = Weg [[Ebene, Wert], …] bis hier
           if (i >= G.length) { body += X.map((x) => zeilenHtml(x.z, i, null, x.nur)).join(''); return; }
           const M = new Map(), dazu = (w, x) => (M.get(w) || M.set(w, []).get(w)).push(x);
           X.forEach((x) => { if (G[i] === 'geschoss') geschVon(x).forEach(([w, nur]) => dazu(w, { z: x.z, nur })); else dazu(wert(x.z, G[i]), x); });
-          const ART = [...ROHG.map((x) => x[1]), ...BEREICH.map((x) => x[1])], rang = (w) => (G[i] === 'art' && ART.includes(w) ? ART.indexOf(w) : G[i] === 'geschoss' && GR_RANG.has(w) ? GR_RANG.get(w) : 999);   // Bauteilart in der Reihenfolge des Baus, Geschosse von unten
+          const ART = [...ROHG.map((x) => x[1]), ...BEREICH.map((x) => x[1])], rang = (w) => (GX[G[i]] && GX[G[i]][2] ? (GX[G[i]][2].indexOf(w) + 1 || 999) : G[i] === 'art' && ART.includes(w) ? ART.indexOf(w) : G[i] === 'geschoss' && GR_RANG.has(w) ? GR_RANG.get(w) : 999);   // Bauteilart in der Reihenfolge des Baus, Geschosse von unten
           [...M.entries()].sort((a, b) => rang(a[0]) - rang(b[0]) || a[0].localeCompare(b[0], 'de', { numeric: true })).forEach(([w, XX]) => {
             if (G[i] === 'typ' && i === G.length - 1 && XX.length === 1 && w !== 'ohne Typ') { body += zeilenHtml(XX[0].z, i, w, XX[0].nur); return; }   // eine Zeile je Typ: die Zeile ist der Typ (darunter die einzelnen Bauteile)
             const k = `g:${pfad}/${w}`, W2 = [...W, [G[i], w]]; Z.gk.push(k); Z.grpZiel[k] = W2; const [zu, h] = kopfZ(XX.map((x) => x.z), w, k, i); body += h; if (!zu) ebene(XX, i + 1, `${pfad}/${w}`, W2); });
@@ -851,7 +857,7 @@ tr.bt-mwz>td{background:color-mix(in srgb,#7b2ff7 8%,transparent)}
         const R = ZZ.filter((z) => ort(z) === b);
         if (!R.length && (b === 'hand' || (b === 'leistung' && !leer))) continue;   // „Von Hand“ nur mit Zeilen; Leistungen ohne Bauteil kommen aus den Apps
         const [zu, k] = kopfZ(R, t, 'b:' + b, 0, PLUS[b] ? plus(PLUS[b], t) : ''); body += k;
-        if (b === 'frage' && !R.length) { body += `<tr><td colspan="6" class="bt-start"><button type="button" class="btn sm" data-btstart${Z.an ? ' disabled' : ''}>Fragen beantworten …</button> <span class="bt-nr">Was ein Plan nicht zeigt (Elektro, Heizung, Leitungen, Baustelle …) – die Mengen kommen, sobald Fläche oder Räume bekannt sind</span></td></tr>`; continue; }
+        if (b === 'frage' && !R.length) { body += `<tr><td colspan="${NS}" class="bt-start"><button type="button" class="btn sm" data-btstart${Z.an ? ' disabled' : ''}>Fragen beantworten …</button> <span class="bt-nr">Was ein Plan nicht zeigt (Elektro, Heizung, Leitungen, Baustelle …) – die Mengen kommen, sobald Fläche oder Räume bekannt sind</span></td></tr>`; continue; }
         if (zu) continue;
         if (b !== 'rohbau') { body += R.map((z) => zeilenHtml(z, z.abgeleitet ? 2 : 1)).join(''); continue; }
         const rest = new Set(R);   // Rohbau nach Bauteilen (A1, 17.11.2026): Gründung, Außenwände, Innenwände, Treppen, Decken, Dach, Sonstiges
@@ -864,14 +870,14 @@ tr.bt-mwz>td{background:color-mix(in srgb,#7b2ff7 8%,transparent)}
       const meldung = leer && typeof bpLeer === 'function' ? bpLeer({ was: 'kein Gebäudemodell', text: 'Mit Plan oder ohne: aus der Planung, Räume und Fenster selbst eintragen, einzelne Bauteile oder einen Plan einlesen (IFC, DXF, PDF).', knoepfe: [{ t: 'Anfangen …', attrs: 'data-btanfang' }] }) : '';
       const y = el.querySelector('.bt-bw') ? el.querySelector('.bt-bw').scrollTop : 0;
       const mwl = Z.mw.length > 1 && !Z.an ? `<div class="bt-mwl">${mwHtml(true)}</div>` : '';   // H1: gemeinsam ändern – schwebt unten im Bereich (22.11.2026: über der Tabelle schob sie die Liste nach unten)
-      const grp = window.bpGruppen && !leer ? `<div class="bt-grp">${bpGruppen.html(Z.grp, GRUPPEN, { rechts: 'Doppelklick: Eigenschaften · Strg + Klick: mehrere' })}</div>` : '';
-      el.innerHTML = `<div class="bt-bl">${an}${rwl}${zl}${tw}${meldung}<div class="bt-w"></div>${grp}<div class="bt-bw"><table class="bp-baum bt-baum${leer ? ' bt-gerust' : ''}"><thead><tr><th>Bauteil</th><th class="r">Menge</th><th>Maßnahme</th><th>Aufbau</th><th class="r" title="U-Wert aus dem gewählten Aufbau, W/(m²K) – Farbe nach GModG (Neubau: Referenzgebäude, Bestand: Anlage 7)">U</th><th class="c" title="wird berechnet">in Kosten/LV</th></tr></thead><tbody>${body}</tbody></table></div>${mwl}
+      const grp = window.bpGruppen && !leer ? `<div class="bt-grp">${bpGruppen.html(Z.grp, GR, { rechts: 'Doppelklick: Eigenschaften · Strg + Klick: mehrere' })}</div>` : '';
+      el.innerHTML = `<div class="bt-bl">${an}${rwl}${zl}${tw}${meldung}<div class="bt-w"></div>${grp}<div class="bt-bw"><table class="bp-baum bt-baum${leer ? ' bt-gerust' : ''}${KOMP ? ' bt-kompakt' : ''}"><thead><tr><th>Bauteil</th><th class="r">Menge</th>${KOMP ? '' : '<th>Maßnahme</th><th>Aufbau</th>'}<th class="r" title="U-Wert aus dem gewählten Aufbau, W/(m²K) – Farbe nach GModG (Neubau: Referenzgebäude, Bestand: Anlage 7)">U</th><th class="c"${opt.letzte ? '' : ' title="wird berechnet"'}>${opt.letzte ? esc(opt.letzte.kopf) : 'in Kosten/LV'}</th></tr></thead><tbody>${body}${opt.nachher ? opt.nachher() : ''}</tbody></table></div>${mwl}
         <input type="file" accept=".ifc,.dxf,.pdf" data-btdatei hidden></div>`;
       el.querySelector('.bt-bw').scrollTop = y; Z.selAuf = false;
       el.querySelectorAll('[data-btgw][data-teil]').forEach((x) => { x.indeterminate = true; });
-      if (window.bpSpaltBreite && !leer) bpSpaltBreite.an(el.querySelector('.bt-baum'), 'bauteile');   // Spaltenbreiten ziehen wie im LV (22.11.2026)
+      if (window.bpSpaltBreite && !leer) bpSpaltBreite.an(el.querySelector('.bt-baum'), KOMP ? 'bauteile.k' : 'bauteile');   // Spaltenbreiten ziehen wie im LV (22.11.2026)
       const gb = el.querySelector('.bt-grp');
-      if (gb) bpGruppen.an(gb, { lies: () => Z.grp, namen: GRUPPEN, aus: () => Z.grpAus || {}, setze: (G2) => { Z.grp = G2.length ? G2 : GRP0; try { localStorage.setItem('bp.bt.grp3', JSON.stringify(Z.grp)); } catch { /* egal */ } baumZeichnen(); } });
+      if (gb) bpGruppen.an(gb, { lies: () => Z.grp, namen: GR, aus: () => Z.grpAus || {}, setze: (G2) => { Z.grp = G2.length ? G2 : grp0; try { localStorage.setItem(grpKey, JSON.stringify(Z.grp)); } catch { /* egal */ } baumZeichnen(); } });
     }
     /* Dreieck an der Zeile (E3): darunter die schnelle Wahl eines fertigen Aufbaus – erst Standardbauteile, dann Schichten (dieselbe Suche wie im Editor) */
     function schnellHtml(z) {
@@ -1087,7 +1093,7 @@ tr.bt-mwz>td{background:color-mix(in srgb,#7b2ff7 8%,transparent)}
           if (!st || R.some((z) => (z.erlaubt || []).length && !z.erlaubt.includes(st))) return { ok: false, grund: `„${w}“ passt nicht zu allen` }; schritte.push({ was: 'mass', status: st, w }); continue; }
         if (k === 'aufbau') { const q = L().zeilen.find((x) => x.kurz === w && x.vorlage); if (!q) return { ok: false, grund: 'ohne Aufbau' };
           schritte.push({ was: 'aufbau', neu: { vorlage: q.vorlage, wahl: [...(q.wahl || [])], dicken: q.dicken || {}, ausf: q.ausf || {} }, w }); continue; }
-        return { ok: false, grund: `${GRUPPEN[k] || k} kommt aus dem Plan – lässt sich so nicht ändern` };
+        return { ok: false, grund: `${GR[k] || k} ${GX[k] ? 'ergibt sich aus der App' : 'kommt aus dem Plan'} – lässt sich so nicht ändern` };
       }
       return { ok: schritte.length > 0, grund: schritte.length ? '' : 'steht schon dort', schritte, R };
     }

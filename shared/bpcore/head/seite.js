@@ -61,7 +61,7 @@
   const baukastenReiter = planBaustein('baukasten', 'Baukasten', 'gebaeudekasten.js', 'bpBaukasten', 'Gebäude-Baukasten wird geladen …', 'Der Gebäude-Baukasten konnte nicht geladen werden.');   // Gebäude per Klick und Ziehen (bp/gebaeudekasten.js, A3 20.11.2026)
   const kartenReiter = planBaustein('karte', 'Verknüpfungen', 'karte.js', 'bpKarte', 'Verknüpfungen werden geladen …', 'Die Verknüpfungen konnten nicht geladen werden.');   // Verknüpfungs-Karte des Projektmodells (bp/karte.js)
   const fragenReiter = planBaustein('fragen', 'Fragen und Antworten', 'fragen.js', 'bpFragen', 'KI-Gespräch wird geladen …', 'Das KI-Gespräch konnte nicht geladen werden.');   // KI-Gespräch zum Projekt (bp/fragen.js) – nur Ollama
-  const BAUTEILE = new Set(['bk', 'lv', 'ws']);   // Bauteile nur, wo sie die App speisen (RR-A1, 18.11.2026): Kosten, LV, Wärmeschutz (Hülle) – nicht Bauzeitenplan, Bauantrag
+  const BAUTEILE = new Set(['bk', 'lv']);   // Bauteile nur, wo sie die App speisen (RR-A1, 18.11.2026): Kosten, LV – nicht Bauzeitenplan, Bauantrag; im Wärmeschutz steht der Baum links (ws-baum.js, WB-1 B, 22.11.2026)
   const FRAGEN = PLANUNG;   // Reiter „Fragen und Antworten“ überall, wo „Planung“ steht (18.11.2026); im Gebäudemodell eine eigene Ansicht
   const bauteilReiter = planBaustein('bauteile', 'Bauteile', 'bauteile.js', 'bpBauteile', 'Bauteil-Checkliste wird geladen …', 'Die Bauteil-Checkliste konnte nicht geladen werden.');   // Bauteil-Checkliste im Projektmodell (bp/bauteile.js)
 

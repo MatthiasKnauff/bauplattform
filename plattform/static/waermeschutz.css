@@ -96,3 +96,5 @@ main.ws .ws-work{flex:1;min-height:0;display:flex}main.ws .ws-work.sr-split{disp
 
 /* Reiter „3D“ (ws-modell3d.js): der Betrachter füllt den Bereich */
 .ws-3d{height:100%;padding:.4rem;box-sizing:border-box}.ws-3d .b3{height:100%;min-height:300px}
+.ws-baum{margin:.2rem 0 .4rem}.ws-baum>.nh{font-weight:700;color:var(--mute);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;margin:.6rem .4rem .2rem}
+.ws-baum .bt-grp{font-size:.78rem}.ws-baum .ws-ok{color:#2e7d32;font-weight:600}.ws-baum .ws-no{color:#c62828;font-weight:600}.ws-baum tr.ws-nurz{cursor:pointer}.ws-baum tr.ws-nurz.akt>td{background:color-mix(in srgb,#7b2ff7 8%,transparent)}

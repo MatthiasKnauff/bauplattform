@@ -1,5 +1,21 @@
 [
  {
+  "id": "gm-artje",
+  "datum": "2026-11-22",
+  "app": "gebaeudemodell",
+  "titel": "Art einzelner Bauteile ändern",
+  "text": "Wird eine Außenwand als Innenwand erkannt (oder ein Dach als Decke): im 3D anklicken, Rechtsklick → Art wählen. Die Wand wandert in die richtige Zeile – auch beim nächsten Einlesen des Plans. Ein Klick im 3D wählt jetzt nur das angeklickte Bauteil.",
+  "ziel": ".gm-mitte"
+ },
+ {
+  "id": "gm-kurzwahl",
+  "datum": "2026-11-22",
+  "app": "gebaeudemodell",
+  "titel": "Kurzwahl der Aufbauten",
+  "text": "Im Eigenschaften-Fenster stehen die üblichen Aufbauten des Büros als Knöpfe über der Suche – ein Klick setzt den ganzen Aufbau. Die Liste pflegst du in der Verwaltung → Einstellungen → Gebäudemodell oder mit „＋ in die Kurzwahl“.",
+  "ziel": ".bt-grp"
+ },
+ {
   "id": "gm-typen-2",
   "datum": "2026-11-22",
   "app": "gebaeudemodell",

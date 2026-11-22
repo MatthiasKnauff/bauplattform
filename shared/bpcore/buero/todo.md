@@ -30,7 +30,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
-- Gebäudemodell neu (GO 22.11.2026): Etappe 1 Typen im Kern ✓ · 2 Typen in der Oberfläche ✓ · 3 Kurzwahl **ca. 1,5 h** · 4 Arbeitsstand + Versionen **ca. 3–4 h** · 5 ohne Arbeitsmaske (Linie im Grundriss) **ca. 4–6 h** · 6 Positionen hinaus **ca. 1,5 h** · 7 Aufräumen **ca. 2 h**
+- Gebäudemodell neu (GO 22.11.2026): Etappe 1 Typen im Kern ✓ · 2 Typen in der Oberfläche ✓ · 3 Kurzwahl ✓ · 4 Arbeitsstand + Versionen **ca. 3–4 h** · 5 ohne Arbeitsmaske (Linie im Grundriss) **ca. 4–6 h** · 6 Positionen hinaus **ca. 1,5 h** · 7 Aufräumen **ca. 2 h**
 - Aufräumen: Sahne, Fehler an der Wurzel, toter Code (tools/tot)
 - U-Wert-Färbung wählbar: GModG · BEG-Einzelmaßnahmen · Effizienzhaus (Recherche + Mock)
 - Eigenschaften-Fenster Etappe 2 (EF-B1 C1): einzelne Teile einer Zeile mit Haken, Abtrennen als eigene Zeile (Kern: Baukasten je Teil, IFC Zeile teilen), Doppelklick im 3D hakt nur das Teil an – ca. 2 Std.
@@ -254,6 +254,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Gebäudemodell neu, Etappe 3: Kurzwahl der Aufbauten je Büro~~ (22.11.2026)
+- ~~Art einzelner Bauteile im 3D ändern (Außenwand ↔ Innenwand, Decke ↔ Dach ↔ Bodenplatte), Klick im 3D wählt nur das Bauteil~~ (22.11.2026)
 - ~~Gebäudemodell neu, Etappe 2: Bauteile nach Typ gruppiert, Eigenschaften-Fenster mit Typ – neuer Typ, zusammenlegen, umbenennen, mit Rückgängig~~ (22.11.2026)
 - ~~Gebäudemodell neu, Etappe 1: Bauteiltypen im Kern (AW-01 …, Aufbau einmal am Typ, Maßnahme je Bauteil, Typ aus dem IFC = Plan-Name + Dicke)~~ (22.11.2026)
 - ~~Bauzeitenplan: „Plan neu aus den Angaben“ gleicht ab statt zu ersetzen, Kette 🔗 wie im LV (Mock BZ H1–H3)~~ (22.11.2026)

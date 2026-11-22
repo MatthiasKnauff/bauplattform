@@ -241,14 +241,17 @@ export async function gebaeudemodellPruefen(browser, repo) {
       pruef(await p.evaluate(() => !!document.querySelector('#view .gr-w') && document.querySelectorAll('#view .gr-f').length === 2 && /Wohnen/.test(document.querySelector('#view .gr-b').textContent)), 'Grundriss: Wände und zwei Flächen, eine mit Raum aus dem Plan');
       await p.click('#view .gr-f.frei'); await p.waitForSelector('.bph-frage-in'); await p.fill('.bph-frage-in', 'Abstellraum'); await p.click('.bph-frage [data-f="ja"]'); await p.waitForTimeout(400);
       pruef(S.plusPut && S.plusPut.raeume && S.plusPut.raeume[0].name === 'Abstellraum' && S.plusPut.raeume[0].flaeche === 4.5, `Fläche als Raum angenommen: ${JSON.stringify(S.plusPut)}`); S.plus = null;
-      // Entf am ermittelten Raum (22.11.2026): kein Raum / Schacht – grau, Klick nimmt die Fläche wieder als Raum
+      // Entf am ermittelten Raum (22.11.2026): kein Raum / Schacht – grau; ein Klick ändert nichts, wieder Raum nur über das Kontextmenü
       S.schacht = 'raum'; await p.evaluate(() => BT.laden()); await p.evaluate(() => gmGrundriss(document.querySelector('#view .gm-gr') || GR.box, true)); await p.waitForFunction(() => document.querySelectorAll('#view .gr-f:not(.frei)').length === 2, null, { timeout: 8000 }).catch(() => {});
       await p.click('#view .gr-f[data-grf="1"]'); await p.keyboard.press('Delete'); await p.waitForSelector('.bph-frage [data-f="drei"]', { timeout: 4000 }).catch(() => {});
       await p.click('.bph-frage [data-f="drei"]').catch(() => {}); await p.waitForSelector('#view .gr-f.weg', { timeout: 6000 }).catch(() => {});
       pruef(S.rwPut && S.rwPut.art === 'schacht' && S.rwPut.g === 'EG' && S.rwPut.p[0] === 2.5 && S.rwPut.umriss.length === 4, `Entf → Schacht: ${JSON.stringify(S.rwPut)}`);
       pruef(await p.evaluate(() => /Schacht/.test((document.querySelector('#view .gr-f.weg') || {}).textContent || '')), 'Fläche grau als „Schacht“');
       S.rwPut = null; await p.click('#view .gr-f.weg'); await p.waitForTimeout(500);
-      pruef(S.rwPut && S.rwPut.art === '', `Klick auf die graue Fläche nimmt sie wieder als Raum: ${JSON.stringify(S.rwPut)}`); S.schacht = null; }
+      pruef(!S.rwPut, `Klick auf die graue Fläche ändert nichts: ${JSON.stringify(S.rwPut)}`);
+      await p.click('#view .gr-f.weg', { button: 'right' }); await p.waitForSelector('.bph-km');
+      await p.evaluate(() => [...document.querySelectorAll('.bph-km button')].find((b) => /Doch ein Raum/.test(b.textContent)).click()); await p.waitForTimeout(500);
+      pruef(S.rwPut && S.rwPut.art === '', `Kontextmenü „Doch ein Raum“ nimmt die Fläche wieder als Raum: ${JSON.stringify(S.rwPut)}`); S.schacht = null; }
     // 3D in der Mitte: nur zwei Färbungen, Klick im Baum wählt im Modell; „Darstellung ▾“ rechts, ⧉ abdocken
     { S.leer = false; S.mh = false; S.hand = false; S.plus = null;
       await p.click('#navL [data-pl="g3d"]'); await p.waitForSelector('#view .gm-d3 .b3 canvas', { timeout: 8000 });

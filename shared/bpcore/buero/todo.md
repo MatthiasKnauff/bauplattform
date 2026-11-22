@@ -254,6 +254,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Grundriss: graue Fläche („kein Raum“/„Schacht“) wieder Raum nur über das Kontextmenü, nicht per Klick~~ (22.11.2026)
 - ~~Sahne entfernt: Fehler-Schlucken für Tests (9 Stellen), Warten bei „too many clients“ (jetzt max_connections=300), gekürzte Wärmeschutz-Verweise (einmal ergänzt), Laufwerk-Prüfung (jetzt `x-app` in den Stack-Dateien), Dockerfile `gantt/*.py`~~ (22.11.2026)
 - ~~Leistungskatalog: Abhängigkeiten, Werk-Leistungen direkt ändern, Lernen aus den Plänen, Fortschritt über 100 % mit Grund~~ (22.11.2026)
 - ~~Bauzeitenplan: Kette 🔗 und gelöschte Assistenten-Leistungen gingen beim Speichern verloren – behoben~~ (22.11.2026)

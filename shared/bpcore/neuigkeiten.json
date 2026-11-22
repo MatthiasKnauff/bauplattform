@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-grau-kontext-2211",
+  "datum": "2026-11-22",
+  "app": "gebaeudemodell",
+  "titel": "Graue Fläche: „Doch ein Raum“ nur per Rechtsklick",
+  "text": "Eine Fläche, die du als „kein Raum“ oder „Schacht“ markiert hast, wird nicht mehr durch einen einfachen Klick wieder zum Raum – dafür Rechtsklick → „Doch ein Raum“.",
+  "ziel": ".gm-gr"
+ },
+ {
   "id": "gantt-katalog-netz",
   "datum": "2026-11-22",
   "app": "gantt",

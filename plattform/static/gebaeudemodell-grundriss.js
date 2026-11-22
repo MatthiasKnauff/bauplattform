@@ -4,7 +4,7 @@
    Plan oder schon ermittelt) – Klick zeigt rechts die Zeile mit dem Raumbuch; gelb gestrichelt = Fläche ohne Raum – Klick nimmt sie als Raum an
    (Ergänzung neben dem Plan, PUT /plus, mit Rückgängig). Ohne Plan gibt es keinen Grundriss – dann steht der Weg zu den Räumen da.
    Entf (oder Kontextmenü) am gewählten Raum (22.11.2026): ermittelt → „kein Raum“ oder „Schacht“ (PUT /raumweg, bleibt beim nächsten Einlesen),
-   ergänzt → aus den Ergänzungen; grau = keine Raumfläche, Klick nimmt sie wieder als Raum.
+   ergänzt → aus den Ergänzungen; grau = keine Raumfläche – Klick wählt sie nur, wieder Raum nur über das Kontextmenü „Doch ein Raum“.
    Nutzt aus gebaeudemodell.js / -3d.js: PID, BT, G3, LS, api, toast, bpEingabe, seiteReiter. */
 const GR = { N: null, F: null, g: null, rev: null, sel: null };
 const grZ = (v) => bpZahl(v, 0, 2);
@@ -114,7 +114,9 @@ document.addEventListener('click', async (e) => {
   const f = e.target.closest && e.target.closest('[data-grf]'); if (!f || !GR.fl) return;
   const x = GR.fl[+f.dataset.grf], r = GR.raumVon(x);
   if (!r && GR.an) return toast('Nur zum Ansehen – dieser Planstand gilt nicht.');
-  if (!r && GR.wegVon(x)) return grRaumweg(x, '', 'Fläche ist wieder ein Raum');
+  if (!r && GR.wegVon(x)) {   // graue Fläche: nur wählen – „Doch ein Raum“ steht im Kontextmenü (ein Klick allein ändert nichts)
+    GR.sel = null; f.parentNode.querySelectorAll('.gr-f.an').forEach((g) => g.classList.remove('an')); f.classList.add('an'); return;
+  }
   if (r) {   // Raum gewählt (Entf: kein Raum / Schacht): rechts die Zeile „Boden“ des Raums mit dem Raumbuch
     GR.sel = +f.dataset.grf; f.parentNode.querySelectorAll('.gr-f.an').forEach((g) => g.classList.remove('an')); f.classList.add('an');
     const Z = g3Zeilen(BT.zustand()).find((z) => z.id.startsWith('raum:boden:') && (z.mitglieder || []).includes(r.nr));

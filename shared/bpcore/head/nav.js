@@ -8,7 +8,7 @@
                klasse: zusätzliche Klasse der Gruppe (z. B. 'ng-ich' – „Für mich“ abgesetzt, Verwaltung 19.11.2026)
                klapp: 'name' – Gruppe einklappbar (Klick auf die Überschrift); zu bleibt nur der gewählte Punkt sichtbar; gemerkt je Browser (bp.navzu)
                such: HTML unter der Überschrift (links), z. B. ein Suchfeld mit Vorschlägen, wenn die Gruppe zu lang ist (Adressen, 22.11.2026)
-               icon: Inhalt eines <svg viewBox="0 0 24 24"> (Pfade), als Kachel gezeichnet; farbe: Farbe der Kachel (CSS, Standard grau); unter: HTML unter dem gewählten Punkt (z. B. „＋ Neu“)
+               icon: Inhalt eines <svg viewBox="0 0 24 24"> (Pfade), als Kachel gezeichnet; farbe: Farbe der Kachel (CSS, Standard grau); unter: HTML unter dem gewählten Punkt (z. B. „＋ Neu“); nach: HTML immer unter dem Punkt (nur links, z. B. ein Häkchen)
      o.aktiv   id des gewählten Punkts – oder eine Liste mehrerer (Adressen: alles, was im Filter steht)
      o.fuss    HTML am Ende                           z. B. Ablagefeld
      o.attr    Name des data-Attributs der Punkte     (Standard „nav“ → data-nav="id")
@@ -60,7 +60,7 @@
         G.map((g) => { const ZU = g.klapp && zuGet().has(g.klapp), P = (g.punkte || []).filter((p) => !ZU || istAn(p.id));
           const kopf = g.href ? `<a class="nh" href="${esc(g.href)}"${g.tip ? ` title="${esc(g.tip)}"` : ''}>${esc(g.titel)} <span>↗</span></a>`
             : g.klapp ? `<button type="button" class="nh nhk" data-nzu="${esc(g.klapp)}" aria-expanded="${!ZU}" title="${ZU ? 'Aufklappen' : 'Einklappen'}">${esc(g.titel)}<span>${ZU ? `${(g.punkte || []).length} ` : ''}${bpKlapp(!ZU)}</span></button>` : `<div class="nh">${esc(g.titel)}</div>`;
-          return `<div class="ng${g.klasse ? ' ' + esc(g.klasse) : ''}${(g.punkte || []).some((p) => istAn(p.id)) ? ' an' : ''}${ZU ? ' zu' : ''}">${kopf}${!ZU && g.such ? g.such : ''}${P.map((p) => ni(p) + (istAn(p.id) && p.unter ? p.unter : '')).join('')}</div>`; }).join('')
+          return `<div class="ng${g.klasse ? ' ' + esc(g.klasse) : ''}${(g.punkte || []).some((p) => istAn(p.id)) ? ' an' : ''}${ZU ? ' zu' : ''}">${kopf}${!ZU && g.such ? g.such : ''}${P.map((p) => ni(p) + (istAn(p.id) && p.unter ? p.unter : '') + (p.nach || '')).join('')}</div>`; }).join('')
         + (o.fuss || ''), m);
     }
     if (o.nachher) o.nachher(el, m);
@@ -70,11 +70,23 @@
   function fuellen(el, o, vor, nach, m) {
     const dv = el.querySelector(':scope > .nv-davor'), d = o.davor || '';
     if (dv && el._bpDavor === d && el._bpLage === m) {
-      const alt = [...el.childNodes].filter((c) => c !== dv);   // erst das Neue einsetzen, dann das Alte weg – die Höhe schrumpft nie, die Rollposition bleibt
       const vorn = document.createRange().createContextualFragment(vor), hinten = document.createRange().createContextualFragment(nach);
-      el.insertBefore(vorn, el.firstChild); el.appendChild(hinten); alt.forEach((c) => c.remove());
+      const K = [...el.childNodes], i = K.indexOf(dv), av = K.slice(0, i), ah = K.slice(i + 1);
+      if (gleichGebaut(av, [...vorn.childNodes]) && gleichGebaut(ah, [...hinten.childNodes])) {   // gleicher Aufbau (nur „gewählt“, Zahlen, Texte anders): an Ort und Stelle angleichen –
+        angleichen(av, [...vorn.childNodes]); angleichen(ah, [...hinten.childNodes]); }          // die Knoten bleiben, die Verankerung des Browsers hält den angeklickten Punkt, wenn „davor“ wächst
+      else { el.insertBefore(vorn, el.firstChild); el.appendChild(hinten); [...av, ...ah].forEach((c) => c.remove()); }   // sonst erst das Neue einsetzen, dann das Alte weg – die Höhe schrumpft nie
     } else el.innerHTML = vor + `<div class="nv-davor">${d}</div>` + nach;
     el._bpDavor = d; el._bpLage = m;
+  }
+  /* gleicher Aufbau = gleiche Knoten, gleiche Elemente, gleiche Kennung (data-…) – dann werden nur Klassen, Attribute und Texte angeglichen */
+  const kennung = (n) => (n.nodeType === 1 ? n.tagName + '|' + [...n.attributes].filter((x) => x.name.startsWith('data-')).map((x) => x.name + '=' + x.value).join(',') : '#' + n.nodeType);
+  function gleichGebaut(A, B) { return A.length === B.length && A.every((a, k) => kennung(a) === kennung(B[k]) && (a.nodeType !== 1 || gleichGebaut([...a.childNodes], [...B[k].childNodes]))); }
+  function angleichen(A, B) {
+    A.forEach((a, k) => { const b = B[k];
+      if (a.nodeType !== 1) { if (a.nodeValue !== b.nodeValue) a.nodeValue = b.nodeValue; return; }
+      [...a.attributes].forEach((x) => { if (!b.hasAttribute(x.name)) a.removeAttribute(x.name); });
+      [...b.attributes].forEach((x) => { if (a.getAttribute(x.name) !== x.value) a.setAttribute(x.name, x.value); });
+      angleichen([...a.childNodes], [...b.childNodes]); });
   }
   const zu = (el, ausser) => el.querySelectorAll('.npop').forEach((x) => { if (x !== ausser) x.hidden = true; });
   function lageSetzen(l) {

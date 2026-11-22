@@ -79,13 +79,15 @@ export async function adrStartPruefen(browser, repo) {
       await ctx.close(); }
     {   // Video 22.11.2026: Gewerk weiter unten in der Navigation anklicken, während das Suchfeld den Fokus hatte – die Navigation rollte nach oben
       const { ctx, p } = await lauf({ ohne_projekt: true, gefragt: true });
-      await p.setViewportSize({ width: 1400, height: 360 }); await p.waitForTimeout(200);
+      await p.setViewportSize({ width: 1400, height: 360 }); await p.evaluate(() => { document.querySelector('#navL').style.width = '150px'; }); await p.waitForTimeout(200);   // schmal: der zweite Wert bricht im Filterkasten um – der Kasten oben wächst
       await p.click('[data-adr="g:Dachdecker"]'); await p.waitForTimeout(200);   // wie im Video: ein Gewerk ist schon gewählt (Kasten oben steht), dann ein anderes weiter unten
       await p.click('.adr-flt .bpf-in');
       const y0 = await p.evaluate(() => { let s = document.querySelector('[data-adr="g:Putz"]'); while (s && !(s.scrollHeight > s.clientHeight + 4 && /auto|scroll/.test(getComputedStyle(s).overflowY))) s = s.parentElement;
         if (!s) return -1; s.scrollTop = s.scrollHeight; return s.scrollTop > 0 ? document.querySelector('[data-adr="g:Putz"]').getBoundingClientRect().top : -1; });
+      const h0 = await p.evaluate(() => document.querySelector('.adr-flt').offsetHeight);
       await p.click('[data-adr="g:Putz"]'); await p.waitForTimeout(300);
-      const y1 = await p.evaluate(() => document.querySelector('[data-adr="g:Putz"]').getBoundingClientRect().top);   // der angeklickte Punkt bleibt, wo er war
+      const y1 = await p.evaluate(() => document.querySelector('[data-adr="g:Putz"]').getBoundingClientRect().top);   // der angeklickte Punkt bleibt, wo er war – auch wenn oben der Filterkasten wächst
+      pruef(await p.evaluate((h) => document.querySelector('.adr-flt').offsetHeight > h, h0), 'Prüfung greift nicht: der Filterkasten oben wächst beim zweiten Gewerk nicht');
       pruef(y0 > 0 && Math.abs(y1 - y0) < 2 && await zahl(p) === 2, `Gewerk unten in der Navigation: Navigation bleibt stehen, Filter greift – vorher ${y0}, nachher ${y1}, ${await zahl(p)} Treffer`);
       await p.click('.adr-flt .bpf-in'); await p.keyboard.type('Mus', { delay: 60 }); await p.waitForTimeout(300);   // Tippen zeichnet die Navigation neu – das Feld behält Fokus und Text (ohne Merk-Krücke)
       const tp = await p.evaluate(() => ({ fokus: document.activeElement && document.activeElement.classList.contains('bpf-in'), wert: document.querySelector('.adr-flt .bpf-in').value }));

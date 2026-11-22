@@ -209,12 +209,11 @@ function adrNav() {
       such: lang ? `<input type="search" class="adr-su" data-vs="${vs}" data-adrsu="${k}" autocomplete="off" placeholder="${esc(tip)} (${W.length}) …" aria-label="${esc(tip)}">` : '' };
   };
   const pj = gruppe('Projekte', 'p', P, pjs, ADR_IC[''], 'var(--c-v)', 'adrPj', 'Projekt suchen');
-  if (betN) pj.punkte.unshift({ id: 'b', text: 'Beteiligte ' + betN, icon: ADR_IC[''], farbe: 'var(--c-v)', zahl: String(ALL.filter(istBet).length) });
+  if (betN) pj.punkte.unshift({ id: 'b', text: 'Beteiligte ' + betN, icon: ADR_IC[''], farbe: 'var(--c-v)', zahl: String(ALL.filter(istBet).length),
+    nach: `<label class="adr-ohne"><input type="checkbox" data-adrohne${START.ohne_projekt ? ' checked' : ''}> immer ohne Projekt beginnen</label>` });   // unter „Beteiligte …“: wie die Adressen beginnen
   const gw0 = gruppe('Gewerke', 'g', G, gws, ADR_IC.gw, '', 'adrGw', 'Gewerk suchen');
   bpNav(nav, { kopf: { titel: 'Adressen', klein: '' }, lage: true, attr: 'adr', aktiv,
-    davor: '<div class="adr-flt"></div>', nachher: (x, m) => { AF.einhaengen(x.querySelector('.adr-flt'));
-      const b = m !== 'oben' && x.querySelector('[data-adr="b"]');   // unter „Beteiligte …“: wie die Adressen beginnen
-      if (b) b.insertAdjacentHTML('afterend', `<label class="adr-ohne"><input type="checkbox" data-adrohne${START.ohne_projekt ? ' checked' : ''}> immer ohne Projekt beginnen</label>`); },
+    davor: '<div class="adr-flt"></div>', nachher: (x) => AF.einhaengen(x.querySelector('.adr-flt')),
     gruppen: [{ titel: 'Kontakte', punkte: KINDS.map(([k, l]) => ({ id: 'k:' + k, text: l, icon: ADR_IC[k] || ADR_IC.art, farbe: ADR_F[k] || '', zahl: String(k ? n[k] || 0 : ALL.length) })) }]
       .concat(pj.punkte.length || pj.such ? [pj] : []).concat(gw0.punkte.length || gw0.such ? [gw0] : []) });
   bpNav.breite(nav, { key: 'adressen' });

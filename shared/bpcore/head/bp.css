@@ -149,7 +149,7 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .bp-nav-griff::after{content:'';position:sticky;top:calc(50vh - 14px);display:block;margin:0 auto;width:6px;height:28px}
 @media (max-width:900px){.bp-nav-griff{display:none}}
 .bp-nav{position:relative}
-.bp-nav,.bp-nav .bp-nav{overflow-anchor:none}   /* bpNav ersetzt beim Neuzeichnen Kopf und Gruppen an Ort und Stelle (gleiche Höhe) – die Verankerung des Browsers griff dabei den stehenden Platz „davor“ und rollte nach oben (22.11.2026) */
+
 /* Lage der Navigation (o.lage): ⋮⋮ Griff zum Verschieben, Heftzwecke; frei = nur Symbole, Darüberfahren klappt über dem Inhalt auf */
 .bp-nav .ngrip{flex:none;cursor:grab;color:var(--mute);letter-spacing:-.2em;padding:0 .35rem 0 .1rem;border-radius:calc(4px*var(--rk,1));user-select:none;touch-action:none;align-self:center}.bp-nav .ngrip:hover{background:var(--hov);color:var(--ink)}
 /* Heftzwecke: Farbe aus dem Stil (--pin, sonst Akzentfarbe); gelöst schräg und blasser, angeheftet gerade und leicht gefüllt */

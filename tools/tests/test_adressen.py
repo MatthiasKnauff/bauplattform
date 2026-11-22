@@ -298,7 +298,7 @@ def test_aufraeumen(ctx):
 def test_einlesen(ctx):
     """Adressen einlesen (GO 22.11.2026, AE-1 … AE-7 A): Datei (hier CSV) nur gelesen; Firmenspalte ohne passende Überschrift erkannt, zwei Zeilen
     derselben Firma = ein Kontakt mit weiterer Person, „Bauherrin“ = Art Bauherr:in, Projektnummer T101 → beteiligt, unbekannte Nummer
-    → Stichwort, vorhandener Kontakt ergänzt (leere Felder), Rückgängig nimmt alles zurück. Daten erfunden."""
+    bleibt offen am Kontakt (PZ-1), vorhandener Kontakt ergänzt (leere Felder), Rückgängig nimmt alles zurück. Daten erfunden."""
     a, x = ctx.admin, uuid.uuid4().hex[:6]
     t101 = ctx.projekt("T101")
     alt = _neu(ctx, name=f"RT-Ein Alt {x} GmbH", trade="Maler")
@@ -316,7 +316,7 @@ def test_einlesen(ctx):
         K = {k["name"]: k for k in r["kontakte"]}
         d = K[f"RT-Ein Dach {x} GmbH"]
         gleich((len(d["personen"]), [p["name"] for p in d["personen"]], d["zip"], d["city"]), (2, ["Max Beispiel", "Eva Muster"], "45127", "Essen"), "zwei Zeilen = ein Kontakt")
-        gleich(([p["id"] for p in d["projekte"]], d["stichworte"]), ([t101["id"]], ["Z999"]), "Projekt erkannt, unbekannte Nummer als Stichwort")
+        gleich(([p["name"] for p in d["projekte"]], d["projektnr"]), ([t101["name"]], ["T101", "Z999"]), "Projekt erkannt, Nummern am Kontakt")
         gleich(K[f"Rita Probe{x}"]["art"], "bauherr", "Bauherrin → Art")
         gleich((K[f"RT-Ein Alt {x} GmbH"]["aktion"], K[f"RT-Ein Alt {x} GmbH"]["schon"]["id"]), ("ergaenzen", alt), "vorhandener Kontakt")
         e = a.pj("/adressen/api/contacts/einlesen", {"kontakte": r["kontakte"]})
@@ -324,8 +324,8 @@ def test_einlesen(ctx):
         L = a.gj("/adressen/api/contacts")
         ids = [c["id"] for c in L if c["name"] in (f"RT-Ein Dach {x} GmbH", f"Rita Probe{x}")]
         dc = finde(L, name=f"RT-Ein Dach {x} GmbH")
-        gleich((dc["contact_person"], dc["email"], dc["stichworte"], t101["name"] in dc["projects"], [w["wert"] for w in dc["weitere"] if w["typ"] == "person"]),
-               ("Herr Max Beispiel", "a@ein.test", "Z999", True, ["Eva Muster"]), "Kontakt wie eingelesen")
+        gleich((dc["contact_person"], dc["firma"]["ap_anrede"], dc["email"], dc["projektnr"], dc["projektnr_offen"], t101["name"] in dc["projects"], [w["wert"] for w in dc["weitere"] if w["typ"] == "person"]),
+               ("Max Beispiel", "Herr", "a@ein.test", ["T101", "Z999"], ["Z999"], True, ["Eva Muster"]), "Kontakt wie eingelesen")
         gleich(finde(L, name=f"Rita Probe{x}")["kind"], "bauherr", "Art Bauherr:in")
         gleich((_kontakt(ctx, alt)["street"], _kontakt(ctx, alt)["trade"]), ("Straße 3", "Maler"), "nur leere Felder gefüllt")
         a.pj("/adressen/api/contacts/einlesen/zurueck", {})

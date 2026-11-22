@@ -1,5 +1,13 @@
 [
  {
+  "id": "adr-behoerde-2311",
+  "datum": "2026-11-23",
+  "app": "adressen",
+  "titel": "Kontakte: Art oben, Behörden, Person in einer Zeile",
+  "text": "In der Kontaktmaske steht die Art ganz oben – darunter stellt sich die Maske um: Behörden haben „Amt / Abteilung“ statt Gewerk, Bauherr:innen sind eine Person. Anrede, Titel, Name und Zusatz (z. B. M.A.) stehen in einer Zeile. Projektnummern stehen am Kontakt – rechts unter „Projekte“ mit „＋ Projekt“ zuordnen. Die Suche findet jetzt auch Stichwörter.",
+  "ziel": "#navL"
+ },
+ {
   "id": "adr-spalten-2211",
   "datum": "2026-11-22",
   "app": "adressen",

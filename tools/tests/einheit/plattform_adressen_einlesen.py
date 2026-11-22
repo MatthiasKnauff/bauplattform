@@ -39,7 +39,7 @@ def test_spalten_und_ordnen():
     d = K[0]
     gleich(([p["name"] for p in d["personen"]], [p["anrede"] for p in d["personen"]], d["gewerke"], d["zip"], d["city"]),
            (["Max Beispiel", "Eva Muster"], ["Herr", "Frau"], ["Dachdecker", "Klempner"], "45127", "Essen"), "Personen, Gewerke, PLZ/Ort")
-    gleich(([p["name"] for p in d["projekte"]], d["stichworte"], d["mails"], d["tel"]), (["A100 Haus am See"], ["Z900"], ["b@eins.test"], ["0201 2"]), "Projekt, Stichwort, weitere Mail, Fax")
+    gleich(([p["name"] for p in d["projekte"]], d["projektnr"], d["mails"], d["tel"]), (["A100 Haus am See"], ["A100", "Z900"], ["b@eins.test"], ["0201 2"]), "Projektnummern, weitere Mail, Fax")
     gleich((K[1]["art"], K[1]["gewerke"], [p["name"] for p in K[1]["projekte"]]), ("bauherr", [], ["B22 Schule"]), "Bauherrin")
     gleich((K[2]["aktion"], K[2]["schon"]["name"], n), ("ergaenzen", "Alt Bau GmbH", {"neu": 2, "ergaenzen": 1, "ueberspringen": 0, "doppelt": 0}), "vorhandener Kontakt")
 
@@ -52,8 +52,8 @@ def test_einlesen_und_zurueck_felder():
     gleich((r["neu"], r["ergaenzt"]), (3, 1), "angelegt und ergänzt")
     d = c.execute("SELECT * FROM contacts WHERE name='Dach Eins GmbH'").fetchone()
     ex = json.loads(d["extra"])
-    gleich((d["contact_person"], d["email"], d["website"], d["trade"], d["stichworte"], ex["projekte"]),
-           ("Herr Max Beispiel", "a@eins.test", "https://eins.test", "Dachdecker, Klempner", "Z900", [1]), "Felder")
+    gleich((d["contact_person"], ex["firma"]["ap_anrede"], d["email"], d["website"], d["trade"], d["stichworte"], ex["projektnr"]),
+           ("Max Beispiel", "Herr", "a@eins.test", "https://eins.test", "Dachdecker, Klempner", "", ["A100", "Z900"]), "Felder")
     gleich(sorted((w["typ"], w["wert"]) for w in ex["weitere"]), [("mail", "b@eins.test"), ("person", "Eva Muster"), ("tel", "0201 2")], "weitere Angaben")
     pruefe(c.execute("SELECT 1 FROM contacts WHERE name='Dach Eins GmbH (2)'").fetchone(), "doppelt mit Zähler")
     a = c.execute("SELECT * FROM contacts WHERE name='Alt Bau GmbH'").fetchone()
@@ -89,3 +89,35 @@ def test_xlsx():
     wb.save(b)
     Z2 = E.lesen("liste.xlsx", b.getvalue())
     gleich((len(Z2), Z2[0][1], Z2[1][1]), (5, "Müller", "Dach Eins GmbH"), "leere Zeilen weg, Text bleibt")
+
+
+def test_behoerde_und_person():
+    """BH-1 … BH-4: Name „Stadt …“ = Behörde, Gewerk-Spalte = Amt je Person; Titel und Zusatz zerlegt; Bauherr:in als Person."""
+    from bpcore import contacts as KK
+    gleich(KK.person_zerlegen("Hr. Dr. Max Beispiel M.A."), ("Herr", "Dr.", "Max Beispiel", "M.A."), "Person zerlegen")
+    gleich(KK.person_zerlegen("Kira Potschka M.A."), ("", "", "Kira Potschka", "M.A."), "nur Zusatz")
+    Z3 = [["Amt für Baurecht", "Stadt Duisburg", "Fr. Kira Potschka M.A.", "", "", "", "0203 1", "", "", "k@duisburg.test", "", "", ""],
+          ["Untere Denkmalbehörde", "Stadt Duisburg", "Hr. Dr. Jan Beispiel", "", "", "", "", "", "", "", "", "", ""],
+          ["Bauherr", "", "Hr. Prof. Otto Probe", "", "", "", "", "", "", "", "", "", ""]]
+    c = db()
+    K, _ = E.ordnen(c, Z3, E.spalten(KOPF, Z3))
+    b = K[0]
+    gleich((b["art"], b["gewerke"], [p["amt"] for p in b["personen"]]), ("behoerde", [], ["Amt für Baurecht", "Untere Denkmalbehörde"]), "Behörde mit Ämtern")
+    E.einlesen(c, K, "test")
+    r = c.execute("SELECT * FROM contacts WHERE name='Stadt Duisburg'").fetchone()
+    ex = json.loads(r["extra"])
+    gleich((r["art"], r["trade"], r["contact_person"], ex["firma"]["amt"], ex["firma"]["ap_zusatz"], ex["weitere"][0]["amt"], ex["weitere"][0]["titel"]),
+           ("behoerde", "", "Kira Potschka", "Amt für Baurecht", "M.A.", "Untere Denkmalbehörde", "Dr."), "Behörde gespeichert")
+    o = c.execute("SELECT * FROM contacts WHERE name='Otto Probe'").fetchone()
+    gleich((o["art"], o["contact_person"], json.loads(o["extra"])["firma"]["ap_titel"]), ("bauherr", "", "Prof."), "Bauherr als Person")
+
+
+def test_suche_findet_stichwoerter():
+    """Strg+K / Kontaktfeld (contacts.suchen, 23.11.2026): jedes Wort irgendwo – auch Stichwörter, Projektnummern, Amt."""
+    from bpcore import contacts as KK
+    c = db()
+    c.execute("""INSERT INTO contacts(name, stichworte, city, extra) VALUES('Dach Zwei GmbH', 'Gründach', 'Essen', '{"projektnr": ["A528"], "firma": {"amt": "Bauordnungsamt"}}')""")
+    gleich([x["name"] for x in KK.suchen(c, "gründach")], ["Dach Zwei GmbH"], "Stichwort")
+    gleich([x["name"] for x in KK.suchen(c, "a528 essen")], ["Dach Zwei GmbH"], "Projektnummer und Ort")
+    gleich([x["name"] for x in KK.suchen(c, "bauordnungsamt")], ["Dach Zwei GmbH"], "Amt")
+    gleich(KK.suchen(c, "gründach köln"), [], "jedes Wort muss passen")

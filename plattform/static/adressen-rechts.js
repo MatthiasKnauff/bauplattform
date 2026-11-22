@@ -21,7 +21,7 @@ function adrFuellen(el, id) {
   const c = adrC();
   if (!c) { el.innerHTML = '<div class="adr-r mute">Links einen Kontakt anklicken – hier stehen dann seine Angaben, Projekte und der Schriftverkehr.</div>'; return; }
   if (id === 'kontakt') el.innerHTML = adrKontaktHtml(c);
-  if (id === 'projekte') el.innerHTML = `<div class="adr-r"><h3>${esc(c.name)}</h3>${adrProjekteHtml(c) || '<p class="mute">In keinem Projekt eingetragen.</p>'}</div>`;
+  if (id === 'projekte') { el.innerHTML = `<div class="adr-r"><h3>${esc(c.name)}</h3>${adrProjekteHtml(c, true) || '<p class="mute">In keinem Projekt eingetragen.</p>'}<div><button type="button" class="btn sm" data-adrpj>＋ Projekt</button></div></div>`; adrOrdner().then(() => { if (ADR_SEL === c.id && el.isConnected && el.querySelector('[data-adrpj]')) el.querySelector('.adr-r').innerHTML = `<h3>${esc(c.name)}</h3>${adrProjekteHtml(c, true) || '<p class="mute">In keinem Projekt eingetragen.</p>'}<div><button type="button" class="btn sm" data-adrpj>＋ Projekt</button></div>`; }); }
   if (id === 'schrift') adrSchrift(el, c);
 }
 function adrAlleNeu() { ['kontakt', 'projekte', 'schrift'].forEach((k) => adrFuellen(null, k)); }
@@ -42,10 +42,32 @@ function adrKontaktHtml(c) {
     <div class="adr-ab" data-adrzuletzt><b>Zuletzt</b><div class="mute">wird geladen …</div></div>
     <div><button type="button" class="btn sm" data-adredit>✎ Bearbeiten</button></div></div>`;
 }
-function adrProjekteHtml(c) {
-  const P = [...new Set([...(c.projects || []), c.site_of].filter(Boolean))];
-  return P.map((p) => `<div class="adr-pz"><span>${esc(p)}</span><small class="mute">${p === c.site_of ? 'Baustelle' : 'beteiligt'}</small></div>`).join('');
+/* Projektnummern am Kontakt (Mock „Behörden in den Adressen“ PZ-1, 23.11.2026): ein Projekt im Bauportal mit dem Kürzel = beteiligt; sonst steht der Name
+   aus den Projektordnern des Dateiservers daneben (nur gelesen, es wird kein Projekt angelegt). ＋ Projekt sucht in beidem. */
+let ADR_ORD = null, ADR_ORDL = [];   // Projektordner – einmal je Seite geholt
+const adrOrdner = () => (ADR_ORD || (ADR_ORD = api('api/contacts/projektordner').then((L) => (ADR_ORDL = Array.isArray(L) ? L : [])).catch(() => (ADR_ORDL = []))));
+const adrKuerzel = (n) => ((/^\s*([A-Za-z]{1,3}\d{2,5}(?:\.\d+)?)\b/.exec(n || '') || [])[1] || '').toUpperCase();
+function adrProjekteHtml(c, aendern) {
+  const P = [...new Set([...(c.projects || []), c.site_of].filter(Boolean))], O = ADR_ORDL;
+  const nrVon = (p) => (c.projektnr || []).find((k) => adrKuerzel(p) === k);
+  return P.map((p) => `<div class="adr-pz"><span>${esc(p)}</span><small class="mute">${p === c.site_of ? 'Baustelle' : 'beteiligt'}</small>${aendern && nrVon(p) ? `<button type="button" class="bph-x" data-adrpjx="${esc(nrVon(p))}" title="Projekt vom Kontakt lösen" aria-label="lösen">✕</button>` : ''}</div>`).join('')
+    + (c.projektnr_offen || []).map((k) => { const o = O.find((n) => adrKuerzel(n) === k);
+      return `<div class="adr-pz"><span>${esc(o || k)}</span><small class="mute" title="Projekt noch nicht im Bauportal – Name aus dem Projektordner">${o ? 'Ordner' : 'Nummer'}</small>${aendern ? `<button type="button" class="bph-x" data-adrpjx="${esc(k)}" title="Projektnummer entfernen" aria-label="entfernen">✕</button>` : ''}</div>`; }).join('');
 }
+async function adrProjektnr(c, L, text) {
+  const alt = c.projektnr || [];
+  await api(`api/bp/kontakte/${c.id}`, 'PUT', { projektnr: L }); await load();
+  rueckgaengig(text, async () => { await api(`api/bp/kontakte/${c.id}`, 'PUT', { projektnr: alt }); await load(); }, { neu: load });
+}
+document.addEventListener('click', async (e) => {
+  const c = ADR_SEL && ALL.find((x) => x.id === ADR_SEL); if (!c) return;
+  const x = e.target.closest('[data-adrpjx]');
+  if (x) return adrProjektnr(c, (c.projektnr || []).filter((k) => k !== x.dataset.adrpjx), `Projekt ${x.dataset.adrpjx} gelöst`);
+  const b = e.target.closest('[data-adrpj]'); if (!b) return;
+  const [PJ, ORD] = await Promise.all([api('api/bp/projekte').catch(() => []), adrOrdner()]);
+  const namen = [...new Set([...(Array.isArray(PJ) ? PJ : PJ.projekte || []).map((p) => p.name), ...(Array.isArray(ORD) ? ORD : [])])].filter((n) => adrKuerzel(n) && !(c.projektnr || []).includes(adrKuerzel(n)));
+  pickMenu(b, { search: 'Projekt oder Nummer …', items: namen.map((n) => ({ title: n, value: adrKuerzel(n) })), onPick: (k) => adrProjektnr(c, [...(c.projektnr || []), k], `Projekt ${k} zugeordnet`) });
+});
 async function adrVerlauf(c) {   // Schriftverkehr aus dem Kern – einmal je Kontakt geholt, für „Zuletzt“ und den Reiter
   if (ADR_VL.id === c.id && ADR_VL.L) return ADR_VL.L;
   const id = c.id; ADR_VL = { id, L: null };

@@ -20,14 +20,16 @@ export async function kontaktPruefen(browser, repo) {
     await p.goto('http://kontakt.test/seite');
     await p.evaluate(() => { bpKontakt({ id: 5, name: 'Fa. Dunker', trade: 'Baustelleneinrichtung', tags: 'Stammfirma' }, { voll: true, speichern: async (d) => { window.D = d; return d; } }); });
     await p.waitForSelector('[data-chipin="trade"]');
-    const lage = await p.evaluate(() => { const r = (k) => document.querySelector(`[data-kmf="${k}"]`).closest('.bph-dm-f').getBoundingClientRect();
-      return { nebenGewerk: Math.abs(r('contact_person').top - r('trade').top) < 4, funktionHalb: r('role').width < r('name').width * 0.7,
-        gleichHoch: ((a, b) => Math.abs(a.top - b.top) < 2 && Math.abs(a.height - b.height) < 2)(document.querySelector('.bph-chips').getBoundingClientRect(), document.querySelector('[data-kmf="contact_person"]').getBoundingClientRect()),
+    // Mock „Behörden in den Adressen“ (BH-0 … BH-4, 22.11.2026): Art ganz oben, Person in einer Zeile, Maske stellt sich je Art um
+    const lage = await p.evaluate(() => { const r = (el) => el.getBoundingClientRect(), g = document.querySelector('.bph-dm-g'), z = document.querySelector('.bph-kpz');
+      const top = (e) => Math.round(r(e).top);
+      return { artOben: g.firstElementChild.querySelector('[data-kmart]') !== null, zeile: z && [...z.children].every((e) => Math.abs(top(e) - top(z.children[0])) < 3),
+        funktionHalb: r(document.querySelector('[data-kmf="role"]')).width < r(document.querySelector('[data-kmf="name"]')).width * 0.7,
         innenOhneRahmen: getComputedStyle(document.querySelector('[data-chipin="trade"]')).borderTopWidth === '0px' }; });
-    await p.evaluate(() => { const s = document.querySelector('.bph-kap select'); if (!s) return; const w = document.createElement('span'); w.className = 'bph-pa'; w.innerHTML = '<input value="Anrede –">'; s.replaceWith(w); });   // wie head.js (projektAuswahl) die Auswahl ersetzt – hier ohne head.js
-    const at = await p.evaluate(() => { const a = document.querySelector('.bph-kap > :first-child'), t = document.querySelector('[data-kmfi="ap_titel"]'); return a && t ? [a.getBoundingClientRect().right, t.getBoundingClientRect().left] : null; });
+    pruef(lage.artOben && lage.zeile && lage.funktionHalb && lage.innenOhneRahmen, `Anordnung: Art oben, Person in einer Zeile, Funktion halb breit – ${JSON.stringify(lage)}`);
+    await p.evaluate(() => { const s = document.querySelector('.bph-kpz select'); if (!s) return; const w = document.createElement('span'); w.className = 'bph-pa'; w.innerHTML = '<input value="Anrede –">'; s.replaceWith(w); });   // wie head.js (projektAuswahl) die Auswahl ersetzt – hier ohne head.js
+    const at = await p.evaluate(() => { const a = document.querySelector('.bph-kpz > :first-child'), t = document.querySelector('[data-kmfi="ap_titel"]'); return a && t ? [a.getBoundingClientRect().right, t.getBoundingClientRect().left] : null; });
     pruef(at && at[0] <= at[1] + 1, `Anrede schiebt sich über den Titel (22.11.2026, „rof.“ statt „Prof.“) – ${JSON.stringify(at)}`);
-    pruef(lage.nebenGewerk && lage.funktionHalb && lage.gleichHoch && lage.innenOhneRahmen, `Anordnung: Ansprechpartner:in neben Gewerk auf gleicher Höhe, Funktion halb breit, Eingabe im Baustein-Feld ohne eigenen Rahmen – ${JSON.stringify(lage)}`);
     await p.click('[data-chipin="trade"]'); await p.keyboard.type('Ger'); await p.waitForTimeout(400);
     pruef(await p.evaluate(() => /Gerüstbau/.test(document.querySelector('[data-chl="trade"]').textContent)), 'Gewerk: kein Vorschlag „Gerüstbau“ beim Tippen von „Ger“');
     pruef(await p.evaluate(() => { const z = [...document.querySelectorAll('[data-chl="trade"] [data-chipw]')].find((x) => /Gerüstbau/.test(x.textContent)); return !!(z && z.querySelector('[data-bpbegr="kontakt.trade"]')); }), 'Gewerk-Vorschlag ohne 🗑 (löschen mit Ersatz)');
@@ -39,6 +41,26 @@ export async function kontaktPruefen(browser, repo) {
     await p.click('[data-kms]'); await p.waitForTimeout(200);
     const D = await p.evaluate(() => window.D && { trade: D.trade, stichworte: D.stichworte, tags: D.tags });
     pruef(D && D.trade === 'Baustelleneinrichtung, Gerüstbau' && D.stichworte === 'Gründach' && D.tags === '', `Gespeichert: ${JSON.stringify(D)}`);
+    {   // Behörde: Amt statt Gewerk, „Kira Potschka M.A.“ zerlegt; Bauherr:in: Name in der Personenzeile
+      await p.evaluate(() => { document.querySelectorAll('.bph-dlg-bg').forEach((x) => x.remove()); window.D = null;
+        bpKontakt({ id: 6, name: 'Stadt Duisburg', art: '', trade: 'Amt für Baurecht', contact_person: 'Kira Potschka M.A.' }, { voll: true, speichern: async (d) => { window.D = d; return d; } }); });
+      await p.waitForSelector('[data-kmart]');
+      let z = await p.evaluate(() => ({ n: document.querySelector('[data-kmf="contact_person"]').value, zu: document.querySelector('[data-kmfi="ap_zusatz"]').value }));
+      pruef(z.n === 'Kira Potschka' && z.zu === 'M.A.', `älterer Eintrag zerlegt: ${JSON.stringify(z)}`);
+      await p.selectOption('[data-kmart]', 'behoerde');
+      z = await p.evaluate(() => ({ amt: !document.querySelector('[data-kmfi="amt"]').closest('[data-fuer]').hidden, gw: document.querySelector('[data-chips="trade"]').closest('[data-fuer]').hidden, lab: document.querySelector('[data-kmnlab]').textContent }));
+      pruef(z.amt && z.gw && z.lab === 'Behörde', `Behörde: Amt statt Gewerk – ${JSON.stringify(z)}`);
+      await p.fill('[data-kmfi="amt"]', 'Bauordnungsamt'); await p.click('[data-kms]'); await p.waitForTimeout(200);
+      z = await p.evaluate(() => window.D && { art: D.art, amt: D.firma.amt, zu: D.firma.ap_zusatz, cp: D.contact_person });
+      pruef(z && z.art === 'behoerde' && z.amt === 'Bauordnungsamt' && z.zu === 'M.A.' && z.cp === 'Kira Potschka', `Behörde gespeichert: ${JSON.stringify(z)}`);
+      await p.evaluate(() => { document.querySelectorAll('.bph-dlg-bg').forEach((x) => x.remove()); window.D = null;
+        bpKontakt({ id: 7, name: 'Herr Dr. Otto Probe', art: 'bauherr' }, { voll: true, speichern: async (d) => { window.D = d; return d; } }); });
+      await p.waitForSelector('[data-kmart]');
+      z = await p.evaluate(() => ({ imZeile: !!document.querySelector('.bph-kpz [data-kmf="name"]'), name: document.querySelector('[data-kmf="name"]').value, ti: document.querySelector('[data-kmfi="ap_titel"]').value, lab: document.querySelector('[data-kmplab]').textContent }));
+      pruef(z.imZeile && z.name === 'Otto Probe' && z.ti === 'Dr.' && z.lab === 'Person', `Bauherr:in als Person: ${JSON.stringify(z)}`);
+      await p.check('[data-kmfi="ist_firma"]');
+      pruef(await p.evaluate(() => !document.querySelector('.bph-kpz [data-kmf="name"]') && !document.querySelector('[data-kmf="contact_person"]').hidden), '„ist eine Firma“: Name wieder oben, Ansprechpartner:in in der Zeile');
+    }
     // Neuer Kontakt: Firmen und Ämter aus dem Netz beim Namen; ein eingetragener Ort verfeinert die Suche (GO 17.11.2026)
     await p.evaluate(() => { document.querySelectorAll('.bph-dlg-bg').forEach((x) => x.remove()); bpKontakt({}, { voll: true, speichern: async (d) => d }); });
     await p.waitForSelector('[data-kmsug]', { state: 'attached', timeout: 5000 });

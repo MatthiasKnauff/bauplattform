@@ -122,7 +122,8 @@ def _usage(c):
 
 
 STANDARD_ART = {"firma": "firma", "firmen": "firma", "bauherr": "bauherr", "bauherr:in": "bauherr", "bauherr:innen": "bauherr", "bauherrin": "bauherr", "bauherren": "bauherr", "baustelle": "baustelle", "baustellen": "baustelle",
-                "plotdienst": "Plotdienst", "plotdienste": "Plotdienst", "plotservice": "Plotdienst"}
+                "plotdienst": "Plotdienst", "plotdienste": "Plotdienst", "plotservice": "Plotdienst",
+                "behoerde": "behoerde", "behörde": "behoerde", "behörden": "behoerde", "amt": "behoerde"}   # Behörde als feste Art (BH-1, 22.11.2026)
 
 
 def _kind(r, site):
@@ -145,7 +146,10 @@ def _out(r, used, site, pnamen=None):
     d["weitere"] = _extra(r["extra"] if "extra" in r.keys() else "{}").get("weitere") or []
     d["firma"] = shared_contacts.firma(r)
     n, names = used.get(r["id"], (0, []))
-    names = names + [pnamen[p] for p in (_extra(r["extra"] if "extra" in r.keys() else "{}").get("projekte") or []) if pnamen and p in pnamen]   # beteiligt laut Einlesen (contacts.extra.projekte)
+    ex, pn = _extra(r["extra"] if "extra" in r.keys() else "{}"), pnamen or {}
+    nr = ex.get("projektnr") or []   # Projektnummern am Kontakt (PZ-1): Projekt im Bauportal mit diesem Kürzel → beteiligt, sonst bleibt die Nummer offen
+    names = names + [pn[p] for p in (ex.get("projekte") or []) if p in pn] + [pn[k] for k in nr if k in pn]
+    d["projektnr"], d["projektnr_offen"] = nr, [k for k in nr if k not in pn]
     d.update(id=r["id"], kind=_kind(r, site), used=n, projects=sorted(set(names)), site_of=site.get(r["id"], ""),
              updated=r["updated"] or "")
     return d
@@ -172,7 +176,12 @@ def _now():
 def list_contacts():
     with db.tx() as c:
         used, site = _usage(c)
-        pn = {r["id"]: r["name"] for r in c.execute("SELECT id, name FROM projects")}
+        pn = {}
+        for r in c.execute("SELECT id, name FROM projects"):
+            pn[r["id"]] = r["name"]
+            k = shared_contacts.projekt_kuerzel(r["name"])
+            if k:
+                pn.setdefault(k, r["name"])
         rows = [_out(r, used, site, pn) for r in c.execute("SELECT * FROM contacts ORDER BY name")]
     return jsonify(rows)
 
@@ -294,6 +303,16 @@ def einlesen_ordnen():
     with db.tx() as c:
         K, n = EIN.ordnen(c, Z, S)
     return jsonify(kontakte=K, summe=n)
+
+
+@app.get("/api/contacts/projektordner")
+def projektordner():
+    """Projektordner des Dateiservers (nur gelesen – es wird kein Projekt angelegt, PZ-1): Namen zu Projektnummern und Auswahl „＋ Projekt“."""
+    try:
+        L = C.bt_api("GET", "/api/store/folders?alle=1") or []
+    except RuntimeError:
+        L = []
+    return jsonify([n for n in L if isinstance(n, str)])
 
 
 def _einlesen_key():

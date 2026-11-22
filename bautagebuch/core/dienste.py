@@ -44,6 +44,14 @@ def einrichten():
     except Exception as e:   # noqa: BLE001
         fehler.still("dienste", "Verweise im Wärmeschutz ergänzen", e)
     try:
+        from bpcore import contacts
+        with db.tx() as c:
+            n = contacts.projektnr_umziehen(c)   # Projektnummern aus den Stichwörtern (Einlesen bis 22.11.2026) an den Kontakt – PZ-1
+        if n:
+            print(f"Dienste: Projektnummern an {n} Kontakten umgezogen", flush=True)
+    except Exception as e:   # noqa: BLE001
+        fehler.still("dienste", "Projektnummern der Kontakte umziehen", e)
+    try:
         from . import buero_doku
         print("Dienste:", buero_doku.ablegen(), flush=True)   # ToDo-Liste der Bauplattform → Pläne & Dateien, Projekt „Büro“
     except Exception as e:   # noqa: BLE001 – ohne ToDo-Liste läuft alles weiter

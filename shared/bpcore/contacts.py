@@ -230,10 +230,15 @@ def liste(v):
 
 def begriffe(c):
     """Alle Gewerke, Stichwörter und Tags der Adressen mit Anzahl – für die Vorschläge in der Kontaktmaske, häufigste zuerst."""
-    out = {k: {} for k in LISTEN}
-    for r in c.execute("SELECT trade, stichworte, tags FROM contacts").fetchall():
-        for k in LISTEN:
-            for x in liste(r[k]):
+    out = {k: {} for k in (*LISTEN, "amt")}
+    for r in c.execute("SELECT trade, stichworte, tags, extra FROM contacts").fetchall():
+        ex = _json(r["extra"])
+        amt = [(ex.get("firma") or {}).get("amt") or ""] + [w.get("amt") or "" for w in ex.get("weitere") or [] if isinstance(w, dict)]   # Ämter der Behörden (BH-1)
+        for k in (*LISTEN, "amt"):
+            for x in (amt if k == "amt" else liste(r[k])):
+                x = " ".join(str(x).split())
+                if not x:
+                    continue
                 d = out[k]
                 schon = next((y for y in d if y.lower() == x.lower()), x)
                 d[schon] = d.get(schon, 0) + 1
@@ -260,9 +265,62 @@ def bereinigen(d, partial=False):
     return out
 
 
+# ---- Projektnummern (Mock „Behörden in den Adressen“ PZ-1, 22.11.2026): am Kontakt steht das Kürzel (A528), kein Projekt im Bauportal nötig;
+# gibt es ein Projekt, dessen Name mit dem Kürzel beginnt, gehört der Kontakt dazu („Beteiligte“) – sonst kommt der Name aus den Projektordnern
+_PNR = _re.compile(r"^[A-Za-z]{1,3}\d{2,5}(?:\.\d+)?$")
+
+
+def projektnr_bereinigen(L):
+    out = []
+    for x in (L if isinstance(L, list) else [])[:40]:
+        x = " ".join(str(x or "").split()).upper()
+        if _PNR.match(x) and x not in out:
+            out.append(x)
+    return out
+
+
+_TITEL = _re.compile(r"^((?:Prof\.|Dr\.(?:-Ing\.)?|Dipl\.-[\wäöü]+\.?|Dr\. med\.)\s*)+", _re.I)
+_ZUSATZ = _re.compile(r"(?:,?\s+(?:M\.\s?A\.|B\.\s?A\.|M\.\s?Sc\.|B\.\s?Sc\.|M\.\s?Eng\.|B\.\s?Eng\.|LL\.\s?M\.|MBA|M\.\s?Arch\.|B\.\s?Arch\.))+$", _re.I)
+
+
+def person_zerlegen(t):
+    """„Hr. Dr. Max Beispiel M.A.“ → (Herr, Dr., Max Beispiel, M.A.) – eine Person in einer Zeile (BH-2, 22.11.2026)."""
+    t = " ".join(str(t or "").split())
+    m = _re.match(r"(hr\.?|herrn?|fr\.?|frau)\s+", t, _re.I)
+    anrede = ("Herr" if m.group(1).lower().startswith("h") else "Frau") if m else ""
+    t = t[m.end():] if m else t
+    mt = _TITEL.match(t)
+    titel = mt.group(0).strip() if mt else ""
+    t = t[mt.end():] if mt else t
+    mz = _ZUSATZ.search(t)
+    zusatz = mz.group(0).strip(" ,") if mz else ""
+    return anrede, titel, (t[:mz.start()] if mz else t).strip(" ,"), zusatz
+
+
+def projekt_kuerzel(name):
+    m = _re.match(r"\s*([A-Za-z]{1,3}\d{2,5}(?:\.\d+)?)\b", name or "")
+    return m.group(1).upper() if m else ""
+
+
+def projektnr_umziehen(c):
+    """Einmal (Dienste beim Start): Projektnummern, die das Einlesen bis 22.11.2026 als Stichwort abgelegt hat, an den Kontakt (extra.projektnr)."""
+    n = 0
+    for r in c.execute("SELECT id, stichworte, extra FROM contacts WHERE stichworte <> ''").fetchall():
+        L = liste(r["stichworte"])
+        nr = [x for x in L if _PNR.match(x) and _re.search(r"\d{3}", x)]
+        if not nr:
+            continue
+        ex = _json(r["extra"])
+        ex["projektnr"] = projektnr_bereinigen((ex.get("projektnr") or []) + nr)
+        c.execute("UPDATE contacts SET stichworte=?, extra=? WHERE id=?", (", ".join(x for x in L if x not in nr), json.dumps(ex, ensure_ascii=False), r["id"]))
+        n += 1
+    return n
+
+
 def aus(r):
     d = {"id": r["id"], **{k: (r[k] if k in r.keys() else "") or "" for k in FELDER}}
     d["weitere"] = (_json(r["extra"]).get("weitere") or []) if "extra" in r.keys() else []
+    d["projektnr"] = (_json(r["extra"]).get("projektnr") or []) if "extra" in r.keys() else []
     d["firma"] = firma(r)
     return d
 
@@ -270,7 +328,8 @@ def aus(r):
 # ---- Firma (GO 18.11.2026, AB-C1): Rechtsform, Sitz / Registergericht, Handelsregister, Mitarbeiter:innen – in contacts.extra.firma;
 # gelesen von der Angebotsbesprechung (Bieter:in), dorthin zurück beim Abschließen des Protokolls
 FIRMA = {"rechtsform": 80, "sitz": 200, "hrb": 80, "mitarbeiter": 40, "rechnung": 600, "ustid": 80, "oeffentlich": 3,   # rechnung/ustid/oeffentlich: Bauherr:in (PD-A1, 18.11.2026)
-         "ap_anrede": 10, "ap_titel": 40}   # Anrede/Titel der Hauptansprechperson (AP-B1, 18.11.2026)
+         "ap_anrede": 10, "ap_titel": 40,   # Anrede/Titel der Hauptansprechperson (AP-B1, 18.11.2026)
+         "ap_zusatz": 40, "amt": 200, "ist_firma": 3}   # Zusatz hinter dem Namen (M.A.), Amt/Abteilung einer Behörde, Bauherr:in ist eine Firma (Mock „Behörden in den Adressen“ BH-1 … BH-4, 22.11.2026)
 ANREDEN = ("Herr", "Frau")
 
 
@@ -285,6 +344,7 @@ def firma_bereinigen(f):
     out = {k: " ".join(str(f.get(k) or "").split())[:mx] for k, mx in FIRMA.items()}
     out["rechnung"] = "\n".join(" ".join(z.split()) for z in str(f.get("rechnung") or "").splitlines() if z.strip())[:FIRMA["rechnung"]]   # Anschrift: Zeilen bleiben
     out["oeffentlich"] = "ja" if f.get("oeffentlich") in (True, "ja", "1", 1, "on") else ""
+    out["ist_firma"] = "ja" if f.get("ist_firma") in (True, "ja", "1", 1, "on") else ""
     out["ap_anrede"] = out["ap_anrede"] if out["ap_anrede"] in ANREDEN else ""
     return out
 
@@ -325,9 +385,9 @@ def weitere_bereinigen(L):
         if not isinstance(x, dict) or x.get("typ") not in WEITERE_TYP:
             continue
         y = {"typ": x["typ"]}
-        for k, mx in (("bez", 80), ("wert", 200), ("street", 200), ("zip", 20), ("city", 200), ("tel", 100), ("mail", 200), ("anrede", 10), ("titel", 40)):
+        for k, mx in (("bez", 80), ("wert", 200), ("street", 200), ("zip", 20), ("city", 200), ("tel", 100), ("mail", 200), ("anrede", 10), ("titel", 40), ("zusatz", 40), ("amt", 200)):
             v = " ".join(str(x.get(k) or "").split())[:mx]
-            if v and (k != "anrede" or v in ANREDEN) and (k not in ("anrede", "titel") or y["typ"] == "person"):
+            if v and (k != "anrede" or v in ANREDEN) and (k not in ("anrede", "titel", "zusatz", "amt") or y["typ"] == "person"):
                 y[k] = v
         for k in ("mail",) + (("wert",) if y["typ"] == "mail" else ()):
             if y.get(k) and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", y[k]):
@@ -338,13 +398,16 @@ def weitere_bereinigen(L):
 
 
 def suchen(c, q, rolle="", n=12):
-    """Kontakte zur Eingabe: Name, Ansprechpartner, Gewerk oder Ort enthält den Text; Namensanfang und passende Rolle zuerst."""
+    """Kontakte zur Eingabe und für die Suche (Strg+K): JEDES Wort muss irgendwo vorkommen – Name, Ansprechpartner, Gewerk, Ort, Stichwörter,
+    Tags, Funktion, Telefon, Mail, Anschrift, Notizen und die weiteren Angaben (Personen, Ämter, Projektnummern); Namensanfang und passende Rolle
+    zuerst. Bis 23.11.2026 suchte es nur Name, Ansprechpartner, Gewerk und Ort mit dem ganzen Text – Stichwörter fand die Suche nicht."""
     q = " ".join(str(q or "").split())[:100].lower()
     if not q:
         return []
-    like = f"%{q}%"
-    rows = c.execute("""SELECT * FROM contacts WHERE lower(name) LIKE ? OR lower(contact_person) LIKE ? OR lower(trade) LIKE ?
-                        OR lower(city) LIKE ? ORDER BY name LIMIT 200""", (like, like, like, like)).fetchall()
+    text = "lower(" + " || ' ' || ".join(f"coalesce({k}, '')" for k in ("name", "contact_person", "trade", "city", "stichworte", "tags", "role", "phone", "mobile",
+                                                                            "email", "street", "zip", "notes", "extra")) + ")"
+    W = q.split()[:8]
+    rows = c.execute(f"SELECT * FROM contacts WHERE {' AND '.join([text + ' LIKE ?'] * len(W))} ORDER BY name LIMIT 200", [f"%{w}%" for w in W]).fetchall()
     rl = (rolle or "").lower()
 
     def rang(r):
@@ -378,7 +441,8 @@ def mail_adressen(k):
     f = ex.get("firma") or {}
     fm = k["email"] or ""
     if fm:
-        out.append({"email": fm, "name": k["contact_person"] or "", "funktion": "Firma", "anrede": f.get("ap_anrede") or "", "titel": f.get("ap_titel") or "", "eigene": True})
+        person = (k["art"] if "art" in k.keys() else "") == "bauherr" and not f.get("ist_firma") and not k["contact_person"]   # Bauherr:in als Person (BH-4): der Name ist die Person
+        out.append({"email": fm, "name": (k["name"] if person else k["contact_person"]) or "", "funktion": "Firma", "anrede": f.get("ap_anrede") or "", "titel": f.get("ap_titel") or "", "eigene": True})
     for w in ex.get("weitere") or []:
         if not isinstance(w, dict):
             continue

@@ -9,8 +9,8 @@ hält sie, bis eingelesen ist. Nichts davon kommt in die Datenbank außer den Ko
   POST /api/contacts/einlesen/zurueck {stand}          → {ok}                      Rückgängig für das ganze Einlesen
 
 AE-2 Spalten nach der Überschrift, in der Vorschau änderbar · AE-3 mehrere Zeilen derselben Firma = ein Kontakt, Personen als
-weitere Ansprechpartner · AE-4 Gewerk „Bauherr…“ = Art Bauherr:in · AE-5 Projektnummer → Projekt mit diesem Kürzel (contacts.extra.projekte),
-sonst Stichwort · AE-6 schon vorhandene: ergänzen (leere Felder füllen) · überspringen · doppelt · AE-7 Gewerke so übernehmen (danach „Aufräumen“).
+weitere Ansprechpartner · AE-4 Gewerk „Bauherr…“ = Art Bauherr:in · AE-5 Projektnummer am Kontakt (contacts.extra.projektnr – PZ-1: gehört zum Projekt im Bauportal mit
+diesem Kürzel, sonst Name aus den Projektordnern) · AE-6 schon vorhandene: ergänzen (leere Felder füllen) · überspringen · doppelt · AE-7 Gewerke so übernehmen (danach „Aufräumen“).
 """
 import csv, io, json, re
 from datetime import datetime
@@ -96,11 +96,7 @@ def spalten(kopf, zeilen):
     return S
 
 
-def _anrede(p):
-    m = re.match(r"\s*(hr\.?|herr|fr\.?|frau)\s+", p, re.I)
-    if not m:
-        return "", p.strip()
-    return ("Herr" if m.group(1).lower().startswith("h") else "Frau"), p[m.end():].strip()
+_BEHOERDE = re.compile(r"^(stadt|kreis|landkreis|amt|bezirksregierung|gemeinde|land|landesbetrieb|regierungspräsidium|landratsamt|bauaufsicht|untere|obere|kreisverwaltung|stadtverwaltung)\b", re.I)   # BH-1
 
 
 def _plzort(v):
@@ -109,12 +105,12 @@ def _plzort(v):
 
 
 def _projekte(c):
-    """Kürzel vorn im Projektnamen („A481 Tierheim …“) → Projekt"""
+    """Kürzel vorn im Projektnamen („A481 Tierheim …“) → Name – nur für die Vorschau; am Kontakt steht das Kürzel (PZ-1)"""
     P = {}
-    for r in c.execute("SELECT id, name FROM projects").fetchall():
-        m = re.match(r"\s*([A-Za-z]{1,3}\d{2,5}(?:\.\d+)?)\b", r["name"] or "")
-        if m:
-            P.setdefault(m.group(1).upper(), (r["id"], r["name"]))
+    for r in c.execute("SELECT name FROM projects").fetchall():
+        k = K.projekt_kuerzel(r["name"])
+        if k:
+            P.setdefault(k, r["name"])
     return P
 
 
@@ -132,26 +128,29 @@ def ordnen(c, zeilen, S):
             continue
         gw = w.get("gewerk", "")
         bauherr = bool(re.match(r"\s*bauherr", gw, re.I))
-        anrede, person = _anrede(w.get("person", ""))
+        anrede, titel, person, zusatz = K.person_zerlegen(w.get("person", ""))
         if not person and w.get("nachname"):
             person = w["nachname"]
         name = (w.get("firma") or person or "").strip()[:200]
+        behoerde = bool(_BEHOERDE.match(name)) and not bauherr
         if not name:
             continue
         key = K.name_norm(name) or name.lower()
         k = G.get(key)
         if not k:
             plz, ort = _plzort(w.get("plzort", "")) if w.get("plzort") else (w.get("plz", ""), w.get("ort", ""))
-            k = G[key] = {"name": name, "art": "bauherr" if bauherr else "", "gewerke": [], "street": w.get("strasse", "")[:200],
+            k = G[key] = {"name": name, "art": "bauherr" if bauherr else "behoerde" if behoerde else "", "gewerke": [], "street": w.get("strasse", "")[:200],
                           "zip": plz[:20], "city": ort[:200], "website": w.get("web", "")[:300], "personen": [], "mails": [], "tel": [],
-                          "projekte": [], "stichworte": [], "notizen": [], "zeilen": 0}
+                          "projekte": [], "projektnr": [], "notizen": [], "zeilen": 0}
             reihe.append(key)
         k["zeilen"] += 1
-        if gw and not bauherr and gw.lower() not in [x.lower() for x in k["gewerke"]]:
+        if gw and not bauherr and k["art"] != "behoerde" and gw.lower() not in [x.lower() for x in k["gewerke"]]:
             k["gewerke"].append(gw[:80])
         mails = _MAIL.findall(w.get("mail", ""))
-        p = {"anrede": anrede, "name": person if person != name else "", "tel": w.get("tel", ""), "mobil": w.get("mobil", ""),
-             "mail": mails[0] if mails else "", "funktion": w.get("funktion", "")}
+        p = {"anrede": anrede, "titel": titel, "name": person if person != name else "", "zusatz": zusatz, "tel": w.get("tel", ""), "mobil": w.get("mobil", ""),
+             "mail": mails[0] if mails else "", "funktion": w.get("funktion", ""), "amt": gw if k["art"] == "behoerde" else ""}   # Behörde: Gewerk-Spalte = Amt (BH-1)
+        if k["art"] == "bauherr" and not w.get("firma") and not k["personen"]:   # Bauherr:in = Person (BH-4): Anrede, Titel, Zusatz gehören zum Kontakt selbst
+            k["person"] = {"anrede": anrede, "titel": titel, "zusatz": zusatz}
         if any(p.values()):
             k["personen"].append(p)
         for m in mails[1:]:
@@ -161,10 +160,10 @@ def ordnen(c, zeilen, S):
             k["tel"].append(w["fax"])
         for nr in _PROJ.findall(w.get("projekt", "")):
             nr = nr.upper()
-            if nr in P and P[nr][0] not in [x["id"] for x in k["projekte"]]:
-                k["projekte"].append({"id": P[nr][0], "name": P[nr][1]})
-            elif nr not in P and nr not in k["stichworte"]:
-                k["stichworte"].append(nr)
+            if nr not in k["projektnr"]:
+                k["projektnr"].append(nr)
+                if nr in P:
+                    k["projekte"].append({"nr": nr, "name": P[nr]})   # nur fürs Anzeigen
         if w.get("notiz") and w["notiz"] not in k["notizen"]:
             k["notizen"].append(w["notiz"])
         for f, ziel in (("strasse", "street"), ("web", "website")):   # Angaben der ersten Zeile, die sie hat
@@ -188,26 +187,29 @@ def summe(L):
 
 
 def _felder(k):
-    """Kontakt aus der Vorschau → Spalten und extra (wie die Kontaktmaske sie schreibt)"""
+    """Kontakt aus der Vorschau → Spalten, weitere Angaben, Firma (Anrede/Titel/Zusatz der Person, Amt) und Projektnummern – wie die Kontaktmaske sie schreibt"""
     P = k.get("personen") or []
     p0 = P[0] if P else {}
-    d = {"name": k["name"][:200], "trade": ", ".join(k.get("gewerke") or [])[:300], "contact_person": " ".join(x for x in (p0.get("anrede"), p0.get("name")) if x)[:200],
+    bh = k.get("art") == "bauherr" and k.get("person") is not None   # Bauherr:in als Person: die Person ist der Kontakt selbst (BH-4)
+    d = {"name": k["name"][:200], "trade": ", ".join(k.get("gewerke") or [])[:300], "contact_person": "" if bh else (p0.get("name") or "")[:200],
          "role": (p0.get("funktion") or "")[:200], "phone": (p0.get("tel") or "")[:100], "mobile": (p0.get("mobil") or "")[:100],
          "email": (p0.get("mail") or "")[:200], "website": (k.get("website") or "")[:300], "street": (k.get("street") or "")[:200],
          "zip": (k.get("zip") or "")[:20], "city": (k.get("city") or "")[:200], "notes": "\n".join(k.get("notizen") or [])[:5000],
-         "art": "bauherr" if k.get("art") == "bauherr" else "", "stichworte": ", ".join(k.get("stichworte") or [])[:600]}
+         "art": k.get("art") if k.get("art") in ("bauherr", "behoerde") else ""}
     if d["website"] and not re.match(r"https?://", d["website"], re.I):
         d["website"] = "https://" + d["website"]
+    q = k.get("person") if bh else p0
+    F = {"ap_anrede": q.get("anrede") or "", "ap_titel": q.get("titel") or "", "ap_zusatz": q.get("zusatz") or "", "amt": p0.get("amt") or ""}
     W = []
     for p in P[1:]:
         if p.get("name") or p.get("tel") or p.get("mobil") or p.get("mail"):
-            W.append({"typ": "person", "wert": p.get("name") or "Ansprechpartner:in", "anrede": p.get("anrede") or "", "tel": p.get("mobil") or p.get("tel") or "",
-                      "mail": p.get("mail") or "", "bez": p.get("funktion") or ""})
+            W.append({"typ": "person", "wert": p.get("name") or "Ansprechpartner:in", "anrede": p.get("anrede") or "", "titel": p.get("titel") or "", "zusatz": p.get("zusatz") or "",
+                      "amt": p.get("amt") or "", "tel": p.get("mobil") or p.get("tel") or "", "mail": p.get("mail") or "", "bez": p.get("funktion") or ""})
     for m in k.get("mails") or []:
         W.append({"typ": "mail", "wert": m})
     for t in k.get("tel") or []:
         W.append({"typ": "tel", "bez": "Fax", "wert": t})
-    return d, K.weitere_bereinigen(W), [x["id"] for x in k.get("projekte") or [] if isinstance(x, dict) and isinstance(x.get("id"), int)]
+    return d, K.weitere_bereinigen(W), {x: v for x, v in K.firma_bereinigen(F).items() if v}, K.projektnr_bereinigen(k.get("projektnr") or [])
 
 
 def einlesen(c, L, wer):
@@ -219,7 +221,7 @@ def einlesen(c, L, wer):
         akt = k.get("aktion") or "neu"
         if akt == "ueberspringen" or not str(k.get("name") or "").strip():
             continue
-        d, W, P = _felder(k)
+        d, W, FI, P = _felder(k)
         ziel = namen.get(K.name_norm(d["name"])) if akt == "ergaenzen" else None
         if ziel:
             r = c.execute("SELECT * FROM contacts WHERE id=?", (ziel,)).fetchone()
@@ -228,11 +230,14 @@ def einlesen(c, L, wer):
             ch = {f: v for f, v in d.items() if v and not (r[f] or "").strip()}
             alt_w = ex.get("weitere") or []
             dazu = [w for w in W if w not in alt_w and not (w["typ"] == "person" and any(a.get("typ") == "person" and a.get("wert") == w["wert"] for a in alt_w))]
-            pj = [p for p in P if p not in (ex.get("projekte") or [])]
-            if dazu or pj:
+            pj = [p for p in P if p not in (ex.get("projektnr") or [])]
+            fi = {f: v for f, v in FI.items() if not (ex.get("firma") or {}).get(f)}
+            if dazu or pj or fi:
                 ex["weitere"] = K.weitere_bereinigen(alt_w + dazu)
                 if pj:
-                    ex["projekte"] = (ex.get("projekte") or []) + pj
+                    ex["projektnr"] = (ex.get("projektnr") or []) + pj
+                if fi:
+                    ex["firma"] = {**(ex.get("firma") or {}), **fi}
                 ch["extra"] = json.dumps(ex, ensure_ascii=False)
             if ch:
                 c.execute(f"UPDATE contacts SET {', '.join(f + '=?' for f in ch)}, updated=? WHERE id=?", (*ch.values(), jetzt, ziel))
@@ -244,7 +249,7 @@ def einlesen(c, L, wer):
             while K.name_norm(f"{name} ({i})") in namen:
                 i += 1
             d["name"] = f"{name} ({i})"[:200]
-        ex = {**({"weitere": W} if W else {}), **({"projekte": P} if P else {})}
+        ex = {**({"weitere": W} if W else {}), **({"firma": FI} if FI else {}), **({"projektnr": P} if P else {})}
         cols = list(d) + ["extra", "created", "updated"]
         cid = c.execute(f"INSERT INTO contacts({', '.join(cols)}) VALUES({', '.join('?' * len(cols))}) RETURNING id",
                         (*d.values(), json.dumps(ex, ensure_ascii=False), jetzt, jetzt)).fetchone()[0]

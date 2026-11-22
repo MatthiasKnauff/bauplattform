@@ -141,7 +141,7 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
 <script src="bp/filter.js"></script>
 <script src="bp/kontakt.js"></script>
 <script>
-const KINDS0 = [['', 'Alle'], ['firma', 'Firmen'], ['bauherr', 'Bauherr:innen'], ['baustelle', 'Baustellen']];
+const KINDS0 = [['', 'Alle'], ['firma', 'Firmen'], ['bauherr', 'Bauherr:innen'], ['behoerde', 'Behörden'], ['baustelle', 'Baustellen']];
 let KINDS = KINDS0;   // + eigene Arten aus den Kontakten (Feld „Art“), automatisch als Filterknopf
 const eigeneArten = () => [...new Set(ALL.map((c) => c.kind).filter((k) => k && !KINDN[k]))].sort((a, b) => a.localeCompare(b, 'de'));
 const artenNeu = () => { KINDS = [...KINDS0, ...eigeneArten().map((k) => [k, k])]; if (kind && !KINDS.some((x) => x[0] === kind)) kind = ''; };
@@ -164,9 +164,10 @@ async function load() {
 const liste = (v) => String(v || '').split(/[,;]/).map((x) => x.trim()).filter(Boolean);
 let START = { ohne_projekt: false, gefragt: false }, startFertig = false;   // je Person: mit oder ohne Projektbezug beginnen (/api/me → start)
 const AF = bpFilter({ key: 'adressen', leerStart: true, items: () => ALL, aendern: () => { const vor = bet; render(); if (startFertig && vor && !bet && !START.gefragt) ohneFragen(); },
-  text: (c) => [c.name, c.trade, c.stichworte, c.tags, c.contact_person, c.role, c.city, c.zip, c.street, c.phone, c.mobile, c.email, c.website, c.notes, wtText(c)].join(' '),
+  text: (c) => [c.name, c.trade, c.stichworte, c.tags, (c.firma || {}).amt, ...(c.projektnr || []), c.contact_person, c.role, c.city, c.zip, c.street, c.phone, c.mobile, c.email, c.website, c.notes, wtText(c)].join(' '),
   arten: [{ key: 'art', name: 'Art', farbe: 'var(--c-gb)', werte: (c) => [KINDN[c.kind] || c.kind] },
     { key: 'gewerk', name: 'Gewerk', farbe: 'var(--c-b)', werte: (c) => trades(c) },
+    { key: 'amt', name: 'Amt', farbe: 'var(--c-t)', werte: (c) => [(c.firma || {}).amt, ...(c.weitere || []).map((w) => w.amt)].filter(Boolean) },   // Behörden (BH-3)
     { key: 'funktion', name: 'Funktion', farbe: 'var(--c-v)', werte: (c) => liste(c.role) },
     { key: 'stichwort', name: 'Stichwort', farbe: 'var(--c-o)', werte: (c) => liste(c.stichworte) },
     { key: 'tag', name: 'Tag', farbe: 'var(--c-r)', werte: (c) => liste(c.tags) },
@@ -193,7 +194,8 @@ function zaehlen(f) { const Z = {}; ALL.forEach((c) => f(c).forEach((w) => { Z[w
 const GW_Z = () => zaehlen((c) => (c.kind === 'firma' ? trades(c) : [])), PJ_Z = () => zaehlen(projekteVon);
 const vsListe = (Z) => () => Object.entries(Z()).sort((a, b) => a[0].localeCompare(b[0], 'de')).map(([w, n]) => ({ w, t: n + ' Kontakt' + (n > 1 ? 'e' : '') }));
 bpVorschlag.listen.adrGw = vsListe(GW_Z); bpVorschlag.listen.adrPj = vsListe(PJ_Z);
-const ADR_ART = { g: 'gewerk', p: 'projekt' };
+bpVorschlag.listen.adrAmt = vsListe(() => zaehlen((c) => (c.kind === 'behoerde' ? [(c.firma || {}).amt, ...(c.weitere || []).map((w) => w.amt)].filter(Boolean) : [])));
+const ADR_ART = { g: 'gewerk', p: 'projekt', a: 'amt' };
 function adrNav() {
   const n = {}; ALL.forEach((c) => { n[c.kind] = (n[c.kind] || 0) + 1; });
   const G = GW_Z(), P = PJ_Z(), Zl = zuletzt();
@@ -212,10 +214,13 @@ function adrNav() {
   if (betN) pj.punkte.unshift({ id: 'b', text: 'Beteiligte ' + betN, icon: ADR_IC[''], farbe: 'var(--c-v)', zahl: String(ALL.filter(istBet).length),
     nach: `<label class="adr-ohne"><input type="checkbox" data-adrohne${START.ohne_projekt ? ' checked' : ''}> immer ohne Projekt beginnen</label>` });   // unter „Beteiligte …“: wie die Adressen beginnen
   const gw0 = gruppe('Gewerke', 'g', G, gws, ADR_IC.gw, '', 'adrGw', 'Gewerk suchen');
+  const AM = zaehlen((c) => (c.kind === 'behoerde' ? [(c.firma || {}).amt, ...(c.weitere || []).map((w) => w.amt)].filter(Boolean) : [])), ams = AF.werte('amt');
+  const am0 = gruppe('Ämter der Behörden', 'a', AM, ams, ADR_IC.art, 'var(--c-t)', 'adrAmt', 'Amt suchen');   // BH-3: Behörden nach Amt
+  aktiv.push(...ams.map((a) => 'a:' + a));
   bpNav(nav, { kopf: { titel: 'Adressen', klein: '' }, lage: true, attr: 'adr', aktiv,
     davor: '<div class="adr-flt"></div>', nachher: (x) => AF.einhaengen(x.querySelector('.adr-flt')),
     gruppen: [{ titel: 'Kontakte', punkte: KINDS.map(([k, l]) => ({ id: 'k:' + k, text: l, icon: ADR_IC[k] || ADR_IC.art, farbe: ADR_F[k] || '', zahl: String(k ? n[k] || 0 : ALL.length) })) }]
-      .concat(pj.punkte.length || pj.such ? [pj] : []).concat(gw0.punkte.length || gw0.such ? [gw0] : []) });
+      .concat(pj.punkte.length || pj.such ? [pj] : []).concat(gw0.punkte.length || gw0.such ? [gw0] : []).concat(am0.punkte.length || am0.such ? [am0] : []) });
   bpNav.breite(nav, { key: 'adressen' });
 }
 function adrNimm(art, w) { if (art !== 'art') zuletztMerken(art, w); AF.umschalten(art, w); }
@@ -223,9 +228,10 @@ $('#navL').addEventListener('click', (e) => { const b = e.target.closest('[data-
   if (v === 'b') return adrNimm('projekt', betN);
   if (v.startsWith('g:')) return adrNimm('gewerk', v.slice(2));
   if (v.startsWith('p:')) return adrNimm('projekt', v.slice(2));
+  if (v.startsWith('a:')) return adrNimm('amt', v.slice(2));
   if (v.slice(2)) adrNimm('art', KINDN[v.slice(2)] || v.slice(2)); else AF.weg('art'); });   // Filterwert = Name wie in der Karte („Firma“), nicht die Beschriftung links („Firmen“)
 $('#navL').addEventListener('change', (e) => { const i = e.target.closest('[data-adrsu]'); if (!i) return;   // Suchfeld einer langen Gruppe: nur ein Eintrag aus der Liste wird Filter
-  const art = ADR_ART[i.dataset.adrsu], Z = art === 'gewerk' ? GW_Z() : PJ_Z(), w = Object.keys(Z).find((x) => x.toLocaleLowerCase('de') === i.value.trim().toLocaleLowerCase('de'));
+  const art = ADR_ART[i.dataset.adrsu], Z = art === 'gewerk' ? GW_Z() : art === 'amt' ? bpVorschlag.listen.adrAmt().reduce((o, x) => ({ ...o, [x.w]: 1 }), {}) : PJ_Z(), w = Object.keys(Z).find((x) => x.toLocaleLowerCase('de') === i.value.trim().toLocaleLowerCase('de'));
   if (!w) return; i.value = ''; if (!AF.werte(art).includes(w)) adrNimm(art, w); });
 async function startSpeichern() { try { START = await api('api/ansicht/start', 'PUT', START); } catch { /* egal – gilt dann eben nur jetzt */ } }
 async function ohneFragen() {   // Projektfilter weggeklickt: einmal fragen, die Antwort steht danach als Häkchen unter „Beteiligte …“
@@ -274,7 +280,7 @@ const COLS = [
   ['street', 'Straße', 190], ['zip', 'PLZ', 70], ['city', 'Ort', 140], ['notes', 'Notizen', 240], ['used', 'Im Bautagebuch', 200, 'ro'],
   ['stichworte', 'Stichwörter', 160], ['projekte', 'Projekt', 200, 'ro'], ['tags', 'Tags', 140], ['weitere', 'Weitere Ansprechpartner', 220, 'ro'],
   ['wtel', 'Weitere Nummern', 180, 'ro'], ['wmail', 'Weitere E-Mails', 210, 'ro'], ['updated', 'Geändert', 110, 'ro']];   // hinten angehängt: die gemerkte Spaltenwahl (bp.sp.adressen) zählt nach Nummer
-const KINDN = { firma: 'Firma', bauherr: 'Bauherr:in', baustelle: 'Baustelle' };
+const KINDN = { firma: 'Firma', bauherr: 'Bauherr:in', behoerde: 'Behörde', baustelle: 'Baustelle' };
 let TV;
 try { TV = JSON.parse(localStorage.getItem('adr.tabelle')) || {}; } catch { TV = {}; }
 const TVW = TV.w || {};

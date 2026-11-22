@@ -805,6 +805,7 @@ def blueprint(get_user=None):
             d = contacts.bereinigen(b, partial=cid is not None)
             wt = contacts.weitere_bereinigen(b["weitere"]) if isinstance(b.get("weitere"), list) else None
             fi = contacts.firma_bereinigen(b["firma"]) if isinstance(b.get("firma"), dict) else None   # Rechtsform, Sitz, HRB, Mitarbeiter:innen
+            pn = contacts.projektnr_bereinigen(b["projektnr"]) if isinstance(b.get("projektnr"), list) else None   # Projektnummern (PZ-1)
         except ValueError as e:
             return jsonify(error=str(e)), 400
         if not d.get("name", "x"):
@@ -824,8 +825,10 @@ def blueprint(get_user=None):
                     with c.savepoint():
                         if d:
                             c.execute(f"UPDATE contacts SET {', '.join(k + '=?' for k in d)}, updated=? WHERE id=?", (*d.values(), ts, cid))
-                if wt is not None or fi is not None:   # weitere Nummern, Mails, Anschriften, Ansprechpartner; Firma – im extra-JSON, Rest bleibt
+                if wt is not None or fi is not None or pn is not None:   # weitere Nummern, Mails, Anschriften, Ansprechpartner; Firma; Projektnummern – im extra-JSON, Rest bleibt
                     ex = json.loads(c.execute("SELECT extra FROM contacts WHERE id=?", (cid,)).fetchone()["extra"] or "{}") or {}
+                    if pn is not None:
+                        ex["projektnr"] = pn
                     if wt is not None:
                         ex["weitere"] = wt
                     if fi is not None:

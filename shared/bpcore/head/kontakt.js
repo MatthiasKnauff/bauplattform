@@ -15,7 +15,10 @@
   const esc = window.bpEsc;
   const KX = (u, o = {}) => fetch(u, { credentials: 'same-origin', ...o }).then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok || j.error) { const e = new Error(j.error || 'Fehler ' + r.status); e.data = j; throw e; } return j; });
   const css = document.createElement('style');
-  css.textContent = `.bph-kmk .bph-kap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem}.bph-kmk .bph-kap .bph-pa{min-width:0}.bph-kmk .bph-km-q{display:flex;flex-wrap:wrap;gap:.3rem;margin:0 0 .6rem}.bph-kmk .bph-km-q .bph-btn{font-size:.85em;padding:.25rem .65rem;text-decoration:none}
+  css.textContent = `.bph-kmk .bph-kap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem}.bph-kmk .bph-kap .bph-pa{min-width:0}
+.bph-kmk .bph-kpz{display:grid;grid-template-columns:minmax(6rem,.8fr) minmax(5rem,.7fr) minmax(0,2.4fr) minmax(4rem,.7fr);gap:.35rem}.bph-kmk .bph-kpz .bph-pa{min-width:0}
+.bph-kmk .bph-kpz>*{min-width:0}.bph-kmk [data-fuer][hidden]{display:none!important}
+.bph-kmk:not(.art-behoerde) .bph-kwt [data-wk="amt"]{display:none}.bph-kmk .bph-km-q{display:flex;flex-wrap:wrap;gap:.3rem;margin:0 0 .6rem}.bph-kmk .bph-km-q .bph-btn{font-size:.85em;padding:.25rem .65rem;text-decoration:none}
 .bph-kmk .bph-km-map{position:relative;margin:0 0 .7rem;border-radius:calc(10px*var(--rk,1));overflow:hidden;border:1px solid var(--line,#ccc);height:150px}
 .bph-kmk .bph-km-map iframe{border:0;width:100%;height:100%;display:block}
 .bph-kmk .bph-km-map a{position:absolute;right:.4rem;bottom:.4rem;background:var(--card,#fff);color:var(--ink,#222);border-radius:calc(6px*var(--rk,1));padding:.1rem .5rem;font-size:.8em;text-decoration:none;box-shadow:var(--sh0,0 1px 4px rgba(0,0,0,.2))}
@@ -32,13 +35,26 @@
 .bph-kmk .bph-km-del{color:var(--red,#c0392b);border-color:color-mix(in srgb,var(--red,#c0392b) 45%,transparent)}`;
   document.head.appendChild(css);
   /* Felder (15.11.2026): Ansprechpartner:in neben dem Gewerk, Funktion darunter halb breit; Gewerk, Stichwörter, Tags als Bausteine mit Vorschlägen */
-  const F = [['name', 'Firma / Name', 'w'], ['trade', 'Gewerk / Rolle', '', 'chips'], ['contact_person', 'Ansprechpartner:in', ''], ['role', 'Funktion', ''], ['', '', ''],
+  /* Art ganz oben, darunter stellt sich die Maske um (Mock „Behörden in den Adressen“ BH-0 … BH-4, 22.11.2026): Firma · Bauherr:in (Person, „ist eine Firma“)
+     · Behörde (Amt / Abteilung statt Gewerk) · Baustelle · eigene Arten. Felder mit data-fuer stehen nur bei diesen Arten; die Person steht in EINER Zeile
+     (Anrede · Titel · Vorname Name · Zusatz) – bei Bauherr:in als Person ist der Name die Person selbst. */
+  const ARTEN = [['firma', 'Firma'], ['bauherr', 'Bauherr:in'], ['behoerde', 'Behörde'], ['baustelle', 'Baustelle']];
+  const F = [['@art', 'Art', 'w'], ['name', 'Firma / Name', 'w'], ['@istfirma', '', 'w', '', '', 'bauherr'], ['trade', 'Gewerk / Rolle', 'w', 'chips', '', 'firma eigen'],
+    ['@amt', 'Amt / Abteilung', 'w', '', '', 'behoerde'], ['@person', 'Ansprechpartner:in', 'w', '', '', 'firma behoerde bauherr eigen'], ['role', 'Funktion', '', '', '', 'firma behoerde eigen'],
     ['phone', 'Telefon', '', 'tel'], ['mobile', 'Mobil', '', 'tel'], ['email', 'E-Mail', '', 'email'], ['website', 'Internet', '', 'url']];
+  const TITEL = ['Dr.', 'Prof.', 'Prof. Dr.', 'Dr.-Ing.', 'Dipl.-Ing.', 'Dipl.-Kfm.'], ZUSATZ = ['M.A.', 'B.A.', 'M.Sc.', 'B.Sc.', 'M.Eng.', 'B.Eng.', 'LL.M.', 'MBA'];
+  if (window.bpVorschlag) { bpVorschlag.listen.kmTitel = TITEL.map((w) => ({ w })); bpVorschlag.listen.kmZusatz = ZUSATZ.map((w) => ({ w })); }
+  /* „Hr. Dr. Max Beispiel M.A.“ → [Herr, Dr., Max Beispiel, M.A.] – wie bpcore/contacts.person_zerlegen (ältere Einträge beim Öffnen) */
+  const zerlegen = (t) => { t = String(t || '').replace(/\s+/g, ' ').trim(); let a = '', ti = '', z = '';
+    const m = /^(hr\.?|herrn?|fr\.?|frau)\s+/i.exec(t); if (m) { a = /^h/i.test(m[1]) ? 'Herr' : 'Frau'; t = t.slice(m[0].length); }
+    const mt = /^((?:Prof\.|Dr\.(?:-Ing\.)?|Dipl\.-[\wäöü]+\.?)\s*)+/i.exec(t); if (mt) { ti = mt[0].trim(); t = t.slice(mt[0].length); }
+    const mz = /(?:,?\s+(?:M\.\s?A\.|B\.\s?A\.|M\.\s?Sc\.|B\.\s?Sc\.|M\.\s?Eng\.|B\.\s?Eng\.|LL\.\s?M\.|MBA|M\.\s?Arch\.|B\.\s?Arch\.))+$/i.exec(t); if (mz) { z = mz[0].replace(/^[\s,]+/, ''); t = t.slice(0, mz.index); }
+    return [a, ti, t.replace(/[\s,]+$/, ''), z]; };
   const F3 = [['stichworte', 'Stichwörter', 'w', 'chips', 'Was die Firma kann – zum Finden (z. B. Flachdach, Gründach, Denkmal)'], ['tags', 'Tags', 'w', 'chips', 'Eure Einschätzung (z. B. Stammfirma, zuverlässig, nicht mehr beauftragen)']];
   const liste = (v) => { const o = []; String(v || '').replace(/;/g, ',').split(',').forEach((x) => { x = x.trim().replace(/\s+/g, ' '); if (x && !o.some((y) => y.toLowerCase() === x.toLowerCase())) o.push(x); }); return o; };
   const tagArt = (t) => (/nicht mehr|gesperrt|keine? auftr|schlecht/i.test(t) ? ' rot' : /stamm|zuverl|empfohl|gut/i.test(t) ? ' gruen' : '');
   let BEGR = null, BEGR_T = 0;   // Gewerke, Stichwörter, Tags der Adressen mit Anzahl – einmal je Minute geladen
-  const F2 = [['art', 'Art', 'w', '', 'Firma, Bauherr:in, Baustelle, Plotdienst – oder eine eigene Art (z. B. Behörde, Planer:in)'], ['street', 'Straße, Nr.', 'w'], ['zip', 'PLZ', ''], ['city', 'Ort', '']];
+  const F2 = [['street', 'Straße, Nr.', 'w'], ['zip', 'PLZ', ''], ['city', 'Ort', '']];
   const WT = { tel: ['☎', 'Telefon', 'z. B. Zentrale, Büro, privat'], mail: ['✉', 'E-Mail', 'z. B. Rechnungen, Buchhaltung'], adr: ['📍', 'Anschrift', 'z. B. Rechnungsanschrift, Lager'], person: ['👤', 'Ansprechpartner:in', 'Funktion, z. B. Bauleiter:in'] };
   const tel = (n) => String(n || '').replace(/[^\d+]/g, '');
   const addr = (c) => [c.street, [c.zip, c.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
@@ -49,7 +65,7 @@
   const wtZeile = (x, i) => {
     const v = (k) => esc(x[k] || ''), [ic, t, ph] = WT[x.typ] || WT.tel, inp = (k, pl, ty, cl) => `<input data-kwt="${i}" data-wk="${k}"${ty ? ` type="${ty}"` : ''}${cl ? ` class="${cl}"` : ''} value="${v(k)}" placeholder="${pl}" autocomplete="off" aria-label="${pl}">`;
     const f = x.typ === 'adr' ? inp('street', 'Straße, Nr.', '', 'w2') + inp('zip', 'PLZ') + inp('city', 'Ort')
-      : x.typ === 'person' ? anrSel(`data-kwt="${i}" data-wk="anrede"`, x.anrede) + inp('titel', 'Titel (Dr., Prof.)') + inp('wert', 'Name') + inp('bez', ph) + inp('tel', 'Telefon', 'tel') + inp('mail', 'E-Mail (leer = die der Firma)', 'email')
+      : x.typ === 'person' ? inp('amt', 'Amt / Abteilung', '', 'w2') + anrSel(`data-kwt="${i}" data-wk="anrede"`, x.anrede) + inp('titel', 'Titel (Dr., Prof.)') + inp('wert', 'Vorname Name') + inp('zusatz', 'Zusatz (M.A.)') + inp('bez', ph) + inp('tel', 'Telefon', 'tel') + inp('mail', 'E-Mail (leer = die der Firma)', 'email')
         : inp('wert', t, x.typ === 'mail' ? 'email' : 'tel', 'w2');
     return `<div class="bph-kwt-z"><div class="bph-kwt-t"><span>${ic} ${t}</span>${x.typ === 'person' ? '' : inp('bez', ph)}<button type="button" class="bph-x" data-kwtx="${i}" title="Entfernen" aria-label="Entfernen">✕</button></div><div class="bph-kwt-f">${f}</div></div>`;
   };
@@ -77,9 +93,21 @@
       c.email && `<a class="bph-btn" href="mailto:${esc(c.email)}" data-mailwahl="${esc(c.email)}" data-firma="${esc(c.name)}" title="E-Mail – normal über Outlook oder ein Schreiben aus der Plattform">✉ E-Mail</a>`,
       ...wtTel(c).map(([b, n]) => `<a class="bph-btn" href="tel:${esc(tel(n))}">☎ ${esc(b || n)}</a>`), ...wtMails(c).slice(1).map((m) => `<a class="bph-btn" href="mailto:${esc(m)}" data-mailwahl="${esc(m)}" data-firma="${esc(c.name)}">✉ ${esc(m)}</a>`),
       route && `<a class="bph-btn" href="${esc(route)}" target="_blank" rel="noopener" title="Route in Google Maps planen">🧭 Route</a>`, (H.app === 'adressen' || appZiel('adressen')) && `<a class="bph-btn" href="${esc(vcf)}" title="Visitenkarte – ins Handy übernehmen">Ins Handy</a>`].filter(Boolean).join('');
-    const feld = ([k, l, w, t, tip]) => !k ? `<div class="bph-dm-f"><span>Anrede · Titel</span><span class="bph-kap">${anrSel('data-kmfi="ap_anrede"', (c.firma || {}).ap_anrede)}<input data-kmfi="ap_titel" value="${esc((c.firma || {}).ap_titel || '')}" placeholder="Dr., Prof." autocomplete="off" aria-label="Titel"></span></div>`
-      : t === 'chips' ? `<div class="bph-dm-f${w ? ' bph-dm-w' : ''} bph-chf"${tip ? ` title="${esc(tip)}"` : ''}><span>${l}</span><div class="bph-chips" data-chips="${k}"></div><input type="hidden" data-kmf="${k}" value="${esc(c[k] || '')}"><div class="bph-chl" data-chl="${k}" hidden></div></div>`
-      : `<label class="bph-dm-f${w ? ' bph-dm-w' : ''}"${tip ? ` title="${esc(tip)}"` : ''}><span>${l}</span><input data-kmf="${k}" type="${t || 'text'}" value="${esc(c[k] || '')}" autocomplete="off"${k === 'zip' ? ' inputmode="numeric"' : ''}></label>`;
+    const FI = c.firma || {}, ARTW = ARTEN.map((x) => x[0]);
+    const artVon = (x) => { const a = String(x.art || '').toLowerCase(); return a === '' || a === 'firma' ? (ARTW.includes(x.kind) ? x.kind : 'firma') : ARTW.includes(a) ? a : a === 'behörde' ? 'behoerde' : x.art; };
+    let ART = artVon(c);
+    if (!FI.ap_titel && !FI.ap_zusatz && !FI.ap_anrede) {   // ältere Einträge: „Kira Potschka M.A.“ / „Herr Dr. Max Beispiel“ beim Öffnen zerlegen (BH-2)
+      const bhp = ART === 'bauherr' && !c.contact_person && FI.ist_firma !== 'ja', [a, ti, n, z] = zerlegen(bhp ? c.name : c.contact_person);
+      if (a || ti || z) { FI.ap_anrede = a; FI.ap_titel = ti; FI.ap_zusatz = z; if (bhp) c.name = n; else c.contact_person = n; }
+    }
+    const artOpt = () => [...ARTEN, ...(ARTW.includes(ART) ? [] : [[ART, ART]]), ['eigen', 'eigene Art …']].map(([k, t]) => `<option value="${esc(k)}"${k === ART ? ' selected' : ''}>${esc(t)}</option>`).join('');
+    const fuer = (f) => (f ? ` data-fuer="${f}"` : '');
+    const feld = ([k, l, w, t, tip, f]) => k === '@art' ? `<div class="bph-dm-f bph-dm-w"><span>Art</span><select data-kmart data-bp-auswahl aria-label="Art">${artOpt()}</select></div>`
+      : k === '@istfirma' ? `<label class="bph-ck bph-dm-w"${fuer(f)}><input type="checkbox" data-kmfi="ist_firma"${FI.ist_firma === 'ja' ? ' checked' : ''}> ist eine Firma (dann Firma und Ansprechpartner:in)</label>`
+      : k === '@amt' ? `<label class="bph-dm-f bph-dm-w"${fuer(f)}><span>${l}</span><input data-kmfi="amt" data-vs="kmAmt" value="${esc(FI.amt || '')}" autocomplete="off" placeholder="z. B. Bauordnungsamt, Untere Denkmalbehörde"></label>`
+      : k === '@person' ? `<div class="bph-dm-f bph-dm-w"${fuer(f)}><span data-kmplab>${l}</span><span class="bph-kpz">${anrSel('data-kmfi="ap_anrede"', FI.ap_anrede)}<input data-kmfi="ap_titel" data-vs="kmTitel" value="${esc(FI.ap_titel || '')}" placeholder="Titel" autocomplete="off" aria-label="Titel"><span data-kmpslot><input data-kmf="contact_person" value="${esc(c.contact_person || '')}" placeholder="Vorname Name" autocomplete="off" aria-label="Vorname Name"></span><input data-kmfi="ap_zusatz" data-vs="kmZusatz" value="${esc(FI.ap_zusatz || '')}" placeholder="Zusatz" autocomplete="off" aria-label="Zusatz (M.A.)"></span></div>`
+      : t === 'chips' ? `<div class="bph-dm-f${w ? ' bph-dm-w' : ''} bph-chf"${tip ? ` title="${esc(tip)}"` : ''}${fuer(f)}><span>${l}</span><div class="bph-chips" data-chips="${k}"></div><input type="hidden" data-kmf="${k}" value="${esc(c[k] || '')}"><div class="bph-chl" data-chl="${k}" hidden></div></div>`
+      : `<label class="bph-dm-f${w ? ' bph-dm-w' : ''}"${tip ? ` title="${esc(tip)}"` : ''}${fuer(f)}><span${k === 'name' ? ' data-kmnlab' : ''}>${l}</span><input data-kmf="${k}" type="${t || 'text'}" value="${esc(c[k] || '')}" autocomplete="off"${k === 'zip' ? ' inputmode="numeric"' : ''}></label>`;
     return new Promise((fertig) => {
       const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
       bg.innerHTML = `<div class="bph-dlg bph-dm bph-kmk" role="dialog" aria-label="Kontakt" style="width:min(640px,96vw)"><div class="bph-dlg-h"><b>${neu ? 'Neuer Kontakt' : esc(c.name || 'Kontakt')}</b><button type="button" class="bph-x" data-kmx aria-label="Schließen">✕</button></div>
@@ -99,6 +127,25 @@
         <div class="bph-row bph-km-f">${!neu && opt.loeschen ? '<button type="button" class="bph-btn bph-km-del" data-kmdel>Löschen</button>' : ''}<span class="bph-km-sp" title="Dieselben Adressen in allen Apps – in „Adressen“, im Bautagebuch, im Bauzeitenplan, in der AVA …"></span><button type="button" class="bph-btn" data-kmx>Abbrechen</button><button type="button" class="bph-btn pri" data-kms>${neu ? 'Anlegen' : 'Speichern'}</button></div></div>`;
       document.body.appendChild(bg);
       const root = bg.firstChild, q = (a) => root.querySelector(a);
+      /* Art ganz oben stellt die Maske um (BH-0): Felder mit data-fuer, Bauherr:in als Person = der Name steht in der Personenzeile (BH-4) */
+      const nameF = q('[data-kmf="name"]'), nameL = nameF.closest('label'), cpF = q('[data-kmf="contact_person"]'), slot = q('[data-kmpslot]');
+      const NAMEL = { firma: 'Firma / Name', behoerde: 'Behörde', baustelle: 'Bezeichnung', bauherr: 'Firma', eigen: 'Name' };
+      const artSetzen = () => {
+        const k = ARTW.includes(ART) ? ART : 'eigen', istF = !!(q('[data-kmfi="ist_firma"]') || {}).checked, person = k === 'bauherr' && !istF, sicht = k === 'bauherr' && istF ? 'firma' : k;
+        root.className = root.className.replace(/\bart-\S+/g, '').trim() + ' art-' + k;
+        root.querySelectorAll('[data-fuer]').forEach((el) => { const L = el.dataset.fuer.split(' '); el.hidden = !(L.includes(k) || L.includes(sicht)); });
+        if (person) { if (nameF.parentElement !== slot) slot.prepend(nameF); cpF.hidden = true; nameL.hidden = true; nameF.placeholder = 'Vorname Name'; q('[data-kmplab]').textContent = 'Person'; }
+        else { if (nameF.parentElement === slot) nameL.appendChild(nameF); cpF.hidden = false; nameL.hidden = false; nameF.placeholder = ''; q('[data-kmplab]').textContent = 'Ansprechpartner:in'; q('[data-kmnlab]').textContent = NAMEL[k] || 'Name'; }
+      };
+      artSetzen();
+      root.addEventListener('change', async (e) => {
+        if (e.target.matches('[data-kmfi="ist_firma"]')) return artSetzen();
+        if (!e.target.matches('[data-kmart]')) return;
+        let v = e.target.value;
+        if (v === 'eigen') { v = window.bpEingabe ? String(await bpEingabe('Eigene Art (z. B. Planer:in, Versorger)', '') || '').trim() : ''; if (!v) { e.target.value = ART; return; } }
+        ART = v; if (!ARTW.includes(v)) { e.target.innerHTML = artOpt(); e.target.value = v; }
+        artSetzen();
+      });
       let SUG = [], sT = 0, done = false, grund = null;
       /* Bausteine (Gewerk, Stichwörter, Tags): tippen → Vorschläge aus den Adressen (häufigste zuerst), ↓↑ wählen, Enter oder Komma übernimmt;
          Neues nur über „＋ neu: …“ (bewusst bestätigt), Rücktaste im leeren Feld nimmt den letzten Baustein weg */
@@ -122,6 +169,7 @@
       const chipNehmen = (k, i) => { const el = q(`[data-chl="${k}"]`), x = (el._E || [])[i]; if (!x) return; el.hidden = true; chipSetzen(k, [...chipWerte(k), x.v]); };
       const begriffe = () => { if (BEGR && Date.now() - BEGR_T < 60000) return; BEGR_T = Date.now(); KX(B + 'api/bp/kontakte?begriffe=1').then((r) => { BEGR = r; const a = document.activeElement; if (a && a.dataset && a.dataset.chipin && root.contains(a)) chipListe(a.dataset.chipin, a.value); }).catch(() => {}); };
       ['trade', 'stichworte', 'tags'].forEach((k) => chipZeichnen(k));
+      if (window.bpVorschlag) bpVorschlag.listen.kmAmt = () => ((BEGR && BEGR.amt) || []).map(([w, n]) => ({ w, t: n + ' ×' }));   // Ämter, die schon eingetragen sind (BH-1)
       begriffe();   // gleich beim Öffnen holen – beim ersten Tippen sind die Vorschläge da
       root.addEventListener('focusin', (e) => { const k = e.target.dataset && e.target.dataset.chipin; if (k) { begriffe(); chipListe(k, e.target.value); } });
       root.addEventListener('focusout', (e) => { const k = e.target.dataset && e.target.dataset.chipin; if (k) setTimeout(() => { const el = q(`[data-chl="${k}"]`); if (el && !el.contains(document.activeElement)) el.hidden = true; }, 150); });
@@ -196,7 +244,8 @@
           return;
         }
         if (!e.target.closest('[data-kms]')) return;
-        const d = {}; root.querySelectorAll('[data-kmf]').forEach((el) => { d[el.dataset.kmf] = el.value; });
+        const d = {}; root.querySelectorAll('[data-kmf]').forEach((el) => { d[el.dataset.kmf] = el.hidden ? '' : el.value; });
+        d.art = ART === 'firma' ? '' : ART;   // Art oben (BH-0); „Firma“ = leer wie bisher
         wtLesen(); d.weitere = WTL.filter((x) => ['wert', 'street', 'city', 'tel', 'mail'].some((k) => (x[k] || '').trim()));
         d.firma = {}; root.querySelectorAll('[data-kmfi]').forEach((el) => { d.firma[el.dataset.kmfi] = el.type === 'checkbox' ? (el.checked ? 'ja' : '') : el.value.trim(); });
         if (!d.name.trim()) { q('[data-kmerr]').textContent = 'Bitte einen Namen eingeben.'; q('[data-kmf="name"]').focus(); return; }

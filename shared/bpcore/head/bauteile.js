@@ -98,7 +98,7 @@
 .bt-plus{border:0;background:none;color:var(--y,#3b5a8f);font:inherit;font-size:.8rem;font-weight:600;cursor:pointer;margin-left:.5rem;opacity:.75}.bt-plus:hover{opacity:1}.bt-start{padding:.35rem .5rem .35rem 1.6rem}.bt-gerust tr.bt-bh td{opacity:.95}.bt-baum tr[data-btz]{cursor:pointer}.bt-baum tr.akt{background:var(--hov,rgba(47,111,179,.08))}.bt-baum tr.bt-bh td{background:var(--card,transparent);padding-top:.5rem}
 .bt-baum tr.weg{opacity:.55}.bt-baum th:first-child{min-width:13rem}.bt-kz{max-width:min(28rem,22vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.82rem;opacity:.85}.bt-ro{color:var(--red,#c62f2a)}
 .bt-teile{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;margin:.3rem 0;font-size:.84rem}.bt-teile>span{opacity:.7;margin-right:.2rem}.bt-teile button{font:inherit;border:1px solid var(--line,#d5d9de);border-radius:999px;padding:.05rem .6rem;background:var(--card,#fff);color:inherit;cursor:pointer}.bt-teile button.on{background:var(--af,#3b5a8f);border-color:var(--af,#3b5a8f);color:#fff}
-.bt-mwl{display:flex;flex-wrap:wrap;gap:.4rem .8rem;align-items:center;background:color-mix(in srgb,#7b2ff7 9%,var(--card,#fff));border:1px solid color-mix(in srgb,#7b2ff7 45%,transparent);border-radius:calc(8px*var(--rk,1));padding:.35rem .6rem;font-size:.86rem}
+.bt-mwl{position:sticky;bottom:0;z-index:3;box-shadow:0 -4px 12px rgba(0,0,0,.08);display:flex;flex-wrap:wrap;gap:.4rem .8rem;align-items:center;background:color-mix(in srgb,#7b2ff7 9%,var(--card,#fff));border:1px solid color-mix(in srgb,#7b2ff7 45%,transparent);border-radius:calc(8px*var(--rk,1));padding:.35rem .6rem;font-size:.86rem}
 .bt-mwg{display:inline-flex;flex-wrap:wrap;gap:.25rem;align-items:center}.bt-mwl button:not(.btn),.bt-mwd .bt-o button{font:inherit;font-size:.82rem;border:1px solid var(--line,#d6dce3);background:var(--card,#fff);color:inherit;border-radius:12px;padding:.1rem .55rem;cursor:pointer}
 .bt-mwl button.on,.bt-mwd .bt-o button.on{background:#7b2ff7;border-color:#7b2ff7;color:#fff}.bt-mwl select,.bt-mwd select{font:inherit;font-size:.84rem;max-width:22rem}.bt-mwv{color:#8a5a00;font-style:italic;font-size:.82rem}
 .bt-mwb{display:inline-flex;gap:.3rem;align-items:center}.bt-mwt{margin:0;font-size:1rem}.bt-mwh{margin:0 .35rem 0 0;vertical-align:-2px}tr.bt-mwz>td{background:color-mix(in srgb,#7b2ff7 8%,transparent)}
@@ -620,27 +620,22 @@
 
     const blkMerk = (e) => { const d = e.target; if (d && d.dataset && d.dataset.btblk) Z.blk[d.dataset.btblk] = d.open; };   // auf-/zugeklappte Vorlagen-Blöcke bleiben beim Neuzeichnen so
     el.addEventListener('toggle', blkMerk, true);
-    /* Anwählen bewegt nichts (22.11.2026, wie das Aufklappen): die angeklickte Zeile bleibt an ihrer Stelle – auch wenn darüber die Leiste
-       „n Bauteile gewählt“ erscheint oder Gruppen auf- und zugehen */
-    const halt = (tr) => { if (!tr || !window.bpBaum || !bpBaum.anker) return () => {};
-      const sel = tr.dataset.bte ? `tr[data-bte="${CSS.escape(tr.dataset.bte)}"]` : tr.classList.contains('bt-snz') ? null : `tr[data-btz="${CSS.escape(tr.dataset.btz)}"]:not(.bt-snz):not(.bt-el)`;
-      const z = bpBaum.anker(tr, sel); return () => { z(); requestAnimationFrame(() => z()); }; };
     const klick = async (e) => {
-      const t = e.target, r = t.closest('[data-btz]'), id = r && r.dataset.btz, tr = r && r.tagName === 'TR' ? r : null;
+      const t = e.target, r = t.closest('[data-btz]'), id = r && r.dataset.btz;
       if (opt.baum && t.closest('[data-btrwzeig]')) { Z.sel = '__rw'; Z.auf = null; zeichne(); if (opt.auswahl) opt.auswahl(null); return; }
       const eR = opt.baum && t.closest('tr[data-bte]');
       if (eR && !t.closest('input,button,[data-zu]')) {   // einzelnes Bauteil: nur dieses wählen (auch im 3D)
-        const h = halt(eR); if (Z.mw.length) { Z.mw = []; if (opt.mehr) opt.mehr([]); } Z.sel = Z.auf = id; Z.selE = +eR.dataset.bte; zeichne(); h();
+        if (Z.mw.length) { Z.mw = []; if (opt.mehr) opt.mehr([]); } Z.sel = Z.auf = id; Z.selE = +eR.dataset.bte; zeichne();
         if (opt.element) opt.element(Z.selE); return; }
-      if (t.closest('[data-btmw]') && id) { const h = halt(tr); mwUm(id, true); h(); return; }
+      if (t.closest('[data-btmw]') && id) return mwUm(id, true);
       if (t.closest('[data-btschnell]') && id) {   // E3: schnelle Aufbau-Wahl in der Zeile; im Gebäudemodell darunter die einzelnen Bauteile
-        const h = halt(tr), auf = Z.schnell === id || Z.elAuf === id; Z.schnell = auf ? null : id; Z.elAuf = auf ? null : id; Z.sel = Z.auf = id; zeichne(); h(); return; }
+        const auf = Z.schnell === id || Z.elAuf === id; Z.schnell = auf ? null : id; Z.elAuf = auf ? null : id; Z.sel = Z.auf = id; return zeichne(); }
       if (t.closest('[data-btpop]') && id) return eigenschaften(id);
       if (t.closest('[data-btber]') && id && !Z.an) { const z = L().zeilen.find((x) => x.id === id); if (z) zeile(id, { berechnen: !z.berechnen }); return; }
       const bg = t.closest('[data-btberg]'); if (bg && !Z.an) {   // derselbe Schalter an der Gruppe: für alle Zeilen darin (ohne offene)
         const R = (Z.grpIds[bg.dataset.btberg] || []).map((x) => L().zeilen.find((y) => y.id === x)).filter((z) => z && z.status !== 'offen');
         if (R.length) mwAendern({ berechnen: !R.every((z) => z.berechnen) }, R); return; }
-      if (opt.baum && r && r.tagName === 'TR' && (e.ctrlKey || e.metaKey) && !t.closest('[data-zu],input,button')) { const h = halt(tr); mwUm(id, true); h(); return; }
+      if (opt.baum && r && r.tagName === 'TR' && (e.ctrlKey || e.metaKey) && !t.closest('[data-zu],input,button')) return mwUm(id, true);
       if (t.closest('[data-btmwweg]')) return mwSetzen([]);
       if (t.closest('[data-btmwart]') && opt.artJe) {   // Art je Bauteil für mehrere: im 3D gewählte Bauteile dieser Zeilen, sonst alle der Zeilen
         const R = mwZ(), alle = R.flatMap((z) => z.ids || []), e3 = (opt.e3 ? opt.e3() : []).filter((i) => alle.includes(i));
@@ -648,7 +643,7 @@
       }
       if (t.closest('[data-btmwst]')) return mwAendern({ status: t.closest('[data-btmwst]').dataset.btmwst });
       if (opt.baum && r && r.tagName === 'TR' && !t.closest('[data-zu],input,button')) {
-        const eins = () => { const h = halt(tr); if (Z.mw.length) { Z.mw = []; if (opt.mehr) opt.mehr([]); } Z.sel = id; Z.auf = id; Z.selE = null; zeichne(); h(); if (opt.auswahl) opt.auswahl(L().zeilen.find((x) => x.id === id)); };
+        const eins = () => { if (Z.mw.length) { Z.mw = []; if (opt.mehr) opt.mehr([]); } Z.sel = id; Z.auf = id; Z.selE = null; zeichne(); if (opt.auswahl) opt.auswahl(L().zeilen.find((x) => x.id === id)); };
         clearTimeout(Z.klT);
         if (Z.mw.length > 1 && Z.mw.includes(id) && e.detail === 1) { Z.klT = setTimeout(eins, 300); return; }   // gehört zur Auswahl: erst sehen, ob ein Doppelklick folgt (der öffnet die Eigenschaften aller gewählten)
         return eins(); }
@@ -862,9 +857,9 @@
       }
       const meldung = leer && typeof bpLeer === 'function' ? bpLeer({ was: 'kein Gebäudemodell', text: 'Mit Plan oder ohne: aus der Planung, Räume und Fenster selbst eintragen, einzelne Bauteile oder einen Plan einlesen (IFC, DXF, PDF).', knoepfe: [{ t: 'Anfangen …', attrs: 'data-btanfang' }] }) : '';
       const y = el.querySelector('.bt-bw') ? el.querySelector('.bt-bw').scrollTop : 0;
-      const mwl = Z.mw.length > 1 && !Z.an ? `<div class="bt-mwl">${mwHtml(true)}</div>` : '';   // H1: gemeinsam ändern über der Tabelle
+      const mwl = Z.mw.length > 1 && !Z.an ? `<div class="bt-mwl">${mwHtml(true)}</div>` : '';   // H1: gemeinsam ändern – schwebt unten im Bereich (22.11.2026: über der Tabelle schob sie die Liste nach unten)
       const grp = window.bpGruppen && !leer ? `<div class="bt-grp">${bpGruppen.html(Z.grp, GRUPPEN, { rechts: 'Doppelklick: Eigenschaften · Strg + Klick: mehrere' })}</div>` : '';
-      el.innerHTML = `<div class="bt-bl">${an}${rwl}${zl}${tw}${meldung}${mwl}<div class="bt-w"></div>${grp}<div class="bt-bw"><table class="bp-baum bt-baum${leer ? ' bt-gerust' : ''}"><thead><tr><th>Bauteil</th><th class="r">Menge</th><th>Maßnahme</th><th>Aufbau</th><th class="r" title="U-Wert aus dem gewählten Aufbau, W/(m²K) – Farbe nach GModG (Neubau: Referenzgebäude, Bestand: Anlage 7)">U</th><th class="c" title="wird berechnet">in Kosten/LV</th></tr></thead><tbody>${body}</tbody></table></div>
+      el.innerHTML = `<div class="bt-bl">${an}${rwl}${zl}${tw}${meldung}<div class="bt-w"></div>${grp}<div class="bt-bw"><table class="bp-baum bt-baum${leer ? ' bt-gerust' : ''}"><thead><tr><th>Bauteil</th><th class="r">Menge</th><th>Maßnahme</th><th>Aufbau</th><th class="r" title="U-Wert aus dem gewählten Aufbau, W/(m²K) – Farbe nach GModG (Neubau: Referenzgebäude, Bestand: Anlage 7)">U</th><th class="c" title="wird berechnet">in Kosten/LV</th></tr></thead><tbody>${body}</tbody></table></div>${mwl}
         <input type="file" accept=".ifc,.dxf,.pdf" data-btdatei hidden></div>`;
       el.querySelector('.bt-bw').scrollTop = y; Z.selAuf = false;
       if (window.bpSpaltBreite && !leer) bpSpaltBreite.an(el.querySelector('.bt-baum'), 'bauteile');   // Spaltenbreiten ziehen wie im LV (22.11.2026)

@@ -57,7 +57,7 @@ function mqZeichnen() {
 function mqReiter(el) {   // Reiter „Bauteile“ (seite.js) – einmal anmelden, dann zeichnen
   if (!el._mq) { el._mq = true; el.classList.add('qu', 'mq');
     el.addEventListener('click', (e) => {
-      const z = e.target.closest('[data-zu]'); if (z) { const zur = bpBaum.anker(z, `[data-zu="${CSS.escape(z.dataset.zu)}"]`); MQ.zu.um(z.dataset.zu); mqZeichnen(); zur(); return; }   // Aufklappen bewegt nichts
+      const z = e.target.closest('[data-zu]'); if (z) { MQ.zu.um(z.dataset.zu); return mqZeichnen(); }
       const a = e.target.closest('[data-mqa]');
       if (a && a.dataset.mqa === 'neu') return mqLaden(true).then(mqZeichnen);
       if (a && a.dataset.mqa === 'ein') return mqEinfuegen(mqAuswahl(MQ.sel), LASTI);

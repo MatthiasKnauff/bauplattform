@@ -1,5 +1,13 @@
 [
  {
+  "id": "nichts-springt-2211",
+  "datum": "2026-11-22",
+  "app": "gebaeudemodell",
+  "titel": "Die Liste springt nicht mehr",
+  "text": "Haken setzen, Zeilen anklicken, auf- und zuklappen: die Liste bleibt stehen. Die Leiste „n Bauteile gewählt“ schwebt jetzt unten im Bereich, statt die Liste nach unten zu schieben; mit der Maus rollt kein Baum mehr von selbst.",
+  "ziel": ".bt-grp"
+ },
+ {
   "id": "gm-einzeln-2211",
   "datum": "2026-11-22",
   "app": "gebaeudemodell",

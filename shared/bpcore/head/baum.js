@@ -69,11 +69,8 @@
       if (!c && !a) return;
       const K = o.klapp(); if (!K) return;
       e.stopPropagation();
-      // Auf-/Zuklappen bewegt nichts (22.11.2026, für alle Bäume): die angeklickte Zeile bleibt genau an ihrer Stelle, Neues geht nur darunter auf
-      const z = c || a, zurueck = anker(z, c ? `[data-zu="${CSS.escape(c.dataset.zu)}"]` : null);
       if (c) K.um(c.dataset.zu); else K.setze(a.dataset.zualle === 'zu' ? o.alle() : []);
-      const r = o.neu();
-      if (c) { zurueck(); requestAnimationFrame(() => zurueck()); if (r && r.then) r.then(() => zurueck()); }
+      o.neu();   // der Rollbereich bleibt stehen, Neues geht nur darunter auf – nichts rollt (22.11.2026)
     }, true);
   }
   /* ---------- Rollposition: vor dem Neuzeichnen merken, danach wiederherstellen (Auf-/Zuklappen springt nicht nach oben) ----------
@@ -171,7 +168,7 @@
     document.addEventListener('pointerdown', () => { TASTE = 0; }, true);
   }
   function mitte(el) {
-    if (Date.now() - TASTE > 400) { el.scrollIntoView({ block: 'nearest' }); return; }
+    if (Date.now() - TASTE > 400) return;   // Maus: nie rollen (22.11.2026 – „dieses Rumgespringe“); nur die Tastatur holt die Zeile ins Bild
     let p = el.parentElement;
     while (p && p !== document.body && p !== document.documentElement) { const s = getComputedStyle(p); if (/(auto|scroll)/.test(s.overflowY) && p.scrollHeight > p.clientHeight + 1) break; p = p.parentElement; }
     if (!p || p === document.body || p === document.documentElement) { el.scrollIntoView({ block: 'nearest' }); return; }

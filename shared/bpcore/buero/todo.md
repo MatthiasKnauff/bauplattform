@@ -30,6 +30,9 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- Gebäudemodell neu denken: Bauteiltypen (AW-01 …), Kurzwahl der Bauweisen, ohne Arbeitsmaske, ein Arbeitsstand mit festgehaltenen Versionen – erst Konzept + Mock (Aufwand wird gemeldet)
+- Bauzeitenplan: zeitliche Zusammenhänge recherchieren, Dauer nach Gebäudegröße, Verknüpfungen robust gegen Handänderungen – erst Recherche + Mock
+- Aufräumen: Sahne, Fehler an der Wurzel, toter Code (tools/tot)
 - U-Wert-Färbung wählbar: GModG · BEG-Einzelmaßnahmen · Effizienzhaus (Recherche + Mock)
 - Eigenschaften-Fenster Etappe 2 (EF-B1 C1): einzelne Teile einer Zeile mit Haken, Abtrennen als eigene Zeile (Kern: Baukasten je Teil, IFC Zeile teilen), Doppelklick im 3D hakt nur das Teil an – ca. 2 Std.
 - Gebäudemodell Schritt 2: Räume als Baum (Gruppieren), Eigenschaften-Fenster Raum (Allgemein · Raumbuch · Maße), Räume als Kisten im 3D (Mock „Räume rechts“ R-B, R-D)
@@ -252,6 +255,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Bauzeitenplan: Leistungsinformationen im gemeinsamen Eigenschaften-Fenster (Reiter, ↑ ↓, feste Größe)~~ (22.11.2026)
 - ~~Grundriss: Entf am ermittelten Raum → „kein Raum“ / „Schacht“, bleibt beim nächsten Einlesen; graue Fläche anklicken = wieder Raum~~ (22.11.2026)
 - ~~Allplan-IFC ohne Mengen: Dach (IfcRoof mit eigener Geometrie), Wände ohne Material, lange Schnittketten und Öffnungen aus mehreren Körpern – nichts fällt mehr als „ohne Menge“ heraus, 3D nicht mehr grau~~ (22.11.2026)
 - ~~Apps-Menü bei „Effekte aus“ im hellen Stil: weiß mit heller Schrift – jetzt dunkel wie die Leiste~~ (21.11.2026)

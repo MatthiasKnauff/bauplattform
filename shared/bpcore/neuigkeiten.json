@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-eigenschaften",
+  "datum": "2026-11-22",
+  "app": "gantt",
+  "titel": "Leistungsinformationen im neuen Fenster",
+  "text": "Das Fenster „Leistungsinformationen“ sieht jetzt aus wie die Eigenschaften im LV und im Gebäudemodell: Reiter Allgemein · Vorgänger · Abschnitte · Notizen, oben ↑ ↓ zum Blättern, frei verschiebbar, feste Größe.",
+  "ziel": "#gridBody"
+ },
+ {
   "id": "grundriss-kein-raum",
   "datum": "2026-11-22",
   "app": "gebaeudemodell",

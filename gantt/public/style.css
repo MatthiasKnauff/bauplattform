@@ -462,6 +462,9 @@ html[data-theme="dunkel"]{--pre:#6aaeff;--suc:#ffa94d;--preband:rgba(106,174,255
 .sg-seg button.busy{opacity:.6;cursor:progress}
 .sg-why{color:#4a3a6a;flex:1;min-width:160px;line-height:1.35}
 .sg-why.err{color:#c62828}
+.td-eig .form{gap:6px 10px}.td-eig .form input,.td-eig .form select{padding:3px 6px;border-radius:calc(4px*var(--rk,1))}
+.td-eig [data-tdp="notiz"]{height:100%}.td-eig .td-notiz{font:inherit;width:100%;height:100%;min-height:200px;box-sizing:border-box;resize:none;padding:6px 8px;border:1px solid #b5b5b5;border-radius:calc(4px*var(--rk,1))}
+.td-eig .hint{margin-top:10px}
 .td-sgi{font-size:calc(var(--fs)*0.958);margin:2px 0 4px 2px;color:#444}
 .lv-sgrow td{background:#faf8fe!important;padding:2px 8px!important}
 .lv-sgrow .sg-bar{display:inline-flex;margin:3px 8px 3px 0}
@@ -478,8 +481,6 @@ body.dragging-dlg,body.dragging-dlg *{cursor:move!important;user-select:none!imp
 .fv-tl.fv-tlh{background:none;height:13px;overflow:visible;margin-top:3px}
 .fv-tl.fv-tlh i{background:#bbb;top:9px}
 .fv-tl.fv-tlh span{position:absolute;top:-1px;font-size:calc(var(--fs)*0.792);font-weight:400;color:#888;padding-left:2px}
-.mf .btn.td-nav{min-width:0;padding:4px 10px}
-.mf .btn.td-undo{min-width:0;padding:4px 10px}
 .mf .btn:disabled{opacity:.4;cursor:default}
 
 /* Vorschlagsliste für Bezeichnungen */
@@ -494,12 +495,6 @@ body.dragging-dlg,body.dragging-dlg *{cursor:move!important;user-select:none!imp
 .combo-i span{flex:1}
 .combo-i small{color:#888;white-space:nowrap;display:inline-flex;align-items:center}
 .combo-i:hover,.combo-i.on{background:#dce9f6}
-.mh-tools{margin-left:auto;display:inline-flex;gap:4px;margin-right:8px}
-.mh-tools .btn{min-width:0;padding:2px 9px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);color:#fff;font-size:calc(var(--fs)*0.958);border-radius:calc(3px*var(--rk,1))}
-.mh-tools .btn:hover{background:rgba(255,255,255,.3);border-color:rgba(255,255,255,.6)}
-.mh-tools .btn:disabled{opacity:.45;background:transparent}
-.mh-tools + .mx{margin-left:0}
-html[data-theme="dunkel"] .mh-tools .btn{color:#fff;background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.35)}
 #work{flex:1;display:flex;min-height:0;position:relative}
 #work > #main,#work > #firmView,#work > #libView,#work > #ablaufView,#work > #startView{flex:1;min-width:0}
 

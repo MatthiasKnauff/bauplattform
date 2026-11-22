@@ -53,6 +53,18 @@ export async function ganttHeftPruefen(browser, repo) {
         const out = { k3: C.es[k(3)], o4e: C.ef[i(4)], abst: [1, 2, 3, 4].map((m) => C.es[k(m)] - C.es[k(1)]), orig: [1, 2, 3, 4].map((m) => C.es[i(m)] - C.es[i(1)]) };
         P.tasks = alt; return out; });
       pruef(r.k3 === r.o4e && JSON.stringify(r.abst) === JSON.stringify(r.orig), `Duplizieren eigene Verknüpfung: Block verformt – ${JSON.stringify(r)}`); }
+    {   // Leistungsinformationen im gemeinsamen Eigenschaften-Fenster (22.11.2026): Reiter, ↑ ↓ ✕, OK übernimmt
+      await p.evaluate(() => taskDialog(0)); await p.waitForSelector('.bp-eig.td-eig', { timeout: 5000 });
+      const a = await p.evaluate(() => ({ reiter: [...document.querySelectorAll('.td-eig [data-eigt]')].map((b) => b.textContent), kopf: !!document.querySelector('.td-eig .bp-eigk [data-m="next"]'), alt: !!document.querySelector('.modal .mh-tools'),
+        sicht: [...document.querySelectorAll('.td-eig [data-tdp]')].filter((x) => !x.hidden).map((x) => x.dataset.tdp) }));
+      pruef(a.reiter[0] === 'Allgemein' && a.reiter.some((r) => r.startsWith('Vorgänger')) && a.kopf && !a.alt && a.sicht.join() === 'allg', `Leistungsinformationen nicht im Eigenschaften-Fenster: ${JSON.stringify(a)}`);
+      await p.click('.td-eig [data-eigt="vorg"]'); pruef(await p.isVisible('.td-eig #pAdd'), 'Reiter „Vorgänger“ zeigt die Vorgänger nicht');
+      await p.click('.td-eig [data-eigt="allg"]'); await p.fill('.td-eig #fDur', '7'); await p.click('.td-eig .bp-eigf [data-m="ok"]'); await p.waitForTimeout(200);
+      const b = await p.evaluate(() => ({ dur: P.tasks[0].dur, offen: !!document.querySelector('.td-eig') }));
+      pruef(b.dur === 7 && !b.offen, `OK übernimmt die Dauer und schließt: ${JSON.stringify(b)}`);
+      await p.evaluate(() => taskDialog(0)); await p.waitForSelector('.td-eig'); await p.click('.td-eig .bp-eigk [data-m="next"]'); await p.waitForTimeout(400);
+      pruef(await p.evaluate(() => ((document.querySelector('.td-eig .bp-eigk b') || {}).textContent || '') === 'Leistungsinformationen – ' + P.tasks[vis[1]].name), 'Blättern ↓ öffnet die nächste Leistung');
+      await p.keyboard.press('Escape'); await p.waitForTimeout(100); pruef(!(await p.$('.td-eig')), 'Esc schließt'); }
     const sicht = () => p.evaluate(() => { const b = document.querySelector('.bf-heft'), g = document.querySelector('#gridPane'); return { da: !!b, tabs: !!document.querySelector('#tabs').offsetParent, such: !!document.querySelector('#leiste .gs-box'),
       leiste: !document.querySelector('#leiste').classList.contains('bf-zu'), pinR: b && Math.round(b.getBoundingClientRect().right), planR: Math.round(document.querySelector('#links').getBoundingClientRect().right), pinO: b && Math.round(b.getBoundingClientRect().top), planO: Math.round(g.getBoundingClientRect().top) }; });
     let v = await sicht();

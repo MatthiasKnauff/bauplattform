@@ -396,7 +396,8 @@ function taskDialog(i) {
       <td><input class="pl" value="${p.lag ? (p.lag > 0 ? '+' : '-') + Math.abs(p.lag) + 't' : '0t'}"></td>
       <td style="width:30px;text-align:center"><button type="button" class="btn sm prm" data-k="${k}" title="Entfernen">✕</button></td></tr>`).join('')
     || '<tr><td colspan="4" style="color:var(--mut);padding:6px">Keine Vorgänger</td></tr>';
-  const body = `<div class="form">
+  const mitAbs = !isS && t.dur > 1;
+  const body = `<div data-tdp="allg"><div class="form">
       <label>Bezeichnung</label><div class="full combo-wrap"><input id="fName" value="${esc(t.name)}"></div>
       <label>Dauer</label><input id="fDur" value="${fmtDur(CAL.dur[i])}" ${isS ? 'disabled' : ''}>
       <label>% Abgeschlossen</label><input id="fPct" type="number" min="0" max="100" value="${Math.round(CAL.pct[i])}" ${isS ? 'disabled' : ''}>
@@ -408,13 +409,11 @@ function taskDialog(i) {
       ${!isS && window.AiPlace && AiPlace.enabled() ? '<div id="tdSg" style="grid-column:1 / span 4"></div>' : ''}
       <label>Gesamtpuffer</label><div class="ro">${isS ? '–' : fmtDur(CAL.slack[i])}${CAL.crit[i] ? ' · <b style="color:var(--critbd)">kritisch</b>' : ''}</div><span></span><span></span>
     </div>
-    ${!isS && t.dur > 1 ? `<div class="sec">Abschnitte (Unterbrechungen)</div><div id="segBox"></div>` : ''}
-    <div class="sec">Vorgänger</div>
-    <table class="ptab"><thead><tr><th>Leistung</th><th>Art</th><th style="width:80px">Zeitabstand</th><th></th></tr></thead><tbody id="pBody">${predRows()}</tbody></table>
-    <button type="button" class="btn sm" id="pAdd" style="margin-top:6px">+ Vorgänger hinzufügen</button>
-    <div class="sec">Notizen</div>
-    <div class="form"><textarea id="fNotes" class="full" style="grid-column:1 / span 4">${esc(t.notes || '')}</textarea></div>
-    <div class="hint">Leeres Feld „Anfang nicht früher als“ = so früh wie möglich planen.</div>`;
+    <div class="hint">Leeres Feld „Anfang nicht früher als“ = so früh wie möglich planen.</div></div>
+    <div data-tdp="vorg" hidden><table class="ptab"><thead><tr><th>Leistung</th><th>Art</th><th style="width:80px">Zeitabstand</th><th></th></tr></thead><tbody id="pBody">${predRows()}</tbody></table>
+    <button type="button" class="btn sm" id="pAdd" style="margin-top:6px">+ Vorgänger hinzufügen</button></div>
+    ${mitAbs ? '<div data-tdp="abs" hidden><div id="segBox"></div></div>' : ''}
+    <div data-tdp="notiz" hidden><textarea id="fNotes" class="td-notiz" aria-label="Notizen">${esc(t.notes || '')}</textarea></div>`;
   const readPreds = (bg) => {
     preds = [...bg.querySelectorAll('#pBody tr[data-k]')].map((tr) => ({ uid: tr.querySelector('.pu').value === '' ? null : +tr.querySelector('.pu').value, type: tr.querySelector('.pt').value, lagS: tr.querySelector('.pl').value }))
       .map((p) => ({ uid: p.uid, type: p.type, lag: parseLag(p.lagS) ?? 0, bad: parseLag(p.lagS) == null }));
@@ -447,19 +446,31 @@ function taskDialog(i) {
     const ni = vis[nr]; sel = new Set([P.tasks[ni].uid]); cur.r = nr; updateSel(); ensureVisible(nr);
     setTimeout(() => taskDialog(ni), 0);
   };
-  const bg = modal('Leistungsinformationen', body, [
-    { label: '◀ Vorherige', cls: 'sm td-nav', fn: nav(-1) }, { label: 'Nächste ▶', cls: 'sm td-nav', fn: nav(1) },
-    { label: '↶ Rückgängig', cls: 'sm td-undo', left: true, fn: () => { undoLocal(); return false; } },
-    { label: 'OK', cls: 'primary', primary: true, fn: apply }, { label: 'Abbrechen' }]);
-  // Navigation und Rückgängig in die Titelleiste – dort springen sie nicht mit der Fensterhöhe
-  { const mh = bg.querySelector('.mh'), mx = mh.querySelector('.mx'), grp = document.createElement('span'); grp.className = 'mh-tools';
-    bg.querySelectorAll('.mf .td-nav, .mf .td-undo').forEach((b) => { b.style.marginRight = ''; grp.appendChild(b); });
-    mh.insertBefore(grp, mx);
-    grp.addEventListener('mousedown', (e) => e.stopPropagation()); }   // kein Verschieben beim Klick auf die Knöpfe
-  bg.querySelectorAll('.td-nav')[0].title = 'Änderungen übernehmen und zur vorherigen Leistung (Alt+↑)';
-  bg.querySelectorAll('.td-nav')[1].title = 'Änderungen übernehmen und zur nächsten Leistung (Alt+↓)';
-  bg.querySelector('.td-undo').title = 'Letzte Änderung in diesem Fenster zurücknehmen (Strg+Z)';
-  bg.querySelector('.modal').style.width = '640px';
+  /* Gemeinsames Eigenschaften-Fenster (bp/eigenschaften.js, wie LV und Gebäudemodell – 22.11.2026): grauer Kopf mit ↑ ↓ ✕, Reiter, feste Größe,
+     Lage je Person gemerkt; unten Rückgängig (nur dieses Fensters) · OK · Abbrechen. Alle Reiter stehen im Fenster, gezeigt wird einer. */
+  { const alt = bpEigen.offen('gantt.td'); if (alt) alt.zu(); }   // ein Fenster: eine andere Leistung öffnet es neu
+  const T = [['allg', 'Allgemein'], ['vorg', `Vorgänger${t.preds.length ? ` (${t.preds.length})` : ''}`], ...(mitAbs ? [['abs', segList(t) ? `Abschnitte (${t.segs.length})` : 'Abschnitte']] : []), ['notiz', t.notes ? 'Notizen •' : 'Notizen']];
+  let tabT = LS.get('tdTab', 'allg'); if (!T.some((x) => x[0] === tabT)) tabT = 'allg';
+  const zeigeTab = () => bg.querySelectorAll('[data-tdp]').forEach((x) => { x.hidden = x.dataset.tdp !== tabT; });
+  const E = bpEigen({ key: 'gantt.td', titel: `Leistungsinformationen – ${t.name || 'neue Leistung'}`, blaettern: true, reiter: T, an: tabT, klasse: 'td-eig', start: { w: 640, h: 520 },
+    fuss: '<button type="button" class="btn sm td-undo" data-m="undo" title="Letzte Änderung in diesem Fenster zurücknehmen (Strg+Z)">Rückgängig</button><span style="flex:1"></span><button type="button" class="btn primary" data-m="ok">OK</button><button type="button" class="btn" data-m="x">Abbrechen</button>',
+    reiterWechsel: (id) => { tabT = id; LS.set('tdTab', id); zeigeTab(); },
+    aktion: (m, f, zu) => {
+      if (m === 'x') return zu();
+      if (m === 'ok') { if (apply(bg) !== false) zu(); return; }
+      if (m === 'undo') return undoLocal();
+      if (m === 'prev' || m === 'next') { const feld = document.activeElement; if (feld && f.contains(feld) && feld.matches('input,select,textarea')) feld.dispatchEvent(new Event('change', { bubbles: true }));
+        if (nav(m === 'prev' ? -1 : 1)(bg) !== false) zu(); }
+    },
+    zu: () => gridBody.focus({ preventScroll: true }) });
+  const bg = E.f; E.body.innerHTML = body; zeigeTab();
+  bg.querySelector('[data-m="prev"]').title = 'Änderungen übernehmen und zur vorherigen Leistung (↑, Bild↑, Alt+↑)';
+  bg.querySelector('[data-m="next"]').title = 'Änderungen übernehmen und zur nächsten Leistung (↓, Bild↓, Alt+↓)';
+  bg.addEventListener('keydown', (e) => {   // Tastenkürzel des Plans gelten nicht im Fenster; Enter im Feld = OK
+    e.stopPropagation();
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); if (apply(bg) !== false) E.zu(); }
+  });
+  setTimeout(() => { const f = bg.querySelector('[data-tdp="allg"] input:not([disabled])'); if (f && tabT === 'allg') { f.focus(); if (f.select) f.select(); } }, 0);
   const showC = () => {
     const own = bg.querySelector('#fColM').value === 'own', g = bg.querySelector('#fGw').value.trim();
     bg.querySelector('#fCol').style.display = own ? '' : 'none';
@@ -500,7 +511,7 @@ function taskDialog(i) {
   }
   // Lokales Rückgängig: Zustand der Felder und Vorgänger nach jeder Änderung merken
   const ldSnap = () => {
-    const vals = {}; bg.querySelectorAll('.mb input[id], .mb select[id], .mb textarea[id]').forEach((el) => { vals[el.id] = el.type === 'checkbox' ? el.checked : el.value; });
+    const vals = {}; bg.querySelectorAll('.bp-eigb input[id], .bp-eigb select[id], .bp-eigb textarea[id]').forEach((el) => { vals[el.id] = el.type === 'checkbox' ? el.checked : el.value; });
     readPreds(bg); return JSON.stringify({ vals, preds: preds.map(({ uid, type, lag }) => ({ uid, type, lag })), suc: sucUids });
   };
   let ldLast = null; const ldStack = [];
@@ -514,10 +525,10 @@ function taskDialog(i) {
     bg.querySelector('#pBody').innerHTML = predRows(); showC(); ldUpd();
   }
   setTimeout(() => { ldLast = ldSnap(); ldUpd(); }, 0);   // Ausgangszustand
-  bg.addEventListener('change', ldRecord); bg.addEventListener('click', (e) => { if (!e.target.closest('.mf')) ldRecord(); });
+  bg.addEventListener('change', ldRecord); bg.addEventListener('click', (e) => { if (!e.target.closest('.bp-eigf, .bp-eigk, .bp-eigt')) ldRecord(); });
   bg.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z' && !(e.target.matches('input,textarea') && e.target.value !== (JSON.parse(ldLast || '{"vals":{}}').vals[e.target.id] ?? e.target.value))) { e.preventDefault(); undoLocal(); }
-    if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); const r = nav(e.key === 'ArrowUp' ? -1 : 1)(bg); if (r !== false) bg.remove(); }
+    if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); const r = nav(e.key === 'ArrowUp' ? -1 : 1)(bg); if (r !== false) E.zu(); }
   });
   // Abschnitte bearbeiten
   const segBox = bg.querySelector('#segBox');

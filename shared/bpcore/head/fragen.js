@@ -4,7 +4,9 @@
    (anonymisiert) an eine externe KI.
    bpFragen.mount(el, pid, { aendern }) – Reiter „Fragen und Antworten“ (seite.js); im Gebäudemodell eine eigene Ansicht mit aendern: true –
    dort erkennt der Baustein Änderungssätze („tausche AW KS WDVS in PP“, „Parkett in allen Wohnräumen“), zeigt eine Vorschau und führt sie erst
-   nach „Ausführen“ aus (Kern bpcore/fragen_aenderung.py, Protokoll im audit_log). */
+   nach „Ausführen“ aus (Kern bpcore/fragen_aenderung.py, Protokoll im audit_log).
+   Änderungssätze, die eine App selbst versteht (Bauzeitenplan: „Malerarbeiten 5 Tage länger“ – gantt/public/saetze.js, 22.11.2026), meldet sie über
+   window.bpFragenLokal = { erkennt(text), verstehen(text) → { art: 'plan', schritte, ende } | { fehler } | null, ausfuehren(v) → Text } – gleiche Vorschau, kein Server. */
 (function () {
   if (window.bpFragen) return;
   const esc = window.bpEsc;
@@ -31,6 +33,8 @@
       if (A.erledigt) return `<div class="kf-a">✓ ausgeführt – ${esc(A.erledigt)}<div class="kf-q"><span>steht im Protokoll (Satz, ${esc(KSN[A.stufe] || A.stufe)}, wer, was vorher → nachher)</span></div></div>`;
       if (A.rueckfrage) return `<div class="kf-a"><b>${esc(A.rueckfrage)}</b>${A.optionen.map((o, k) => `<div><button type="button" class="btn sm" data-kfopt="${i}|${k}">${esc(o.text)}</button></div>`).join('')}</div>`;
       const knoepfe = `<div><button type="button" class="btn sm primary" data-kfaus="${i}">Ausführen</button> <button type="button" class="btn sm" data-kfab="${i}">Abbrechen</button></div>`;
+      if (A.art === 'plan') return `<div class="kf-a"><b>Änderung am Bauzeitenplan</b> – so verstanden:<div class="kf-q">${A.schritte.map((v) => `<span>${esc(v.name)}: ${v.alt ? esc(v.alt) + ' → ' : ''}${esc(v.neu)}</span>`).join('')}</div>
+        <div class="kf-w">Projektende ${esc(A.ende.alt)} → <b>${esc(A.ende.neu)}</b>${A.ende.diff ? ` (${A.ende.diff > 0 ? '+' : ''}${A.ende.diff} Tage)` : ' (unverändert)'}</div><small>Nichts ist geändert, bis du ausführst · ohne KI</small>${knoepfe}</div>`;
       if (A.art === 'kuerzel') return `<div class="kf-a"><b>Änderung am Gebäudemodell</b> – so verstanden:<div class="kf-q"><span>${A.zeilen.length} Bauteil${A.zeilen.length === 1 ? '' : 'e'} mit „${esc(A.alt)}“ → „${esc(A.neu)}“ (${esc(A.verstanden || '')})</span><span>neuer Aufbau aus dem Katalog: ${esc(A.vorlage_name)}${A.dicke ? ' · ' + esc(A.dicke) : ''}</span>${A.zeilen.slice(0, 6).map((z) => `<span>${esc(z.name)} · ${esc(String(z.menge).replace('.', ','))} ${esc(z.einheit)}${z.vorher ? ' · bisher ' + esc(z.vorher) : ''}</span>`).join('')}</div><small>Nichts ist geändert, bis du ausführst · ${esc(KSN[A.stufe] || '')}</small>${knoepfe}</div>`;
       const offen = (A.schritte || []).some((v) => !v.treffer);
       return `<div class="kf-a"><b>Änderung am Gebäudemodell</b> – so verstanden:<div class="kf-q">${(A.schritte || []).map((v) => `<span>${esc(v.beschreibung)} · ${v.anzahl} ${esc(v.einheit)} → ${v.treffer ? esc(v.treffer.name) : '<b>' + esc((v.rueckfrage || {}).text || 'kein Treffer im Katalog') + '</b>'}</span>`).join('')}</div>
@@ -65,6 +69,8 @@
         if (!(window.bpFrage && await bpFrage('Externe KI fragen?\n\nDie Frage geht mit den Projektdaten anonymisiert hinaus (Namen, Adressen, Kontaktdaten werden ersetzt). Das kostet je Anfrage und steht im Datenschutz-Protokoll; die Antwort ist nicht geprüft.', { ok: 'Extern fragen' }))) return;
         extOk = true;
       }
+      const L = window.bpFragenLokal, lv = L && !extern && L.erkennt(String(frage)) ? L.verstehen(String(frage).trim()) : null;
+      if (lv) { V.push({ frage: String(frage).trim(), aend: { ...lv, text: String(frage).trim() } }); return zeichne(); }   // die App versteht den Satz selbst (Bauzeitenplan)
       extern = st === 'extern'; laeuft = true;
       if (opt.aendern && AENDERN.test(String(frage)) && !FRAGE.test(String(frage).trim())) return aendern(String(frage).trim(), st);
       const x = { frage: String(frage).trim(), wartet: true, extern }; V.push(x); zeichne();
@@ -90,6 +96,7 @@
       const au = e.target.closest('[data-kfaus]');
       if (au) {
         const x = V[+au.dataset.kfaus], A = x.aend; au.disabled = true;
+        if (A.art === 'plan') { try { x.aend = { erledigt: window.bpFragenLokal.ausfuehren(A), stufe: 'aus' }; } catch (e3) { x.aend = { fehler: e3.message }; } return zeichne(); }
         const b = A.art === 'kuerzel' ? { art: 'kuerzel', text: A.text, stufe: A.stufe, ids: A.zeilen.map((z) => z.id), vorlage: A.vorlage, wahl: A.wahl, alt: A.alt, neu: A.neu }
           : { art: 'anweisung', text: A.text, stufe: A.stufe, ki: A.ki || '', schritte: A.schritte };
         try {

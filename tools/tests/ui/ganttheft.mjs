@@ -119,6 +119,13 @@ export async function ganttHeftPruefen(browser, repo) {
       await p.click('#leiste .gs-box'); await p.keyboard.type('a');
       const o = await p.evaluate(() => ({ fokus: document.activeElement.id, breit: Math.round(document.querySelector('#leiste .gs-box').getBoundingClientRect().width) }));
       pruef(o.fokus === 'gsQ' && o.breit > 250, `Klick auf „Suchen“ öffnet das Suchfeld – ${JSON.stringify(o)}`);
+      {   // Änderungssätze (22.11.2026, saetze.js): „<Leistung> 2 Tage länger“ → Vorschau mit Projektende, Ausführen = ein Schritt im Rückgängig
+        const r = await p.evaluate(() => { const i = P.tasks.findIndex((t, k) => !CAL.summ[k] && !String(t.cat || '').startsWith('_')), t = P.tasks[i], d0 = t.dur, w = t.name.split(/\s+/)[0];
+          const v = bpFragenLokal.verstehen(`${w} 2 Tage länger`), ok = bpFragenLokal.erkennt(`${w} 2 Tage länger`) && !bpFragenLokal.erkennt('Wann ist der Rohbau fertig?');
+          const x = v && v.schritte && v.schritte.find((y) => y.uid === t.uid); if (!v || !v.schritte) return { v, w }; const T = () => P.tasks.find((y) => y.uid === t.uid), dVor = T().dur; bpFragenLokal.ausfuehren(v); const d1 = T().dur; doUndo();
+          return { ok, x: !!x && x.wert === d0 + 2, unberuehrt: dVor === d0, d1, d0, zur: T().dur === d0, ende: !!(v && v.ende), w, fehler: (bpFragenLokal.verstehen('Gibtsnicht 2 Tage länger') || {}).fehler }; });
+        pruef(r.ok && r.x && r.unberuehrt && r.d1 === r.d0 + 2 && r.zur && r.ende && /Keine Leistung/.test(r.fehler || ''), `Änderungssatz im Bauzeitenplan – ${JSON.stringify(r)}`);
+      }
       // Wortvervollständigung (22.11.2026): „trock“ → Trockenbau, Trockenestrich untereinander; ‹ › so groß wie das ✕
       await p.evaluate(() => { P.tasks.push(fillTask({ uid: 9001, name: 'Trockenbau Wände', dur: 2, lvl: 0, preds: [] }), fillTask({ uid: 9002, name: 'Trockenestrich', dur: 2, lvl: 0, preds: [] })); CAL = schedule(); render(); });
       await p.fill('#gsQ', ''); await p.keyboard.type('trock'); await p.waitForSelector('.bp-vs .bp-vs-z', { timeout: 3000 });

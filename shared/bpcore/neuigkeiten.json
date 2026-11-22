@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-saetze-2026-11-22",
+  "datum": "2026-11-22",
+  "app": "gantt",
+  "titel": "Plan per Satz ändern",
+  "text": "Im Reiter „Fragen und Antworten“ rechts versteht der Bauzeitenplan Sätze wie „Malerarbeiten 5 Tage länger“, „Estrich auf 8 AT“, „Fliesen 1 Woche später“, „Maler nach Fliesen“ oder „Estrich 50 % fertig“. Du siehst erst, welche Leistungen sich ändern und wie sich das Projektende verschiebt – geändert wird erst mit „Ausführen“, Strg+Z nimmt es zurück.",
+  "ziel": "#leiste"
+ },
+ {
   "id": "gantt-zuruecksetzen-2026-11-22",
   "datum": "2026-11-22",
   "app": "gantt",

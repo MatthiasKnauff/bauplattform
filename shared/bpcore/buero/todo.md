@@ -44,7 +44,6 @@ Reihenfolge (19.11.2026): Bauantrag Etappe 3 → Kosten-Etappen 4–7 → DATEV-
 - Layout-Editor: Element „Tabelle“ (LE-A1 B1 C1: Gruppieren, Einrücken, wiederholen je Spalte; zuerst Bieterliste, dann Mängel- und Rechnungsliste) – ca. 60–90 Min.
 - In der PDF-Vorschau bearbeiten, Rest (PV-C1): Rechnung und Aufmaß (je 30–45 Min.), später Protokoll, Bauvertrag, Rügen
 - Bietertextergänzungen, Rest: Liste fehlender Angaben im Vergabevorschlag, Angaben der beauftragten Firma in den Auftrag (X86), Angebot aus PDF/Scan (Punktlinie erkennen) – ca. 45 Min.
-- Änderungssätze, Rest (FA-C2): Leistungen im Bauzeitenplan („Malerarbeiten 5 Tage länger“) und eine Ansicht „Protokoll der KI-Änderungen“ im Gebäudemodell – ca. 45 Min.
 - Gebäudeteile Schritt 3: Teile aus dem IFC (IfcBuilding / Bauwerksstruktur, Rest zuordnen) – ca. 30 Min.
 - Volumes aufräumen, Schritt 3 (Matthias, nach Freigabe von Schritt 2): in Portainer bautagebuch_data, bautagebuch_pgdata, gantt-app_gantt-data löschen (Testserver: bauplattform_test_pgdata, bauplattform_test_gantt_alt) – 5 min
 - ~~Gebäudemodell wie alle Apps (Navigation, Befehlsleiste, Baumtabelle, Bereich rechts) + Fenster/Türen/Räume einzeln + Anweisungen an das Modell + Türliste der Ausschreibung aus dem Modell~~ erledigt 16.11.
@@ -216,7 +215,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Zeiten: Rahmen um mehrere Blöcke (markieren, gemeinsam ändern/übernehmen/zusammenfassen/löschen) – Rückfrage gestellt **ca. 45 min**
 
 ## Später
-- Bauzeitenplan Etappe 2: alle Pläne des Projekts im Baum, Ziehen/Ablegen, Schalter „nur geöffneten Plan“, Katalog als Reiter rechts, Kennzahlen in der Leiste, Suche in die Navigation, verstecktes Menüband entfernen, genaue Texte im Rückgängig-Dock. **ca. 2–3 h** – Mock „Bauzeitenplan Etappe 2“ (ET-1 … ET-8) liegt vor, zurückgestellt am 22.11.2026
+- Bauzeitenplan Etappe 2: alle Pläne des Projekts im Baum, Ziehen/Ablegen, Schalter „nur geöffneten Plan“, Katalog als Reiter rechts, Kennzahlen in der Leiste, Suche in die Navigation, verstecktes Menüband entfernen, genaue Texte im Rückgängig-Dock. **ca. 2–3 h** – zurückgestellt am 22.11.2026 (Mock verworfen, bei Bedarf neu)
 - Bauzeitenplan: Leistungswerte aus der Praxis lernen – Ist-Dauern je Gewerk aus dem Bautagebuch (Firmen auf der Baustelle) ersetzen die Richtwerte **ca. 1 h**
 - Kanban-Board für To-dos (wie Nextcloud Deck) – „im Moment nicht“ (14.11.2026)
 - Aufgaben & Post auch im Code zu einer App zusammenlegen (ein Container statt zwei; Kommunikation als Teil der App Aufgaben, Rechte und Verweise umstellen) **ca. 1,5 h**
@@ -253,6 +252,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Bauzeitenplan: Änderungssätze im Reiter „Fragen“ („Malerarbeiten 5 Tage länger“, „… auf 8 AT“, „… 1 Woche später“, „A nach B“, „… 50 % fertig“) mit Vorschau~~ (22.11.2026)
 - ~~Bauzeitenplan/Leistungskatalog: „↺ Zurücksetzen …“ mit Vorschau in drei Ebenen (Katalog → ab Werk, Gewerke & Firmen → Vorgabe)~~ (22.11.2026)
 - ~~Gebäudemodell: Räume als farbige, halb durchsichtige Kisten im 3D (R-B)~~ (22.11.2026)
 - ~~Wärmeschutz: Bauteile-Baum wie im Gebäudemodell, nur Hülle, ＋ in den Nachweis, „Nur im Nachweis“~~ (22.11.2026)

@@ -67,21 +67,7 @@ async function gmListeZeichnen(art, fokus, L, C, an) {
     if (window.bpSpaltBreite) bpSpaltBreite.an(C.querySelector('table.gm-l'), 'gm.elemente');   // Spaltenbreiten ziehen wie überall (22.11.2026)
     return fok();
   }
-  if (art === 'raeume') {
-    const R = (L.raeume || []).filter((r) => !r.ergaenzt), PR = GMH.raeume;
-    if (!R.length && !PR.length) { C.innerHTML = '<div class="gm-hin"><span>Noch keine Räume im Modell – ein Planstand (IFC, DXF oder PDF mit Raumstempeln) bringt sie mit. Oder oben „＋ Raum“.</span></div>'; return; }
-    const alle = [...R.map((r) => ({ r, g: r.geschoss })), ...PR.map((p, k) => ({ p, k, g: p.geschoss }))];
-    const plusZ = (p, k) => `<tr class="gm-plus" data-gmk="${k}" data-gmz="${esc(zid(p))}">${bpBaum.zelle({ tiefe: 1, html: gmFeld(k, 'nr', p.nr, 5) })}<td>${gmFeld(k, 'name', p.name, 14)} ${gmFeld(k, 'geschoss', p.geschoss, 4)}</td><td class="r">${gmFeld(k, 'flaeche', p.flaeche, 6, 1)} m²</td><td class="r">${gmFeld(k, 'hoehe', p.hoehe, 5, 1)}</td>
-      ${['boden', 'wand', 'decke'].map((t) => `<td class="kz" title="${esc(teil(p, t))}">${esc(teil(p, t))}</td>`).join('')}${gmErg(k)}</tr>`;
-    const teil = (r, t) => { const z = gmZeileVon(L, r.nr, (x) => x.id.startsWith(`raum:${t}:`)); return z ? (z.kurz || GM_WORT[z.status] || '') : ''; };
-    const zid = (r) => { const z = gmZeileVon(L, r.nr, (x) => x.id.startsWith('raum:boden:')); return z ? z.id : ''; };
-    C.innerHTML = `${PR.length ? `<div class="gm-hin"><span>${R.length} Räume aus dem Plan · <b>${PR.length} ergänzt</b> (gelb, änderbar) – der nächste Planstand gleicht ab.</span></div>` : ''}<table class="gm-l bp-baum"><thead><tr><th>Nr.</th><th>Raum</th><th class="r">Fläche</th><th class="r">Höhe</th><th>Boden</th><th>Wände</th><th>Decke</th><th>Herkunft</th></tr></thead><tbody>
-      ${gmGruppen(alle, (x) => x.g).map(([g, X]) => `<tr class="gh">${bpBaum.zelle({ tiefe: 0, html: `<b>${esc(g)}</b> <small class="mute">${X.length} Räume · ${gmZahl(X.reduce((a, x) => a + ((x.r || x.p).flaeche || 0), 0))} m²</small>` })}<td colspan="7"></td></tr>
-        ${X.map(({ r, p, k }) => p ? plusZ(p, k) : `<tr data-gmz="${esc(zid(r))}">${bpBaum.zelle({ tiefe: 1, html: esc(r.nr) })}<td>${r.ermittelt ? `<input class="gm-rn" data-gmrn="${esc(r.nr)}" value="${esc(r.name)}" aria-label="Name des Raums ${esc(r.nr)}"> <small class="mute" title="Das IFC enthielt keine Räume – aus den Wänden ermittelt. Namen hier vergeben; „IFC mit Maßnahmen ausgeben“ schreibt die Räume ins IFC.">ermittelt</small>` : esc(r.name)}</td><td class="r">${gmZahl(r.flaeche)} m²</td><td class="r">${gmZahl(r.hoehe)}</td>
-          ${['boden', 'wand', 'decke'].map((t) => `<td class="kz" title="${esc(teil(r, t))}">${esc(teil(r, t))}</td>`).join('')}${GM_HER}</tr>`).join('')}`).join('')}</tbody></table>`;
-    if (window.bpSpaltBreite) bpSpaltBreite.an(C.querySelector('table.gm-l'), 'gm.raeume');
-    return fok();
-  }
+  if (art === 'raeume') { gmRaumBaum(C, L); return fok(); }   // Räume als Baum mit Gruppieren (gebaeudemodell-raeume.js, US-4 A)
 }
 /* Ausgeführte Anweisungen (Reiter „Fragen“, Mock „Gebäudemodell schlank“) – zurücknehmen stellt die Zeilen wieder her */
 async function gmAnweisungen(box) {

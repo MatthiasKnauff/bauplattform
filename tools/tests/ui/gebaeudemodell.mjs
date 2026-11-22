@@ -14,7 +14,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
   const zeile = (id, mehr) => ({ id, bereich: 'raum', art: 'Böden', kg: '353', name: 'Böden (0.01, 0.02)', menge: 36, einheit: 'm²', anzahl: 2, status: 'offen', berechnen: false, vorlage: '', wahl: [], kurz: '',
     erlaubt: ['bleibt', 'instandsetzen', 'erneuern', 'neu'], mitglieder: ['0.01', '0.02'], ids: [], nummern: [], ...mehr });
   const S = { zeile: [], anw: null, weg: 0 };
-  const L = () => ({ quelle: { name: 'Werkplanung', planstand: 1, ...(S.hand ? { art: 'hand' } : {}) }, raeume: [{ nr: '0.01', name: 'Wohnen', flaeche: 30, hoehe: 2.5, geschoss: 'EG' }, { nr: '0.02', name: 'Bad', flaeche: 6, hoehe: 2.5, geschoss: 'EG' }, { nr: 'EG.03', name: S.rn || 'Raum', flaeche: 12, hoehe: 2.5, geschoss: 'EG', ermittelt: true },
+  const L = () => ({ quelle: { name: 'Werkplanung', planstand: 1, ...(S.hand ? { art: 'hand' } : {}) }, raeume: [{ nr: '0.01', name: 'Wohnen', flaeche: 30, hoehe: 2.5, geschoss: 'EG', nutzung: 'Wohnraum' }, { nr: '0.02', name: 'Bad', flaeche: 6, hoehe: 2.5, geschoss: 'EG', nutzung: 'Bad/WC' }, { nr: 'EG.03', name: S.rn || 'Raum', flaeche: 12, hoehe: 2.5, geschoss: 'EG', ermittelt: true },
       ...(S.schacht === 'raum' ? [{ nr: 'EG.04', name: 'Raum', flaeche: 4.5, hoehe: 2.5, geschoss: 'EG', ermittelt: true, z: 0, umriss: [[0.2, 0.3], [4.8, 0.3], [4.8, 1.3], [0.2, 1.3]] }] : [])],
     ...(S.schacht && S.schacht !== 'raum' ? { raumweg: [{ g: 'EG', p: [2.5, 0.8], art: S.schacht }] } : {}),
     elemente: [{ id: 11, nr: 'F 01', typ: 'Fenster', art: 'Fenster', geschoss: 'EG', raeume: ['0.01'], b: 1.26, h: 1.38, bruestung: 0.9, aussen: true },
@@ -70,6 +70,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
     await p.waitForFunction(() => G3.bk !== null, null, { timeout: 8000 }).catch(() => {});
     await p.evaluate(() => { if (document.querySelector('.sr-tab[data-srt="details"]')) seiteReiter('gm', 'details'); }); };
   const reiter = (k) => p.evaluate((k) => seiteReiter('gm', k), k);
+  const raeumeAuf = async () => { await p.waitForSelector('.sr-r .gm-li-r tr.gh'); for (let n = 0; n < 6; n++) { const z = await p.$('.sr-r .gm-li-r tr.gh .car.zu'); if (!z) break; await z.click(); await p.waitForTimeout(80); } };   // Gruppen der Räume sind anfangs zu (US-4 A)
   const tabs = () => p.evaluate(() => [...document.querySelectorAll('.sr-tab')].map((x) => x.textContent.trim()).join('|'));
   const popZu = () => p.evaluate(() => { const b = document.querySelector('.bt-pop .bp-eigk [data-m="x"]'); if (b) b.click(); });
   try {
@@ -124,8 +125,25 @@ export async function gebaeudemodellPruefen(browser, repo) {
     {   // Räume als Reiter rechts (R-A), Fenster & Türen über dem Baum – rechts bleibt derselbe Bereich (kein „Planungsassistent wird geladen“)
       await p.waitForSelector('.sr-r table.bt-baum');
       await p.evaluate(() => { window.RECHTS = document.querySelector('#work .sr-r'); });
-      await reiter('raeume'); await p.waitForSelector('.sr-r .gm-li-r tr[data-gmz]');
+      await reiter('raeume'); await p.waitForSelector('.sr-r .gm-li-r tr.gh');
+      pruef(await p.evaluate(() => !document.querySelector('.sr-r .gm-li-r tr[data-gmrr]') && /EG/.test(document.querySelector('.sr-r .gm-li-r tr.gh').textContent)), 'Räume: Gruppen nach Geschoss, anfangs zu (US-4 A)');
+      await raeumeAuf(); await p.waitForSelector('.sr-r .gm-li-r tr[data-gmz]');
       pruef(await p.evaluate(() => document.querySelector('#work .sr-r') === window.RECHTS && /Wohnen/.test(document.querySelector('.sr-r .gm-li-r').textContent)), 'Räume rechts im eigenen Reiter');
+      {   // Räume als Baum (US-4 A): Klick wählt nur (kein Sprung in die Bauteile), Haken an der Gruppe, Gruppieren nach Nutzung, Doppelklick = Eigenschaften
+        await p.click('.sr-r .gm-li-r tr[data-gmrr="r:0.01"] td:nth-child(2)'); await p.waitForTimeout(150);
+        pruef(await p.evaluate(() => !!document.querySelector('.sr-r .gm-li-r tr.akt[data-gmrr="r:0.01"]') && !!document.querySelector('.sr-r .gm-li-r')?.offsetParent), 'Klick auf einen Raum wählt ihn – bleibt in den Räumen');
+        await p.click('.sr-r .gm-li-r tr.gh [data-gmrg]'); await p.waitForTimeout(100);
+        pruef(await p.evaluate(() => [...document.querySelectorAll('.sr-r .gm-li-r tr[data-gmrr]')].every((r) => r.classList.contains('akt'))), 'Haken an der Gruppe wählt alle Räume darin');
+        await p.click('.sr-r .gm-li-r .gmr-grp [data-bpgplus]'); await p.waitForSelector('.pickm .pm-o'); await p.evaluate(() => [...document.querySelectorAll('.pickm .pm-o')].find((o) => /Nutzung/.test(o.textContent)).click()); await p.waitForTimeout(150);
+        await raeumeAuf();
+        const g = await p.evaluate(() => [...document.querySelectorAll('.sr-r .gm-li-r tr.gh b')].map((b) => b.textContent).join('|'));
+        pruef(/EG/.test(g) && /Bad\/WC/.test(g), `Gruppieren: Geschoss › Nutzung – ${g}`);
+        await p.evaluate(() => { localStorage.setItem('bp.gm.rgrp', JSON.stringify(['geschoss'])); GMR.grp = ['geschoss']; }); await reiter('details'); await reiter('raeume'); await raeumeAuf();
+        await p.dblclick('.sr-r .gm-li-r tr[data-gmrr="r:0.02"] td:nth-child(2)'); await p.waitForSelector('.bp-eig [data-eigt="rb"]', { timeout: 4000 });
+        pruef(await p.evaluate(() => /0\.02/.test(document.querySelector('.bp-eig .bp-eigk b').textContent) && /Bad/.test(document.querySelector('.bp-eig .bp-eigb').textContent)), 'Doppelklick: Eigenschaften des Raums');
+        await p.click('.bp-eig [data-eigt="mass"]'); await p.waitForTimeout(100);
+        pruef(await p.evaluate(() => /m³/.test(document.querySelector('.bp-eig .bp-eigb').textContent)), 'Reiter Maße mit Volumen');
+        await p.click('.bp-eig .bp-eigk [data-m="x"]'); }
       await p.click('#navL [data-pl="rgr"]'); await p.waitForTimeout(300);
       pruef(await p.evaluate(() => !document.querySelector('#view .gm-gr').hidden && document.querySelector('#view .gm-d3').hidden && document.querySelector('#navL [data-pl="rgr"]').classList.contains('on')), 'Grundriss in der Mitte');
       await p.click('#navL [data-pl="g3d"]'); await p.waitForTimeout(200);
@@ -179,7 +197,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
     pruef(await p.evaluate(() => /F 01/.test(document.querySelector('.sr-r .gm-li-f').textContent) && /1,26/.test(document.querySelector('.sr-r .gm-li-f').textContent)), 'Fenster & Türen: Nummer, Maße');
     await p.click('.sr-r tr[data-gmz="f"]'); await p.waitForSelector('table.bt-baum tr.akt[data-btz="f"]');
     pruef(await p.evaluate(() => !document.querySelector('.sr-r .gm-tabi').hidden), 'Klick auf das Fenster: zurück im Baum bei seiner Zeile');
-    await reiter('raeume'); await p.waitForSelector('.sr-r .gm-li-r tr[data-gmz]');
+    await reiter('raeume'); await raeumeAuf(); await p.waitForSelector('.sr-r .gm-li-r tr[data-gmz]');
     await p.fill('[data-gmrn="EG.03"]', 'Kind'); await p.press('[data-gmrn="EG.03"]', 'Tab'); await p.waitForTimeout(300);   // ermittelter Raum: Namen vergeben
     pruef(S.rn === 'Kind' && await p.evaluate(() => document.querySelector('[data-gmrn="EG.03"]').value === 'Kind' && /ermittelt/.test(document.querySelector('.sr-r .gm-li-r').textContent)), `Raum benennen: ${S.rn}`);
     S.hand = true; await zu('bauteile'); await p.waitForFunction(() => G3.bk === true, null, { timeout: 6000 }).catch(() => {});   // ohne Plan: Arbeitsmaske

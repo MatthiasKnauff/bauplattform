@@ -208,10 +208,12 @@ def sauber(d):
     out["raumbuch"] = raumbuch.sauber(d.get("raumbuch"))   # Boden, Wand, Decke je Raum (raumbuch.py)
     if d.get("raumausbau"):
         out["raumausbau"] = _ausbau_sauber(d.get("raumausbau"))   # Raumausbau aus dem Plan (Vorschlag fürs Raumbuch)
+    from .verfeinern import raumart
     for r in (d.get("raeume") if isinstance(d.get("raeume"), list) else [])[:2000]:
         if isinstance(r, dict):
             out["raeume"].append({"id": int(_z(r.get("id"), 0, 1e9)), "nr": _s(r.get("nr"), 20), "name": _s(r.get("name"), 200), "flaeche": _z(r.get("flaeche")),
                                   "umfang": _z(r.get("umfang")), "hoehe": _z(r.get("hoehe"), 0, 20), "geschoss": _s(r.get("geschoss"), 40),
+                                  "nutzung": raumart(r.get("name")),   # Nutzung aus dem Namen (verfeinern.raumart) – Gruppe „Nutzung“ der Räume (22.11.2026)
                                   **({"teil": _s(r.get("teil"), 20)} if r.get("teil") else {}), **({"ergaenzt": True} if r.get("ergaenzt") else {}), **_ermittelt(r)})
     from . import modell_plus
     if d.get("raumweg"):   # ermittelte Flächen, die kein Raum sind (kein Raum / Schacht – modell_plus.raumweg_sauber)

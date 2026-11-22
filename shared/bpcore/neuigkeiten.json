@@ -1,5 +1,13 @@
 [
  {
+  "id": "raeume-baum-2211",
+  "datum": "2026-11-22",
+  "app": "gebaeudemodell",
+  "titel": "Räume gruppieren",
+  "text": "Die Räume stehen jetzt wie die Bauteile als Baum: gruppiert nach Geschoss, dazu wählbar Nutzung, Boden, Wände, Decke, Gebäudeteil, Herkunft. Ein Klick wählt nur noch (kein Sprung in die Bauteile), Doppelklick öffnet die Eigenschaften mit Raumbuch und Maßen.",
+  "ziel": ".gm-li-r"
+ },
+ {
   "id": "umsortieren-2211",
   "datum": "2026-11-22",
   "app": "gebaeudemodell",

@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-zuruecksetzen-2026-11-22",
+  "datum": "2026-11-22",
+  "app": "gantt",
+  "titel": "Zurücksetzen mit Vorschau",
+  "text": "Im Leistungskatalog und unter „Gewerke & Firmen“ gibt es in der Befehlsleiste „Zurücksetzen …“: Es zeigt alle Abweichungen von der Ebene davor (ab Werk bzw. Vorgabe für alle Projekte) mit Häkchen – abgehakt bleibt es. Eigene Leistungen und Abschnitte werden nur gelöscht, wenn du sie ankreuzt. Strg+Z nimmt alles in einem Schritt zurück.",
+  "ziel": "#leiste"
+ },
+ {
   "id": "raumkisten-2026-11-22",
   "datum": "2026-11-22",
   "app": "gebaeudemodell",

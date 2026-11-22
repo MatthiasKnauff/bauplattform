@@ -37,7 +37,7 @@
     if (t === 'firmen') return [
       { titel: 'Neu', knoepfe: [K('tradeAdd', 'Gewerk', 'task')] },
       { titel: 'Projekt', knoepfe: [K('tradeAssignAll', 'Firmen in den Plan', 'link', 'Die Firma jedes Gewerks bei allen seinen Leistungen als Unternehmer:in eintragen – bei abweichendem Eintrag wird gefragt')] },
-      { titel: 'Vorgabe', knoepfe: [{ t: 'Vorgaben übernehmen', ic: I('import'), fn: () => window.fvVorgabenAlle && fvVorgabenAlle(), aus: !P, tip: 'Gewerke ohne Firma: die Vorgabe (alle Projekte) als Firma eintragen' }] },
+      { titel: 'Vorgabe', knoepfe: [{ t: 'Zurücksetzen …', ic: I('undo'), fn: () => fvZuruecksetzen(), aus: !P, tip: 'Firmen je Gewerk und eigene Firmen einzelner Leistungen zurück auf die Vorgaben für alle Projekte – mit Vorschau' }, { t: 'Vorgaben übernehmen', ic: I('import'), fn: () => window.fvVorgabenAlle && fvVorgabenAlle(), aus: !P, tip: 'Gewerke ohne Firma: die Vorgabe (alle Projekte) als Firma eintragen' }] },
       { titel: 'Gewerke', knoepfe: [K('gwDialog', 'Farben', 'palette'), K('gwAuto', 'Gewerke erkennen', 'magic', 'Leistungen ohne Gewerk: Gewerk aus Bezeichnung und Unternehmer:in vorschlagen – zum Abhaken')] },
       { titel: 'Ausgabe', knoepfe: [K('tradeCsv', 'Export', 'table'), K('tradeMail', 'E-Mail an alle', 'mail'), K('tradePrint', 'Liste drucken', 'printer')] },
       ...rechts];
@@ -49,7 +49,7 @@
       ...rechts];
     if (t === 'katalog') return [
       { titel: 'Neu', knoepfe: [K('libNew', 'Leistung', 'task')] },
-      { titel: 'Katalog', knoepfe: [{ t: 'Abschnitte', ic: I('summary'), fn: () => window.phNeu && phNeu(), tip: 'Abschnitte bearbeiten: umbenennen, Reihenfolge ändern, neu anlegen, löschen' }, K('libFromProjects', 'Aus Projekten', 'import')] },
+      { titel: 'Katalog', knoepfe: [{ t: 'Abschnitte', ic: I('summary'), fn: () => window.phNeu && phNeu(), tip: 'Abschnitte bearbeiten: umbenennen, Reihenfolge ändern, neu anlegen, löschen' }, ...(typeof libDarf === 'function' && libDarf() ? [{ t: 'Zurücksetzen …', ic: I('undo'), fn: () => katZuruecksetzen(), tip: 'Leistungen, Bezug und Abschnitte zurück auf den Stand ab Werk – mit Vorschau, abgehakt bleibt es' }] : []), K('libFromProjects', 'Aus Projekten', 'import')] },
       { titel: 'Ansicht', knoepfe: [K('libKlapp', 'Einklappen', 'table')] },
       ...(P && P.assist && P.tasks.some((x) => x.cat === '_grp') ? [{ titel: 'Plan', knoepfe: [{ t: 'Reihenfolge im Plan', ic: I('tidy'), fn: () => window.phApplyToPlan && phApplyToPlan(), tip: `Leistungsgruppen im geöffneten Projekt „${P.name}“ in die Reihenfolge der Abschnitte bringen` }] }] : []),
       { titel: 'Datei', knoepfe: [K('libExport', 'Export', 'export'), K('libImport', 'Import', 'open')] },

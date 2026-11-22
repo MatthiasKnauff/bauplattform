@@ -258,13 +258,13 @@ function phMove(k, to) {   // gilt sofort für alle Projekte; bestehende Pläne 
   const [x] = ph.splice(i, 1); ph.splice(Math.max(0, Math.min(ph.length, to)), 0, x); phUebernehmen(); renderLib();
 }
 function phSchieb(k, d) { const i = phListe().findIndex((p) => p.k === k); if (i < 0 || i + d < 0 || i + d >= phListe().length) return false; libFocus = `input[data-phn="${k}"]`; phMove(k, i + d); return true; }   // Tastatur: Alt+↑ / Alt+↓ im Namen
-function phLoesche(k) {   // eigener Abschnitt – seine Leistungen wandern in den Abschnitt davor
+function phLoesche(k, still) {   // eigener Abschnitt – seine Leistungen wandern in den Abschnitt davor (still: ohne eigenen Rückgängig-Schritt – „Zurücksetzen …“ legt einen für alles an)
   const i = CATALOG.phases.findIndex((p) => p.k === k); if (i < 0 || !CATALOG.phases[i].own || CATALOG.phases.length < 2) return;
   const to = (CATALOG.phases[i - 1] || CATALOG.phases[i + 1]).k;
   const altP = phStand, altL = window.LIBRARY, n = CATALOG.phases[i].n;   // ein Schritt: Abschnitt und seine Leistungen zusammen zurück
   CATALOG.phases.splice(i, 1); if (PHDRAFT) PHDRAFT = PHDRAFT.filter((p) => p.k !== k); savePhases(true);
   if (window.LIBRARY.some((x) => x.ph === k)) libSet(window.LIBRARY.map((x) => (x.ph === k ? { ...x, ph: to } : x)), false, true);
-  libSchritt(`Abschnitt „${n}“ gelöscht`, () => { CATALOG.phases.splice(0, CATALOG.phases.length, ...altP.map((p) => ({ ...p }))); PHDRAFT = null; savePhases(true); libSet(altL, true, true); });
+  if (!still) libSchritt(`Abschnitt „${n}“ gelöscht`, () => { CATALOG.phases.splice(0, CATALOG.phases.length, ...altP.map((p) => ({ ...p }))); PHDRAFT = null; savePhases(true); libSet(altL, true, true); });
 }
 function phNeu() {   // Befehlsleiste „Abschnitte“: umbenennen, Reihenfolge, neu, löschen – gilt sofort für alle Projekte
   if (!libDarf()) return libNurAdmin();

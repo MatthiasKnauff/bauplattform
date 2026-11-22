@@ -860,3 +860,7 @@ html[data-theme="dunkel"] .kp-chip{border-color:#555;color:#bbb}html[data-theme=
 .kn-ru{border:0;background:none;color:#b7860b;cursor:pointer}.kn-add{align-self:flex-start;border:0;background:none;color:var(--acc,#3b5a8f);cursor:pointer}
 .kn-probe{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-top:1px solid var(--line,#d5d9de);padding-top:8px}.kn-mehr{color:#c0392b}.kn-weniger{color:#2e7d4f}
 @media (max-width:900px){.kn{grid-template-columns:minmax(0,1fr)}.kn-l{display:none}.kn-m{grid-template-columns:minmax(0,1fr)}}
+/* „↺ Zurücksetzen …“ (zuruecksetzen.js): Liste mit Häkchen, abgehakt = bleibt; Löschen grau, bis man es ankreuzt */
+.zr{max-height:min(60vh,520px);overflow:auto;min-width:min(560px,90vw)}
+.zr-z{display:flex;gap:8px;align-items:baseline;padding:3px 0;cursor:pointer}.zr-z s{color:#888}
+.zr-weg span{color:var(--danger,#b8432f)}

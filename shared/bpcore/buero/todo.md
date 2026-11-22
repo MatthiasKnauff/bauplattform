@@ -148,7 +148,6 @@ Reihenfolge (19.11.2026): Bauantrag Etappe 3 → Kosten-Etappen 4–7 → DATEV-
 
 
 - Honorar: Fremdleistungen Stufe 2 – Eingangsrechnungen aus dem Posteingang zuordnen, To-do „Rechnung 7 Tage ungeprüft“ / „freigegeben, nicht weiterberechnet“, pauschale Weiterberechnung, Rechnungen der Fachplaner als Anlage an unsere **ca. 45 min** · Teilleistungstabelle zum Abhaken, LPh 8 nach Bauzeit – zurückgestellt
-- Leistungskatalog (Bauzeitenplan): Zurücksetzen einheitlich – drei Ebenen Standard → Büro-Vorgabe → Projekt, Abweichungen gelb mit ↺, ein „↺ Zurücksetzen …“ je Reiter mit Vorschau – Mock gezeigt **ca. 1 h**
 - Wärmeschutz: Abgleich mit dem Allplan-Bauteilkatalog (Schichtaufbauten aus Allplan übernehmen, Materialnamen zuordnen) – Mock folgt **ca. 1–1,5 h**
 - **Wärmeschutz Etappe ② Nachweis als PDF** (vorgezogen 19.11., Mock vorher) (Briefbogen, Unterschrift, Projektordner) und Übergabe an den Bauantrag **ca. 1 h** · ④ Hitzeschutz-Reiter, Wärmebrücken-Hinweise **ca. 1 h**
 
@@ -197,7 +196,6 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Aus dem Umbau-Mock gewählt: Hintergrund-Warteschlange für lange Aufgaben **ca. 1–2 h**, Volltextsuche über alles **ca. 1–2 h**, Typprüfung über JSDoc **ca. 2 h**; später: Überwachung (Dienste, Speicher, Sicherung) **ca. 1 h**. Live-Aktualisierung für AVA und Baukosten nachziehen **ca. 30 min**
 
 - Schritt 4 – Apps auf den Baukasten, große Dateien teilen:
-  - Bauzeitenplan Etappe 2: alle Pläne des Projekts im Baum, Ziehen/Ablegen, Schalter „nur geöffneten Plan“, Katalog als Reiter rechts, Kennzahlen in der Leiste, Suche in die Navigation, verstecktes Menüband entfernen, genaue Texte im Rückgängig-Dock. **ca. 2–3 h**
   - Planungsassistent und Vorlagen-Baukasten als gemeinsamer Baustein, danach auch in der Kostenberechnung (Start-Assistent: Maßnahme/Gebäudetyp, Eckdaten, Schritt für Schritt, eigene Vorlagen) – erst Mock. **ca. 2–3 h**
   - Große Dateien teilen: head.js, ava.py, head.py (Bauzeitenplan, Baukosten-Seite und PDF-Teil von baukosten.py sind geteilt). **ca. 2–3 h**
 - Schritt 5 – Kern aus dem Bautagebuch lösen: Ablage, Pläne, Fotos, Mail, Datensicherung, Bauleiter-Regel, Rechte. **ca. 1 Tag in mehreren Runden**
@@ -218,6 +216,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Zeiten: Rahmen um mehrere Blöcke (markieren, gemeinsam ändern/übernehmen/zusammenfassen/löschen) – Rückfrage gestellt **ca. 45 min**
 
 ## Später
+- Bauzeitenplan Etappe 2: alle Pläne des Projekts im Baum, Ziehen/Ablegen, Schalter „nur geöffneten Plan“, Katalog als Reiter rechts, Kennzahlen in der Leiste, Suche in die Navigation, verstecktes Menüband entfernen, genaue Texte im Rückgängig-Dock. **ca. 2–3 h** – Mock „Bauzeitenplan Etappe 2“ (ET-1 … ET-8) liegt vor, zurückgestellt am 22.11.2026
 - Bauzeitenplan: Leistungswerte aus der Praxis lernen – Ist-Dauern je Gewerk aus dem Bautagebuch (Firmen auf der Baustelle) ersetzen die Richtwerte **ca. 1 h**
 - Kanban-Board für To-dos (wie Nextcloud Deck) – „im Moment nicht“ (14.11.2026)
 - Aufgaben & Post auch im Code zu einer App zusammenlegen (ein Container statt zwei; Kommunikation als Teil der App Aufgaben, Rechte und Verweise umstellen) **ca. 1,5 h**
@@ -254,6 +253,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Bauzeitenplan/Leistungskatalog: „↺ Zurücksetzen …“ mit Vorschau in drei Ebenen (Katalog → ab Werk, Gewerke & Firmen → Vorgabe)~~ (22.11.2026)
 - ~~Gebäudemodell: Räume als farbige, halb durchsichtige Kisten im 3D (R-B)~~ (22.11.2026)
 - ~~Wärmeschutz: Bauteile-Baum wie im Gebäudemodell, nur Hülle, ＋ in den Nachweis, „Nur im Nachweis“~~ (22.11.2026)
 - ~~Bauzeitenplan-Suche: Wortvervollständigung als Vorschlagsliste, ‹ › so groß wie das ✕~~ (22.11.2026)

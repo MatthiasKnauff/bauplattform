@@ -5,7 +5,7 @@
    Gespeichert wird nur die Abweichung (Server api/catbuero, Store „catbuero“); hier wird sie auf CATALOG.items gelegt – Assistent,
    „Plan neu aus den Angaben“ und Probe lesen den Katalog wie gewohnt. Werk-Werte bleiben in WERK (↺ = zurück auf Werk).
    Ändern nur mit dem Block „Bauzeitenplan: Leistungskatalog …“ der Verwaltung (je Rolle, libDarf).
-   KatBuero.laden(d) · .setzen(id, {d|fix|w|a}) · .zurueck(id, feld?) · .abw(id) → Felder mit Abweichung · .werk(id) · .nach(id) Nachfolger
+   KatBuero.laden(d) · .ersetzen(d, still) · .setzen(id, {d|fix|w|a}) · .zurueck(id, feld?) · .abw(id) → Felder mit Abweichung · .werk(id) · .nach(id) Nachfolger
    ===================================================================== */
 (function () {
   const C = window.CATALOG, FELD = ['d', 'fix', 'w', 'a'];
@@ -34,6 +34,7 @@
   }
   const KatBuero = {
     laden(d) { D = d && typeof d === 'object' ? d : {}; stand = JSON.parse(JSON.stringify(D)); anwenden(); },
+    ersetzen(d, still, text) { D = JSON.parse(JSON.stringify(d || {})); anwenden(); speichern(text || 'Leistungskatalog geändert', still); },   // ganzer Stand auf einmal („Zurücksetzen …“, Rückgängig)
     daten: () => D,
     werk: (id) => WERK[id] || null,
     istWerk: (id) => !!WERK[id],

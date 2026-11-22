@@ -14,7 +14,7 @@ export async function ganttHeftPruefen(browser, repo) {
   const J = (o) => ({ contentType: 'application/json', body: JSON.stringify(o) });
   const ART = (f) => (f.endsWith('.css') ? 'text/css' : f.endsWith('.js') ? 'text/javascript' : f.endsWith('.html') ? 'text/html' : 'application/octet-stream');
   const ctx = await browser.newContext({ viewport: { width: 1600, height: 900 } }), p = await ctx.newPage();
-  p.on('pageerror', (e) => { if (!/NaN/.test(e.message)) fehler.push('Fehler im Skript – ' + e.message); });
+  p.on('pageerror', (e) => { if (!/NaN/.test(e.message)) fehler.push('Fehler im Skript – ' + e.message + ' ' + String(e.stack).split('\n').slice(1,4).join(' | ')); });
   await p.addInitScript(() => { try { localStorage.clear(); } catch { /* egal */ } });
   await p.route('http://portal.test/**', (r) => { const u = new URL(r.request().url()), pf = u.pathname.replace(/^\/gantt\//, '').replace(/^\//, '');
     if (pf === '' || pf === 'gantt') return r.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(PUB, 'index.html'), 'utf8') });
@@ -77,7 +77,11 @@ export async function ganttHeftPruefen(browser, repo) {
       pruef(await p.evaluate(() => ((document.querySelector('.td-eig .bp-eigk b') || {}).textContent || '') === 'Leistungsinformationen – ' + P.tasks[vis[1]].name), 'Blättern ↓ öffnet die nächste Leistung');
       await p.keyboard.press('Escape'); await p.waitForTimeout(100); pruef(!(await p.$('.td-eig')), 'Esc schließt');
       // überzogen (K7) auch im Eigenschaften-Fenster: Tage und Grund
-      await p.evaluate(() => taskDialog(0)); await p.waitForSelector('.td-eig #fUe'); await p.fill('.td-eig #fUe', '3'); await p.selectOption('.td-eig #fUeG', 'wetter');
+      await p.evaluate(() => taskDialog(0)); await p.waitForSelector('.td-eig #fUe'); await p.fill('.td-eig #fUe', '3');
+      await p.click('.td-eig #fUeG'); await p.waitForTimeout(150);   // Auswahl „Grund“: die eigene Liste (bp/wahl.js), nicht die des Browsers
+      pruef(await p.evaluate(() => !!document.querySelector('.bph-wahl') && !!window.bpWahl), 'Auswahlliste im Eigenschaften-Fenster ist die eigene Liste');
+      await p.evaluate(() => [...document.querySelectorAll('.bph-wahl .bph-wahl-o')].find((o) => /Wetter/i.test(o.textContent)).click()); await p.waitForTimeout(80);
+      pruef(await p.inputValue('.td-eig #fUeG') === 'wetter', 'Grund aus der eigenen Liste übernommen');
       await p.click('.td-eig .bp-eigf [data-m="ok"]'); await p.waitForTimeout(200);
       const ue = await p.evaluate(() => ({ u: P.tasks[0].ueber, pct: P.tasks[0].pct }));
       pruef(ue.u && ue.u.at === 3 && ue.u.grund === 'wetter' && ue.pct !== 100, `Überzogen im Eigenschaften-Fenster – Fortschritt bleibt (ÜF-1 A): ${JSON.stringify(ue)}`);
@@ -116,13 +120,15 @@ export async function ganttHeftPruefen(browser, repo) {
       const o = await p.evaluate(() => ({ fokus: document.activeElement.id, breit: Math.round(document.querySelector('#leiste .gs-box').getBoundingClientRect().width) }));
       pruef(o.fokus === 'gsQ' && o.breit > 250, `Klick auf „Suchen“ öffnet das Suchfeld – ${JSON.stringify(o)}`);
       // Wortvervollständigung (22.11.2026): „trock“ → Trockenbau, Trockenestrich untereinander; ‹ › so groß wie das ✕
-      await p.evaluate(() => { P.tasks.push(fillTask({ uid: 9001, name: 'Trockenbau Wände', dur: 2, lvl: 0, preds: [] }), fillTask({ uid: 9002, name: 'Trockenestrich', dur: 2, lvl: 0, preds: [] })); });
+      await p.evaluate(() => { P.tasks.push(fillTask({ uid: 9001, name: 'Trockenbau Wände', dur: 2, lvl: 0, preds: [] }), fillTask({ uid: 9002, name: 'Trockenestrich', dur: 2, lvl: 0, preds: [] })); CAL = schedule(); render(); });
       await p.fill('#gsQ', ''); await p.keyboard.type('trock'); await p.waitForSelector('.bp-vs .bp-vs-z', { timeout: 3000 });
       const v = await p.evaluate(() => ({ w: [...document.querySelectorAll('.bp-vs .bp-vs-z b')].map((b) => b.textContent), k: Math.round(document.querySelector('#leiste .gs-box [data-gs="1"]').getBoundingClientRect().width), s: Math.round(document.querySelector('#leiste .gs-box [data-gs="1"] svg').getBoundingClientRect().width) }));
       pruef(v.w.includes('Trockenbau') && v.w.includes('Trockenestrich') && v.k >= 26 && v.s >= 17, `Suchvorschläge und Knöpfe – ${JSON.stringify(v)}`);
       await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
-      pruef(/^Trocken/.test(await p.inputValue('#gsQ')), 'Vorschlag übernommen');
-      await p.evaluate(() => { P.tasks = P.tasks.filter((t) => t.uid < 9000); render(); });
+      pruef(/^Trocken/.test(await p.inputValue('#gsQ')) && /^–/.test(await p.textContent('#gsN')), `Enter übernimmt den Vorschlag und springt nicht – ${await p.textContent('#gsN')}`);
+      await p.keyboard.press('Enter'); await p.waitForTimeout(100);
+      pruef(/^1 \//.test(await p.textContent('#gsN')), `danach springt Enter zum ersten Treffer – ${await p.textContent('#gsN')}`);
+      await p.evaluate(() => { P.tasks = P.tasks.filter((t) => t.uid < 9000); CAL = schedule(); render(); });
       await p.keyboard.press('Escape'); await p.keyboard.press('Escape'); await p.evaluate(() => document.activeElement.blur());
       await p.setViewportSize({ width: 1600, height: 900 }); await p.waitForTimeout(300);
     }

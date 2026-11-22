@@ -51,6 +51,21 @@ export async function katalogNetzPruefen(browser, repo) {
     pruef(await p.evaluate(() => /2 Vorschläge/.test(document.querySelector('.lv-lern summary').textContent)), 'Lern-Vorschläge stehen da');
     await p.evaluate(() => { document.querySelector('.lv-lern').open = true; }); await p.click('.lv-lern [data-lern="ja:0"]'); await warte(500);
     pruef(((letzt('api/catbuero') || {}).estrich || {}).d === 3, `gelernte Richtdauer übernommen (2 × 1,5): ${JSON.stringify(letzt('api/catbuero'))}`);
+    {   // „↺ Zurücksetzen …“ (GO 22.11.2026): Vorschau mit Häkchen, eigene Leistungen nur angekreuzt, ein Rückgängig für alles
+      await p.evaluate(() => katZuruecksetzen()); await p.waitForSelector('.zr .zr-z');
+      const z = await p.evaluate(() => [...document.querySelectorAll('.zr .zr-z')].map((l) => [l.textContent.trim(), l.querySelector('input').checked]));
+      pruef(z.some(([t, an]) => /Estrich/.test(t) && /Richtdauer/.test(t) && an), `Zurücksetzen zeigt die Abweichung angehakt: ${JSON.stringify(z)}`);
+      await p.click('.modal [data-m="ok"]'); await warte(500);
+      pruef(!(letzt('api/catbuero') || {}).estrich && await p.evaluate(() => CATALOG.items.find((i) => i.id === 'estrich').d === 2), `zurückgesetzt auf Werk: ${JSON.stringify(letzt('api/catbuero'))}`);
+      await p.evaluate(async () => { const u = UNDO.s.pop(); if (/zurückgesetzt/.test(u.text)) await bpUndo.lauf(u); }); await warte(600);
+      pruef(((letzt('api/catbuero') || {}).estrich || {}).d === 3, `Rückgängig holt die Abweichungen zurück: ${JSON.stringify(letzt('api/catbuero'))}`);
+      await p.evaluate(() => { KatBuero.ersetzen({}, true); }); await warte(400);
+      await p.evaluate(() => katZuruecksetzen()); await warte(200);
+      pruef(!(await p.$('.zr')), 'ohne Abweichung kein Fenster, nur ein Hinweis');
+      await p.evaluate(() => { P.tasks[0].gw = 'Estrich'; P.tasks[0].res = 'Fa. Alt'; FIRMS.push({ id: 'fz1', name: 'Fa. Alt', gewerke: ['Estrich'] }); P.trades = { Estrich: { firm: 'fz1' } }; CATFIRMS[gwKey('Estrich')] = 'Fa. Neu'; fvZuruecksetzen(); });
+      await p.waitForSelector('.zr .zr-z'); await p.click('.modal [data-m="ok"]'); await warte(300);
+      pruef(await p.evaluate(() => firmById(P.trades.Estrich.firm).name === 'Fa. Neu' && P.tasks[0].res === 'Fa. Neu'), 'Gewerke & Firmen: Firma des Gewerks zurück auf die Vorgabe, Leistung zieht mit');
+    }
     // K7: später fertig – Verlängerung am Balken (seit ÜF-3 V1 orange), Grund wählen
     await p.evaluate(() => { showTab('plan'); P.tasks[1].ueber = { at: 3, grund: 'wetter' }; P.tasks[1].pct = 100; render(); }); await warte(300);
     pruef(await p.evaluate(() => !!document.querySelector('.bar rect.ue')), 'überzogen: Verlängerung am Balken');

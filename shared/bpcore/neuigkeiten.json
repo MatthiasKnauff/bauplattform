@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-soll-ist-2211",
+  "datum": "2026-11-22",
+  "app": "gantt",
+  "titel": "Soll und Ist im Bauzeitenplan",
+  "text": "Halte den Plan als Soll fest (Versionsmenü „📌 Als Soll festhalten …“, auch beim „Gilt ab jetzt“). Das Soll liegt dann blass unter dem laufenden Plan – Fortschritt und Überziehung trägst du im Ist ein, die Nachfolger rücken mit. Oben siehst du Projektende Soll → Ist; „Soll aus“ blendet es aus. Der Vergleich mit alten Versionen entfällt.",
+  "ziel": "#vmGrp"
+ },
+ {
   "id": "gantt-ueber-eig-2211",
   "datum": "2026-11-22",
   "app": "gantt",

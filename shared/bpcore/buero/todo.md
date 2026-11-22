@@ -173,7 +173,7 @@ Reihenfolge (19.11.2026): Bauantrag Etappe 3 → Kosten-Etappen 4–7 → DATEV-
 - Bauantrag: Lageplan-/Liegenschaftskarte aus ALKIS anfordern, Gebühr schätzen, Bauvorlagen direkt aus dem Projektordner beilegen. **ca. 30–45 min**
 1. Projektordner, Etappe 2: Umordnen per Ziehen und Ablegen in der Nachher-Ansicht, Dateinamen nach Schema (nicht nur das Kürzel), Seite für andere Benutzer freischalten. **ca. 30–45 min**
 2. Suchleiste (Inhalte + Funktionen + Menüs, kombiniert – ca. 1–1,5 h) in allen Apps vereinheitlichen (ein Baustein: Lupe, Treffer, vor/zurück, Strg+F, eng = nur Lupe) – erst Mock. **ca. 20–30 min**
-3. Vergleich im Bauzeitenplan, Etappe 2: Platzhalterzeile an der alten Stelle und Pfeil direkt in der Tabelle. **ca. 30 min**
+3. ~~Vergleich im Bauzeitenplan, Etappe 2~~ – entfällt (Soll und Ist, 22.11.2026)
 4. Alle Tabellen (baum.js), Rest: Langtext klappt beim Verlassen zu, zugeklappte Titel bleiben zu. **ca. 15–20 min**
 5. Aufmaß: Menge direkt eintragen – ohne Aufmaßzeilen entsteht eine Zeile „pauschal“, mit Aufmaßzeilen eine Ausgleichszeile (Vorschlag, wartet auf Zustimmung). **ca. 15–20 min**
 6. ~~Aufmaßprüfung: erster Rechenweg direkt in der Hauptzeile der Position (weitere Zeilen als Zwischenzeilen) – 13.11.2026~~ · Rest: Mengen auch in „lt. Rechnung“ **ca. 15 min**
@@ -254,6 +254,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Bauzeitenplan: Soll und Ist – Soll festhalten (Recht je Rolle, ab Werk alle Planer:innen), Soll immer unter dem Plan, Überziehung schiebt Nachfolger, Lernen Ist ÷ Soll; Vergleich mit alten Versionen entfällt~~ (22.11.2026)
 - ~~Bauzeitenplan: Überziehung (Tage + Grund) im Eigenschaften-Fenster~~ (22.11.2026)
 - ~~Grundriss: graue Fläche („kein Raum“/„Schacht“) wieder Raum nur über das Kontextmenü, nicht per Klick~~ (22.11.2026)
 - ~~Sahne entfernt: Fehler-Schlucken für Tests (9 Stellen), Warten bei „too many clients“ (jetzt max_connections=300), gekürzte Wärmeschutz-Verweise (einmal ergänzt), Laufwerk-Prüfung (jetzt `x-app` in den Stack-Dateien), Dockerfile `gantt/*.py`~~ (22.11.2026)

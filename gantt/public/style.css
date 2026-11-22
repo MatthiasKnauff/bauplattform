@@ -308,12 +308,6 @@ button{font:inherit}
 .vh-d{font-size:calc(var(--fs)*0.875)}
 .late{color:#c62828;font-weight:600}
 .early{color:#2e7d32;font-weight:600}
-.vh-sum{display:flex;flex-direction:column;gap:4px;background:#f6f8fb;border:1px solid #dde5ef;padding:8px 10px;margin-bottom:10px}
-.vh-sum span{display:inline-block;width:110px;color:#555}
-.vh-sum i{font-style:normal;margin-left:8px}
-.vh-new td{background:#f1f8f1}
-.vh-del td{background:#fbf0f0;color:#777;text-decoration:line-through}
-.vh-del td .t{text-decoration:none}
 /* Pfeil-Anzeige */
 #chartBody.lk-none .lk,#chartBody.lk-sel .lk:not(.on),#chartBody.lk-crit .lk:not(.critl){display:none}
 .rhint{font-size:calc(var(--fs)*0.875);color:#888}

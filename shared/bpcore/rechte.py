@@ -15,6 +15,7 @@ RECHTE = [
     ("urlaub.aendern", "Personal", "Abwesenheiten anderer ändern", "Urlaub, Krank usw. anderer zurücknehmen oder löschen, auch vergangene Tage – ab Werk Geschäftsführung, Büroleitung, Assistenz"),
     ("personal", "Personal", "Personal: alle Personen und Personalakte", "Daten aller Mitarbeiter:innen und ihre Personalakte (Verträge, Schriftverkehr) – jedes Öffnen der Akte wird protokolliert; ab Werk Geschäftsführung"),
     ("akquise", "Akquise", "Akquise sehen und bearbeiten", "Anfragen ohne Projekt (Ordner „Akquise“), in ein Projekt umwandeln – ab Werk Geschäftsführung"),
+    ("gantt.soll", "Projekte", "Bauzeitenplan: Soll festhalten", "den laufenden Bauzeitenplan als Soll festhalten bzw. neu festhalten (mit Begründung) – ab Werk alle Planer:innen (Geschäftsführung, Büroleitung, Bauleitung, Mitarbeiter:innen)"),
     ("bauherren", "Projekte", "Bauherrenportal", "Inhalte für Bauherr:innen freigeben, Bauherr:innen einladen und sperren, Nachrichten aus dem Portal sehen"),
     ("wiki.pruefen", "Wiki", "Wiki fachlich prüfen", "Einträge als „geprüft“ freigeben – erst dann erscheinen sie als Hinweis in den Apps"),
     ("datenschutz", "System", "Datenschutz: KI-Protokoll", "Protokoll der KI-Anfragen ansehen und exportieren (enthält Klartext) – ab Werk Geschäftsführung"),

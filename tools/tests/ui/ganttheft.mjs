@@ -10,6 +10,7 @@ export async function ganttHeftPruefen(browser, repo) {
   const BK = /BAUKASTEN = \(([^)]*)\)/.exec(fs.readFileSync(path.join(repo, 'shared/bpcore/head.py'), 'utf8'))[1].match(/"[^"]+"/g).map((s) => s.slice(1, -1));
   const baukasten = 'void 0;\n' + BK.map((f) => fs.readFileSync(path.join(KASTEN, f), 'utf8')).join('\n;\n');
   const fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
+  let SOLL = {};   // Soll und Ist (SI): erst am Ende ein Soll liefern – sonst steht das Band über allen anderen Prüfungen
   const J = (o) => ({ contentType: 'application/json', body: JSON.stringify(o) });
   const ART = (f) => (f.endsWith('.css') ? 'text/css' : f.endsWith('.js') ? 'text/javascript' : f.endsWith('.html') ? 'text/html' : 'application/octet-stream');
   const ctx = await browser.newContext({ viewport: { width: 1600, height: 900 } }), p = await ctx.newPage();
@@ -24,6 +25,7 @@ export async function ganttHeftPruefen(browser, repo) {
     if (r.request().method() === 'PUT') return r.fulfill(J({ ok: true, rev: 2 }));
     if (pf === 'api/me') return r.fulfill(J({ ok: true, id: 1, name: 'admin', vorname: 'A', role: 'admin', admin: true, is_admin: true, look: {} }));
     if (pf === 'api/platform') return r.fulfill(J({ apps: [], user: { name: 'admin', role: 'admin' }, projekte: [] }));
+    if (pf === 'api/projects/1/soll') return r.fulfill(J(SOLL));
     if (pf === 'api/projects') return r.fulfill(J([{ id: 1, name: 'Testplan', updated: '2026-11-15' }]));
     if (/^api\/projects\/(1|undefined)$/.test(pf)) return r.fulfill(J({ id: 1, name: 'Testplan', rev: 1, start: 20773, nextUid: 3, tasks: [{ uid: 1, name: 'A', dur: 2, lvl: 0, preds: [] }, { uid: 2, name: 'B', dur: 3, lvl: 0, preds: [] }] }));
     return r.fulfill({ contentType: 'application/json', body: /projects$|firms|presets|liste|versions|neuigkeit|kontakte|library/.test(pf) ? '[]' : '{}' }); });
@@ -115,6 +117,20 @@ export async function ganttHeftPruefen(browser, repo) {
       pruef(o.fokus === 'gsQ' && o.breit > 250, `Klick auf „Suchen“ öffnet das Suchfeld – ${JSON.stringify(o)}`);
       await p.keyboard.press('Escape'); await p.evaluate(() => document.activeElement.blur());
       await p.setViewportSize({ width: 1600, height: 900 }); await p.waitForTimeout(300);
+    }
+    {   // Soll und Ist (Mock „Soll und Ist“, 22.11.2026): Überziehung schiebt die Nachfolger (SI-3); das Soll liegt darunter, „Soll aus“ (SI-2)
+      const T0 = [{ uid: 1, name: 'A', dur: 2, lvl: 0, preds: [] }, { uid: 2, name: 'B', dur: 3, lvl: 0, preds: [{ uid: 1, type: 'FS', lag: 0 }] }];
+      const v = await p.evaluate((T0) => { P.tasks = T0.map((t) => fillTask({ ...t, preds: t.preds.map((x) => ({ ...x })) })); const a = schedule().es[1];
+        P.tasks[0].ueber = { at: 2, grund: 'wetter' }; P.tasks[0].pct = 100; CAL = schedule(); render(); return { vor: a, nach: CAL.es[1], ende: CAL.ef[0] - CAL.es[0] }; }, T0);
+      pruef(v.nach === v.vor + 2 && v.ende === 4, `Überziehung schiebt den Nachfolger: ${JSON.stringify(v)}`);
+      SOLL = { id: 's1', name: 'Bauvertrag', created: '2026-03-15T10:00:00Z', by: 'X', frueher: 0, data: { start: 20773, nextUid: 3, tasks: T0 } };
+      await p.evaluate(() => GVGL.laden()); await p.waitForSelector('#vgBand:not(.vg-aus)', { timeout: 5000 });
+      const b = await p.evaluate(() => ({ t: document.querySelector('#vgBand').textContent, alt: document.querySelectorAll('#vgl .vg-alt').length, menue: document.body.textContent.includes('Vergleichen mit anderer Version') }));
+      pruef(/Soll vom 15\.03\.2026/.test(b.t) && /Bauvertrag/.test(b.t) && b.alt >= 1 && !b.menue, `Soll unter dem Plan: ${JSON.stringify(b)}`);
+      await p.click('#vgBand [data-vgende]'); await p.waitForSelector('#vgBand.vg-aus', { timeout: 3000 });
+      pruef(await p.evaluate(() => !document.querySelector('#vgl') && /Soll zeigen/.test(document.querySelector('#vgBand').textContent)), '„Soll aus“ blendet das Soll aus, „Soll zeigen“ bleibt');
+      await p.click('#vgBand [data-sollan]'); await p.waitForSelector('#vgl .vg-alt', { timeout: 3000 }).catch(() => {});
+      pruef(await p.evaluate(() => !!document.querySelector('#vgl .vg-alt')), '„Soll zeigen“ legt es wieder darunter');
     }
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();

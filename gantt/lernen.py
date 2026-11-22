@@ -2,7 +2,8 @@
 
 Grundlage je Plan (gantt_projects.data.tasks), nie eine externe KI:
 - Dauer: Leistungen des Assistenten (cat, Vorschlag t.vs) mit anderer Dauer als vorgeschlagen (von Hand geändert) oder überzogen
-  (t.ueber = {at, grund}; zählt nur mit Grund „leistung“ – Wetter, Firma, Bauherrschaft, anderes nicht). Verhältnis Ist ÷ Vorschlag.
+  (t.ueber = {at, grund}; zählt nur mit Grund „leistung“ – Wetter, Firma, Bauherrschaft, anderes nicht). Verhältnis Ist ÷ Soll, wenn der
+  Plan ein festgehaltenes Soll hat (Mock „Soll und Ist“ SI-7: dieselbe Leistung – uid – im Soll), sonst Ist ÷ Vorschlag.
 - Abhängigkeit: von Hand dazugehängte Vorgänger zwischen zwei Leistungen des Katalogs (nicht im Vorschlag t.vs.pl).
 - Eigene Leistungen (ohne cat) mit gleichem Namen in mehreren Plänen.
 Ein Vorschlag entsteht ab MIN Plänen; die Seite (library.js) ordnet ihn dem Katalog zu und zeigt ihn zum Übernehmen (K3-A – nie
@@ -23,10 +24,12 @@ def _basis(cat):
 
 
 def auswerten(zeilen):
-    """zeilen = [(Planname, data-Dict)] → Rohdaten der Vorschläge (je Plan höchstens ein Eintrag je Leistung/Paar/Name)."""
+    """zeilen = [(Planname, data-Dict[, Soll-data-Dict])] → Rohdaten der Vorschläge (je Plan höchstens ein Eintrag je Leistung/Paar/Name)."""
     dauer, links, eigene = {}, {}, {}
-    for name, d in zeilen:
+    for z in zeilen:
+        name, d, soll = z[0], z[1], (z[2] if len(z) > 2 else None)
         T = d.get("tasks") if isinstance(d, dict) and isinstance(d.get("tasks"), list) else []
+        S = {t.get("uid"): float(t.get("dur") or 0) for t in ((soll or {}).get("tasks") or []) if isinstance(t, dict)} if isinstance(soll, dict) else {}
         cat_von = {t.get("uid"): _basis(t.get("cat")) for t in T if isinstance(t, dict) and t.get("cat") and not str(t.get("cat")).startswith("_")}
         gesehen_d, gesehen_l, gesehen_e = set(), set(), set()
         for t in T:
@@ -34,11 +37,12 @@ def auswerten(zeilen):
                 continue
             cat = _basis(t.get("cat"))
             vs = t.get("vs") if isinstance(t.get("vs"), dict) else None
-            if cat and not cat.startswith("_") and vs and (vs.get("d") or 0) > 0 and cat not in gesehen_d:
+            basis = S.get(t.get("uid")) or (float(vs["d"]) if vs and (vs.get("d") or 0) > 0 else 0)   # SI-7: Soll vor Vorschlag
+            if cat and not cat.startswith("_") and basis > 0 and cat not in gesehen_d:
                 u = t.get("ueber") if isinstance(t.get("ueber"), dict) else {}
                 ist = float(t.get("dur") or 0) + (float(u.get("at") or 0) if u.get("grund") == "leistung" else 0)
-                if ist > 0 and abs(ist - float(vs["d"])) >= 0.5:
-                    dauer.setdefault(cat, []).append({"p": name, "f": round(ist / float(vs["d"]), 3)})
+                if ist > 0 and abs(ist - basis) >= 0.5:
+                    dauer.setdefault(cat, []).append({"p": name, "f": round(ist / basis, 3)})
                     gesehen_d.add(cat)
             if cat and not cat.startswith("_") and vs:
                 vor = {p.get("uid") for p in (vs.get("pl") or []) if isinstance(p, dict)}
@@ -70,10 +74,16 @@ def einbinden(app, *, store_get, store_put, uname, body, darf):
     @app.get("/api/catlernen")
     def catlernen():
         with db.tx() as c:
-            Z = []
-            for r in c.execute("SELECT name, data FROM gantt_projects").fetchall():
+            Z, soll = [], {}
+            for v in c.execute("SELECT gantt_id, meta, data FROM gantt_versions ORDER BY created, id").fetchall():   # je Plan das jüngste Soll (SI-7)
                 try:
-                    Z.append((r["name"] or "Plan", json.loads(r["data"] or "{}")))
+                    if json.loads(v["meta"] or "{}").get("soll"):
+                        soll[v["gantt_id"]] = json.loads(v["data"] or "{}")
+                except (TypeError, ValueError):
+                    continue
+            for r in c.execute("SELECT id, name, data FROM gantt_projects").fetchall():
+                try:
+                    Z.append((r["name"] or "Plan", json.loads(r["data"] or "{}"), soll.get(r["id"])))
                 except (TypeError, ValueError):
                     continue
             nein = store_get(c, "catlern_nein", [])

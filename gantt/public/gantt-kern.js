@@ -295,6 +295,7 @@ function schedule() {
   for (const i of order) {
     const t = T[i], sg = segList(t);
     const D = sg ? sg.map((x) => x.d) : [t.dur], G = sg ? sg.map((x, k) => (k ? x.gap || 0 : 0)) : [0], m = D.length;
+    if (t.ueber && t.ueber.at > 0 && t.dur > 0) D[m - 1] += t.ueber.at;   // Ist (SI-3): überzogen = später fertig – die Nachfolger hängen am neuen Ende
     const need = new Array(m).fill(-Infinity); need[0] = cons[i];
     for (const r of ins[i]) {
       if (r.type === 'K') continue;

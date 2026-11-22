@@ -258,13 +258,13 @@ function renderChart() {
         h += `<g class="sg" data-seg="${k}"><rect class="b" data-seg="${k}" x="${sg.x1}" y="${y + 6}" width="${w}" height="12"${bst}/>`
           + (f > 0 ? `<rect class="p" x="${sg.x1}" y="${y + 10}" width="${w * f}" height="4"${pst}/>` : '') + '</g>';
       });
-      if (t.ueber && t.ueber.at) { const w = t.ueber.at * 7 / 5 * ppd; px = g.x2 + w;   // K7: fertig später – rote Verlängerung hinter dem geplanten Ende
-        h += `<rect class="ue" x="${g.x2}" y="${y + 9}" width="${w}" height="6"><title>Fertig ${t.ueber.at} AT später als geplant – ${esc((typeof UEBER_GRUND !== 'undefined' ? UEBER_GRUND : {})[t.ueber.grund] || t.ueber.grund)}</title></rect>`; }
+      if (t.ueber && t.ueber.at) { const w = Math.max(2, g.x2 - g.xp); px = g.x2;   // K7/SI-3: fertig später – rote Verlängerung vom geplanten bis zum neuen Ende
+        h += `<rect class="ue" x="${g.xp}" y="${y + 9}" width="${w}" height="6"><title>Fertig ${t.ueber.at} AT später als geplant – ${esc((typeof UEBER_GRUND !== 'undefined' ? UEBER_GRUND : {})[t.ueber.grund] || t.ueber.grund)}</title></rect>`; }
       const sp = g.segs.length > 1;   // unterbrochen: jedes Abschnittsende anfassbar, jeder Abschnitt verknüpfbar (13.11.2026)
       bars += `<g class="bar${cr ? ' crit' : ''}${sp ? ' split' : ''}" data-i="${i}">${h}`
         + (sp ? g.segs.map((sg, k) => `<rect class="lh" data-seg="${k}" x="${sg.x1 - 3}" y="${y + 4}" width="7" height="16"/><rect class="rh" data-seg="${k}" x="${sg.x2 - 5}" y="${y + 4}" width="8" height="16"/>`
           + (k < g.segs.length - 1 ? `<circle class="lkdot" data-seg="${k}" cx="${sg.x2 + 4}" cy="${y + 3}" r="3"/>` : '')).join('')
-          : `<rect class="lh" x="${g.x1 - 3}" y="${y + 4}" width="7" height="16"/><rect class="rh" x="${g.x2 - 5}" y="${y + 4}" width="8" height="16"/>`)
+          : `<rect class="lh" x="${g.x1 - 3}" y="${y + 4}" width="7" height="16"/><rect class="rh" x="${(g.xp || g.x2) - 5}" y="${y + 4}" width="8" height="16"/>`)
         + `<path class="ph" d="M${px},${y + 17}l4,5h-8z"/><circle class="lkdot" cx="${g.x2 + 7}" cy="${y + 12}" r="3.5"/></g>`;
     }
     bars += barLabels(i, g, y);
@@ -283,9 +283,10 @@ function barGeo(i, y, Xf, ppd) {
   if (!c.summ[i] && t.dur === 0) { const cx = Xf(c.sd[i]) + (c.msEnd[i] ? ppd : 0); return { x1: cx - 6, x2: cx + 6, cx, y, ms: true, segs: [] }; }
   if (c.summ[i]) { const x1 = Xf(c.sd[i]), x2 = c.dur[i] > 0 ? Xf(c.fd[i] + 1) : x1 + 2; return { x1, x2, cx: x1 + Math.min(6, (x2 - x1) / 2), y, segs: [] }; }
   const S = c.segS[i], E = c.segE[i], D = segList(t) ? t.segs.map((x) => x.d) : [t.dur];
-  const segs = S.map((st, k) => ({ x1: Xf(fromW(st)), x2: Xf(fromW(E[k] - 1) + 1), d: D[k], s: st, e: E[k] }));
-  const x1 = segs[0].x1, x2 = segs[segs.length - 1].x2;
-  return { x1, x2, cx: x1 + Math.min(6, (segs[0].x2 - x1) / 2), y, segs };
+  const ue = t.ueber && t.ueber.at > 0 ? t.ueber.at : 0, m = S.length;   // überzogen: der Balken endet am geplanten Ende, rot bis zum neuen (x2)
+  const segs = S.map((st, k) => { const e = k === m - 1 ? E[k] - ue : E[k]; return { x1: Xf(fromW(st)), x2: Xf(fromW(e - 1) + 1), d: D[k], s: st, e }; });
+  const x1 = segs[0].x1, xe = Xf(fromW(E[m - 1] - 1) + 1);
+  return { x1, x2: xe, xp: segs[m - 1].x2, cx: x1 + Math.min(6, (segs[0].x2 - x1) / 2), y, segs };
 }
 function segAnchor(g, k) {
   if (k == null || !g.segs || !g.segs[k]) return g;

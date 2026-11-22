@@ -31,3 +31,12 @@ def test_nicht_zaehlt():
     gleich(R["links"], {}, "ohne Abweichung kein Vorschlag")
     R = lernen.auswerten([("A", _plan(4))])
     gleich((R["dauer"], R["eigene"]), ({}, {}), "ein Plan allein reicht nicht")
+
+
+def test_ist_gegen_soll():
+    """SI-7 (22.11.2026): hat der Plan ein festgehaltenes Soll, zählt Ist ÷ Soll (dieselbe Leistung über die uid), sonst ÷ Vorschlag."""
+    soll = _plan(5)   # im Soll waren es schon 5 AT (Vorschlag 3)
+    R = lernen.auswerten([("A", _plan(5), soll), ("B", _plan(6), soll), ("C", _plan(6), soll)])
+    gleich(R["dauer"].get("estrich"), [{"p": "B", "f": 1.2}, {"p": "C", "f": 1.2}], "A wie im Soll – kein Lernen; B und C 6 statt 5 AT im Soll")
+    R = lernen.auswerten([("A", _plan(4), None), ("B", _plan(4))])
+    gleich(sorted(x["f"] for x in R["dauer"]["estrich"]), [1.333, 1.333], "ohne Soll wie bisher gegen den Vorschlag")

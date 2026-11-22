@@ -75,6 +75,7 @@ body.g-zl-linie #gridBody .row.sel .c{background:transparent}body.g-zl-linie #gr
 body.g-zl-linie .selband{fill:none;stroke:#e0393e;stroke-width:1.5;stroke-dasharray:5 3}body.g-zl-linie #hovband{mix-blend-mode:multiply}html[data-theme="dunkel"] body.g-zl-linie #hovband{mix-blend-mode:screen}   /* der Rahmen bleibt auch unter der Maus sichtbar */
 /* Vergleich im Plan (vergleich.js) */
 #vgBand{flex:none;display:flex;align-items:center;gap:.4rem 1rem;flex-wrap:wrap;margin:.35rem .45rem 0;padding:.35rem .7rem;border:1px solid color-mix(in srgb,#e0a030 45%,var(--line));border-radius:calc(8px*var(--rk,1));background:color-mix(in srgb,#e0a030 12%,var(--card))}
+#vgBand.vg-aus{border-color:var(--line);background:var(--card)}
 #vgBand .vg-chip{border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:.05rem .6rem;background:var(--card)}#vgBand .vg-sp0{flex:1}
 #vgBand .vg-lg{display:flex;align-items:center;gap:.35rem;color:var(--mute);font-size:var(--fs-s)}
 .vg-lg-alt{display:inline-block;width:20px;height:9px;border:1px dashed var(--mute);background:color-mix(in srgb,var(--mute) 25%,transparent);border-radius:2px}

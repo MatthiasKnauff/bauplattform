@@ -1,15 +1,20 @@
-/* Vergleich im Plan (Bauzeitenplan): eine gespeicherte Version liegt unter dem aktuellen Plan – der Plan bleibt bearbeitbar,
-   der Vergleich rechnet nach jedem Zeichnen neu.
-   – Termin geändert: alter Balken bunt-blass und gestrichelt, etwas schräg (rechts oben) versetzt; Pfeil zum neuen Ende, „+7 T“
+/* Soll und Ist im Plan (Bauzeitenplan, Mock „Soll und Ist“ SI-1 … SI-7, GO 22.11.2026): das festgehaltene Soll (eine Version mit
+   meta.soll, Server /api/projects/<id>/soll) liegt immer unter dem laufenden Plan (Ist) – der Plan bleibt bearbeitbar, der Vergleich
+   rechnet nach jedem Zeichnen neu. Den Vergleich mit beliebigen alten Versionen gibt es nicht mehr (SI-1).
+   – Termin geändert: Soll-Balken bunt-blass und gestrichelt, etwas schräg (rechts oben) versetzt; Pfeil zum neuen Ende, „+7 T“
    – neu: Zeile grün getönt, „neu“
    – entfallen: rote gestrichelte Linie an der alten Stelle zwischen den Zeilen (Tabelle und Diagramm)
    – an andere Stelle gerückt: violette gestrichelte Linie an der alten Stelle, Pfeil in der schmalen Spalte zwischen Tabelle und
      Diagramm zur neuen Zeile; als „gerückt“ zählt nur, was wirklich bewegt wurde (längste unveränderte Reihenfolge bleibt stehen)
-   Oben ein Band (womit verglichen wird, Projektende alt → neu, Zahlen, andere Version, beenden), rechts der Reiter „Vergleich“.
-   Hängt sich an gantt-*.js (compareVersion, renderGrid, renderChart) und rahmen.js (Bereich rechts) – gantt-*.js bleiben unverändert. */
+   Oben ein Band (Soll vom …, Projektende Soll → Ist, Zahlen, „Soll aus“, „Soll neu festhalten …“), rechts der Reiter „Soll/Ist“.
+   Ausgeblendet („Soll aus“) bleibt es je Person im Browser (LS „sollAus“). Festhalten: GVGL.festhalten() – Recht „gantt.soll“ (BP.me.soll).
+   Hängt sich an gantt-*.js (renderGrid, renderChart) und rahmen.js (Bereich rechts). */
 (() => {
-  let V = null;   // { label, T2, C2 } – der alte Stand
+  let V = null;   // { label, T2, C2, m } – das Soll, wenn es gezeigt wird
+  let S = null;   // das geladene Soll des Plans (Meta + Daten) bzw. null
   let D = null;   // Ergebnis des letzten Vergleichs
+  const aus = () => !!LS.get('sollAus', false);
+  const darf = () => !!(window.BP && BP.me && BP.me.soll);
   const DAY = 86400000;
   const kurz = (n) => (n > 0 ? '+' + n : String(n)) + ' T';
 
@@ -45,14 +50,17 @@
   /* ---------- Band oben ---------- */
   function band() {
     let b = document.getElementById('vgBand');
-    if (!V) { if (b) b.remove(); return; }
+    if (!S) { if (b) b.remove(); return; }
     if (!b) { b = document.createElement('div'); b.id = 'vgBand'; const w = document.getElementById('work'); w.parentElement.insertBefore(b, w); }
+    const neu = darf() ? '<button type="button" class="btn sm" data-sollneu>📌 Soll neu festhalten …</button>' : '';
+    if (!V) { b.className = 'vg-aus'; b.innerHTML = `<b>Soll</b><span class="mute">vom ${esc(S.tag)} ausgeblendet</span><span class="vg-sp0"></span><button type="button" class="btn sm" data-sollan>Soll zeigen</button>${neu}`; return; }
+    b.className = '';
     const dE = CAL.peDay - V.C2.peDay;
-    b.innerHTML = `<b>Vergleich</b><span class="vg-chip" title="Alter Stand">„${esc(V.label)}“ ↔ aktueller Stand</span>
+    b.innerHTML = `<b>Soll vom ${esc(S.tag)}</b><span class="vg-chip" title="${esc(S.note || '')}">„${esc(S.name || 'Soll')}“${S.by ? ' · ' + esc(S.by) : ''}</span>
       <span>Projektende ${fmtD(V.C2.peDay)} → <b>${fmtD(CAL.peDay)}</b> <b class="${dE > 0 ? 'vg-sp' : dE < 0 ? 'vg-fr' : 'vg-gl'}">${dE ? kurz(dE).replace(' T', ' KT') : 'unverändert'}</b></span>
       <span>${D.nZeit} Termin geändert · <b class="vg-fr">${D.nNeu} neu</b> · <b class="vg-sp">${D.nWeg} entfallen</b> · <b class="vg-ort">${D.nOrt} an anderer Stelle</b></span>
-      <span class="vg-lg"><i class="vg-lg-alt"></i>alter Stand <i class="vg-lg-pf"></i>verschoben</span><span class="vg-sp0"></span>
-      <button type="button" class="btn sm" data-vgwahl>⇄ andere Version</button><button type="button" class="btn sm" data-vgende>✕ Vergleich beenden</button>`;
+      <span class="vg-lg"><i class="vg-lg-alt"></i>Soll <i class="vg-lg-pf"></i>verschoben</span><span class="vg-sp0"></span>
+      <button type="button" class="btn sm" data-vgende>Soll aus</button>${neu}`;
   }
 
   /* ---------- Tabelle: Kennzeichen und Δ in der Namenszelle, Linien an alten Stellen ---------- */
@@ -125,58 +133,68 @@
         z: x.o ? `${fmtD(x.o.sd)} – ${fmtD(x.o.fd)} → ${fmtD(CAL.sd[i])} – ${fmtD(CAL.fd[i])}` : `${fmtD(CAL.sd[i])} – ${fmtD(CAL.fd[i])}` });
     });
     D.weg.filter((o) => !o.summ).forEach((o) => Z.push({ i: -1, n: o.name, k: 'weg', w: 'entfällt', z: `war ${fmtD(o.sd)} – ${fmtD(o.fd)}` }));
-    listeEl.innerHTML = `<div class="sr-pad vg-liste"><h4>${Z.length} Änderung${Z.length === 1 ? '' : 'en'} gegenüber „${esc(V.label)}“</h4>`
+    listeEl.innerHTML = `<div class="sr-pad vg-liste"><h4>${Z.length} Abweichung${Z.length === 1 ? '' : 'en'} vom Soll „${esc(V.label)}“</h4>`
       + (Z.length ? Z.map((z) => `<button type="button" class="vg-e vg-e-${z.k}" data-vgi="${z.i}"><span>${esc(z.n)}</span><b>${esc(z.w)}</b><small>${esc(z.z)}</small></button>`).join('') : '<p class="hint">Keine Unterschiede.</p>') + '</div>';
   }
+  /* ---------- Soll laden, zeigen, festhalten ---------- */
+  let planId = null, ladeNr = 0;
+  async function laden() {
+    const id = P && P.id, nr = ++ladeNr; S = null; V = null; D = null;
+    if (id == null) return zeigen();
+    let x = null; try { const r = await fetch(`api/projects/${encodeURIComponent(id)}/soll`); x = r.ok ? await r.json() : null; } catch { x = null; }
+    if (nr !== ladeNr || !P || P.id !== id) return;
+    if (x && x.data) { const d = new Date(x.created); S = { ...x, tag: `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}` }; }
+    zeigen();
+  }
+  function zeigen() {
+    if (S && !aus()) { const { C: C2, T: T2 } = scheduleOf(S.data); V = { label: S.name || 'Soll', T2, C2 }; } else V = null;
+    D = null;
+    document.body.classList.toggle('g-vgl', !!V);
+    if (!V) { band(); rinne(); }   // mit Soll zeichnet renderChart das Band (nach dem Vergleich)
+    if (window.ganttBereichNeu) ganttBereichNeu();
+    if (P) render();
+  }
+  function festhalten(planId2, erstes) {   // Soll (neu) festhalten – erstes: nach „Gilt ab jetzt“ (SI-4), ohne Pflicht-Begründung
+    const id = planId2 || (P && P.id); if (id == null) return;
+    const neu = !!S && String(id) === String(P && P.id), heute = fmtD(todayN());
+    modal(neu ? 'Soll neu festhalten' : 'Als Soll festhalten', `<div class="form" style="max-width:480px">
+      <div class="hint full" style="margin:0 0 8px">${neu ? `Der heutige Plan wird das neue Soll. Das bisherige Soll („${esc(S.name || 'Soll')}“ vom ${esc(S.tag)}) bleibt als früheres Soll im Verlauf.`
+        : 'Der heutige Plan wird als Soll festgehalten und liegt ab jetzt blass unter dem laufenden Plan (Ist). Fortschritt, Überziehung und verschobene Termine trägst du im Ist ein.'}</div>
+      <label>Name</label><input id="soName" class="full" value="${esc(erstes ? 'Soll ' + heute : neu ? '' : 'Soll ' + heute)}" placeholder="z. B. Nachtrag 2 – Bauzeitverlängerung">
+      <label>Begründung${neu ? ' (Pflicht)' : ''}</label><textarea id="soNote" class="full" placeholder="${neu ? 'z. B. vereinbart mit der Bauherrschaft am …' : 'optional'}"></textarea></div>`,
+    [{ label: 'Festhalten', cls: 'primary', primary: true, fn: (bg) => {
+      const name = bg.querySelector('#soName').value.trim() || 'Soll ' + heute, note = bg.querySelector('#soNote').value.trim();
+      if (neu && !note) { toast('Bitte begründen, warum das Soll neu festgehalten wird.', true); return false; }
+      (async () => { if (String(id) === String(P && P.id)) await flushSave();
+        await planApi.addVersion(id, { soll: true, name, note, end: String(id) === String(P && P.id) ? CAL.peDay : undefined });
+        LS.set('sollAus', false); toast(`Soll „${name}“ festgehalten.`); if (String(id) === String(P && P.id)) laden(); })().catch((e) => toast('Fehler: ' + e.message, true));
+    } }, { label: erstes ? 'Später' : 'Abbrechen' }]);
+  }
+  async function erstesSoll(id) {   // SI-4: beim „Gilt ab jetzt“ fragen, wenn der Plan noch kein Soll hat
+    if (!darf()) return;
+    try { const r = await fetch(`api/projects/${encodeURIComponent(id)}/soll`); const x = r.ok ? await r.json() : {}; if (x && x.data) return; } catch { return; }
+    festhalten(id, true);
+  }
   window.GVGL = {
-    versionWahl,
     aktiv: () => !!V,
-    reiter: () => (V ? { id: 'vergleich', titel: 'Vergleich', mount: (el) => { listeEl = el; liste(); } } : null),
+    soll: () => S,
+    festhalten: () => festhalten(),
+    erstesSoll,
+    laden,
+    reiter: () => (V ? { id: 'vergleich', titel: 'Soll/Ist', mount: (el) => { listeEl = el; liste(); } } : null),
   };
 
   /* ---------- an gantt-*.js anhängen ---------- */
   const alt = { renderGrid, renderChart };
   renderGrid = function () { alt.renderGrid(); if (V) { rechnen(); tabelle(); } };
-  renderChart = function () { alt.renderChart(); if (V) { if (!D) rechnen(); diagramm(); band(); liste(); } };
-  compareVersion = async function (v, label) {
-    let full; try { full = await planApi.version(P.id, v.id); } catch (e) { toast('Fehler: ' + e.message, true); return; }
-    const { C: C2, T: T2 } = scheduleOf(full.data);
-    V = { label, T2, C2 }; D = null;
-    document.querySelectorAll('.modal-bg').forEach((b) => { if (b.querySelector('#vhBody')) b.remove(); });   // Verlaufsfenster zu: der Vergleich steht im Plan
-    document.body.classList.add('g-vgl');
-    if (window.ganttBereichNeu) ganttBereichNeu();
-    render();
-    if (typeof seiteReiter === 'function') seiteReiter('gantt', 'vergleich');
+  renderChart = function () {
+    if (P && P.id !== planId) { planId = P.id; V = null; S = null; D = null; document.body.classList.remove('g-vgl'); band(); rinne(); setTimeout(laden, 0); }   // anderer Plan: dessen Soll laden
+    alt.renderChart(); if (V) { if (!D) rechnen(); diagramm(); band(); liste(); }
   };
-  /* Vergleich mit einer anderen Version des Plans (Versionsleiste: „Startversion“, „nach Bauherrengespräch“ …) – deren aktueller Stand */
-  async function mitPlan(id, name) {
-    let full; try { await flushSave(); full = await planApi.get(id); } catch (e) { toast('Fehler: ' + e.message, true); return; }
-    const { C: C2, T: T2 } = scheduleOf(full);
-    V = { label: 'Version ' + (name || full.name || ''), T2, C2 }; D = null;
-    document.body.classList.add('g-vgl');
-    if (window.ganttBereichNeu) ganttBereichNeu();
-    render();
-    if (typeof seiteReiter === 'function') seiteReiter('gantt', 'vergleich');
-  }
-  function versionWahl() {   // andere Version desselben Projekts wählen
-    const bt = P && P._bt ? P._bt.id : null;
-    const L = bt ? projects.filter((p) => p.bt_id === bt && p.id !== P.id) : [];
-    if (!L.length) { toast('Es gibt keine andere Version dieses Plans – „＋ Neue Version“ in der Versionsleiste legt eine an.'); return; }
-    const bg = modal('Vergleichen mit …', `<p class="hint" style="margin-top:0">Der aktuelle Plan bleibt bearbeitbar; die gewählte Version liegt als alter Stand darunter.</p>
-      <div style="display:grid;gap:.35rem">${L.map((p) => `<button type="button" class="btn" data-vid="${esc(p.id)}" style="display:flex;justify-content:space-between;gap:1rem"><span>${esc(p.name)}${p.gueltig ? ' ★' : ''}</span><small class="hint">${esc((p.updated || '').slice(0, 10))}</small></button>`).join('')}</div>`, [{ label: 'Abbrechen' }]);
-    bg.addEventListener('click', (e) => { const b = e.target.closest('[data-vid]'); if (!b) return; bg.remove(); const p = L.find((x) => x.id === b.dataset.vid); mitPlan(b.dataset.vid, p && p.name); });
-  }
-  function beenden() {
-    V = null; D = null; document.body.classList.remove('g-vgl'); band(); rinne();
-    if (window.ganttBereichNeu) ganttBereichNeu();
-    render();
-  }
   document.addEventListener('click', (e) => {
-    if (e.target.closest('[data-vgende]')) { beenden(); return; }
-    if (e.target.closest('[data-vgwahl]')) { versionHistory(); return; }
+    if (e.target.closest('[data-vgende]')) { LS.set('sollAus', true); zeigen(); return; }
+    if (e.target.closest('[data-sollan]')) { LS.set('sollAus', false); zeigen(); return; }
+    if (e.target.closest('[data-sollneu]')) { festhalten(); return; }
     const z = e.target.closest('[data-vgi]'); if (z) { const i = +z.dataset.vgi; if (i < 0) return; const r = vis.indexOf(i); if (r >= 0) { selectRow(r); ensureVisible(r); } }
   });
-  // Plan gewechselt: Vergleich gehört zum alten Plan – beenden
-  let planId = null;
-  const r0 = renderChart; renderChart = function () { if (V && P && planId != null && P.id !== planId) { V = null; D = null; document.body.classList.remove('g-vgl'); band(); rinne(); if (window.ganttBereichNeu) setTimeout(ganttBereichNeu, 0); } planId = P && P.id; r0(); };
 })();

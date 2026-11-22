@@ -451,10 +451,15 @@ def katalog_darf():
     return rechte.stufe(g.user, "gantt") == "aendern"
 
 
+def soll_darf():
+    """Recht „Bauzeitenplan: Soll festhalten“ (Mock „Soll und Ist“ SI-5, 22.11.2026) – ab Werk alle Planer:innen, Verwaltung immer."""
+    return rechte.hat(g.user, "gantt.soll") or rechte.hat(g.user, "verwaltung")
+
+
 @app.get("/api/me")
 def me():
     u = g.user
-    return jsonify(id=u["id"], name=u["name"], is_admin=bool(u["is_admin"]), katalog=katalog_darf(), accent=u["accent"] or "",
+    return jsonify(id=u["id"], name=u["name"], is_admin=bool(u["is_admin"]), katalog=katalog_darf(), soll=soll_darf(), accent=u["accent"] or "",
                    theme=sso.theme_of(u) or "dunkel", apps=sso.apps_of(u))
 
 
@@ -645,6 +650,28 @@ def presence(pid):
 
 
 # ---------------------------------------------------------------- Versionshistorie je Plan
+def _soll(c, pid):
+    """Das geltende Soll des Plans (jüngstes festgehaltene) – Zeile aus gantt_versions oder None."""
+    for v in c.execute("SELECT * FROM gantt_versions WHERE gantt_id=? ORDER BY created DESC, id DESC", (pid,)).fetchall():
+        if json.loads(v["meta"] or "{}").get("soll"):
+            return v
+    return None
+
+
+@app.get("/api/projects/<pid>/soll")
+def project_soll(pid):
+    """Soll und Ist (SI-2): das festgehaltene Soll mit seinen Daten – liegt im Plan immer darunter. {} = noch keins."""
+    with db.tx() as c:
+        r, err = _project_or_error(c, pid)
+        if err:
+            return err
+        v = _soll(c, pid)
+        if not v:
+            return jsonify({})
+        frueher = sum(1 for x in c.execute("SELECT meta FROM gantt_versions WHERE gantt_id=?", (pid,)) if json.loads(x["meta"] or "{}").get("soll")) - 1
+        return jsonify({**_vmeta(v), "frueher": frueher, "data": json.loads(v["data"])})
+
+
 def _vmeta(v):
     m = json.loads(v["meta"])
     m["id"], m["created"] = v["id"], v["created"]
@@ -668,6 +695,12 @@ def versions(pid, vid=None):
             proj["updated"] = r["updated"]
             meta = {"name": jstr(b.get("name") or "")[:120], "note": jstr(b.get("note") or "")[:2000], "auto": truthy(b.get("auto")),
                     "n": len(proj.get("tasks") or []), "end": int(b["end"]) if is_int(b.get("end")) else None, "start": proj.get("start")}
+            if truthy(b.get("soll")):   # Soll festhalten (SI): bleibt unter dem Plan stehen, nie automatisch weggeräumt, nicht löschbar
+                if not soll_darf():
+                    return jsonify(error="Das Soll festhalten darfst du nicht – das stellt die Verwaltung je Rolle ein."), 403
+                if _soll(c, pid) and not meta["note"].strip():
+                    return jsonify(error="Bitte begründen, warum das Soll neu festgehalten wird."), 400
+                meta.update(soll=True, auto=False, name=meta["name"] or "Soll")
             v = {"id": new_id(), "created": now_iso(), **meta}
             c.execute("INSERT INTO gantt_versions(id, gantt_id, meta, data, created, user_name) VALUES(?,?,?,?,?,?)",
                       (v["id"], pid, json.dumps(meta, ensure_ascii=False), json.dumps(proj, ensure_ascii=False), v["created"], uname()))
@@ -686,6 +719,8 @@ def versions(pid, vid=None):
             return jsonify(error="Version nicht gefunden"), 404
         if request.method == "GET":
             return jsonify({**_vmeta(v), "data": json.loads(v["data"])})
+        if json.loads(v["meta"]).get("soll") and request.method == "DELETE":
+            return jsonify(error="Ein festgehaltenes Soll bleibt erhalten – neu festhalten legt ein weiteres an."), 403
         if request.method == "PATCH":
             b = body()
             m = json.loads(v["meta"])

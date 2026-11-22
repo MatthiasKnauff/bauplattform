@@ -678,3 +678,22 @@ def test_katalog_buero_und_lernen(ctx):
     finally:
         for p in P:
             weg(ctx, p["id"])
+
+
+def test_soll_und_ist(ctx):
+    """Soll und Ist (Mock „Soll und Ist“ SI-1 … SI-7, 22.11.2026): ein Stand wird als Soll festgehalten (Version mit soll), liegt unter dem Plan
+    (api/projects/<id>/soll), lässt sich nicht löschen; neu festhalten nur mit Begründung; das jüngste gilt."""
+    a = ctx.admin
+    p = neuer_plan(a, ctx.name("Soll"), [leistung(1, "Rohbau", 5), leistung(2, "Dach", 3, preds=[1])])
+    try:
+        gleich(a.gj(f"{G}/projects/{p['id']}/soll"), {}, "ohne Soll leer")
+        s1 = a.post(f"{G}/projects/{p['id']}/versions", {"soll": True, "name": "Bauvertrag"}, expect=201).json
+        pruefe(s1.get("soll") and not s1.get("auto"), f"erstes Soll ohne Begründung: {s1}")
+        a.post(f"{G}/projects/{p['id']}/versions", {"soll": True, "name": "Nachtrag"}, expect=400)   # neu festhalten ohne Begründung
+        s2 = a.post(f"{G}/projects/{p['id']}/versions", {"soll": True, "name": "Nachtrag", "note": "Bauzeitverlängerung vereinbart"}, expect=201).json
+        g = a.gj(f"{G}/projects/{p['id']}/soll")
+        gleich((g["id"], g["name"], g["frueher"], len(g["data"]["tasks"])), (s2["id"], "Nachtrag", 1, 2), "das jüngste Soll gilt, ein früheres")
+        a.delete(f"{G}/projects/{p['id']}/versions/{s1['id']}", expect=403)
+        pruefe(a.gj(f"{G}/me").get("soll"), "Verwaltung darf das Soll festhalten (BP.me.soll)")
+    finally:
+        weg(ctx, p["id"])

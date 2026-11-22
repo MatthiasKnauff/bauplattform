@@ -512,7 +512,7 @@ function vleiste() {
   if (!window.BPHead || !BPHead.versionsleiste) return;
   if (!vlKnoepfe) {
     const mk = (act, txt, tip) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'bph-vl-b'; b.dataset.act = act; b.textContent = txt; b.title = tip; return b; };
-    vlKnoepfe = [mk('printDialog', '🖨 Drucken / PDF …', 'Bauzeitenplan drucken oder als PDF (Strg+P)'), mk('fileExport', '⤓ Exportieren …', 'Als Datei speichern: Excel/CSV, MS Project, Gantt-Datei'), mk('verlaufPlan', '🕘 Verlauf', 'Frühere Stände dieses Bauzeitenplans ansehen, vergleichen und wiederherstellen')];
+    vlKnoepfe = [mk('printDialog', '🖨 Drucken / PDF …', 'Bauzeitenplan drucken oder als PDF (Strg+P)'), mk('fileExport', '⤓ Exportieren …', 'Als Datei speichern: Excel/CSV, MS Project, Gantt-Datei'), mk('verlaufPlan', '🕘 Verlauf', 'Frühere Stände dieses Bauzeitenplans ansehen und wiederherstellen (Soll gegen Ist: Band über dem Plan)')];
   }
   const bt = P && P._bt ? P._bt.id : null;
   const L = !P ? [] : (bt ? projects.filter((p) => p.bt_id === bt) : projects.filter((p) => p.id === P.id)).slice().sort((a, b) => (a.created || '').localeCompare(b.created || '') || a.id.localeCompare(b.id));
@@ -522,7 +522,7 @@ function vleiste() {
     liste: L.map((p) => ({ id: p.id, name: p.id === (P && P.id) ? P.name : p.name, datum: when(p.updated), wer: p.by || '', archiviert: p.archived })),
     onWahl: async (id) => { await flushSave(); if (await openProject(String(id)) !== false) refreshProjectList(); },
     onGueltig: bt ? versionGilt : null,
-    onNeu: neueVersion, extra: [{ text: '⎘ Aus anderem Plan übernehmen …', fn: () => ACTIONS.planUebernehmen() }, ...(L.length > 1 && window.GVGL ? [{ text: '⇄ Vergleichen mit anderer Version …', fn: () => GVGL.versionWahl() }] : [])], onUmbenennen: () => ACTIONS.renameProject(), onVerlauf: () => versionHistory(), onVerwalten: () => archivDialog() };
+    onNeu: neueVersion, extra: [{ text: '⎘ Aus anderem Plan übernehmen …', fn: () => ACTIONS.planUebernehmen() }, ...(window.GVGL && window.BP && BP.me && BP.me.soll ? [{ text: GVGL.soll() ? '📌 Soll neu festhalten …' : '📌 Als Soll festhalten …', fn: () => GVGL.festhalten() }] : [])], onUmbenennen: () => ACTIONS.renameProject(), onVerlauf: () => versionHistory(), onVerwalten: () => archivDialog() };
   // kompaktes Versionsmenü vorne in der Werkzeugleiste (wie in der AVA); Drucken/Exportieren rechts in der Reiterzeile
   const el = BPHead.versionsleiste({ vor: $('#tabs'), ...O }); el.style.display = 'none';
   let vb = $('#vmGrp');
@@ -535,7 +535,7 @@ function vleiste() {
 async function versionGilt(id, schon) {
   const p = projects.find((x) => String(x.id) === String(id)); if (!p) return;
   if (!schon && window.bpFrage && !(await bpFrage(`„${p.id === P.id ? P.name : p.name}“ gilt ab jetzt: Das Bautagebuch (Anwesende), die Erinnerungen und die To-dos richten sich nach dieser Version. Die Erinnerungen der bisher gültigen Version entfallen.`, { ok: 'Gilt ab jetzt' }))) return;
-  try { const r = await fetch(`api/projects/${encodeURIComponent(id)}/gueltig`, { method: 'PUT' }); const x = await r.json(); if (!r.ok) throw new Error(x.error || r.status); await refreshProjectList(); toast('Diese Version gilt jetzt.'); }
+  try { const r = await fetch(`api/projects/${encodeURIComponent(id)}/gueltig`, { method: 'PUT' }); const x = await r.json(); if (!r.ok) throw new Error(x.error || r.status); await refreshProjectList(); toast('Diese Version gilt jetzt.'); if (window.GVGL) GVGL.erstesSoll(id); }
   catch (er) { toast('Nicht möglich: ' + er.message, true); }
 }
 window.ganttVleiste = vleiste;
@@ -637,17 +637,16 @@ async function versionHistory() {
     box.innerHTML = `<div class="vh-cur">Aktueller Stand: <b>${P.tasks.length} Leistungen</b> · Projektende <b>${fmtD(CAL.peDay)}</b></div>
       <table class="ptab vh"><thead><tr><th style="width:120px">Gespeichert</th><th>Version</th><th style="width:70px">Leistungen</th><th style="width:100px">Projektende</th><th style="width:250px"></th></tr></thead><tbody>`
       + list.map((v) => `<tr class="${v.auto ? 'auto' : ''}"><td>${fmtTs(v.created)}</td>
-        <td>${v.auto && !v.name ? '<span class="vh-auto">automatischer Zwischenstand</span>' : `<b>${esc(v.name)}</b>`}${v.note ? `<div class="vh-note">${esc(v.note)}</div>` : ''}</td>
+        <td>${v.soll ? '📌 <i class="t in">Soll</i> ' : ''}${v.auto && !v.name ? '<span class="vh-auto">automatischer Zwischenstand</span>' : `<b>${esc(v.name)}</b>`}${v.note ? `<div class="vh-note">${esc(v.note)}</div>` : ''}</td>
         <td style="text-align:right">${v.n}</td><td>${v.end != null ? fmtD(v.end) : '–'}${v.end != null && v.end !== CAL.peDay ? `<div class="vh-d ${v.end < CAL.peDay ? 'late' : 'early'}">jetzt ${CAL.peDay > v.end ? '+' : ''}${CAL.peDay - v.end} Tage</div>` : ''}</td>
-        <td class="vh-act"><button class="btn sm" data-vc="${v.id}">Vergleichen</button><button class="btn sm" data-vr="${v.id}">Wiederherstellen</button><button class="btn sm" data-vo="${v.id}" title="Als neues Projekt öffnen">Als Projekt</button><button class="btn sm" data-vn="${v.id}" title="Benennen">✎</button><button class="btn sm" data-vd="${v.id}" title="Löschen">✕</button></td></tr>`).join('')
+        <td class="vh-act"><button class="btn sm" data-vr="${v.id}">Wiederherstellen</button><button class="btn sm" data-vo="${v.id}" title="Als neues Projekt öffnen">Als Projekt</button><button class="btn sm" data-vn="${v.id}" title="Benennen">✎</button>${v.soll ? '' : `<button class="btn sm" data-vd="${v.id}" title="Löschen">✕</button>`}</td></tr>`).join('')
       + '</tbody></table>';
   };
   const load = async () => { try { list = await planApi.versions(P.id); } catch (e) { list = []; toast('Versionen konnten nicht geladen werden: ' + e.message, true); } draw(); };
   bg.addEventListener('click', async (e) => {
     const b = e.target.closest('button'); if (!b) return;
-    const v = list.find((x) => x.id === (b.dataset.vc || b.dataset.vr || b.dataset.vo || b.dataset.vn || b.dataset.vd)); if (!v) return;
+    const v = list.find((x) => x.id === (b.dataset.vr || b.dataset.vo || b.dataset.vn || b.dataset.vd)); if (!v) return;
     const label = v.name || 'Zwischenstand vom ' + fmtTs(v.created);
-    if (b.dataset.vc) { compareVersion(v, label); return; }
     if (b.dataset.vr) {
       confirmDialog('Version wiederherstellen', `Den Plan auf „<b>${esc(label)}</b>“ zurücksetzen? Der aktuelle Stand wird vorher als Version „Vor Wiederherstellung“ gesichert; zusätzlich lässt sich das Zurücksetzen mit Strg+Z rückgängig machen.`, async () => {
         try {
@@ -673,35 +672,6 @@ async function versionHistory() {
   });
   load();
 }
-async function compareVersion(v, label) {
-  let full; try { full = await planApi.version(P.id, v.id); } catch (e) { toast('Fehler: ' + e.message, true); return; }
-  const { C: C2, T: T2 } = scheduleOf(full.data);
-  const leaf = (T, C, i) => !C.summ[i];
-  const old = new Map(), cur = new Map(), oldByName = new Map();
-  T2.forEach((t, i) => { if (leaf(T2, C2, i)) { const o = { name: t.name, sd: C2.sd[i], fd: C2.fd[i], dur: C2.dur[i], res: t.res, i }; old.set(t.uid, o); if (!oldByName.has(t.name)) oldByName.set(t.name, o); } });
-  P.tasks.forEach((t, i) => { if (!CAL.summ[i]) cur.set(t.uid, { name: t.name, sd: CAL.sd[i], fd: CAL.fd[i], dur: CAL.dur[i], i }); });
-  const used = new Set(), rows = [];
-  for (const [u, c] of cur) {
-    let o = old.get(u); if (!o || o.name !== c.name) { const byN = oldByName.get(c.name); if (byN && !used.has(byN)) o = byN; else if (o && used.has(o)) o = null; }
-    if (o) { used.add(o); if (o.sd !== c.sd || o.fd !== c.fd || o.dur !== c.dur) rows.push({ k: 'ch', c, o }); }
-    else rows.push({ k: 'new', c });
-  }
-  for (const o of old.values()) if (!used.has(o)) rows.push({ k: 'del', o });
-  rows.sort((a, b) => (a.c ? a.c.i : 1e6 + a.o.i) - (b.c ? b.c.i : 1e6 + b.o.i));
-  const dd = (a, b) => b - a, sgn = (n) => (n > 0 ? '+' + n : String(n));
-  const endD = CAL.peDay - C2.peDay;
-  const nCh = rows.filter((r) => r.k === 'ch').length, nNew = rows.filter((r) => r.k === 'new').length, nDel = rows.filter((r) => r.k === 'del').length;
-  const body = `<div class="vh-sum"><div><span>Projektende</span><b>${fmtD(C2.peDay)}</b> → <b>${fmtD(CAL.peDay)}</b> <i class="${endD > 0 ? 'late' : endD < 0 ? 'early' : ''}">${endD ? sgn(endD) + ' Kalendertage' : 'unverändert'}</i></div>
-      <div><span>Leistungen</span>${nCh} verschoben/geändert · ${nNew} neu · ${nDel} entfallen</div></div>
-    ${rows.length ? `<div style="max-height:56vh;overflow:auto"><table class="ptab vh"><thead><tr><th>Leistung</th><th>Anfang: ${esc(label.length > 24 ? 'Version' : label)} → jetzt</th><th>Ende: Version → jetzt</th><th style="width:90px">Ende Δ</th></tr></thead><tbody>`
-      + rows.map((r) => r.k === 'new' ? `<tr class="vh-new"><td>${r.c.i + 1} – ${esc(r.c.name)} <i class="t in">neu</i></td><td>${fmtD(r.c.sd)}</td><td>${fmtD(r.c.fd)}</td><td></td></tr>`
-        : r.k === 'del' ? `<tr class="vh-del"><td>${esc(r.o.name)} <i class="t part">entfallen</i></td><td>${fmtD(r.o.sd)}</td><td>${fmtD(r.o.fd)}</td><td></td></tr>`
-        : `<tr><td>${r.c.i + 1} – ${esc(r.c.name)}${r.o.dur !== r.c.dur ? ` <small>(${r.o.dur} → ${r.c.dur} AT)</small>` : ''}</td><td>${r.o.sd === r.c.sd ? fmtD(r.c.sd) : `${fmtD(r.o.sd)} → <b>${fmtD(r.c.sd)}</b>`}</td><td>${r.o.fd === r.c.fd ? fmtD(r.c.fd) : `${fmtD(r.o.fd)} → <b>${fmtD(r.c.fd)}</b>`}</td><td class="${dd(r.o.fd, r.c.fd) > 0 ? 'late' : dd(r.o.fd, r.c.fd) < 0 ? 'early' : ''}">${dd(r.o.fd, r.c.fd) ? sgn(dd(r.o.fd, r.c.fd)) + ' Tage' : '–'}</td></tr>`).join('')
-      + '</tbody></table></div>' : '<div class="hint">Keine Unterschiede bei den Leistungen.</div>'}`;
-  const m = modal(`Vergleich: „${label}“ ↔ aktueller Stand`, body, [{ label: 'Schließen' }]);
-  m.querySelector('.modal').style.width = '900px';
-}
-
 /* ⚙ → Bauzeitenplan: Einstellungen dieser App */
 function ganttSettings(host) {
   const draw = () => {

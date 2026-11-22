@@ -2,7 +2,10 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "gantt"))
+for _w in ("/app/gantt", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "gantt")):   # im Container /app/gantt, sonst das Repo
+    if os.path.isfile(os.path.join(_w, "lernen.py")):
+        sys.path.insert(0, _w)
+        break
 import lernen   # noqa: E402
 from lib import gleich, pruefe   # noqa: E402
 

@@ -8,6 +8,8 @@
 <link rel="icon" href="logo.png">
 <link rel="stylesheet" href="bp/bp.css">
 <style>
+.adr-su{display:block;width:calc(100% - .5rem);box-sizing:border-box;margin:.15rem .25rem .3rem;padding:.35rem .55rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));background:var(--inp,var(--card));color:var(--ink);font:inherit;font-size:.86rem}
+.bp-nav.frei:not(:hover):not(:focus-within) .adr-su{visibility:hidden}
 .adr-ohne{display:flex;gap:.4rem;align-items:center;margin:.1rem 0 .35rem 2.1rem;font-size:.82em;color:var(--mute);cursor:pointer}
 .bp-nav.frei:not(:hover):not(:focus-within) .adr-ohne{visibility:hidden}
 .bar{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:.8rem}
@@ -180,23 +182,52 @@ const shown = () => ALL.filter(AF.pruefe);
 const ADR_IC = { '': '<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M17 11a3 3 0 1 0 0-6M21 20a5 5 0 0 0-4-5"/>', firma: '<path d="M4 21V8l6-4v17M10 21V10h10v11M13 13h4M13 17h4"/>', bauherr: '<path d="M3 11l9-7 9 7M5 10v10h14V10"/>',
   baustelle: '<path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>', art: '<path d="M4 7h16M4 12h16M4 17h10"/>', gw: '<path d="M14 6l4 4-9 9H5v-4z"/>' };
 const ADR_F = { firma: 'var(--c-b)', bauherr: 'var(--c-g)', baustelle: 'var(--c-o)' };
+/* Links (22.11.2026, Mock „Adressen: Filter sammeln“ GW-1 C, GW-3 … GW-6): Kontakte, Projekte, Gewerke. Ein Klick setzt den Eintrag oben in den Filter
+   (bp/filter.js) bzw. nimmt ihn wieder heraus – verschiedene Gruppen mit UND, weitere derselben Gruppe mit ODER, beides per Klick tauschbar.
+   Würde die Navigation rollen, zeigen lange Gruppen nur das Gewählte und die zuletzt benutzten, darüber ein Suchfeld mit Vervollständigung. */
+const ADR_ZL = 'bp.adr.zuletzt', ADR_LANG = 6;
+const zuletzt = () => { try { return JSON.parse(localStorage.getItem(ADR_ZL) || '{}') || {}; } catch { return {}; } };
+function zuletztMerken(art, w) { const Z = zuletzt(); Z[art] = [w, ...(Z[art] || []).filter((x) => x !== w)].slice(0, 5); try { localStorage.setItem(ADR_ZL, JSON.stringify(Z)); } catch { /* nur jetzt */ } }
+const projekteVon = (c) => [...new Set([...c.projects, c.site_of].filter(Boolean))];
+function zaehlen(f) { const Z = {}; ALL.forEach((c) => f(c).forEach((w) => { Z[w] = (Z[w] || 0) + 1; })); return Z; }
+const GW_Z = () => zaehlen((c) => (c.kind === 'firma' ? trades(c) : [])), PJ_Z = () => zaehlen(projekteVon);
+const vsListe = (Z) => () => Object.entries(Z()).sort((a, b) => a[0].localeCompare(b[0], 'de')).map(([w, n]) => ({ w, t: n + ' Kontakt' + (n > 1 ? 'e' : '') }));
+bpVorschlag.listen.adrGw = vsListe(GW_Z); bpVorschlag.listen.adrPj = vsListe(PJ_Z);
+const ADR_ART = { g: 'gewerk', p: 'projekt' };
 function adrNav() {
   const n = {}; ALL.forEach((c) => { n[c.kind] = (n[c.kind] || 0) + 1; });
-  const G = {}; ALL.filter((c) => c.kind === 'firma').forEach((c) => trades(c).forEach((t) => { G[t] = (G[t] || 0) + 1; }));
+  const G = GW_Z(), P = PJ_Z(), Zl = zuletzt();
   artenNeu();
-  bpNav($('#navL'), { kopf: { titel: 'Adressen', klein: '' }, lage: true, attr: 'adr', aktiv: gw ? 'g:' + gw : bet ? 'b' : 'k:' + kind,
+  const arten = AF.werte('art'), gws = AF.werte('gewerk'), pjs = AF.werte('projekt');
+  const aktiv = [...(arten.length ? arten.map((a) => 'k:' + ((Object.entries(KINDN).find(([, x]) => x === a) || [a])[0])) : ['k:']), ...gws.map((g) => 'g:' + g), ...pjs.map((p) => (p === betN ? 'b' : 'p:' + p))];
+  const nav = $('#navL'), platz = Math.max(8, Math.floor(((nav.clientHeight || innerHeight) - 140) / 32));
+  const kurz = !nav.classList.contains('oben') && KINDS.length + Object.keys(G).length + Object.keys(P).length > platz;   // passt nicht ohne Rollen → lange Gruppen kurz
+  const gruppe = (titel, k, Z, an, icon, farbe, vs, tip) => {
+    const W = Object.keys(Z).sort((a, b) => a.localeCompare(b, 'de')), lang = kurz && W.length > ADR_LANG;
+    const zeig = lang ? [...an, ...(Zl[ADR_ART[k]] || []).filter((w) => Z[w] && !an.includes(w))].filter((w) => !(k === 'p' && w === betN)) : W.filter((w) => !(k === 'p' && w === betN));
+    return { titel, punkte: zeig.map((t) => ({ id: k + ':' + t, text: t, icon, farbe, zahl: String(Z[t] || 0) })),
+      such: lang ? `<input type="search" class="adr-su" data-vs="${vs}" data-adrsu="${k}" autocomplete="off" placeholder="${esc(tip)} (${W.length}) …" aria-label="${esc(tip)}">` : '' };
+  };
+  const pj = gruppe('Projekte', 'p', P, pjs, ADR_IC[''], 'var(--c-v)', 'adrPj', 'Projekt suchen');
+  if (betN) pj.punkte.unshift({ id: 'b', text: 'Beteiligte ' + betN, icon: ADR_IC[''], farbe: 'var(--c-v)', zahl: String(ALL.filter(istBet).length) });
+  const gw0 = gruppe('Gewerke', 'g', G, gws, ADR_IC.gw, '', 'adrGw', 'Gewerk suchen');
+  bpNav(nav, { kopf: { titel: 'Adressen', klein: '' }, lage: true, attr: 'adr', aktiv,
     davor: '<div class="adr-flt"></div>', nachher: (x, m) => { AF.einhaengen(x.querySelector('.adr-flt'));
       const b = m !== 'oben' && x.querySelector('[data-adr="b"]');   // unter „Beteiligte …“: wie die Adressen beginnen
       if (b) b.insertAdjacentHTML('afterend', `<label class="adr-ohne"><input type="checkbox" data-adrohne${START.ohne_projekt ? ' checked' : ''}> immer ohne Projekt beginnen</label>`); },
     gruppen: [{ titel: 'Kontakte', punkte: KINDS.map(([k, l]) => ({ id: 'k:' + k, text: l, icon: ADR_IC[k] || ADR_IC.art, farbe: ADR_F[k] || '', zahl: String(k ? n[k] || 0 : ALL.length) })) }]
-      .concat(betN ? [{ titel: 'Projekt', punkte: [{ id: 'b', text: 'Beteiligte ' + betN, icon: ADR_IC[''], farbe: 'var(--c-v)', zahl: String(ALL.filter(istBet).length) }] }] : [])
-      .concat(Object.keys(G).length ? [{ titel: 'Gewerke', punkte: Object.keys(G).sort((a, b) => a.localeCompare(b, 'de')).map((t) => ({ id: 'g:' + t, text: t, icon: ADR_IC.gw, zahl: String(G[t]) })) }] : []) });
-  bpNav.breite($('#navL'), { key: 'adressen' });
+      .concat(pj.punkte.length || pj.such ? [pj] : []).concat(gw0.punkte.length || gw0.such ? [gw0] : []) });
+  bpNav.breite(nav, { key: 'adressen' });
 }
+function adrNimm(art, w) { if (art !== 'art') zuletztMerken(art, w); AF.umschalten(art, w); }
 $('#navL').addEventListener('click', (e) => { const b = e.target.closest('[data-adr]'); if (!b) return; const v = b.dataset.adr;
-  if (v === 'b') { if (bet) AF.weg('projekt'); else AF.setzen('projekt', betN); }   // links: Abkürzung – setzt bzw. nimmt den Filter
-  else if (v.startsWith('g:')) { if (gw === v.slice(2)) AF.weg('gewerk'); else AF.setzen('gewerk', v.slice(2)); }
-  else if (v.slice(2)) AF.setzen('art', KINDN[v.slice(2)] || v.slice(2)); else AF.weg('art'); });   // Filterwert = Name wie in der Karte („Firma“), nicht die Beschriftung links („Firmen“)
+  if (v === 'b') return adrNimm('projekt', betN);
+  if (v.startsWith('g:')) return adrNimm('gewerk', v.slice(2));
+  if (v.startsWith('p:')) return adrNimm('projekt', v.slice(2));
+  if (v.slice(2)) adrNimm('art', KINDN[v.slice(2)] || v.slice(2)); else AF.weg('art'); });   // Filterwert = Name wie in der Karte („Firma“), nicht die Beschriftung links („Firmen“)
+$('#navL').addEventListener('change', (e) => { const i = e.target.closest('[data-adrsu]'); if (!i) return;   // Suchfeld einer langen Gruppe: nur ein Eintrag aus der Liste wird Filter
+  const art = ADR_ART[i.dataset.adrsu], Z = art === 'gewerk' ? GW_Z() : PJ_Z(), w = Object.keys(Z).find((x) => x.toLocaleLowerCase('de') === i.value.trim().toLocaleLowerCase('de'));
+  if (!w) return; i.value = ''; if (!AF.werte(art).includes(w)) adrNimm(art, w); });
 async function startSpeichern() { try { START = await api('api/ansicht/start', 'PUT', START); } catch { /* egal – gilt dann eben nur jetzt */ } }
 async function ohneFragen() {   // Projektfilter weggeklickt: einmal fragen, die Antwort steht danach als Häkchen unter „Beteiligte …“
   START.gefragt = true;

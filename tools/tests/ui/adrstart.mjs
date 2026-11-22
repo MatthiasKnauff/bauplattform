@@ -10,7 +10,9 @@ export async function adrStartPruefen(browser, repo) {
   const baukasten = 'void 0;\n' + BK.map((f) => fs.readFileSync(path.join(KASTEN, f), 'utf8')).join('\n;\n');
   const fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
   const J = (o) => ({ contentType: 'application/json', body: JSON.stringify(o) });
-  const lauf = async (start) => {
+  const KONT0 = [{ id: 1, name: 'Dach GmbH', kind: 'firma', trade: 'Dachdecker', projects: ['Haus Mustermann'], site_of: '' },
+    { id: 2, name: 'Putz KG', kind: 'firma', trade: 'Putz', projects: [], site_of: '' }, { id: 3, name: 'Fam. Muster', kind: 'bauherr', trade: '', projects: [], site_of: '' }];
+  const lauf = async (start, kont = KONT0) => {
     const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } }), p = await ctx.newPage(), puts = [];
     p.on('pageerror', (e) => fehler.push('Fehler im Skript – ' + e.message));
     await p.route('http://portal.test/**', (r) => { const u = new URL(r.request().url()), pf = u.pathname.replace(/^\/adressen\//, '');
@@ -22,8 +24,7 @@ export async function adrStartPruefen(browser, repo) {
       if (pf === 'api/me') return r.fulfill(J({ ok: true, id: 1, name: 'admin', is_admin: true, apps: [], start }));
       if (pf === 'api/platform') return r.fulfill(J({ apps: [], user: { name: 'admin' } }));
       if (pf === 'api/bp/projekt') return r.fulfill(J({ id: 7, name: 'Haus Mustermann' }));
-      if (pf === 'api/contacts') return r.fulfill(J([{ id: 1, name: 'Dach GmbH', kind: 'firma', trade: 'Dachdecker', projects: ['Haus Mustermann'], site_of: '' },
-        { id: 2, name: 'Putz KG', kind: 'firma', trade: 'Putz', projects: [], site_of: '' }, { id: 3, name: 'Fam. Muster', kind: 'bauherr', trade: '', projects: [], site_of: '' }]));
+      if (pf === 'api/contacts') return r.fulfill(J(kont));
       return r.fulfill(J(/liste|kontakte|neuigkeit/.test(pf) ? [] : {})); });
     await p.goto('http://portal.test/adressen/'); await p.waitForSelector('[data-adr="b"]', { timeout: 10000 }); await p.waitForTimeout(300);
     return { ctx, p, puts };
@@ -44,9 +45,17 @@ export async function adrStartPruefen(browser, repo) {
       // 19.11.2026 (Video): links „Firmen“ / „Bauherr:innen“ filterte nicht – Filterwert ist der Name der Art („Firma“), nicht die Beschriftung
       await p.click('[data-adr="k:firma"]'); await p.waitForTimeout(200);
       pruef(await zahl(p) === 2, `links „Firmen“: nur die Firmen (2) – ${await zahl(p)}`);
+      // 22.11.2026 (Mock „Adressen: Filter sammeln“): ein weiterer Eintrag derselben Gruppe kommt mit ODER dazu, ein zweiter Klick nimmt ihn heraus
       await p.click('[data-adr="k:bauherr"]'); await p.waitForTimeout(200);
-      pruef(await zahl(p) === 1, `links „Bauherr:innen“: nur Bauherr:innen (1) – ${await zahl(p)}`);
-      pruef(await p.evaluate(() => kind) === 'bauherr', 'links „Bauherr:innen“ nicht als gewählt markiert');
+      let st = await p.evaluate(() => ({ an: [...document.querySelectorAll('#navL .ni.on')].map((x) => x.dataset.adr).join(','), satz: AF.satz() }));
+      pruef(await zahl(p) === 3 && st.an === 'k:firma,k:bauherr' && /Firma ODER Bauherr/.test(st.satz), `Firmen + Bauherr:innen: ODER, beide markiert – ${await zahl(p)} · ${JSON.stringify(st)}`);
+      await p.click('[data-adr="g:Dachdecker"]'); await p.waitForTimeout(200);
+      st = await p.evaluate(() => AF.satz());
+      pruef(await zahl(p) === 1 && /\) UND Dachdecker/.test(st), `andere Gruppe kommt mit UND dazu – ${await zahl(p)} · ${st}`);
+      await p.click('.adr-flt .bpf-zw'); await p.waitForTimeout(200);
+      pruef(await zahl(p) === 3 && /ODER Dachdecker/.test(await p.evaluate(() => AF.satz())), `Klick auf UND tauscht zu ODER – ${await zahl(p)}`);
+      await p.click('[data-adr="g:Dachdecker"]'); await p.click('[data-adr="k:firma"]'); await p.waitForTimeout(200);
+      pruef(await zahl(p) === 1 && await p.evaluate(() => kind) === 'bauherr', `zweiter Klick nimmt heraus – ${await zahl(p)}`);
       await p.click('[data-adr="k:"]'); await p.waitForTimeout(200);
       await p.click('[data-adr="b"]'); await p.waitForTimeout(200); await p.click('[data-adr="b"]'); await p.waitForTimeout(300);
       pruef(!(await p.evaluate(() => !!document.querySelector('[data-f="ja"]'))), 'Frage kommt ein zweites Mal');
@@ -77,10 +86,20 @@ export async function adrStartPruefen(browser, repo) {
         if (!s) return -1; s.scrollTop = s.scrollHeight; return s.scrollTop > 0 ? document.querySelector('[data-adr="g:Putz"]').getBoundingClientRect().top : -1; });
       await p.click('[data-adr="g:Putz"]'); await p.waitForTimeout(300);
       const y1 = await p.evaluate(() => document.querySelector('[data-adr="g:Putz"]').getBoundingClientRect().top);   // der angeklickte Punkt bleibt, wo er war
-      pruef(y0 > 0 && Math.abs(y1 - y0) < 2 && await zahl(p) === 1, `Gewerk unten in der Navigation: Navigation bleibt stehen, Filter greift – vorher ${y0}, nachher ${y1}, ${await zahl(p)} Treffer`);
+      pruef(y0 > 0 && Math.abs(y1 - y0) < 2 && await zahl(p) === 2, `Gewerk unten in der Navigation: Navigation bleibt stehen, Filter greift – vorher ${y0}, nachher ${y1}, ${await zahl(p)} Treffer`);
       await p.click('.adr-flt .bpf-in'); await p.keyboard.type('Mus', { delay: 60 }); await p.waitForTimeout(300);   // Tippen zeichnet die Navigation neu – das Feld behält Fokus und Text (ohne Merk-Krücke)
       const tp = await p.evaluate(() => ({ fokus: document.activeElement && document.activeElement.classList.contains('bpf-in'), wert: document.querySelector('.adr-flt .bpf-in').value }));
       pruef(tp.fokus && tp.wert === 'Mus', `Tippen im Filterfeld: Fokus und Text bleiben – ${JSON.stringify(tp)}`);
+      await ctx.close(); }
+    {   // lange Gruppen: passt die Navigation nicht ohne Rollen, nur Gewähltes und zuletzt Benutztes, darüber ein Suchfeld mit Vervollständigung (GW-1 C)
+      const K = ['Abbruch', 'Dachdecker', 'Elektro', 'Estrich', 'Fliesen', 'Gerüst', 'Heizung', 'Maler', 'Putz', 'Sanitär', 'Tischler', 'Zimmerer'].map((t, i) => ({ id: i + 1, name: t + ' GmbH', kind: 'firma', trade: t, projects: [], site_of: '' }));
+      const { ctx, p } = await lauf({ ohne_projekt: true, gefragt: true }, K);
+      await p.setViewportSize({ width: 1400, height: 520 }); await p.evaluate(() => render()); await p.waitForTimeout(200);
+      let st = await p.evaluate(() => ({ su: !!document.querySelector('.adr-su[data-adrsu="g"]'), gw: document.querySelectorAll('#navL [data-adr^="g:"]').length }));
+      pruef(st.su && st.gw === 0, `lange Gewerke-Liste: Suchfeld statt Liste – ${JSON.stringify(st)}`);
+      await p.click('.adr-su[data-adrsu="g"]'); await p.keyboard.type('Flie', { delay: 40 }); await p.waitForSelector('.bp-vs-z', { timeout: 3000 }); await p.click('.bp-vs-z'); await p.waitForTimeout(300);
+      st = await p.evaluate(() => ({ w: AF.werte('gewerk').join(), an: [...document.querySelectorAll('#navL .ni.on')].map((x) => x.dataset.adr).join(',') }));
+      pruef(st.w === 'Fliesen' && /g:Fliesen/.test(st.an) && await zahl(p) === 1, `Vorschlag „Fliesen“ wird Filter und steht links als gewählt – ${JSON.stringify(st)}`);
       await ctx.close(); }
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   return fehler;

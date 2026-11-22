@@ -14,7 +14,8 @@
    F.el                      das Feld (einhängen, wo es stehen soll – z. B. bpNav davor/nachher: F.einhaengen(platz))
    F.pruefe(item) → bool     passt der Eintrag?
    F.wert(art) → 'Wert'|''   der eine Wert einer Art (ohne NICHT), sonst ''
-   F.setzen(art, wert) · F.weg(art) · F.leeren()
+   F.werte(art) → ['Wert', …]  alle Werte einer Art (ohne NICHT)
+   F.setzen(art, wert) · F.umschalten(art, wert) · F.weg(art) · F.leeren()
    F.satz() → Text der ganzen Bedingung */
 (() => {
   if (window.bpFilter) return;
@@ -140,6 +141,12 @@
       einhaengen(platz) { if (platz && el.parentElement !== platz) platz.appendChild(el); },   // der Platz bleibt beim Neuzeichnen der Navigation stehen (bp/nav.js fuellen) – das Feld behält den Fokus von selbst
       wert(art) { const g = S.g.find((x) => x.art === art); return g && g.w.length === 1 && !g.w[0].n ? g.w[0].w : ''; },
       setzen(art, w) { const g = S.g.find((x) => x.art === art); if (g) g.w = [{ w, n: false }]; else S.g.push({ art, op: 'oder', w: [{ w, n: false }] }); geaendert(); },
+      werte(art) { const g = S.g.find((x) => x.art === art); return g ? g.w.filter((v) => !v.n).map((v) => v.w) : []; },
+      /* Klick auf einen Eintrag links (Adressen, 22.11.2026): steht er schon im Filter, geht er heraus, sonst dazu – in derselben Art mit ODER,
+         eine neue Art mit UND an die übrigen; beide Verknüpfungen tauscht ein Klick auf das Wort */
+      umschalten(art, w) { const g = S.g.find((x) => x.art === art), k = g ? g.w.findIndex((v) => klein(v.w) === klein(w)) : -1;
+        if (k < 0) { if (g) g.w.push({ w, n: false }); else S.g.push({ art, op: 'oder', w: [{ w, n: false }] }); return geaendert(); }   // der getippte Text bleibt
+        g.w.splice(k, 1); if (!g.w.length) { const i = S.g.indexOf(g); S.g.splice(i, 1); S.zw.splice(Math.max(0, i - 1), 1); } geaendert(); },
       weg(art) { const i = S.g.findIndex((x) => x.art === art); if (i < 0) return; S.g.splice(i, 1); S.zw.splice(Math.max(0, i - 1), 1); geaendert(); },
       leeren() { S = { g: [], zw: [], q: '' }; geaendert(); },
     };

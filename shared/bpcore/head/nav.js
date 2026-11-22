@@ -7,8 +7,9 @@
                href: die Gruppe ist ein Verweis in eine andere App (dann ohne Punkte, mit ↗)
                klasse: zusätzliche Klasse der Gruppe (z. B. 'ng-ich' – „Für mich“ abgesetzt, Verwaltung 19.11.2026)
                klapp: 'name' – Gruppe einklappbar (Klick auf die Überschrift); zu bleibt nur der gewählte Punkt sichtbar; gemerkt je Browser (bp.navzu)
+               such: HTML unter der Überschrift (links), z. B. ein Suchfeld mit Vorschlägen, wenn die Gruppe zu lang ist (Adressen, 22.11.2026)
                icon: Inhalt eines <svg viewBox="0 0 24 24"> (Pfade), als Kachel gezeichnet; farbe: Farbe der Kachel (CSS, Standard grau); unter: HTML unter dem gewählten Punkt (z. B. „＋ Neu“)
-     o.aktiv   id des gewählten Punkts
+     o.aktiv   id des gewählten Punkts – oder eine Liste mehrerer (Adressen: alles, was im Filter steht)
      o.fuss    HTML am Ende                           z. B. Ablagefeld
      o.attr    Name des data-Attributs der Punkte     (Standard „nav“ → data-nav="id")
      o.wahl    (id, ereignis) => …                    Klick auf einen Punkt; ohne o.wahl meldet die App den Klick selbst am Attribut an
@@ -41,24 +42,25 @@
     const box = el.closest('.bp-nav') || el;   // steht das Feld in einer Navigation mit Suche darüber (AVA), gilt die Lage für die ganze Navigation
     [el, box].forEach((x) => { x.classList.toggle('frei', m === 'frei'); x.classList.toggle('oben', m === 'oben'); });
     if (box.parentElement) box.parentElement.classList.toggle('bp-nav-oben-an', m === 'oben');
-    const ni = (p, mitText = true) => { const an = p.id === o.aktiv;
+    const istAn = (id) => (Array.isArray(o.aktiv) ? o.aktiv.includes(id) : id === o.aktiv);
+    const ni = (p, mitText = true) => { const an = istAn(p.id);
       return `<button type="button" class="ni${an ? ' on' : ''}" data-${a}="${esc(p.id)}"${p.farbe ? ` style="--kf:${esc(p.farbe)}"` : ''}${an ? ' aria-current="page"' : ''}${mitText ? '' : ` title="${esc(p.text)}${p.zahl ? ' (' + esc(p.zahl) + ')' : ''}"`}>${svg(p)}${mitText ? `${esc(p.text)}${p.zahl ? `<small${p.zahlTip ? ` title="${esc(p.zahlTip)}"` : ''}>${esc(p.zahl)}</small>` : ''}` : ''}</button>`; };
     const G = o.gruppen || [];
     if (m === 'oben') {
       fuellen(el, o, GRIFF, G.map((g, k) => {
         if (g.href) return `<a class="ni" href="${esc(g.href)}"${g.tip ? ` title="${esc(g.tip)}"` : ''}>${esc(g.titel)} ↗</a>`;
         const P = g.punkte || [];
-        const u = (p) => (p.id === o.aktiv && p.unter ? p.unter : '');   // „＋ Neu …“ auch oben
+        const u = (p) => (istAn(p.id) && p.unter ? p.unter : '');   // „＋ Neu …“ auch oben
         if (P.length === 1) return ni(P[0]) + u(P[0]);
-        const an = P.some((p) => p.id === o.aktiv);
+        const an = P.some((p) => istAn(p.id));
         return `<span class="nt"><button type="button" class="ni ntb${an ? ' on' : ''}" data-ntg="${k}">${esc(g.titel)} ▾</button><div class="npop" hidden>${P.map((p) => ni(p) + u(p)).join('')}</div></span>`;
       }).join('') + '<span class="nsp"></span><div class="nv-ende"></div>', m);   // oben: davor (z. B. Version) links, nv-ende rechts für die App (Suche, Speicherstand)
     } else {
       fuellen(el, o, (o.kopf || o.lage ? `<div class="nk">${o.lage ? GRIFF : ''}<b>${esc(o.kopf ? o.kopf.titel : '')}</b>${o.kopf && o.kopf.klein ? `<small>${esc(o.kopf.klein)}</small>` : ''}${o.lage ? PIN(m === 'links') : ''}</div>` : ''),
-        G.map((g) => { const ZU = g.klapp && zuGet().has(g.klapp), P = (g.punkte || []).filter((p) => !ZU || p.id === o.aktiv);
+        G.map((g) => { const ZU = g.klapp && zuGet().has(g.klapp), P = (g.punkte || []).filter((p) => !ZU || istAn(p.id));
           const kopf = g.href ? `<a class="nh" href="${esc(g.href)}"${g.tip ? ` title="${esc(g.tip)}"` : ''}>${esc(g.titel)} <span>↗</span></a>`
             : g.klapp ? `<button type="button" class="nh nhk" data-nzu="${esc(g.klapp)}" aria-expanded="${!ZU}" title="${ZU ? 'Aufklappen' : 'Einklappen'}">${esc(g.titel)}<span>${ZU ? `${(g.punkte || []).length} ` : ''}${bpKlapp(!ZU)}</span></button>` : `<div class="nh">${esc(g.titel)}</div>`;
-          return `<div class="ng${g.klasse ? ' ' + esc(g.klasse) : ''}${(g.punkte || []).some((p) => p.id === o.aktiv) ? ' an' : ''}${ZU ? ' zu' : ''}">${kopf}${P.map((p) => ni(p) + (p.id === o.aktiv && p.unter ? p.unter : '')).join('')}</div>`; }).join('')
+          return `<div class="ng${g.klasse ? ' ' + esc(g.klasse) : ''}${(g.punkte || []).some((p) => istAn(p.id)) ? ' an' : ''}${ZU ? ' zu' : ''}">${kopf}${!ZU && g.such ? g.such : ''}${P.map((p) => ni(p) + (istAn(p.id) && p.unter ? p.unter : '')).join('')}</div>`; }).join('')
         + (o.fuss || ''), m);
     }
     if (o.nachher) o.nachher(el, m);

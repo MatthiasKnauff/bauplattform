@@ -1,5 +1,13 @@
 [
  {
+  "id": "adr-filter-sammeln-2211",
+  "datum": "2026-11-22",
+  "app": "adressen",
+  "titel": "Adressen: Filter sammeln",
+  "text": "Ein Klick links auf Art, Projekt oder Gewerk setzt es oben in den Filter, ein zweiter Klick nimmt es wieder heraus. Verschiedene Gruppen sind mit UND verknüpft, mehrere Einträge einer Gruppe mit ODER – ein Klick auf das Wort tauscht. Lange Listen haben ein Suchfeld mit Vorschlägen.",
+  "ziel": "#navL"
+ },
+ {
   "id": "handy-etappe2-2211",
   "datum": "2026-11-22",
   "app": "portal",

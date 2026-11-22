@@ -220,11 +220,11 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
         mit geänderten Flächen ohne Raum (W) bzw. Art je Bauteil (AJ, Schlüssel GlobalId oder „#<Nummer>“)."""
         from . import cadimport
         Q = L.get("quelle") or {}
-        datei = P.datei_lesen(c, pid, Q["planstand"])
-        if not datei:
+        S = P.elemente(c, pid, Q["planstand"])   # einmal gelesen und beim Planstand aufgehoben – hier nur neu ordnen (Millisekunden)
+        if not S:
             return jsonify(error="Die IFC-Datei dieses Planstands liegt nicht vor – bitte den Plan noch einmal einlesen."), 409
         W = raumweg_sauber(L.get("raumweg")) if W is None else W
-        R = cadimport.ifc_lesen(datei[1], bestand=True, art_je={**(L.get("art_je") or {}), **(AJ or {})})
+        R = cadimport.ifc_ordnen(S, {**(L.get("art_je") or {}), **(AJ or {})})
         art = B.bauart(m)
         alt = dict(L, raumweg=W)
         if AJ is not None:   # neu bestimmt: was R meldet (GlobalId), ersetzt die Einträge dieser Bauteile
@@ -247,12 +247,13 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
 
     @bp.put("/api/bp/modell/<int:pid>/artje")
     def art_je_setzen(pid):
-        """Art einzelner Bauteile berichtigen (22.11.2026: „eine Außenwand wird als Innenwand erkannt“): {ids: [Nummer im Plan], kg}.
-        Die Bauteile wandern in die Zeile ihrer neuen Art; gemerkt je GlobalId – bleibt beim Neubilden und beim nächsten Einlesen."""
+        """Art einzelner Bauteile berichtigen (22.11.2026: „eine Außenwand wird als Innenwand erkannt“): {ids: [Nummer im Plan], kg}
+        oder {je: {Nummer: kg}} (Rückgängig: jedes Bauteil zurück auf seine alte Art – eine Anfrage). Die Bauteile wandern in die Zeile
+        ihrer neuen Art; gemerkt je GlobalId – bleibt beim Neubilden und beim nächsten Einlesen."""
         d = request.get_json(silent=True) or {}
-        kg = str(d.get("kg") or "")
-        ids = [int(x) for x in (d.get("ids") or [])[:2000] if str(x).isdigit()]
-        if kg not in B.ARTEN or not ids:
+        je = d.get("je") if isinstance(d.get("je"), dict) else {x: d.get("kg") for x in (d.get("ids") or [])}
+        AJ = {f"#{int(i)}": str(k) for i, k in list(je.items())[:2000] if str(i).isdigit() and str(k or "") in B.ARTEN}
+        if not AJ:
             return jsonify(error="Art oder Bauteile fehlen."), 400
 
         def tun(c, wer):
@@ -261,5 +262,5 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
             Q = L.get("quelle") or {}
             if not Q.get("planstand") or (Q.get("art") or "ifc") != "ifc":
                 return jsonify(error="Die Art einzelner Bauteile lässt sich nur in einem eingelesenen IFC-Plan ändern – sonst „Art“ an der Zeile."), 409
-            return _neu_bilden(c, pid, m, L, wer, AJ={f"#{i}": kg for i in ids})
+            return _neu_bilden(c, pid, m, L, wer, AJ=AJ)
         return mit(pid, tun)

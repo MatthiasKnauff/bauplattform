@@ -41,7 +41,7 @@ def test_uebernehmen_zuordnung_und_aufraeumen():
 
 def test_dateiart():
     try:
-        P.lesen_datei("plan.dwg", b"AC1032")
+        P.dateiart("plan.dwg", b"AC1032")
         pruefe(False, "DWG wird abgelehnt")
     except ValueError as e:
         pruefe("DXF oder IFC" in str(e), str(e))

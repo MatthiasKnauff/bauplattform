@@ -45,3 +45,13 @@ def test_menge_je_bauteil():
     pruefe(set(w.get("je", {})) == {str(i) for i in w["ids"]} and abs(sum(w["je"].values()) - w["menge"]) < 0.01, f"Menge je Bauteil: {w.get('je')} · {w['menge']}")
     z = next(z for z in B.sauber(B.zeilen_aus_ifc(c, R))["zeilen"] if 10 in z.get("ids", []))
     gleich(z.get("je"), w["je"], "steht an der Zeile")
+
+
+def test_zwei_stufen():
+    """„Art ändern dauert sehr lange“ (22.11.2026): die Datei wird einmal gelesen (ifc_einlesen, gespeichert beim Planstand), eine Art-Änderung
+    ordnet nur neu (ifc_ordnen) – gleiches Ergebnis wie ifc_lesen, auch nach dem Speichern als JSON."""
+    import json
+    S = json.loads(json.dumps(cadimport.ifc_einlesen(IFC, bestand=True)))
+    for aj in (None, {"#10": "341"}, {GID: "342"}):
+        A, N = cadimport.ifc_lesen(IFC, bestand=True, art_je=aj), cadimport.ifc_ordnen(S, aj)
+        gleich(json.dumps(N, sort_keys=True, default=sorted), json.dumps(A, sort_keys=True, default=sorted), f"ordnen aus dem gespeicherten Stand = lesen ({aj})")

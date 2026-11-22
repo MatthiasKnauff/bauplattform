@@ -54,6 +54,12 @@ def test_planstaende(ctx):
     r = a.get(f"{B}/netz")
     n = json.loads(gzip.decompress(r.body) if (r.headers.get("Content-Encoding") or "") == "gzip" else r.body)
     pruefe(n["e"] and any(e["t"] == "w" for e in n["e"]), f"3D-Netz des gültigen Planstands: {str(n)[:200]}")
+    # Art je Bauteil (22.11.2026): ordnet nur neu aus den beim Einlesen gespeicherten Bauteilen – Wand #10 wird Innenwand und zurück (je = Rückgängig)
+    w = next(z for z in L["zeilen"] if 10 in (z.get("ids") or []))
+    L2 = a.uj(f"{B}/artje", {"je": {"10": "342"}})["modell"]["bauteilliste"]
+    gleich(next(z for z in L2["zeilen"] if 10 in (z.get("ids") or []))["kg"], "342", "Art je Bauteil: Wand jetzt Innenwand")
+    L3 = a.uj(f"{B}/artje", {"je": {"10": w["kg"]}})["modell"]["bauteilliste"]
+    gleich(next(z for z in L3["zeilen"] if 10 in (z.get("ids") or []))["kg"], w["kg"], "Rückgängig in einer Anfrage")
     f = next(z for z in L["zeilen"] if z["bereich"] == "oeffnung")
     a.pj(f"{B}/bauteile/zeile", {"id": f["id"], "status": "erneuern"})
     r = a.post(f"{B}/bauteile/ifc", {})   # IFC mit Maßnahmen ohne die Datei noch einmal zu wählen (beim Einlesen gespeichert, 17.11.2026)

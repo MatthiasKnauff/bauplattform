@@ -2,7 +2,7 @@
 
 Ohne Zusatzbibliothek: IFC ist eine STEP-Textdatei (ISO 10303-21), DXF eine Liste aus Gruppencode und Wert.
 
-ifc_lesen(bytes, bestand=False) → {"raeume": [...], "bauteile": [...], "geschosse": [...], "hinweise": [...], "info": {...}}
+ifc_lesen(bytes, bestand=False) = ifc_ordnen(ifc_einlesen(bytes, bestand), art_je) → {"raeume": [...], "bauteile": [...], "geschosse": [...], "hinweise": [...], "info": {...}}
     bestand=True (Bauteil-Checkliste, bpcore/bauteilliste.py): auch Bauteile mit Status „Bestand“ (zustand „bestand“) und leere Öffnungen
     (Allplan-Öffnung ohne Fenster/Tür, art „Fensteröffnung“/„Türöffnung“); je Gruppe die STEP-Nummern der Objekte (ids).
     raeume:   {nr, name, flaeche, umfang, hoehe, geschoss, langname}
@@ -164,9 +164,15 @@ PLATTEN = {"322": "Bodenplatte", "351": "Decke", "361": "Dach"}
 
 def ifc_lesen(raw, bestand=False, art_je=None):
     """art_je = {GlobalId oder „#<Nummer>“: kg} – Art je Bauteil von Hand berichtigt (22.11.2026, Außenwand ↔ Innenwand, Decke ↔ Dach ↔ Bodenplatte);
-    gilt nur innerhalb derselben Familie. Ergebnis R["art_je"] = {GlobalId: kg} der Bauteile, die es gab (Schlüssel für das nächste Einlesen)."""
-    AJ = {str(k): str(v) for k, v in (art_je or {}).items() if str(v) in WAENDE or str(v) in PLATTEN}
-    AJ_ist = {}
+    gilt nur innerhalb derselben Familie. Ergebnis R["art_je"] = {GlobalId: kg} der Bauteile, die es gab (Schlüssel für das nächste Einlesen).
+    Zwei Stufen (22.11.2026, „Art ändern dauert sehr lange“): ifc_einlesen liest die Datei einmal (Sekunden) – das Ergebnis speichert der
+    Planstand (planstand.elemente); ifc_ordnen fasst die Bauteile zu Gruppen zusammen (Millisekunden) – nur das braucht eine Art-Änderung."""
+    return ifc_ordnen(ifc_einlesen(raw, bestand), art_je)
+
+
+def ifc_einlesen(raw, bestand=False):
+    """Stufe 1: die Datei lesen – je Bauteil ein Eintrag (els, oeff) mit allem, was die Gruppen brauchen, dazu Räume, Fenster/Türen,
+    Raumausbau, Geschosse und Hinweise. Nur einfache Werte (JSON), damit der Planstand es aufheben kann."""
     text = raw.decode("utf-8", "replace") if isinstance(raw, (bytes, bytearray)) else str(raw)
     if "ISO-10303-21" not in text[:200]:
         raise ValueError("Das ist keine IFC-Datei (STEP, ISO 10303-21).")
@@ -662,8 +668,7 @@ def ifc_lesen(raw, bestand=False, art_je=None):
     for _, a in E.alle("IFCRELFILLSELEMENT"):
         if len(a) >= 6 and isinstance(a[4], tuple) and isinstance(a[5], tuple) and a[4][1] in wand_der_oeffnung:
             wand_von[a[5][1]] = wand_der_oeffnung[a[4][1]]
-    gruppen, status_n, EL = {}, {}, []
-    RI = {}   # Außenwände je Gruppe → Himmelsrichtung
+    status_n, EL, ELS, OEFF = {}, [], [], []   # ELS: je Bauteil ein Eintrag für ifc_ordnen, OEFF: Öffnungen ohne Fenster/Tür
     for typ, art0 in ART.items():
         for i in E.nach_typ.get(typ, []):
             a = E.get(i)[1]
@@ -827,48 +832,15 @@ def ifc_lesen(raw, bestand=False, art_je=None):
             else:
                 continue
             gid = str(a[0] or "") if a and isinstance(a[0], str) else ""
-            k_hand = AJ.get(gid) or AJ.get(f"#{i}") if AJ else None
-            if k_hand and ((kg in WAENDE and k_hand in WAENDE) or (kg in PLATTEN and k_hand in PLATTEN)):   # Art von Hand berichtigt (gleiche Familie)
-                kg = k_hand
-                if kg in WAENDE:
-                    aussen, tragend = kg in ("331", "332"), kg in ("331", "341")
-                else:
-                    art = PLATTEN[kg]
-                if gid:
-                    AJ_ist[gid] = k_hand
-            else:
-                k_hand = None
-            if abbruch:
-                kg, art = "394", f"Abbruch {art}"
             mtxt = ", ".join(n for n in namen if n)[:200]
             # Code aus dem Bauteilkatalog der Bauplattform (Allplan Material/Qualität, z. B. „331.02.004 AW …“)
             such = " ".join([mtxt] + [str(v) for v in props.get(i, {}).values() if isinstance(v, str)])
             mc = CODE_RX.search(such)
-            code = mc.group(1) if mc else ""
-            zustand = "bestand" if ist_bestand else "abbruch" if abbruch else "neu" if st.startswith("neu") or st == "new" else ""   # leer: das Modell sagt nichts – die Checkliste nimmt die Bauart des Projekts
-            key = (kg, art, mtxt, round(dicke or 0, 3), einheit, code, tuple(lagen), zustand if bestand else "", _knorm(kz) if kz_name else "")
-            gr = gruppen.setdefault(key, {"kg": kg, "art": art, "material": mtxt, "dicke": round(dicke or 0, 3), "einheit": einheit, "menge": 0.0, "anzahl": 0,
-                                          "aussen": bool(aussen), "tragend": bool(tragend), "ohne_menge": 0, "namen": set(), "code": code, "lagen": list(lagen),
-                                          **({"zustand": zustand, "ids": []} if bestand else {}),
-                                          **({"kuerzel": kz[:200], "kuerzel_name": kz_name} if kz and not code else {}),
-                                          **({"planname": objname[:120]} if kz_name else {}),   # Name aus Allplan (A1, 19.11.2026) – bleibt überall der Name
-                                          **({"ext": bool(aussen)} if aussen is not None else {})})   # außen/innen laut Plan bzw. Lage (D1, Filter im Wärmeschutz)
-            if art == "Bodenplatte" and pdt != ".BASESLAB." and not k_hand:
-                gr["hinweis"] = "Unterste Platte ohne Kennung „Bodenplatte“ – als Bodenplatte angenommen, bitte prüfen – sonst „Art“ an der Zeile umstellen."
-            if art == "Wand" and aussen and m:
-                RI.setdefault(id(gr), (gr, []))[1].append((i, m))
-            if bestand:
-                gr["ids"].append(i)
-                gr.setdefault("je", {})[str(i)] = round(m or 0, 3)   # Menge je Bauteil (einzelne Wände im Baum, 22.11.2026)
-            gr["menge"] += m or 0
-            gr["anzahl"] += 1
-            if not gr.get("uw") and kg == "334":   # Fenster/Türen: U-Wert, wenn das Modell ihn mitgibt (für den Wärmeschutz)
-                u_ = zahl(prop(i, "ThermalTransmittance", "U-Wert", "Uw"))
-                if u_ and 0.1 < u_ < 10:
-                    gr["uw"] = round(u_, 2)
-            gr["ohne_menge"] += 0 if m else 1
-            if objname:
-                gr["namen"].add(objname[:60])
+            u_ = zahl(prop(i, "ThermalTransmittance", "U-Wert", "Uw")) if kg == "334" else None   # Fenster/Türen: U-Wert, wenn das Modell ihn mitgibt
+            ELS.append({"i": i, "gid": gid, "kg": kg, "art": art, "aussen": aussen, "tragend": tragend, "abbruch": abbruch, "mtxt": mtxt, "dicke": round(dicke or 0, 3),
+                        "einheit": einheit, "code": mc.group(1) if mc else "", "lagen": [list(x) for x in lagen], "m": m,
+                        "zustand": "bestand" if ist_bestand else "abbruch" if abbruch else "neu" if st.startswith("neu") or st == "new" else "",   # leer: das Modell sagt nichts – die Checkliste nimmt die Bauart des Projekts
+                        "kz": kz, "kz_name": kz_name, "objname": objname, "basis": pdt == ".BASESLAB.", **({"uw": round(u_, 2)} if u_ and 0.1 < u_ < 10 else {})})
     if bestand:   # Öffnungen ohne Fenster/Tür (Allplan exportiert oft nur die Öffnung) – für die Checkliste: was kommt hinein?
         gefuellt = {a[4][1] for _, a in E.alle("IFCRELFILLSELEMENT") if len(a) >= 6 and isinstance(a[4], tuple)}
         for i, a in E.alle("IFCOPENINGELEMENT"):
@@ -882,45 +854,18 @@ def ifc_lesen(raw, bestand=False, art_je=None):
                 aussen = lage(w_)
             if aussen is None:
                 aussen = (mat.get(w_, ([], 0.0))[1] or 0) >= 0.30
-            art = "Türöffnung" if tuer else "Fensteröffnung"
-            F_ = form(i)
-            key = ("334" if aussen else "344", art, "", 0, "St", "", (), "leer")
-            gr = gruppen.setdefault(key, {"kg": key[0], "art": art, "material": "", "dicke": 0, "einheit": "St", "menge": 0.0, "anzahl": 0, "aussen": bool(aussen),
-                                          "tragend": False, "ohne_menge": 0, "namen": set(), "code": "", "lagen": [], "zustand": "leer", "ids": [], "flaeche": 0.0})
-            gr["menge"] += 1
-            gr["anzahl"] += 1
-            gr["flaeche"] += F_.get("a") or 0
-            gr["ids"].append(i)
-    if RI:   # Himmelsrichtung je Außenwand aus der Geometrie (Außenseite + Nordrichtung der Datei)
+            OEFF.append({"i": i, "kg": "334" if aussen else "344", "art": "Türöffnung" if tuer else "Fensteröffnung", "aussen": bool(aussen), "flaeche": form(i).get("a") or 0})
+    W_ = [e["i"] for e in ELS if e["art"] == "Wand" and e["m"]]
+    if W_:   # Himmelsrichtung je Wand aus der Geometrie (Außenseite + Nordrichtung der Datei) – für alle Wände, die Art kann sich ändern
         try:
             from .netz import richtungen
-            RW = richtungen(raw, [i for _, L_ in RI.values() for i, _ in L_])
+            RW = richtungen(raw, W_)
         except Exception:   # noqa: BLE001 – ohne Geometrie keine Richtung
             RW = {}
-        for gr_, L_ in RI.values():
-            for i, m_ in L_:
-                if RW.get(i):
-                    gr_.setdefault("richtung", {})[RW[i]] = round(gr_.get("richtung", {}).get(RW[i], 0) + m_, 2)
-                    gr_.setdefault("rj", {})[str(i)] = RW[i]   # Himmelsrichtung je Wand
-    bauteile, klein = [], 0
-    for g in sorted(gruppen.values(), key=lambda x: (x["kg"], -x["menge"])):
-        if g["einheit"] != "St" and g["menge"] < 0.5:   # Splitter (z. B. falsch modellierte Wandstücke) weglassen
-            klein += g["anzahl"]
-            continue
-        dk = f"{round(g['dicke'] * 100, 1):g} cm".replace(".", ",") if g["dicke"] else ""
-        g["name"] = " ".join(x for x in (g["art"], "außen" if g["aussen"] and g["art"] in ("Wand", "Tür", "Stütze", "Türöffnung") else "", dk) if x)
-        g["menge"] = round(g["menge"], 2)
-        g["namen"] = sorted(g["namen"])[:5]
-        bauteile.append(g)
-    ohne = sum(g["ohne_menge"] for g in bauteile) + klein
-    if aus_geometrie:
-        hinweise.append(f"Das Modell enthält keine Mengen – {aus_geometrie} Mengen aus der Geometrie berechnet (Wandachse × Höhe bzw. Volumen ÷ Dicke, Öffnungen abgezogen). "
-                        "Genauer wird es mit „Mengen/Base Quantities“ im IFC-Export.")
-    if ohne:
-        hinweise.append(f"{ohne} Bauteile ohne verwertbare Menge nicht übernommen.")
-    if status_n and any(k.lower().startswith(("bestand", "vorhanden")) for k in status_n):
-        b = sum(v for k, v in status_n.items() if k.lower().startswith(("bestand", "vorhanden")))
-        hinweise.append(f"{b} Bauteile mit Status „Bestand“ nicht übernommen; Abbruch unter KG 394.")
+        for e in ELS:
+            if RW.get(e["i"]):
+                e["ri"] = RW[e["i"]]
+    H2 = []   # Hinweise nach den Bauteilen (Räume) – in ifc_ordnen nach denen der Gruppen
     ermittelt = []
     if not raeume:   # keine IfcSpace: Räume aus den Wänden ermitteln (bpcore/raumsuche.py, GO 16.11.2026)
         try:
@@ -940,16 +885,14 @@ def ifc_lesen(raw, bestand=False, art_je=None):
                 r.update(name="Raum ohne Namen (aus den Wänden)", nr="")
             raeume += LU
             ermittelt = list(LU)
-            hinweise.append(f"{len(LU)} {'Fläche' if len(LU) == 1 else 'Flächen'} zwischen den Wänden ohne Raum im Plan – als Raum ermittelt (Namen bitte ergänzen, besser im Plan nachtragen).")
+            H2.append(f"{len(LU)} {'Fläche' if len(LU) == 1 else 'Flächen'} zwischen den Wänden ohne Raum im Plan – als Raum ermittelt (Namen bitte ergänzen, besser im Plan nachtragen).")
             LU = None
     if ermittelt and not any(r.get("luecke") for r in ermittelt):
-        hinweise.append(f"Das IFC enthält keine Räume – {len(ermittelt)} Räume aus den Wänden ermittelt (Namen bitte ergänzen). Genauer mit Räumen im Allplan-Export.")
+        H2.append(f"Das IFC enthält keine Räume – {len(ermittelt)} Räume aus den Wänden ermittelt (Namen bitte ergänzen). Genauer mit Räumen im Allplan-Export.")
     elif not raeume:
-        hinweise.append("Keine Räume (IfcSpace) im Modell – in Allplan beim IFC-Export die Räume mit ausgeben.")
+        H2.append("Keine Räume (IfcSpace) im Modell – in Allplan beim IFC-Export die Räume mit ausgeben.")
     elif not any(r["flaeche"] for r in raeume):
-        hinweise.append("Räume ohne Flächen – beim Export die Raumflächen mit ausgeben.")
-    if not any(g["kg"] in ("361", "363") for g in bauteile) and E.nach_typ.get("IFCBEAM"):
-        hinweise.append("Dach nur als Träger/Pfetten modelliert – Dachfläche bitte ergänzen.")
+        H2.append("Räume ohne Flächen – beim Export die Raumflächen mit ausgeben.")
     if EL:   # Maße, Brüstung und Räume aus der Geometrie, wo das IFC sie nicht nennt
         try:
             from .netz import elemente_lage
@@ -966,8 +909,90 @@ def ifc_lesen(raw, bestand=False, art_je=None):
             e["raeume"] = g_.get("raeume") or []
     for r in raeume:
         r.pop("_id", None)
-    return {"raeume": raeume, "bauteile": bauteile, "elemente": EL, "ausbau": ausbau, "geschosse": [v[0] for v in gname.values()], "hinweise": hinweise, **({"art_je": AJ_ist} if AJ_ist else {}),
+    return {"bestand": bool(bestand), "els": ELS, "oeff": OEFF, "raeume": raeume, "elemente": EL, "ausbau": ausbau, "geschosse": [v[0] for v in gname.values()],
+            "hinweise": hinweise, "hinweise2": H2, "aus_geometrie": aus_geometrie, "traeger": bool(E.nach_typ.get("IFCBEAM")),
             "info": {"schema": schema, "objekte": len(E), "programm": prog, "status": status_n}}
+
+
+def ifc_ordnen(S, art_je=None):
+    """Stufe 2: die Bauteile aus ifc_einlesen zu Gruppen (gleiche Art, gleicher Aufbau) – mit der Art je Bauteil von Hand (art_je).
+    Ergebnis wie bisher ifc_lesen: {raeume, bauteile, elemente, ausbau, geschosse, hinweise, art_je?, info}."""
+    from .kuerzel import normal as _knorm
+    AJ = {str(k): str(v) for k, v in (art_je or {}).items() if str(v) in WAENDE or str(v) in PLATTEN}
+    AJ_ist, gruppen, bestand = {}, {}, S["bestand"]
+    for e in S["els"]:
+        i, gid, kg, art, aussen, tragend = e["i"], e["gid"], e["kg"], e["art"], e["aussen"], e["tragend"]
+        k_hand = AJ.get(gid) or AJ.get(f"#{i}") if AJ else None
+        if k_hand and ((kg in WAENDE and k_hand in WAENDE) or (kg in PLATTEN and k_hand in PLATTEN)):   # Art von Hand berichtigt (gleiche Familie)
+            kg = k_hand
+            if kg in WAENDE:
+                aussen, tragend = kg in ("331", "332"), kg in ("331", "341")
+            else:
+                art = PLATTEN[kg]
+            if gid:
+                AJ_ist[gid] = k_hand
+        else:
+            k_hand = None
+        if e["abbruch"]:
+            kg, art = "394", f"Abbruch {art}"
+        lagen = [tuple(x) for x in e["lagen"]]
+        kz, kz_name, m = e["kz"], e["kz_name"], e["m"]
+        key = (kg, art, e["mtxt"], e["dicke"], e["einheit"], e["code"], tuple(lagen), e["zustand"] if bestand else "", _knorm(kz) if kz_name else "")
+        gr = gruppen.setdefault(key, {"kg": kg, "art": art, "material": e["mtxt"], "dicke": e["dicke"], "einheit": e["einheit"], "menge": 0.0, "anzahl": 0,
+                                      "aussen": bool(aussen), "tragend": bool(tragend), "ohne_menge": 0, "namen": set(), "code": e["code"], "lagen": list(lagen),
+                                      **({"zustand": e["zustand"], "ids": []} if bestand else {}),
+                                      **({"kuerzel": kz[:200], "kuerzel_name": kz_name} if kz and not e["code"] else {}),
+                                      **({"planname": e["objname"][:120]} if kz_name else {}),   # Name aus Allplan (A1, 19.11.2026) – bleibt überall der Name
+                                      **({"ext": bool(aussen)} if aussen is not None else {})})   # außen/innen laut Plan bzw. Lage (D1, Filter im Wärmeschutz)
+        if art == "Bodenplatte" and not e["basis"] and not k_hand:
+            gr["hinweis"] = "Unterste Platte ohne Kennung „Bodenplatte“ – als Bodenplatte angenommen, bitte prüfen – sonst „Art“ an der Zeile umstellen."
+        if art == "Wand" and aussen and m and e.get("ri"):   # Himmelsrichtung je Außenwand
+            gr.setdefault("richtung", {})[e["ri"]] = round(gr.get("richtung", {}).get(e["ri"], 0) + m, 2)
+            gr.setdefault("rj", {})[str(i)] = e["ri"]
+        if bestand:
+            gr["ids"].append(i)
+            gr.setdefault("je", {})[str(i)] = round(m or 0, 3)   # Menge je Bauteil (einzelne Wände im Baum, 22.11.2026)
+        gr["menge"] += m or 0
+        gr["anzahl"] += 1
+        if not gr.get("uw") and kg == "334" and e.get("uw"):
+            gr["uw"] = e["uw"]
+        gr["ohne_menge"] += 0 if m else 1
+        if e["objname"]:
+            gr["namen"].add(e["objname"][:60])
+    for e in S["oeff"]:   # Öffnungen ohne Fenster/Tür
+        key = (e["kg"], e["art"], "", 0, "St", "", (), "leer")
+        gr = gruppen.setdefault(key, {"kg": e["kg"], "art": e["art"], "material": "", "dicke": 0, "einheit": "St", "menge": 0.0, "anzahl": 0, "aussen": e["aussen"],
+                                      "tragend": False, "ohne_menge": 0, "namen": set(), "code": "", "lagen": [], "zustand": "leer", "ids": [], "flaeche": 0.0})
+        gr["menge"] += 1
+        gr["anzahl"] += 1
+        gr["flaeche"] += e["flaeche"]
+        gr["ids"].append(e["i"])
+    bauteile, klein = [], 0
+    for g in sorted(gruppen.values(), key=lambda x: (x["kg"], -x["menge"])):
+        if g["einheit"] != "St" and g["menge"] < 0.5:   # Splitter (z. B. falsch modellierte Wandstücke) weglassen
+            klein += g["anzahl"]
+            continue
+        dk = f"{round(g['dicke'] * 100, 1):g} cm".replace(".", ",") if g["dicke"] else ""
+        g["name"] = " ".join(x for x in (g["art"], "außen" if g["aussen"] and g["art"] in ("Wand", "Tür", "Stütze", "Türöffnung") else "", dk) if x)
+        g["menge"] = round(g["menge"], 2)
+        g["namen"] = sorted(g["namen"])[:5]
+        bauteile.append(g)
+    hinweise = list(S["hinweise"])
+    ohne = sum(g["ohne_menge"] for g in bauteile) + klein
+    if S["aus_geometrie"]:
+        hinweise.append(f"Das Modell enthält keine Mengen – {S['aus_geometrie']} Mengen aus der Geometrie berechnet (Wandachse × Höhe bzw. Volumen ÷ Dicke, Öffnungen abgezogen). "
+                        "Genauer wird es mit „Mengen/Base Quantities“ im IFC-Export.")
+    if ohne:
+        hinweise.append(f"{ohne} Bauteile ohne verwertbare Menge nicht übernommen.")
+    status_n = S["info"]["status"]
+    if status_n and any(k.lower().startswith(("bestand", "vorhanden")) for k in status_n):
+        b = sum(v for k, v in status_n.items() if k.lower().startswith(("bestand", "vorhanden")))
+        hinweise.append(f"{b} Bauteile mit Status „Bestand“ nicht übernommen; Abbruch unter KG 394.")
+    hinweise += S["hinweise2"]
+    if not any(g["kg"] in ("361", "363") for g in bauteile) and S["traeger"]:
+        hinweise.append("Dach nur als Träger/Pfetten modelliert – Dachfläche bitte ergänzen.")
+    return {"raeume": S["raeume"], "bauteile": bauteile, "elemente": S["elemente"], "ausbau": S["ausbau"], "geschosse": S["geschosse"], "hinweise": hinweise,
+            **({"art_je": AJ_ist} if AJ_ist else {}), "info": S["info"]}
 
 
 # ---------------------------------------------------------------- DXF (Grundriss mit Raumpolygonen)

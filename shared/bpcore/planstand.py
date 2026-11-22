@@ -15,7 +15,7 @@ Arbeitsstand und Versionen (Etappe 4 „Gebäudemodell neu“, F4-A, 22.11.2026)
 ändert sich; alle übrigen sind Versionen. festhalten() kopiert den Arbeitsstand als Version (von Hand oder beim Versand, gruppe „versand“),
 POST {zurueckholen} macht aus einer Version einen neuen Arbeitsstand (Kopie) – die Version selbst bleibt unverändert.
 
-abgleich(alt, neu) · uebernehmen(alt, neu, zuordnung) · aufraeumen(liste) · lesen_datei(name, raw) · festhalten(c, pid, m, name, wer, gruppe) · routen(bp, mit, lesen, schreiben)
+abgleich(alt, neu) · uebernehmen(alt, neu, zuordnung) · aufraeumen(liste) · elemente(c, pid, sid) · festhalten(c, pid, m, name, wer, gruppe) · routen(bp, mit, lesen, schreiben)
 """
 import json
 import re
@@ -124,14 +124,27 @@ def dateiart(name, raw):
     raise ValueError("Diese Dateiart kann das Gebäudemodell nicht lesen – bitte IFC, DXF oder PDF.")
 
 
-def lesen_datei(name, raw, zuordnung=None):
-    """Datei → Rohdaten wie cadimport.ifc_lesen(…, bestand=True). DXF braucht die Zuordnung der Ebenen und Blöcke (plan2d)."""
-    art = dateiart(name, raw)
-    if art == "ifc":
-        from . import cadimport
-        return art, cadimport.ifc_lesen(raw, bestand=True)
-    from . import plan2d
-    return art, (plan2d.pdf_lesen(raw) if art == "pdf" else plan2d.dxf_lesen(raw, zuordnung))
+def elemente_speichern(c, sid, S):
+    """Bauteile des Planstands, wie sie aus der IFC-Datei gelesen wurden (cadimport.ifc_einlesen) – gzip-JSON in pm_elemente, neben dem Netz."""
+    import gzip
+    c.execute("INSERT INTO pm_elemente(planstand, daten, erstellt) VALUES(?,?,?) ON CONFLICT (planstand) DO UPDATE SET daten=EXCLUDED.daten, erstellt=EXCLUDED.erstellt",
+              (sid, gzip.compress(json.dumps(S, ensure_ascii=False, separators=(",", ":")).encode("utf-8")), _jetzt()))
+
+
+def elemente(c, pid, sid):
+    """Bauteile des IFC-Planstands zum Neu-Ordnen (cadimport.ifc_ordnen) – gespeichert beim Einlesen; ältere Planstände lesen die Datei
+    dafür einmal und heben das Ergebnis auf. None ohne IFC-Datei."""
+    import gzip
+    r = c.execute("SELECT e.daten FROM pm_elemente e JOIN pm_planstand p ON p.id = e.planstand WHERE e.planstand=? AND p.project_id=?", (sid or 0, pid)).fetchone()
+    if r:
+        return json.loads(gzip.decompress(bytes(r["daten"])))
+    d = datei_lesen(c, pid, sid)
+    if not d:
+        return None
+    from . import cadimport
+    S = cadimport.ifc_einlesen(d[1], bestand=True)
+    elemente_speichern(c, sid, S)
+    return S
 
 
 DXF_KEY = "gebaeudemodell:dxf"   # Zuordnung der Ebenen und Blöcke – fürs ganze Büro gemerkt (CAD-Gewohnheiten des Büros)
@@ -170,6 +183,7 @@ def _kopie(c, pid, sid, L, name, wer, gruppe=""):
     L = dict(L, quelle=dict(L.get("quelle") or {}, planstand=nid, name=name[:120]))
     c.execute("UPDATE pm_planstand SET daten=?, gruppe=? WHERE id=?", (json.dumps(L, ensure_ascii=False), gruppe[:12], nid))
     c.execute("INSERT INTO pm_netz(planstand, daten, erstellt) SELECT ?, daten, erstellt FROM pm_netz WHERE planstand=?", (nid, sid))
+    c.execute("INSERT INTO pm_elemente(planstand, daten, erstellt) SELECT ?, daten, erstellt FROM pm_elemente WHERE planstand=?", (nid, sid))
     c.execute("INSERT INTO pm_planstand_datei(planstand, name, daten, datei_ref) SELECT ?, name, daten, datei_ref FROM pm_planstand_datei WHERE planstand=?", (nid, sid))
     return nid
 
@@ -306,7 +320,9 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
             if len(raw) > 200 * 1024 * 1024:
                 raise ValueError("Die Datei ist zu groß (höchstens 200 MB).")
             art = dateiart(name, raw)
-            R = None if art == "dxf" else lesen_datei(name, raw)[1]   # DXF erst mit der Zuordnung (braucht die Datenbank)
+            from . import cadimport, plan2d
+            S = cadimport.ifc_einlesen(raw, bestand=True) if art == "ifc" else None   # die Datei einmal lesen – geordnet wird mit der Art je Bauteil unten
+            R = plan2d.pdf_lesen(raw) if art == "pdf" else None   # DXF erst mit der Zuordnung (braucht die Datenbank)
             zu_neu = request.form.get("zuordnung") if request.files else (request.get_json(silent=True) or {}).get("zuordnung")
             zu_neu = _j(zu_neu, None) if isinstance(zu_neu, str) else zu_neu if isinstance(zu_neu, dict) else None
         except ValueError as e:
@@ -332,17 +348,19 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                     return jsonify(error=str(e)), 400
             m = lesen_modell(c, pid)["modell"]
             alt = m.get("bauteilliste") or B.leer()
-            if alt.get("art_je") and art == "ifc":   # Art je Bauteil von Hand (GlobalId) gilt auch im neuen Plan (22.11.2026)
-                from . import cadimport
-                R = cadimport.ifc_lesen(raw, bestand=True, art_je=alt["art_je"])
+            if art == "ifc":   # Art je Bauteil von Hand (GlobalId) gilt auch im neuen Plan (22.11.2026)
+                R = cadimport.ifc_ordnen(S, alt.get("art_je"))
             neu = B.zeilen_aus_ifc(c, R, alt, B.bauart(m))
             neu["quelle"] = {"datei": name, "gelesen": _jetzt(), "programm": R["info"].get("programm", ""), "objekte": R["info"].get("objekte", 0),
                              "art": art, "pfad": pfad, "name": f"Planstand {datetime.now().strftime('%d.%m.%Y')} – {name}"[:120]}
             c.execute("DELETE FROM pm_netz WHERE planstand IN (SELECT id FROM pm_planstand WHERE project_id=? AND entwurf=1)", (pid,))
+            c.execute("DELETE FROM pm_elemente WHERE planstand IN (SELECT id FROM pm_planstand WHERE project_id=? AND entwurf=1)", (pid,))
             c.execute("DELETE FROM pm_planstand_datei WHERE planstand IN (SELECT id FROM pm_planstand WHERE project_id=? AND entwurf=1)", (pid,))
             c.execute("DELETE FROM pm_planstand WHERE project_id=? AND entwurf=1", (pid,))   # höchstens ein offener Entwurf je Projekt
             sid = _neu(c, pid, neu["quelle"]["name"], name, pfad, quelle, art, wer, {"liste": neu, "hinweise": R.get("hinweise") or []}, True)
             netz_speichern(c, sid, art, raw, Z if art == "dxf" else None)
+            if S:
+                elemente_speichern(c, sid, S)
             if art == "ifc":   # fürs Ausgeben mit Maßnahmen – dann muss niemand die Datei noch einmal wählen
                 datei_speichern(c, sid, name, raw)
             return jsonify(entwurf=sid, name=neu["quelle"]["name"], art=art, erster=not alt.get("zeilen"), abgleich=abgleich(alt, neu),
@@ -429,7 +447,7 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                         schreiben_modell(c, pid, m, wer)
                 pr = c.execute("SELECT name FROM projects WHERE id=?", (pid,)).fetchone()
                 pk = papierkorb.ablegen(c, "pm_planstand", sid, "Planstand", P["name"], wer, pr["name"] if pr else "", "gebaeudemodell",
-                                        extra=[("pm_netz", "planstand=?", (sid,)), ("pm_planstand_datei", "planstand=?", (sid,))])
+                                        extra=[("pm_netz", "planstand=?", (sid,)), ("pm_elemente", "planstand=?", (sid,)), ("pm_planstand_datei", "planstand=?", (sid,))])
                 return antwort(c, pid, papierkorb=pk, war_gueltig=gilt)
             if "name" in d and str(d["name"]).strip():
                 nm = str(d["name"]).strip()[:120]

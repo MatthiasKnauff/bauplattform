@@ -31,11 +31,13 @@ const G3ARTEN = [['331', 'Außenwand tragend'], ['332', 'Außenwand nichttragend
 const g3Fam = (kg) => (['331', '332', '341', '342'].includes(String(kg)) ? G3ARTEN.slice(0, 4) : ['322', '351', '361'].includes(String(kg)) ? G3ARTEN.slice(4) : []);
 async function g3Art(ids, kg) {
   const alt = new Map(ids.map((i) => [i, String(((G3.zu.get(+i) || {}).z || {}).kg || '')]));
-  const tu = async (I, k) => { await api(`api/bp/modell/${PID}/artje`, 'PUT', { ids: I, kg: k }); if (BT && BT.laden) await BT.laden(); };
+  // eine Anfrage, die Antwort ist das neue Modell – kein Nachladen (der Kern ordnet nur neu, die Datei liest er nicht noch einmal: 22.11.2026)
+  const tu = async (je) => { const d = await api(`api/bp/modell/${PID}/artje`, 'PUT', { je }); if (BT) BT.neu(d); };
+  const neu = Object.fromEntries(ids.map((i) => [i, kg])), zurueck = Object.fromEntries([...alt].filter(([, k]) => k));
   try {
-    await tu(ids, kg);
+    await tu(neu);
     const name = (G3ARTEN.find((a) => a[0] === kg) || [, kg])[1];
-    if (window.rueckgaengig) rueckgaengig(`${ids.length === 1 ? 'Bauteil' : ids.length + ' Bauteile'}: Art „${name}“`, async () => { for (const k of new Set(alt.values())) if (k) await tu(ids.filter((i) => alt.get(i) === k), k); }, 10000, () => tu(ids, kg));
+    if (window.rueckgaengig) rueckgaengig(`${ids.length === 1 ? 'Bauteil' : ids.length + ' Bauteile'}: Art „${name}“`, () => tu(zurueck), 10000, () => tu(neu));
   } catch (e) { toast(e.message, true); }
 }
 function g3ArtPunkte(e, P) {   // Rechtsklick im 3D: gewählte Bauteile (oder das unter der Maus) umstellen

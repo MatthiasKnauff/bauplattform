@@ -122,8 +122,9 @@ def titelbild_setzen(c, pid, name, mime, data):
 
 
 def titelbild(c, pid):
-    r = c.execute("SELECT inhalt FROM bh_datei WHERE schluessel=? ORDER BY nr LIMIT 1", (f"kopf:{int(pid)}",)).fetchone()
-    return bytes(r["inhalt"]) if r and r["inhalt"] else None
+    from . import dateien as DS
+    r = c.execute("SELECT inhalt, datei_ref FROM bh_datei WHERE schluessel=? ORDER BY nr LIMIT 1", (f"kopf:{int(pid)}",)).fetchone()
+    return (DS.inhalt(c, r, "inhalt") or None) if r else None
 
 
 def _logo(c):

@@ -93,13 +93,15 @@ def datei_speichern(c, schluessel, dateien):
     """dateien: [(name, mime, bytes)] → bh_datei (ersetzt, was an diesem Schlüssel hing)."""
     c.execute("DELETE FROM bh_datei WHERE schluessel=?", (schluessel,))
     for i, (name, mime, data) in enumerate(dateien or []):
-        c.execute("INSERT INTO bh_datei(schluessel, nr, name, mime, groesse, inhalt, created) VALUES(?,?,?,?,?,?,?)",
-                  (schluessel, i, _t(name, 200) or f"Datei {i + 1}", _t(mime, 100), len(data), data, _jetzt()))
+        from . import dateien as DS
+        c.execute("INSERT INTO bh_datei(schluessel, nr, name, mime, groesse, inhalt, datei_ref, created) VALUES(?,?,?,?,?,?,?,?)",
+                  (schluessel, i, _t(name, 200) or f"Datei {i + 1}", _t(mime, 100), len(data), *DS.werte(c, data), _jetzt()))
 
 
 def dateien(c, schluessel, mit_inhalt=False):
-    return [{"nr": r["nr"], "name": r["name"], "mime": r["mime"], "groesse": r["groesse"], **({"inhalt": bytes(r["inhalt"] or b"")} if mit_inhalt else {})}
-            for r in c.execute(f"SELECT nr, name, mime, groesse{', inhalt' if mit_inhalt else ''} FROM bh_datei WHERE schluessel=? ORDER BY nr", (schluessel,)).fetchall()]
+    from . import dateien as DS
+    return [{"nr": r["nr"], "name": r["name"], "mime": r["mime"], "groesse": r["groesse"], **({"inhalt": DS.inhalt(c, r, "inhalt")} if mit_inhalt else {})}
+            for r in c.execute(f"SELECT nr, name, mime, groesse{', inhalt, datei_ref' if mit_inhalt else ''} FROM bh_datei WHERE schluessel=? ORDER BY nr", (schluessel,)).fetchall()]
 
 
 def gebaeude_daten(c, pid):

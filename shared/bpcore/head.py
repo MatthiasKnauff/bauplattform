@@ -33,7 +33,7 @@ from flask import Blueprint, Response, jsonify, request, send_from_directory
 
 from . import live, ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, geo, hilfe, konto, mail, papierkorb, projekte, projektteile, posteingang, rechte, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort, zeiten
 from . import logo as bplogo
-from . import abwesenheit, ablage, ausschreibung, ablage_einst, bauherren, begriffe, dateiwahl, ki_stufe, meldungen, handyus, ruegesuche, skizze_routen, layout, modell, neuigkeiten, projektwahl, stempel, stempel_druck, todo_routen, unterschrift, teilen, versand, wiki
+from . import abwesenheit, ablage, dateien, ausschreibung, ablage_einst, bauherren, begriffe, dateiwahl, ki_stufe, meldungen, handyus, ruegesuche, skizze_routen, layout, modell, neuigkeiten, projektwahl, stempel, stempel_druck, todo_routen, unterschrift, teilen, versand, wiki
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 PDFJS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vendor", "pdfjs")   # pdf.js (Workflow „pdf.js aktualisieren“)
@@ -1407,8 +1407,8 @@ def blueprint(get_user=None):
                 data = f.read()
                 if len(data) > 25 * 1024 * 1024:
                     return jsonify(error=f"„{f.filename}“ ist größer als 25 MB."), 400
-                c.execute("INSERT INTO todo_datei(todo_id, name, mime, groesse, data, erstellt, erstellt_name) VALUES(?,?,?,?,?,?,?)",
-                          (tid, (f.filename or "Datei")[:200], (f.mimetype or "application/octet-stream")[:100], len(data), data, jetzt, skizze.name_von(u)))
+                c.execute("INSERT INTO todo_datei(todo_id, name, mime, groesse, data, datei_ref, erstellt, erstellt_name) VALUES(?,?,?,?,?,?,?,?)",
+                          (tid, (f.filename or "Datei")[:200], (f.mimetype or "application/octet-stream")[:100], len(data), *dateien.werte(c, data), jetzt, skizze.name_von(u)))
             return jsonify(dateien=todo.dateien(c, [tid]).get(tid, []))
 
     @bp.route("/api/bp/todo/<int:tid>/datei/<int:did>", methods=["GET", "DELETE"])
@@ -1422,12 +1422,13 @@ def blueprint(get_user=None):
             if request.method == "DELETE":
                 c.execute("DELETE FROM todo_datei WHERE id=? AND todo_id=?", (did, tid))
                 return jsonify(dateien=todo.dateien(c, [tid]).get(tid, []))
-            r = c.execute("SELECT name, mime, data FROM todo_datei WHERE id=? AND todo_id=?", (did, tid)).fetchone()
+            r = c.execute("SELECT name, mime, data, datei_ref FROM todo_datei WHERE id=? AND todo_id=?", (did, tid)).fetchone()
+            roh = dateien.inhalt(c, r) if r else b""
         if not r:
             return jsonify(error="Datei nicht gefunden."), 404
         from urllib.parse import quote as q
         art = "attachment" if request.args.get("laden") else "inline"
-        return Response(bytes(r["data"]), mimetype=r["mime"], headers={"Content-Disposition": f"{art}; filename*=UTF-8''{q(r['name'])}", "Cache-Control": "private, max-age=3600"})
+        return Response(roh, mimetype=r["mime"], headers={"Content-Disposition": f"{art}; filename*=UTF-8''{q(r['name'])}", "Cache-Control": "private, max-age=3600"})
 
     @bp.post("/api/bp/todo-zustand")
     def todo_zustand():

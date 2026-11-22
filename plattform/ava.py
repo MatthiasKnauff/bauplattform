@@ -642,8 +642,8 @@ def versionen_liste():
                 c.execute("""INSERT INTO ava_rechnung(lv_id, nr, art, datum, eingang, re_nr, gefordert, data, status, notiz, created, updated, updated_by)
                              SELECT ?, nr, art, datum, eingang, re_nr, gefordert, data, status, notiz, created, updated, updated_by FROM ava_rechnung WHERE lv_id=? ORDER BY id""",
                           (n, r["id"]))
-                c.execute("""INSERT INTO ava_bild(lv_id, pos_id, name, w, h, data, klein, created, user_name)
-                             SELECT ?, pos_id, name, w, h, data, klein, created, user_name FROM ava_bild WHERE lv_id=? ORDER BY id""", (n, r["id"]))
+                c.execute("""INSERT INTO ava_bild(lv_id, pos_id, name, w, h, data, datei_ref, klein, created, user_name)
+                             SELECT ?, pos_id, name, w, h, data, datei_ref, klein, created, user_name FROM ava_bild WHERE lv_id=? ORDER BY id""", (n, r["id"]))
             c.execute("UPDATE ava_version SET aktiv=CASE WHEN id=? THEN 1 ELSE 0 END WHERE project_id=?", (vid, pid))
             C.audit(wer, "ava", "Neue Version", name)
         rows = c.execute("""SELECT v.*, (SELECT COUNT(*) FROM ava_lv l WHERE l.version_id=v.id) AS n_lv FROM ava_version v
@@ -1508,10 +1508,10 @@ def lv_neu():
         i = c.execute("INSERT INTO ava_lv(project_id, bk_id, nr, name, gewerk, data, created, updated, updated_by) VALUES(?,?,?,?,?,?,?,?,?) RETURNING id",
                       (pid, bk, nr, name, _s(b.get("gewerk"), 120), json.dumps({"items": clean_items(items)}, ensure_ascii=False), now, now, g.user["name"])).fetchone()["id"]
         if isinstance(src, int) and b.get("bilder", True):
-            for x in c.execute("SELECT pos_id, name, w, h, data, klein FROM ava_bild WHERE lv_id=? ORDER BY id", (src,)).fetchall():
-                if x["pos_id"] in neu_id:
-                    c.execute("INSERT INTO ava_bild(lv_id, pos_id, name, w, h, data, klein, created, user_name) VALUES(?,?,?,?,?,?,?,?,?)",
-                              (i, neu_id[x["pos_id"]], x["name"], x["w"], x["h"], x["data"], x["klein"], now, g.user["name"]))
+            for x in c.execute("SELECT pos_id, name, w, h, data, datei_ref, klein FROM ava_bild WHERE lv_id=? ORDER BY id", (src,)).fetchall():
+                if x["pos_id"] in neu_id:   # gleiches Foto = derselbe Verweis (Dateispeicher) bzw. derselbe Inhalt
+                    c.execute("INSERT INTO ava_bild(lv_id, pos_id, name, w, h, data, datei_ref, klein, created, user_name) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                              (i, neu_id[x["pos_id"]], x["name"], x["w"], x["h"], x["data"], x["datei_ref"], x["klein"], now, g.user["name"]))
         if isinstance(b.get("version_id"), int) and pid and c.execute("SELECT 1 FROM ava_version WHERE id=? AND project_id=?", (b["version_id"], pid)).fetchone():
             c.execute("UPDATE ava_lv SET version_id=? WHERE id=?", (b["version_id"], i))   # in der gerade angesehenen Version anlegen
         elif pid:   # sonst in die gültige Version – ein LV ohne Version wäre in jeder Ansicht anders sichtbar (Fehler beim Wechseln/Löschen)
@@ -2257,8 +2257,8 @@ def bilder_neu(i):
                 big, small, w, h = _bild_aufbereiten(raw)
             except Exception:   # kein lesbares Bild (z. B. HEIC ohne Plugin)
                 continue
-            c.execute("INSERT INTO ava_bild(lv_id, pos_id, name, w, h, data, klein, created, user_name) VALUES(?,?,?,?,?,?,?,?,?)",
-                      (i, pos_id, _s(f.filename, 200) or "Foto", w, h, big, small, now, g.user["name"]))
+            c.execute("INSERT INTO ava_bild(lv_id, pos_id, name, w, h, data, datei_ref, klein, created, user_name) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                      (i, pos_id, _s(f.filename, 200) or "Foto", w, h, *dateien.werte(c, big), small, now, g.user["name"]))
             n += 1
         if not n:
             return jsonify(error="Die Datei ist kein lesbares Bild (JPG, PNG, WEBP, GIF)."), 400
@@ -2269,14 +2269,14 @@ def bilder_neu(i):
 @app.route("/api/bild/<int:b>", methods=["GET", "DELETE"])
 def bild_eins(b):
     with db.tx() as c:
-        x = c.execute("SELECT id, lv_id, name, " + ("klein" if request.args.get("klein") else "data") + " AS d FROM ava_bild WHERE id=?", (b,)).fetchone()
+        x = c.execute("SELECT id, lv_id, name, klein, data, datei_ref FROM ava_bild WHERE id=?", (b,)).fetchone()
         if not x or not _lv(c, x["lv_id"]):
             return jsonify(error="Nicht gefunden"), 404
         if request.method == "DELETE":
             c.execute("DELETE FROM ava_bild WHERE id=?", (b,))
             _touch(c, x["lv_id"])
             return _antwort(c, x["lv_id"])
-        d = x["d"]
+        d = bytes(x["klein"]) if request.args.get("klein") and x["klein"] else dateien.inhalt(c, x)   # Vorschau bleibt klein in der Datenbank
     return Response(bytes(d), mimetype="image/jpeg", headers={"Cache-Control": "private, max-age=86400"})
 
 
@@ -2577,8 +2577,8 @@ def lvdok_neu(i):
     with db.tx() as c:
         if not _lv(c, i):
             return jsonify(error="Nicht gefunden"), 404
-        d = c.execute("INSERT INTO ava_lvdok(lv_id, name, data, auslese, created, user_name) VALUES(?,?,?,?,?,?) RETURNING id",
-                      (i, _s(dname, 200) or "LV.pdf", data, json.dumps(A, ensure_ascii=False), _now(), g.user["name"])).fetchone()["id"]
+        d = c.execute("INSERT INTO ava_lvdok(lv_id, name, data, datei_ref, auslese, created, user_name) VALUES(?,?,?,?,?,?,?) RETURNING id",
+                      (i, _s(dname, 200) or "LV.pdf", *dateien.werte(c, data), json.dumps(A, ensure_ascii=False), _now(), g.user["name"])).fetchone()["id"]
         _touch(c, i)
         antwort = _antwort(c, i)
     if scan:   # Texterkennung dauert je Seite einige Sekunden – im Hintergrund, die Seite fragt nach (sonst bricht der Webserver nach 60 s ab)
@@ -2770,9 +2770,9 @@ def _lvdok_ki(d, ki, tok):
         _lvdok_setzen(d, tok, **kw)
     try:
         with db.tx() as c:
-            x = c.execute("SELECT data, auslese FROM ava_lvdok WHERE id=?", (d,)).fetchone()
+            x = c.execute("SELECT data, datei_ref, auslese FROM ava_lvdok WHERE id=?", (d,)).fetchone()
             A = _j(x["auslese"], {}) or {}
-            data = bytes(x["data"])
+            data = dateien.inhalt(c, x)
             Z = [z[4] for n in sorted((A.get("zeilen") or {}), key=lambda k: int(k)) for z in A["zeilen"][n]]
             # Stücke von etwa 7000 Zeichen (lokale Modelle haben wenig Kontext), Grenze an einer Zeile mit Ordnungszahl
             teile, akt = [], []
@@ -2856,11 +2856,11 @@ def lvdok_abbrechen(d):
 def lvdok_lesen(d):
     """Dokument neu lesen (Texterkennung) – z. B. nach einem Abbruch."""
     with db.tx() as c:
-        x = c.execute("SELECT lv_id, data FROM ava_lvdok WHERE id=?", (d,)).fetchone()
+        x = c.execute("SELECT lv_id, data, datei_ref FROM ava_lvdok WHERE id=?", (d,)).fetchone()
         if not x or not _lv(c, x["lv_id"]):
             return jsonify(error="Nicht gefunden"), 404
         tok = _lvdok_start(c, d, "ocr")
-        data, lv_id = bytes(x["data"]), x["lv_id"]
+        data, lv_id = dateien.inhalt(c, x), x["lv_id"]
     import threading
     threading.Thread(target=_mit_user(lambda: _lvdok_ocr(d, tok, data)), daemon=True).start()
     with db.tx() as c:
@@ -3165,8 +3165,8 @@ def nt_datei_neu(i, nt):
         r = _lv(c, i)
         if not r:
             return jsonify(error="Nicht gefunden"), 404
-        c.execute("INSERT INTO ava_nt_datei(lv_id, nt, name, mime, data, created, user_name) VALUES(?,?,?,?,?,?,?)",
-                  (i, _s(nt, 20), _s(f.filename, 200) or "Datei", mime, data, _now(), g.user["name"]))
+        c.execute("INSERT INTO ava_nt_datei(lv_id, nt, name, mime, data, datei_ref, created, user_name) VALUES(?,?,?,?,?,?,?,?)",
+                  (i, _s(nt, 20), _s(f.filename, 200) or "Datei", mime, *dateien.werte(c, data), _now(), g.user["name"]))
         return jsonify(_nt_akte_lesen(c, r, _s(nt, 20)))
 
 
@@ -3180,7 +3180,8 @@ def nt_datei(k):
         if request.method == "DELETE":
             c.execute("DELETE FROM ava_nt_datei WHERE id=?", (k,))
             return jsonify(_nt_akte_lesen(c, r, x["nt"]))
-    resp = Response(bytes(x["data"] or b""), mimetype=x["mime"] if x["mime"] in ("application/pdf",) or x["mime"].startswith("image/") else "application/octet-stream")
+        roh = dateien.inhalt(c, x)
+    resp = Response(roh, mimetype=x["mime"] if x["mime"] in ("application/pdf",) or x["mime"].startswith("image/") else "application/octet-stream")
     resp.headers["Content-Disposition"] = f"inline; filename*=UTF-8''{urllib_quote(x['name'])}"
     resp.headers["X-Content-Type-Options"] = "nosniff"
     resp.headers["Content-Security-Policy"] = "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox"
@@ -3339,8 +3340,8 @@ def buergschaft_neu(i):
         if not r:
             return jsonify(error="Nicht gefunden"), 404
         V = _j(r["vergabe"], {}) or {}
-        d = c.execute("INSERT INTO ava_buergschaft(lv_id, art, name, data, erkannt, created, user_name) VALUES(?,?,?,?,?,?,?) RETURNING id",
-                      (i, art if art in ("ve", "ma") else "", _s(dname, 200) or "Bürgschaft.pdf", data, json.dumps(E, ensure_ascii=False), _now(), g.user["name"])).fetchone()["id"]
+        d = c.execute("INSERT INTO ava_buergschaft(lv_id, art, name, data, datei_ref, erkannt, created, user_name) VALUES(?,?,?,?,?,?,?,?) RETURNING id",
+                      (i, art if art in ("ve", "ma") else "", _s(dname, 200) or "Bürgschaft.pdf", *dateien.werte(c, data), json.dumps(E, ensure_ascii=False), _now(), g.user["name"])).fetchone()["id"]
         # im Projektordner ablegen (Bürgschaften / Firma) – wenn eine Ablage eingerichtet ist
         ablage = ""
         if request.form.get("ordner") != "nein" and r["project_id"]:
@@ -3375,7 +3376,8 @@ def buergschaft(d):
             c.execute("DELETE FROM ava_buergschaft WHERE id=?", (d,))
             _touch(c, x["lv_id"])
             return _antwort(c, x["lv_id"])
-    return Response(bytes(x["data"]), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib_quote(x['name'])}",
+        roh = dateien.inhalt(c, x)
+    return Response(roh, mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib_quote(x['name'])}",
                                                                    "Cache-Control": "private, max-age=2592000"})   # eine Rechnung der Firma ändert sich nie – im Browser behalten
 
 
@@ -5310,7 +5312,7 @@ def _lv_druck(c, r, P, lay, entwurf=False):
     ZM = zu_mengen(items, ep_of)   # Zuschläge: Summe der bezuschlagten Positionen / 100
     BILD = {}
     if lay["fotos"]:
-        for b in c.execute("SELECT pos_id, data FROM ava_bild WHERE lv_id=? ORDER BY id", (r["id"],)).fetchall():
+        for b in c.execute("SELECT pos_id, data, datei_ref FROM ava_bild WHERE lv_id=? ORDER BY id", (r["id"],)).fetchall():
             BILD.setdefault(b["pos_id"], []).append(b)
 
     def fotos(pid_, breite):
@@ -5319,7 +5321,7 @@ def _lv_druck(c, r, P, lay, entwurf=False):
         sp = (breite - 3 * mm) / 2
         for b in BILD.get(pid_) or []:
             try:
-                im = PI.open(io.BytesIO(bytes(b["data"]))); im.thumbnail((900, 900))
+                im = PI.open(io.BytesIO(dateien.inhalt(None, b))); im.thumbnail((900, 900))
                 o_ = io.BytesIO(); im.convert("RGB").save(o_, "JPEG", quality=80)
                 w_, h_ = im.size; f = min(sp / w_, 60 * mm / h_)
                 out.append(RLImage(io.BytesIO(o_.getvalue()), width=w_ * f, height=h_ * f))
@@ -5946,7 +5948,7 @@ def lv_pdf(i):
         BILD = {}
         if request.args.get("fotos", "1") != "0":
             with db.tx() as c:
-                for b in c.execute("SELECT pos_id, data, w, h FROM ava_bild WHERE lv_id=? ORDER BY id", (i,)).fetchall():
+                for b in c.execute("SELECT pos_id, data, datei_ref, w, h FROM ava_bild WHERE lv_id=? ORDER BY id", (i,)).fetchall():
                     BILD.setdefault(b["pos_id"], []).append(b)
 
         def _pdf_fotos(pid_, breite, mm):
@@ -5960,7 +5962,7 @@ def lv_pdf(i):
             sp = (breite - 3 * mm) / 2
             for b in bs:
                 try:
-                    im = PI.open(io.BytesIO(bytes(b["data"]))); im.thumbnail((900, 900))
+                    im = PI.open(io.BytesIO(dateien.inhalt(None, b))); im.thumbnail((900, 900))
                     o_ = io.BytesIO(); im.save(o_, "JPEG", quality=80)
                     w_, h_ = im.size
                     f = min(sp / w_, 60 * mm / h_)

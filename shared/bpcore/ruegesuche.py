@@ -16,7 +16,7 @@ import re
 
 from flask import jsonify, request
 
-from . import db, rechte
+from . import dateien, db, rechte
 from .posteingang import fold
 
 MANGEL = re.compile(r"^(m(ae|a)ngel(r(ue|u)ge)?n?|r(ue|u)ge|reklamation)$")
@@ -271,8 +271,8 @@ def anhaenge(c, u, typ, qid, ids):
     _, pid = quelle_text(c, u, typ, qid)
     if pid and not rechte.can_see(c, u, pid):
         return []
-    return [(r["name"], r["mime"], bytes(r["data"] or b"")) for r in c.execute(
-        f"SELECT name, mime, data FROM kom_datei WHERE {spalte}=? AND id IN ({','.join('?' * len(ids))}) ORDER BY id", (qid, *ids))]
+    return [(r["name"], r["mime"], dateien.inhalt(c, r)) for r in c.execute(
+        f"SELECT name, mime, data, datei_ref FROM kom_datei WHERE {spalte}=? AND id IN ({','.join('?' * len(ids))}) ORDER BY id", (qid, *ids))]
 
 
 def routen(bp, user):

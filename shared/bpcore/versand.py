@@ -13,7 +13,7 @@ from datetime import datetime
 
 from flask import jsonify, request
 
-from . import benachrichtigung, db, konto, mail, skizze, vorgang
+from . import benachrichtigung, dateien, db, konto, mail, skizze, vorgang
 
 # Arten, die über /api/bp/versand gehen (Name im Verlauf der Kommunikation) – weitere stehen in benachrichtigung.ARTEN
 ARTEN = {"auftrag": "Auftrag", "vergabe": "Vergabe (Zuschlag, Absage)", "rechnungspruefung": "Rechnungsprüfung", "bauantrag": "Bauantrag",
@@ -153,8 +153,8 @@ def routen(bp, _uid):
             if ids and not err:
                 jetzt = datetime.now().isoformat(timespec="seconds")
                 for n, m, d in anh:
-                    c.execute("INSERT INTO kom_datei(benachrichtigung_id, name, mime, groesse, data, erstellt, erstellt_name) VALUES(?,?,?,?,?,?,?)",
-                              (ids[0], n, m, len(d), d, jetzt, wer))
+                    c.execute("INSERT INTO kom_datei(benachrichtigung_id, name, mime, groesse, data, datei_ref, erstellt, erstellt_name) VALUES(?,?,?,?,?,?,?,?)",
+                              (ids[0], n, m, len(d), *dateien.werte(c, d), jetzt, wer))
             neu = benachrichtigung.unbekannt(c, [x["email"] for x in an]) if not err else []
         if err:
             return jsonify(error=err), 502

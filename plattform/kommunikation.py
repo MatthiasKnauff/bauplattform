@@ -9,7 +9,7 @@ from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import benachrichtigung, db, papierkorb, platform, rechte, sso, versand, vorgang
+from bpcore import benachrichtigung, dateien, db, papierkorb, platform, rechte, sso, versand, vorgang
 import common as C
 
 app = C.make_app(__name__)
@@ -298,7 +298,7 @@ def vorgang_neu():
                            VALUES(?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id""",
                         (pid, art, titel, text, v["beteiligte"], zeit, v["ort"], frist, json.dumps(an), jetzt, g.user["id"], name)).fetchone()["id"]
         for n, m, d in anh:
-            c.execute("INSERT INTO kom_datei(vorgang_id, name, mime, groesse, data, erstellt, erstellt_name) VALUES(?,?,?,?,?,?,?)", (vid, n, m, len(d), d, jetzt, name))
+            c.execute("INSERT INTO kom_datei(vorgang_id, name, mime, groesse, data, datei_ref, erstellt, erstellt_name) VALUES(?,?,?,?,?,?,?,?)", (vid, n, m, len(d), *dateien.werte(c, d), jetzt, name))
         tid = None
         if frist:
             an_name = ", ".join(x["name"] or x["email"] for x in an) if an else v["beteiligte"]
@@ -368,7 +368,7 @@ def datei(did):
                          LEFT JOIN benachrichtigungen b ON b.id=d.benachrichtigung_id WHERE d.id=?""", (did,)).fetchone()
         if not d or not vorgang.sieht(c, g.user, d["pid"]):
             return jsonify(error="Nicht gefunden"), 404
-    data = bytes(d["data"] or b"")
+        data = dateien.inhalt(c, d)
     return Response(data, mimetype=d["mime"] if d["mime"].startswith("image/") or d["mime"] == "application/pdf" else "application/octet-stream",
                     headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib.parse.quote(d['name'])}", "X-Content-Type-Options": "nosniff",
                              "Content-Security-Policy": "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'"})
@@ -383,7 +383,7 @@ def vorgang_pdf(vid):
         p = c.execute("SELECT name FROM projects WHERE id=?", (x["project_id"],)).fetchone() if x["project_id"] else None
         if x["art"] == "abnahme":
             return Response(kom_abnahme.abnahme_pdf(c, x), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename=Abnahme_{vid}.pdf", "Cache-Control": "no-store"})
-        anh = [(d["name"], d["mime"], bytes(d["data"] or b"")) for d in c.execute("SELECT name, mime, data FROM kom_datei WHERE vorgang_id=? ORDER BY id", (vid,))]
+        anh = [(d["name"], d["mime"], dateien.inhalt(c, d)) for d in c.execute("SELECT name, mime, data, datei_ref FROM kom_datei WHERE vorgang_id=? ORDER BY id", (vid,))]
         out = vorgang.pdf(c, dict(x), p["name"] if p else "", anh, x["erstellt_name"])
     return Response(out, mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename=Vorgang_{vid}.pdf"})
 

@@ -6,7 +6,7 @@ import urllib.parse
 
 from flask import Response, g, jsonify, request
 
-from bpcore import db, honorar_fremd as HF, papierkorb
+from bpcore import dateien, db, honorar_fremd as HF, papierkorb
 import common as C
 from honorar import KEY, _detail, app
 
@@ -100,9 +100,9 @@ def re_neu(fid):
         if fehl == "testserver":   # nur zum Ausprobieren: in der Datenbank
             in_db = daten
     with db.tx() as c:
-        rid = c.execute("""INSERT INTO honorar_fremd_re(fremd_id, nr, datum, netto, notiz, datei, dateiname, ablage, von) VALUES(?,?,?,?,?,?,?,?,?) RETURNING id""",
+        rid = c.execute("""INSERT INTO honorar_fremd_re(fremd_id, nr, datum, netto, notiz, datei, datei_ref, dateiname, ablage, von) VALUES(?,?,?,?,?,?,?,?,?,?) RETURNING id""",
                         (fid, nr, datum, round(HF._f(request.form.get("netto")), 2),
-                         str(request.form.get("notiz") or "")[:1000], in_db, (fd.filename or "")[:200] if fd else "", ablage, g.user["name"])).fetchone()["id"]
+                         str(request.form.get("notiz") or "")[:1000], *(dateien.werte(c, in_db) if in_db else (None, None)), (fd.filename or "")[:200] if fd else "", ablage, g.user["name"])).fetchone()["id"]
         d = _detail(c, f["auftrag_id"])
     C.audit(g.user["name"], KEY, "Fachplaner-Rechnung erfasst", f"{f['firma']} {request.form.get('nr') or ''}")
     return jsonify({**d, "neu": rid})
@@ -150,12 +150,13 @@ def re_loeschen(rid):
 @app.get("/api/fremd-re/<int:rid>/datei")
 def re_datei(rid):
     with db.tx() as c:
-        r = c.execute("SELECT r.datei, r.dateiname, r.ablage, a.project_id FROM honorar_fremd_re r JOIN honorar_fremd f ON f.id=r.fremd_id "
+        r = c.execute("SELECT r.datei, r.datei_ref, r.dateiname, r.ablage, a.project_id FROM honorar_fremd_re r JOIN honorar_fremd f ON f.id=r.fremd_id "
                       "JOIN honorar_auftrag a ON a.id=f.auftrag_id WHERE r.id=?", (rid,)).fetchone()
-    if not r or not (r["datei"] or r["ablage"]):
+        roh = dateien.inhalt(c, r, "datei") if r and (r["datei"] or r["datei_ref"]) else None
+    if not r or not (roh or r["ablage"]):
         return jsonify(error="Keine Datei."), 404
-    if r["datei"]:   # ältere Rechnung: PDF noch in der Datenbank
-        daten = bytes(r["datei"])
+    if roh:   # ältere Rechnung bzw. Testserver: in der Datenbank oder im Dateispeicher des Kerns
+        daten = roh
     else:   # im Projektordner – gelesen über das Bautagebuch, das die Ablage kennt
         try:
             daten = C.bt_api("GET", "/api/dateien/datei?" + urllib.parse.urlencode({"project_id": r["project_id"], "pfad": r["ablage"]}), roh=True)

@@ -19,6 +19,16 @@ def _db():
         CREATE TABLE ava_beleg(id INTEGER PRIMARY KEY, name TEXT, data BLOB, datei_ref TEXT);
         CREATE TABLE skizze(id TEXT PRIMARY KEY, datei BLOB, datei_ref TEXT);
         CREATE TABLE pm_planstand_datei(planstand INTEGER PRIMARY KEY, daten BLOB, datei_ref TEXT);
+        CREATE TABLE kom_datei(id INTEGER PRIMARY KEY, data BLOB, datei_ref TEXT);
+        CREATE TABLE todo_datei(id INTEGER PRIMARY KEY, data BLOB, datei_ref TEXT);
+        CREATE TABLE ava_lvdok(id INTEGER PRIMARY KEY, data BLOB, datei_ref TEXT);
+        CREATE TABLE ava_nt_datei(id INTEGER PRIMARY KEY, data BLOB, datei_ref TEXT);
+        CREATE TABLE ava_buergschaft(id INTEGER PRIMARY KEY, data BLOB, datei_ref TEXT);
+        CREATE TABLE ava_bild(id INTEGER PRIMARY KEY, data BLOB, klein BLOB, datei_ref TEXT);
+        CREATE TABLE ava_vergabedok(id INTEGER PRIMARY KEY, pdf BLOB, datei_ref TEXT);
+        CREATE TABLE honorar_vertrag(id INTEGER PRIMARY KEY, pdf BLOB, datei_ref TEXT);
+        CREATE TABLE honorar_fremd_re(id INTEGER PRIMARY KEY, datei BLOB, datei_ref TEXT);
+        CREATE TABLE bh_datei(schluessel TEXT NOT NULL, nr INTEGER NOT NULL DEFAULT 0, inhalt BLOB, datei_ref TEXT, PRIMARY KEY (schluessel, nr));
         CREATE TABLE bp_papierkorb(id INTEGER PRIMARY KEY, data TEXT);
     """)
     return c
@@ -81,6 +91,18 @@ def test_ablegen_lesen_umziehen():
         pruefe(False, "fehlende Datei muss gemeldet werden")
     except dateien.Fehlt as e:
         pruefe("Dateispeicher" in str(e), "fehlende Datei: klare Meldung statt Absturz")
+
+
+
+def test_etappe2_auch_schluessel_aus_zwei_spalten():
+    c, _ = _umgebung()
+    c.execute("INSERT INTO bh_datei(schluessel, nr, inhalt) VALUES('f:1', 0, ?), ('f:1', 1, ?)", (b"Foto0", b"Foto1"))
+    c.execute("INSERT INTO kom_datei(id, data) VALUES(3, ?)", (b"Mail",))
+    _an(c)
+    gleich(dateien.umziehen(c, 5), 3, "Dokumente und Fotos ziehen mit um – auch bh_datei mit Schlüssel aus zwei Spalten")
+    R = {r["nr"]: r for r in c.execute("SELECT * FROM bh_datei").fetchall()}
+    gleich([dateien.inhalt(c, R[i], "inhalt") for i in (0, 1)], [b"Foto0", b"Foto1"], "je Zeile die eigene Datei")
+    pruefe(all(R[i]["inhalt"] is None for i in (0, 1)), "die Datenbank hält nur noch den Verweis")
 
 
 def test_aufraeumen_haelt_90_tage_und_den_papierkorb():

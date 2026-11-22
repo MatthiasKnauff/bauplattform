@@ -15,7 +15,7 @@ import time
 
 from flask import Response, g, jsonify, request
 
-from bpcore import db, honorar as H, papierkorb
+from bpcore import dateien, db, honorar as H, papierkorb
 import common as C
 from honorar import KEY, _detail, _detail_version, _eur, app
 import honorar_rechnung as HR
@@ -298,8 +298,8 @@ def vertrag_speichern(aid):
         r = c.execute("SELECT project_id, name FROM honorar_auftrag WHERE id=?", (aid,)).fetchone()
         if not r:
             return jsonify(error="Auftrag nicht gefunden."), 404
-        vid = c.execute("INSERT INTO honorar_vertrag(auftrag_id, name, pdf, unterschrieben, von) VALUES(?,?,?,?,?) RETURNING id",
-                        (aid, name, daten, unterschrieben, g.user["name"])).fetchone()["id"]
+        vid = c.execute("INSERT INTO honorar_vertrag(auftrag_id, name, pdf, datei_ref, unterschrieben, von) VALUES(?,?,?,?,?,?) RETURNING id",
+                        (aid, name, *dateien.werte(c, daten), unterschrieben, g.user["name"])).fetchone()["id"]
     pfad, fehl = "", ""
     with db.tx() as c:
         abl = fuer_ablage(c, daten)
@@ -319,10 +319,11 @@ def vertrag_speichern(aid):
 @app.get("/api/vertraege/<int:vid>.pdf")
 def vertrag_fassung(vid):
     with db.tx() as c:
-        r = c.execute("SELECT name, pdf FROM honorar_vertrag WHERE id=?", (vid,)).fetchone()
-    if not r or not r["pdf"]:
+        r = c.execute("SELECT name, pdf, datei_ref FROM honorar_vertrag WHERE id=?", (vid,)).fetchone()
+        roh = dateien.inhalt(c, r, "pdf") if r else b""
+    if not roh:
         return jsonify(error="Nicht gefunden."), 404
-    return Response(bytes(r["pdf"]), mimetype="application/pdf", headers={"Content-Disposition": f'inline; filename="{r["name"]}"', "Cache-Control": "no-store"})
+    return Response(roh, mimetype="application/pdf", headers={"Content-Disposition": f'inline; filename="{r["name"]}"', "Cache-Control": "no-store"})
 
 
 @app.delete("/api/vertraege/<int:vid>")

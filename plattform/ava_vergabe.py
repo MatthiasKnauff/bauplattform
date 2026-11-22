@@ -18,7 +18,7 @@ from datetime import date, datetime
 
 from flask import Response, g, jsonify, request
 
-from bpcore import ausschreibung, benachrichtigung, db, papierkorb, vorlagen
+from bpcore import ausschreibung, benachrichtigung, dateien, db, papierkorb, vorlagen
 import common as C
 from ava import _f, _j, _lv, _now, _s, app
 
@@ -219,12 +219,12 @@ def _sauber(alt, neu):
 
 def _zeile(r, data=None, ql=None, hinweise=None, vor=None):
     d = dict(r)
-    d.pop("pdf", None)
+    d.pop("pdf", None); d.pop("datei_ref", None)
     d["data"] = data if data is not None else _j(d.get("data"), {}) or {}
     for k in ("_q", "_rueckweg"):
         d["data"].pop(k, None)
     d["ql"], d["hinweise"], d["vor"] = ql or {}, hinweise or [], vor or {}   # Auswahl (Ort, Teilnehmer:innen); B1: Quelle je Feld (blau) und „in … geändert – übernehmen?“
-    d["hat_pdf"] = bool(r["pdf"] or (r["status"] == "unterschrieben" and r["ablage"]))   # unterschriebene Fassung (Projektordner; ältere noch in der Datenbank)
+    d["hat_pdf"] = bool(r["pdf"] or r["datei_ref"] or (r["status"] == "unterschrieben" and r["ablage"]))   # unterschriebene Fassung (Projektordner; ältere noch in der Datenbank)
     return d
 
 
@@ -686,9 +686,9 @@ def vd_pdf(vid):
         r = _dok(c, vid)
         if not r:
             return jsonify(error="Nicht gefunden"), 404
-        if r["status"] == "unterschrieben" and request.args.get("neu") != "1" and request.args.get("blanko") != "1" and (r["ablage"] or r["pdf"]):
-            if r["pdf"]:   # ältere Fassung: noch in der Datenbank (vor dem 12.11.2026)
-                data, name = bytes(r["pdf"]), r["pdf_name"] or "Unterlage.pdf"
+        if r["status"] == "unterschrieben" and request.args.get("neu") != "1" and request.args.get("blanko") != "1" and (r["ablage"] or r["pdf"] or r["datei_ref"]):
+            if r["pdf"] or r["datei_ref"]:   # ältere Fassung bzw. Testserver: in der Datenbank oder im Dateispeicher des Kerns
+                data, name = dateien.inhalt(c, r, "pdf"), r["pdf_name"] or "Unterlage.pdf"
             else:   # liegt im Projektordner – nur der Verweis steht hier
                 pid, pfad, name = _lv(c, r["lv_id"])["project_id"], r["ablage"], (r["ablage"] or "").rsplit("/", 1)[-1]
                 try:
@@ -782,7 +782,7 @@ def vd_zuordnen(vid):
             return _antwort(c, r["lv_id"])
         if not pfad or ".." in pfad:
             return jsonify(error="Ungültige Datei."), 400
-        c.execute("UPDATE ava_vergabedok SET pdf=NULL, pdf_name=?, ablage=?, status='unterschrieben', geaendert=? WHERE id=?", (pfad.rsplit("/", 1)[-1][:120], pfad, _now(), vid))
+        c.execute("UPDATE ava_vergabedok SET pdf=NULL, datei_ref=NULL, pdf_name=?, ablage=?, status='unterschrieben', geaendert=? WHERE id=?", (pfad.rsplit("/", 1)[-1][:120], pfad, _now(), vid))
         C.audit(g.user["name"], "ava", f"{ARTEN.get(r['art'])} aus dem Projektordner zugeordnet", f"LV {lv['nr']} {lv['name']}: {pfad}")
         _kommunikation(c, vid, "unterschrieben")
         return _antwort(c, r["lv_id"], ablage=pfad)
@@ -815,9 +815,9 @@ def vd_unterschrieben(vid):
         return jsonify(error=f"Nicht gespeichert – {fehl}."), 502
     with db.tx() as c:
         if fehl == "testserver":   # nur zum Ausprobieren: in der Datenbank
-            c.execute("UPDATE ava_vergabedok SET pdf=?, pdf_name=?, status='unterschrieben', geaendert=? WHERE id=?", (daten, name, _now(), vid))
+            c.execute("UPDATE ava_vergabedok SET pdf=?, datei_ref=?, pdf_name=?, status='unterschrieben', geaendert=? WHERE id=?", (*dateien.werte(c, daten), name, _now(), vid))
         else:
-            c.execute("UPDATE ava_vergabedok SET pdf=NULL, pdf_name=?, ablage=?, status='unterschrieben', geaendert=? WHERE id=?", (name, pfad, _now(), vid))
+            c.execute("UPDATE ava_vergabedok SET pdf=NULL, datei_ref=NULL, pdf_name=?, ablage=?, status='unterschrieben', geaendert=? WHERE id=?", (name, pfad, _now(), vid))
         C.audit(g.user["name"], "ava", f"{ARTEN.get(r['art'])} unterschrieben", f"LV {lv['nr']} {lv['name']}")
         _kommunikation(c, vid, "unterschrieben")
         return _antwort(c, r["lv_id"], ablage=pfad, ablage_fehler="Testserver – nur hier gespeichert, nicht im Projektordner" if fehl == "testserver" else "")

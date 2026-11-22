@@ -9,7 +9,7 @@ from datetime import datetime
 
 from flask import g, jsonify, request
 
-from bpcore import abnahme as AB, benachrichtigung, db, papierkorb, vorgang
+from bpcore import abnahme as AB, benachrichtigung, dateien, db, papierkorb, vorgang
 import common as C
 from kommunikation import KEY, _empfaenger, _projekt, _schicken, app
 
@@ -129,8 +129,8 @@ def abnahme_foto(vid):
             return jsonify(error="Die Abnahme ist unterschrieben und gesperrt."), 409
         if c.execute("SELECT COUNT(*) AS n FROM kom_datei WHERE vorgang_id=?", (vid,)).fetchone()["n"] + len(anh) > 120:
             return jsonify(error="Höchstens 120 Fotos je Abnahme."), 400
-        ids = [c.execute("INSERT INTO kom_datei(vorgang_id, name, mime, groesse, data, erstellt, erstellt_name) VALUES(?,?,?,?,?,?,?) RETURNING id",
-                         (vid, n, m, len(d), d, jetzt, C.full_name(g.user))).fetchone()["id"] for n, m, d in anh]
+        ids = [c.execute("INSERT INTO kom_datei(vorgang_id, name, mime, groesse, data, datei_ref, erstellt, erstellt_name) VALUES(?,?,?,?,?,?,?,?) RETURNING id",
+                         (vid, n, m, len(d), *dateien.werte(c, d), jetzt, C.full_name(g.user))).fetchone()["id"] for n, m, d in anh]
     return jsonify(ok=True, ids=ids)
 
 
@@ -149,15 +149,15 @@ def abnahme_loeschen(vid):
 
 
 def _fotos(c, vid):
-    return {r["id"]: (r["name"], r["mime"], bytes(r["data"] or b"")) for r in c.execute("SELECT id, name, mime, data FROM kom_datei WHERE vorgang_id=? AND mime LIKE 'image/%'", (vid,))}
+    return {r["id"]: (r["name"], r["mime"], dateien.inhalt(c, r)) for r in c.execute("SELECT id, name, mime, data, datei_ref FROM kom_datei WHERE vorgang_id=? AND mime LIKE 'image/%'", (vid,))}
 
 
 def abnahme_pdf(c, x):
     """PDF für /api/vorgang/<id>.pdf: unterschrieben = das gespeicherte, sonst ein Entwurf (mit Wasserzeichen)."""
     if x["status"] == "unterschrieben" or (x["status"] == "abgeschlossen" and request.args.get("abgelegt")):
-        r = c.execute("SELECT data FROM kom_datei WHERE vorgang_id=? AND mime='application/pdf' ORDER BY id DESC LIMIT 1", (x["id"],)).fetchone()
+        r = c.execute("SELECT data, datei_ref FROM kom_datei WHERE vorgang_id=? AND mime='application/pdf' ORDER BY id DESC LIMIT 1", (x["id"],)).fetchone()
         if r:
-            return bytes(r["data"])
+            return dateien.inhalt(c, r)
     _, d = _laden(c, x["id"])
     p = c.execute("SELECT name FROM projects WHERE id=?", (x["project_id"],)).fetchone()
     v = dict(x)
@@ -199,8 +199,8 @@ def abnahme_abschliessen(vid):
         erst = not d.get("folgen_am")   # Folgen (Aufgaben, Erinnerung) nur beim ersten Abschließen – sonst doppelt
         d["folgen_am"] = d.get("folgen_am") or jetzt
         c.execute("UPDATE kom_vorgang SET status=?, daten=? WHERE id=?", ("unterschrieben" if zu else "abgeschlossen", json.dumps(d, ensure_ascii=False), vid))
-        c.execute("INSERT INTO kom_datei(vorgang_id, name, mime, groesse, data, erstellt, erstellt_name) VALUES(?,?,?,?,?,?,?)",
-                  (vid, name, "application/pdf", len(pdfb), pdfb, jetzt, C.full_name(g.user)))
+        c.execute("INSERT INTO kom_datei(vorgang_id, name, mime, groesse, data, datei_ref, erstellt, erstellt_name) VALUES(?,?,?,?,?,?,?,?)",
+                  (vid, name, "application/pdf", len(pdfb), *dateien.werte(c, pdfb), jetzt, C.full_name(g.user)))
         folgen = AB.folgen(c, g.user, x, d) if erst else []
     pfad, ablage_fehler = "", ""
     try:   # Projektordner auf dem Server – über das Bautagebuch, das die Ablage kennt (Testserver: nur lesen → Meldung)
@@ -224,12 +224,12 @@ def abnahme_senden(vid):
         x, d = _laden(c, vid)
         if not x or x["status"] == "entwurf":
             return jsonify(error="Erst unterschreiben, dann senden."), 400
-        r = c.execute("SELECT name, data FROM kom_datei WHERE vorgang_id=? AND mime='application/pdf' ORDER BY id DESC LIMIT 1", (vid,)).fetchone()
+        r = c.execute("SELECT name, data, datei_ref FROM kom_datei WHERE vorgang_id=? AND mime='application/pdf' ORDER BY id DESC LIMIT 1", (vid,)).fetchone()
         p = _projekt(c, x["project_id"])
         art = "Nachtrag zur Abnahme" if x["bezug"] else "Abnahme"
         betreff = vorgang.betreff_mit_kuerzel(f"{art} {d.get('firma') or ''} vom {AB.datum_de(d.get('abnahme_am'))}", p["name"] if p else "")
         text = (b.get("text") or "").strip()[:5000] or f"Sehr geehrte Damen und Herren,\n\nanbei die unterschriebene Niederschrift ({art.lower()}) zum Bauvorhaben {p['name'] if p else ''}.\n\nMit freundlichen Grüßen"
-        weg, err = _schicken(c, p, an, betreff, text, [(r["name"], "application/pdf", bytes(r["data"]))], bool(b.get("kopie")))
+        weg, err = _schicken(c, p, an, betreff, text, [(r["name"], "application/pdf", dateien.inhalt(c, r))], bool(b.get("kopie")))
     with db.tx() as c:
         benachrichtigung.protokoll(c, "vorgang", an, project_id=x["project_id"], projekt=p["name"] if p else "", betreff=betreff, inhalt=text, von=C.full_name(g.user),
                                    weg="mail", status="fehler" if err else "gesendet", fehler=err or "", link=f"kommunikation:#v={vid}")

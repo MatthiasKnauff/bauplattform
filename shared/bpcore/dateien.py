@@ -40,7 +40,11 @@ from . import fehler
 ORDNER = os.path.join(os.environ.get("DATA_DIR", "data"), "dateien")
 MARKE = ".kennung"
 # (Tabelle, Schlüsselspalte, BYTEA-Spalte) – der Verweis heißt überall datei_ref
-TABELLEN = (("ava_beleg", "id", "data"), ("skizze", "id", "datei"), ("pm_planstand_datei", "planstand", "daten"))
+TABELLEN = (("ava_beleg", "id", "data"), ("skizze", "id", "datei"), ("pm_planstand_datei", "planstand", "daten"),
+            # Etappe 2 (22.11.2026, Migration 0109): Anhänge, Dokumente, Fotos
+            ("kom_datei", "id", "data"), ("todo_datei", "id", "data"), ("ava_lvdok", "id", "data"), ("ava_nt_datei", "id", "data"),
+            ("ava_buergschaft", "id", "data"), ("ava_bild", "id", "data"), ("ava_vergabedok", "id", "pdf"), ("honorar_vertrag", "id", "pdf"),
+            ("honorar_fremd_re", "id", "datei"), ("bh_datei", "schluessel || '#' || nr", "inhalt"))   # Schlüssel aus zwei Spalten: als ein Ausdruck
 HALTEN = 90      # Tage, die eine Datei ohne Verweis noch liegen bleibt
 MELDEN = 600     # Sekunden zwischen zwei Meldungen eines App-Prozesses
 FRISCH = 1800    # Meldungen, die jünger sind, zählen für den Schalter

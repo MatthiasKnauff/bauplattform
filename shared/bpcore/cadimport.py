@@ -158,7 +158,15 @@ ART = {"IFCWALL": "Wand", "IFCWALLSTANDARDCASE": "Wand", "IFCWALLELEMENTEDCASE":
        "IFCCHIMNEY": "Schornstein", "IFCSHADINGDEVICE": "Sonnenschutz"}
 
 
-def ifc_lesen(raw, bestand=False):
+WAENDE = ("331", "332", "341", "342")
+PLATTEN = {"322": "Bodenplatte", "351": "Decke", "361": "Dach"}
+
+
+def ifc_lesen(raw, bestand=False, art_je=None):
+    """art_je = {GlobalId oder „#<Nummer>“: kg} – Art je Bauteil von Hand berichtigt (22.11.2026, Außenwand ↔ Innenwand, Decke ↔ Dach ↔ Bodenplatte);
+    gilt nur innerhalb derselben Familie. Ergebnis R["art_je"] = {GlobalId: kg} der Bauteile, die es gab (Schlüssel für das nächste Einlesen)."""
+    AJ = {str(k): str(v) for k, v in (art_je or {}).items() if str(v) in WAENDE or str(v) in PLATTEN}
+    AJ_ist = {}
     text = raw.decode("utf-8", "replace") if isinstance(raw, (bytes, bytearray)) else str(raw)
     if "ISO-10303-21" not in text[:200]:
         raise ValueError("Das ist keine IFC-Datei (STEP, ISO 10303-21).")
@@ -818,6 +826,18 @@ def ifc_lesen(raw, bestand=False):
                 m, einheit, kg = 1, "St", "338"
             else:
                 continue
+            gid = str(a[0] or "") if a and isinstance(a[0], str) else ""
+            k_hand = AJ.get(gid) or AJ.get(f"#{i}") if AJ else None
+            if k_hand and ((kg in WAENDE and k_hand in WAENDE) or (kg in PLATTEN and k_hand in PLATTEN)):   # Art von Hand berichtigt (gleiche Familie)
+                kg = k_hand
+                if kg in WAENDE:
+                    aussen, tragend = kg in ("331", "332"), kg in ("331", "341")
+                else:
+                    art = PLATTEN[kg]
+                if gid:
+                    AJ_ist[gid] = k_hand
+            else:
+                k_hand = None
             if abbruch:
                 kg, art = "394", f"Abbruch {art}"
             mtxt = ", ".join(n for n in namen if n)[:200]
@@ -833,7 +853,7 @@ def ifc_lesen(raw, bestand=False):
                                           **({"kuerzel": kz[:200], "kuerzel_name": kz_name} if kz and not code else {}),
                                           **({"planname": objname[:120]} if kz_name else {}),   # Name aus Allplan (A1, 19.11.2026) – bleibt überall der Name
                                           **({"ext": bool(aussen)} if aussen is not None else {})})   # außen/innen laut Plan bzw. Lage (D1, Filter im Wärmeschutz)
-            if art == "Bodenplatte" and pdt != ".BASESLAB.":
+            if art == "Bodenplatte" and pdt != ".BASESLAB." and not k_hand:
                 gr["hinweis"] = "Unterste Platte ohne Kennung „Bodenplatte“ – als Bodenplatte angenommen, bitte prüfen – sonst „Art“ an der Zeile umstellen."
             if art == "Wand" and aussen and m:
                 RI.setdefault(id(gr), (gr, []))[1].append((i, m))
@@ -944,7 +964,7 @@ def ifc_lesen(raw, bestand=False):
             e["raeume"] = g_.get("raeume") or []
     for r in raeume:
         r.pop("_id", None)
-    return {"raeume": raeume, "bauteile": bauteile, "elemente": EL, "ausbau": ausbau, "geschosse": [v[0] for v in gname.values()], "hinweise": hinweise,
+    return {"raeume": raeume, "bauteile": bauteile, "elemente": EL, "ausbau": ausbau, "geschosse": [v[0] for v in gname.values()], "hinweise": hinweise, **({"art_je": AJ_ist} if AJ_ist else {}),
             "info": {"schema": schema, "objekte": len(E), "programm": prog, "status": status_n}}
 
 

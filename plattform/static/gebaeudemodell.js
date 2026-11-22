@@ -69,6 +69,23 @@ async function gelernt(host) {
     try { await api('api/bp/gelernt', 'POST', { schluessel: vg.dataset.plverg }); await gelernt(host); } catch (er) { toast(er.message, true); } };
 }
 
+/* Kurzwahl der Aufbauten (GN-B, F6-A – 22.11.2026): Verwaltung → Einstellungen → Gebäudemodell; je Bauteilgruppe die Knöpfe im Eigenschaften-Fenster.
+   Ohne Liste des Büros: die meistbenutzten aller Projekte (bpcore/kurzwahl.py) */
+async function kurzwahlEinst(host) {
+  let K; try { K = await api('api/bp/modell/kurzwahl'); } catch (e) { host.textContent = e.message; return; }
+  const zeig = () => { host.innerHTML = `<p class="bph-mu">Diese Aufbauten stehen im Eigenschaften-Fenster eines Bauteils als Knöpfe über der Suche. Ohne eigene Liste zeigt das Gebäudemodell die meistbenutzten aller Projekte. Aufnehmen geht dort mit „＋ in die Kurzwahl“.</p>
+    ${Object.entries(K).map(([g, x]) => `<h4>${esc(x.name)} <small class="bph-mu">${x.quelle === 'buero' ? 'Liste des Büros' : 'automatisch – meistbenutzt'}</small></h4>
+      <table class="gm-l"><tbody>${x.eintraege.map((e, i) => `<tr><td>${esc(e.kurz || e.vorlage)}</td><td class="kl">${e.n ? e.n + '× benutzt' : ''}</td><td>${x.quelle === 'buero' ? `<button type="button" class="btn sm" data-kwhoch="${g}:${i}"${i ? '' : ' disabled'} title="nach oben">↑</button> <button type="button" class="btn sm" data-kwweg="${g}:${i}" title="aus der Kurzwahl">✕</button>` : ''}</td></tr>`).join('')}</tbody></table>
+      ${x.quelle === 'buero' ? `<button type="button" class="btn sm" data-kwauto="${g}">Zurück auf automatisch</button>` : `<button type="button" class="btn sm" data-kwfest="${g}">Als Liste des Büros festhalten</button>`}`).join('') || '<p class="bph-mu">Noch keine Aufbauten in den Projekten.</p>'}`; };
+  zeig();
+  host.onclick = async (e) => {
+    const b = e.target.closest('[data-kwhoch],[data-kwweg],[data-kwauto],[data-kwfest]'); if (!b) return;
+    const [g, i] = (b.dataset.kwhoch || b.dataset.kwweg || b.dataset.kwauto || b.dataset.kwfest).split(':'), E = [...K[g].eintraege];
+    if (b.dataset.kwhoch) E.splice(+i - 1, 0, E.splice(+i, 1)[0]); else if (b.dataset.kwweg) E.splice(+i, 1); else if (b.dataset.kwauto) E.length = 0;
+    try { K = await api('api/bp/modell/kurzwahl', 'PUT', { gruppe: g, eintraege: E }); zeig(); } catch (er) { toast(er.message, true); }
+  };
+}
+
 function bauherr() { return BPHead.bauherrFreigeben({ pid: PID, art: 'gebaeude', schluessel: 'modell', titel: 'Gebäude', stand: new Date().toISOString().slice(0, 10) }); }
 async function anweisung() {   // „＋ Anweisung …“ unter den ausgeführten Anweisungen (Fragen & Anweisungen)
   await baustein('anweisung.js', 'bpAnweisung');

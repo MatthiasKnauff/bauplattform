@@ -112,6 +112,7 @@
 .bt-ap small{display:block;opacity:.7}.bt-lk{border:0;background:none;color:var(--y,#3b5a8f);font:inherit;cursor:pointer;padding:.2rem 0}
 .bt-grp{flex:none}.bt-snz>td{background:color-mix(in srgb,var(--y,#2f6fb3) 5%,transparent)}.bt-sn{display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-start;padding:.35rem .5rem .45rem}.bt-sn .bt-such{flex:1;min-width:16rem;max-width:34rem}.bt-sni{align-self:center;font-size:.85rem}
 .bt-pop .bt-popd{display:flex;flex-direction:column;gap:.6rem}.bt-hk{width:1.4rem}.bt-hk input{margin:0;accent-color:#7b2ff7}
+.bt-kw{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center;margin:0 0 .45rem}.bt-kw .bt-h{width:100%;margin:0}.bt-chip{border:1px solid var(--line,#d5d9de);background:var(--card,#fff);color:inherit;border-radius:calc(999px*var(--rkp,1));padding:.15rem .6rem;font:inherit;font-size:.85em;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bt-chip.on{border-color:var(--af,#3b5a8f);font-weight:600;box-shadow:inset 0 0 0 1px var(--af,#3b5a8f)}.bt-kwp{border-style:dashed;color:var(--mute,#6b7380)}
 .bt-popr{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.35rem}.bt-seg{display:inline-flex;padding:2px;border:1px solid var(--line,#d5d9de);border-radius:calc(999px*var(--rkp,1))}
 .bt-seg button{border:0;background:none;border-radius:calc(999px*var(--rkp,1));padding:.1rem .65rem;cursor:pointer;font:inherit;color:inherit}.bt-seg button.on{background:var(--y,#2f6fb3);color:#fff}
 .bt-popu tr[data-btpz]:hover td{background:var(--hov,rgba(47,111,179,.08))}`;
@@ -580,10 +581,27 @@
       const wahl = (x.v.schichten || []).map((s, i) => (i === x.si ? x.oi : Math.max(0, s.optionen.findIndex((o) => o.std))));
       Z.vlAuf = null; return zeile(id, { vorlage: x.v.id, wahl, dicken: {}, ausf: {} });
     }
+    /* Kurzwahl der Aufbauten je Büro (GN-B, F6-A – 22.11.2026): Knöpfe über der Suche, Kern bpcore/kurzwahl.py; geladen erst mit dem ersten Editor */
+    const KWG = { 331: 'AW', 332: 'AW', 341: 'IW', 342: 'IW', 322: 'BP', 324: 'BP', 325: 'BP', 351: 'DE', 352: 'DE', 361: 'DA', 362: 'DA', 363: 'DA', 364: 'DA', 335: 'AB', 336: 'WI', 345: 'WI', 353: 'BO', 354: 'DB', 344: 'TI' };
+    const kwGruppe = (z) => (z.typ ? z.typ.split('-')[0] : String(z.kg || '').slice(0, 3) === '334' ? (/Fenster/.test(z.art || '') ? 'FE' : 'TA') : KWG[String(z.kg || '').slice(0, 3)] || '');
+    const kwSchl = (e) => JSON.stringify([e.vorlage || '', e.wahl || [], Object.entries(e.dicken || {}).sort(), Object.entries(e.ausf || {}).sort()]);
+    function kwHtml(z) {
+      if (HAND.includes(z.bereich)) return '';
+      if (!Z.kwP) Z.kwP = J('api/bp/modell/kurzwahl').then((r) => r.json()).then((d) => { Z.kw = d; detailsZeichnen(); }, () => { Z.kw = {}; });
+      const g = kwGruppe(z), K = Z.kw && Z.kw[g]; if (!K || !K.eintraege.length) return '';
+      const jetzt = z.vorlage ? kwSchl(z) : '', drin = K.quelle === 'buero' && K.eintraege.some((e) => kwSchl(e) === jetzt);
+      return `<div class="bt-kw"><span class="bt-h">Kurzwahl ${esc(K.name)}${K.quelle === 'auto' ? ' <small title="Noch keine Liste des Büros – die meistbenutzten Aufbauten aller Projekte">· meistbenutzt</small>' : ''}</span>
+        ${K.eintraege.map((e, i) => `<button type="button" class="bt-chip${kwSchl(e) === jetzt ? ' on' : ''}" data-btkw="${i}" title="${esc(e.kurz)}">${esc(e.kurz.length > 44 ? e.kurz.slice(0, 42) + ' …' : e.kurz)}</button>`).join('')}
+        ${jetzt && !drin ? '<button type="button" class="bt-chip bt-kwp" data-btkwplus title="Diesen Aufbau in die Kurzwahl des Büros aufnehmen">＋ in die Kurzwahl</button>' : ''}</div>`;
+    }
+    async function kwPlus(z) {
+      const g = kwGruppe(z), K = (Z.kw || {})[g] || { eintraege: [] }, E = K.eintraege.concat([{ vorlage: z.vorlage, wahl: z.wahl, dicken: z.dicken, ausf: z.ausf, kurz: z.kurz }]);
+      try { Z.kw = await (await J('api/bp/modell/kurzwahl', 'PUT', { gruppe: g, eintraege: E })).json(); detailsZeichnen(); sag(`In der Kurzwahl ${Z.kw[g] ? Z.kw[g].name : g}.`); } catch (e) { sag(e.message, true); }
+    }
     function editorHtml(z, kg, V) {
       const v = V.find((x) => x.id === z.vorlage);
       Z.vl = v;
-      return `<div class="bt-such"><input data-btsuch placeholder="Aufbau suchen: Vorlage, Material oder Kürzel (PP, KS, WDVS …)" aria-label="Aufbau suchen" autocomplete="off"><div class="bt-vs"></div></div>${HAND.includes(z.bereich) ? `<div class="bt-o"><span>Kostengruppe</span>${KG2.map(([k, t]) => `<button type="button" data-btkg="${k}" class="${String(kg).startsWith(k) ? 'on' : ''}">${k}0 ${esc(t)}</button>`).join('')}</div>` : ''}${bloeckeHtml(z, V)}
+      return `${kwHtml(z)}<div class="bt-such"><input data-btsuch placeholder="Aufbau suchen: Vorlage, Material oder Kürzel (PP, KS, WDVS …)" aria-label="Aufbau suchen" autocomplete="off"><div class="bt-vs"></div></div>${HAND.includes(z.bereich) ? `<div class="bt-o"><span>Kostengruppe</span>${KG2.map(([k, t]) => `<button type="button" data-btkg="${k}" class="${String(kg).startsWith(k) ? 'on' : ''}">${k}0 ${esc(t)}</button>`).join('')}</div>` : ''}${bloeckeHtml(z, V)}
         ${v ? v.schichten.map((s, i) => `<div class="bt-o"><span>${esc(s.name)}</span>${s.gl ? schichtHtml(z, s, i) : s.optionen.map((o, j) => `<button type="button" data-btop="${i}.${j}" class="${(z.wahl || [])[i] === j ? 'on' : ''}" title="${esc(o.t)}">${esc(optName(o))}</button>`).join('')}</div>`).join('') : ''}`;
     }
 
@@ -597,6 +615,10 @@
       if (t.closest('[data-btpop]') && id) return eigenschaften(id);
       if (opt.baum && r && r.tagName === 'TR' && (e.ctrlKey || e.metaKey) && !t.closest('[data-zu],input,button')) return mwUm(id, true);
       if (t.closest('[data-btmwweg]')) return mwSetzen([]);
+      if (t.closest('[data-btmwart]') && opt.artJe) {   // Art je Bauteil für mehrere: im 3D gewählte Bauteile dieser Zeilen, sonst alle der Zeilen
+        const R = mwZ(), alle = R.flatMap((z) => z.ids || []), e3 = (opt.e3 ? opt.e3() : []).filter((i) => alle.includes(i));
+        return pickMenu(t.closest('[data-btmwart]'), { items: artWahl(R[0]).map(([k, n]) => ({ value: k, title: n })), onPick: (v) => opt.artJe(e3.length ? e3 : alle, v) });
+      }
       if (t.closest('[data-btmwst]')) return mwAendern({ status: t.closest('[data-btmwst]').dataset.btmwst });
       if (opt.baum && r && r.tagName === 'TR' && !t.closest('[data-zu],input,button')) { if (Z.mw.length) { Z.mw = []; if (opt.mehr) opt.mehr([]); } Z.sel = id; Z.auf = id; zeichne(); if (opt.auswahl) opt.auswahl(L().zeilen.find((x) => x.id === id)); return; }
       if (t.closest('[data-btlesen]')) return einlesen();
@@ -640,11 +662,16 @@
         if (!A.length) return sag('Keine andere Zeile mit Aufbau in dieser Gruppe.');
         return pickMenu(t.closest('[data-btwie]'), { items: A.map((x) => ({ value: x.id, title: `${x.kuerzel ? '„' + x.kuerzel + '“' : x.name} – ${x.kurz}` })), onPick: (v) => zeile(id, { wie: v }) });
       }
+      if (t.closest('[data-btkw]') && z) { const e = ((Z.kw || {})[kwGruppe(z)] || { eintraege: [] }).eintraege[+t.closest('[data-btkw]').dataset.btkw]; if (e) { Z.vlAuf = null; return zeile(id, { vorlage: e.vorlage, wahl: [...(e.wahl || [])], dicken: e.dicken || {}, ausf: e.ausf || {} }); } }
+      if (t.closest('[data-btkwplus]') && z) return kwPlus(z);
       if (t.closest('[data-btvs]') && Z.tr) { const x = Z.tr[+t.closest('[data-btvs]').dataset.btvs]; if (x) return suchWahl(id, x); }
       if (t.closest('[data-btvlauf]')) { Z.vlAuf = Z.vlAuf === id ? null : id; return editor(true); }
       if (t.closest('[data-btkg]')) { Z.kg[id] = t.closest('[data-btkg]').dataset.btkg + '0'; return editor(true); }
       if (t.closest('[data-btweg]')) return handWeg(id);
-      if (t.closest('[data-btart]') && z) return pickMenu(t.closest('[data-btart]'), { items: artWahl(z).map(([k, n]) => ({ value: k, title: n + (k === z.kg ? ' ✓' : '') })), onPick: (v) => zeile(id, { kg: v }) });   // gleiche Art = bestätigt (Hinweis weg)
+      if (t.closest('[data-btart]') && z) return pickMenu(t.closest('[data-btart]'), { items: artWahl(z).map(([k, n]) => ({ value: k, title: n + (k === z.kg ? ' ✓' : '') })), onPick: (v) => {   // gleiche Art = bestätigt (Hinweis weg)
+        if (!opt.artJe || !(z.ids || []).length || !(L().quelle || {}).planstand || ((L().quelle || {}).art || 'ifc') !== 'ifc') return zeile(id, { kg: v });
+        const e3 = (opt.e3 ? opt.e3() : []).filter((i) => z.ids.includes(i));   // im 3D gewählte Bauteile dieser Zeile – sonst alle der Zeile (22.11.2026: Art je Bauteil)
+        return opt.artJe(e3.length ? e3 : z.ids, v); } });
       if (t.closest('[data-bteh]') && z) return pickMenu(t.closest('[data-bteh]'), { items: EINHEITEN.map((e) => ({ value: e, title: e })), onPick: (v) => (v === z.einheit ? null : zeile(id, { einheit: v })) });
       if (t.closest('[data-btvl]')) {   // Zeile von Hand mit gewählter Einheit: rechnet der Aufbau anders, fragt die Zeile nach (B1)
         Z.vlAuf = null;   // gewählt: Auswahl klappt wieder zu
@@ -905,10 +932,12 @@
       if (einKg && !V && !Z.mwL) { Z.mwL = true; vorlagen(k2).then(() => { Z.mwL = false; zeichne(); }, () => { Z.mwL = false; }); }
       const ant = erl.length ? `${erl.map((s) => `<button type="button" data-btmwst="${s}" class="${st === s ? 'on' : ''}">${esc(WORT[s] || s)}</button>`).join('')}${st === undefined ? ' ' + versch : ''}` : '<span class="mute">keine gemeinsame Antwort</span>';
       const auf = einKg ? `<select data-btmwvl aria-label="Aufbau für alle"><option value="">${vl ? esc(R[0].kurz || 'gewählter Aufbau') : 'verschieden – für alle wählen …'}</option>${(V || []).filter((v) => v.id !== vl || true).map((v) => `<option value="${esc(v.id)}"${v.id === vl ? ' selected' : ''}>${esc(v.name)}</option>`).join('')}</select>` : '<span class="mute">verschiedene Bauteilarten – Aufbau je Zeile</span>';
+      const aw = artWahl(R[0]), fam = opt.artJe && aw.length > 1 && R.every((z) => artWahl(z).some((x) => x[0] === String(R[0].kg))) && (L().quelle || {}).planstand && ((L().quelle || {}).art || 'ifc') === 'ifc';   // Art je Bauteil (22.11.2026)
+      const kgG = gl('kg'), art = fam ? `<button type="button" class="bt-ehb" data-btmwart title="Art der gewählten Bauteile ändern, falls der Plan sie falsch zeigt">${kgG ? esc(ARTEN[kgG] || kgG) : 'verschieden'} ▾</button>` : '';
       const be = `<label class="bt-mwb"><input type="checkbox" data-btmwber${ber ? ' checked' : ''}${ber === undefined ? ' data-mix' : ''}> wird berechnet${ber === undefined ? ' ' + versch : ''}</label>`;
-      if (kompakt) return `<b>${R.length} gewählt:</b><span class="bt-mwg"><span class="mute">Antwort</span>${ant}</span><span class="bt-mwg"><span class="mute">Aufbau</span>${auf}</span>${be}<button type="button" class="btn sm" data-btmwweg>Auswahl aufheben</button>`;
+      if (kompakt) return `<b>${R.length} gewählt:</b><span class="bt-mwg"><span class="mute">Antwort</span>${ant}</span><span class="bt-mwg"><span class="mute">Aufbau</span>${auf}</span>${art ? `<span class="bt-mwg"><span class="mute">Art</span>${art}</span>` : ''}${be}<button type="button" class="btn sm" data-btmwweg>Auswahl aufheben</button>`;
       return `<h3 class="bt-mwt">${R.length} Bauteile gewählt</h3><p class="bt-nr">${R.slice(0, 8).map((z) => esc(z.name)).join(' · ')}${R.length > 8 ? ` · … ${R.length - 8} weitere` : ''}</p>
-        <div class="bt-o"><span>Antwort</span>${ant}</div>${ohneAufbau ? `<div class="bt-o"><span>Aufbau</span>${vl === undefined ? versch : esc(R[0].kurz || '–')}</div>` : `<div class="bt-o"><span>Aufbau</span>${auf}</div>`}<div class="bt-o"><span></span>${be}</div>
+        <div class="bt-o"><span>Antwort</span>${ant}</div>${ohneAufbau ? `<div class="bt-o"><span>Aufbau</span>${vl === undefined ? versch : esc(R[0].kurz || '–')}</div>` : `<div class="bt-o"><span>Aufbau</span>${auf}</div>`}${art ? `<div class="bt-o"><span>Art</span>${art}</div>` : ''}<div class="bt-o"><span></span>${be}</div>
         <p class="bt-h">Jede Änderung hier gilt für alle ${R.length}. „verschieden“ = die Gewählten haben verschiedene Werte; wählst du einen, gilt er für alle. Mit Strg + Klick weitere dazu oder weg.</p>
         <button type="button" class="btn sm" data-btmwweg>Auswahl aufheben</button>`;
     }

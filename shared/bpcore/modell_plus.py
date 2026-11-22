@@ -12,7 +12,7 @@ treffer(alt, neu)         Ergänzungen, die der neue Planstand jetzt selbst enth
 entfernen(L, weg)         {raeume: [k], elemente: [k]} aus den Ergänzungen nehmen
 raumweg_sauber(W), ist_weg(r, W)   Flächen, die aus den Wänden als Raum ermittelt wurden, aber keiner sind (22.11.2026): bauteilliste["raumweg"] =
                           [{g: Geschoss, p: [x, y] Punkt in der Fläche, art: kein | schacht}] – der Punkt trifft die Fläche auch beim nächsten Einlesen
-routen()                  PUT /api/bp/modell/<pid>/plus · PUT /api/bp/modell/<pid>/raumweg
+routen()                  PUT /api/bp/modell/<pid>/plus · PUT /api/bp/modell/<pid>/raumweg · PUT /api/bp/modell/<pid>/artje (Art je Bauteil)
 """
 import re
 from collections import Counter
@@ -195,7 +195,6 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
         d = request.get_json(silent=True) or {}
 
         def tun(c, wer):
-            from . import cadimport
             m = lesen_modell(c, pid)["modell"]
             L = m.get("bauteilliste") or B.leer()
             Q = L.get("quelle") or {}
@@ -213,23 +212,54 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                 U = []
             W = [w for w in W if not (w["g"] == g and ((len(U) >= 3 and _innen(w["p"][0], w["p"][1], U)) or (neu and w["p"] == neu[0]["p"])))]
             W += neu
-            datei = P.datei_lesen(c, pid, Q["planstand"])
-            if not datei:
-                return jsonify(error="Die IFC-Datei dieses Planstands liegt nicht vor – bitte den Plan noch einmal einlesen."), 409
-            R = cadimport.ifc_lesen(datei[1], bestand=True)
-            art = B.bauart(m)
-            alt = dict(L, raumweg=W)
-            N = B.zeilen_aus_ifc(c, R, alt, art)
-            L2 = P.uebernehmen(alt, N)
-            L2["quelle"] = Q
-            if W:
-                L2["raumweg"] = W
-            else:
-                L2.pop("raumweg", None)
-            if L2.get("plus"):
-                anwenden(c, L2, art, L)
-            anweisung.ableiten(c, L2)
-            P._sichern(c, pid, L2, wer)
-            schreiben_modell(c, pid, P.anwenden(m, L2), wer)
-            return jsonify(lesen_modell(c, pid))
+            return _neu_bilden(c, pid, m, L, wer, W=W)
+        return mit(pid, tun)
+
+    def _neu_bilden(c, pid, m, L, wer, W=None, AJ=None):
+        """Liste aus der gespeicherten IFC-Datei des gültigen Planstands neu bilden (wie beim Einlesen, Antworten bleiben) –
+        mit geänderten Flächen ohne Raum (W) bzw. Art je Bauteil (AJ, Schlüssel GlobalId oder „#<Nummer>“)."""
+        from . import cadimport
+        Q = L.get("quelle") or {}
+        datei = P.datei_lesen(c, pid, Q["planstand"])
+        if not datei:
+            return jsonify(error="Die IFC-Datei dieses Planstands liegt nicht vor – bitte den Plan noch einmal einlesen."), 409
+        W = raumweg_sauber(L.get("raumweg")) if W is None else W
+        R = cadimport.ifc_lesen(datei[1], bestand=True, art_je={**(L.get("art_je") or {}), **(AJ or {})})
+        art = B.bauart(m)
+        alt = dict(L, raumweg=W)
+        if AJ is not None:   # neu bestimmt: was R meldet (GlobalId), ersetzt die Einträge dieser Bauteile
+            alt["art_je"] = {**(L.get("art_je") or {}), **(R.get("art_je") or {})}
+        N = B.zeilen_aus_ifc(c, R, alt, art)
+        L2 = P.uebernehmen(alt, N)
+        L2["quelle"] = Q
+        if W:
+            L2["raumweg"] = W
+        else:
+            L2.pop("raumweg", None)
+        if N.get("art_je"):
+            L2["art_je"] = N["art_je"]
+        if L2.get("plus"):
+            anwenden(c, L2, art, L)
+        anweisung.ableiten(c, L2)
+        P._sichern(c, pid, L2, wer)
+        schreiben_modell(c, pid, P.anwenden(m, L2), wer)
+        return jsonify(lesen_modell(c, pid))
+
+    @bp.put("/api/bp/modell/<int:pid>/artje")
+    def art_je_setzen(pid):
+        """Art einzelner Bauteile berichtigen (22.11.2026: „eine Außenwand wird als Innenwand erkannt“): {ids: [Nummer im Plan], kg}.
+        Die Bauteile wandern in die Zeile ihrer neuen Art; gemerkt je GlobalId – bleibt beim Neubilden und beim nächsten Einlesen."""
+        d = request.get_json(silent=True) or {}
+        kg = str(d.get("kg") or "")
+        ids = [int(x) for x in (d.get("ids") or [])[:2000] if str(x).isdigit()]
+        if kg not in B.ARTEN or not ids:
+            return jsonify(error="Art oder Bauteile fehlen."), 400
+
+        def tun(c, wer):
+            m = lesen_modell(c, pid)["modell"]
+            L = m.get("bauteilliste") or B.leer()
+            Q = L.get("quelle") or {}
+            if not Q.get("planstand") or (Q.get("art") or "ifc") != "ifc":
+                return jsonify(error="Die Art einzelner Bauteile lässt sich nur in einem eingelesenen IFC-Plan ändern – sonst „Art“ an der Zeile."), 409
+            return _neu_bilden(c, pid, m, L, wer, AJ={f"#{i}": kg for i in ids})
         return mit(pid, tun)

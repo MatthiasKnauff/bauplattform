@@ -39,6 +39,11 @@ ARTEN = {"322": "Bodenplatte", "351": "Decke", "361": "Dach", "331": "Außenwand
 FAMILIEN = (("322", "351", "361"), ("331", "332", "341", "342"))
 
 
+def art_je_sauber(d):
+    """{GlobalId: kg} – Art je Bauteil von Hand (nur Wände und Platten, höchstens 5.000)."""
+    return {str(k)[:40]: str(v) for k, v in list((d or {}).items() if isinstance(d, dict) else [])[:5000] if str(v) in ARTEN and str(k)}
+
+
 def art_wahl(z):
     """Arten, zwischen denen eine Zeile aus dem Plan umgestellt werden kann (gleiche Familie); leer = nicht umstellbar."""
     if z.get("bereich") != "rohbau" or z.get("quelle") == "allplan":
@@ -209,6 +214,8 @@ def sauber(d):
     from . import modell_plus
     if d.get("raumweg"):   # ermittelte Flächen, die kein Raum sind (kein Raum / Schacht – modell_plus.raumweg_sauber)
         out["raumweg"] = modell_plus.raumweg_sauber(d.get("raumweg"))
+    if d.get("art_je"):   # Art je Bauteil von Hand: {GlobalId: kg} (cadimport.ifc_lesen art_je, 22.11.2026)
+        out["art_je"] = art_je_sauber(d.get("art_je"))
     if d.get("plus"):   # Ergänzungen neben dem Plan (Räume, Fenster, Türen – modell_plus.py)
         pl = modell_plus.sauber(d.get("plus"))
         if pl:
@@ -455,6 +462,9 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
     out = {"zeilen": Z, "raeume": raeume, "elemente": elemente.aus_ifc(R.get("elemente") or [], Z, raeume)}
     if W:
         out["raumweg"] = W
+    AJ = art_je_sauber({**((alt or {}).get("art_je") or {}), **(R.get("art_je") or {})})
+    if AJ:
+        out["art_je"] = AJ
     if (alt or {}).get("typen"):
         from . import typen
         out["typen"] = typen.sauber(alt["typen"])

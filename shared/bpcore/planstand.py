@@ -306,6 +306,9 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                     return jsonify(error=str(e)), 400
             m = lesen_modell(c, pid)["modell"]
             alt = m.get("bauteilliste") or B.leer()
+            if alt.get("art_je") and art == "ifc":   # Art je Bauteil von Hand (GlobalId) gilt auch im neuen Plan (22.11.2026)
+                from . import cadimport
+                R = cadimport.ifc_lesen(raw, bestand=True, art_je=alt["art_je"])
             neu = B.zeilen_aus_ifc(c, R, alt, B.bauart(m))
             neu["quelle"] = {"datei": name, "gelesen": _jetzt(), "programm": R["info"].get("programm", ""), "objekte": R["info"].get("objekte", 0),
                              "art": art, "pfad": pfad, "name": f"Planstand {datetime.now().strftime('%d.%m.%Y')} – {name}"[:120]}

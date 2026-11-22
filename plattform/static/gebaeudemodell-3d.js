@@ -25,8 +25,32 @@ function g3Info(e) {
   return `<b>${esc(g3Name(e))}${g3Nr(e) ? ' · ' + esc(g3Nr(e)) : ''}</b>${esc(g3Gesch(e))}${z && z.teil ? ' · ' + esc(z.teil) : ''}${z && z.kurz ? `<br><small>${esc(z.kurz)}</small>` : ''}${h ? `<br><small>Hauptschicht: ${esc(h)}</small>` : ''}`;
 }
 
+/* Art je Bauteil (22.11.2026: „eine Außenwand wird als Innenwand erkannt“): im 3D gewählte Bauteile umstellen – Kern modell_plus PUT /artje,
+   gemerkt je GlobalId, die Bauteile wandern in die Zeile ihrer neuen Art. Rechtsklick im 3D und „Art ▾“ im Eigenschaften-Fenster (bauteile.js opt.artJe). */
+const G3ARTEN = [['331', 'Außenwand tragend'], ['332', 'Außenwand nichttragend'], ['341', 'Innenwand tragend'], ['342', 'Innenwand nichttragend'], ['322', 'Bodenplatte'], ['351', 'Decke'], ['361', 'Dach']];
+const g3Fam = (kg) => (['331', '332', '341', '342'].includes(String(kg)) ? G3ARTEN.slice(0, 4) : ['322', '351', '361'].includes(String(kg)) ? G3ARTEN.slice(4) : []);
+async function g3Art(ids, kg) {
+  const alt = new Map(ids.map((i) => [i, String(((G3.zu.get(+i) || {}).z || {}).kg || '')]));
+  const tu = async (I, k) => { await api(`api/bp/modell/${PID}/artje`, 'PUT', { ids: I, kg: k }); if (BT && BT.laden) await BT.laden(); };
+  try {
+    await tu(ids, kg);
+    const name = (G3ARTEN.find((a) => a[0] === kg) || [, kg])[1];
+    if (window.rueckgaengig) rueckgaengig(`${ids.length === 1 ? 'Bauteil' : ids.length + ' Bauteile'}: Art „${name}“`, async () => { for (const k of new Set(alt.values())) if (k) await tu(ids.filter((i) => alt.get(i) === k), k); }, 10000, () => tu(ids, kg));
+  } catch (e) { toast(e.message, true); }
+}
+function g3ArtPunkte(e, P) {   // Rechtsklick im 3D: gewählte Bauteile (oder das unter der Maus) umstellen
+  const z = e && g3Zeile(e); if (!z || G3.an) return;
+  const F = g3Fam(z.kg); if (!F.length) return;
+  const ids = G3.wahl && G3.wahl.includes(e.i) ? G3.wahl.filter((i) => g3Fam(((G3.zu.get(i) || {}).z || {}).kg).length) : [e.i];
+  P.push({ titel: `Art ${ids.length === 1 ? 'dieses Bauteils' : `der ${ids.length} gewählten Bauteile`}` });
+  F.forEach(([k, n]) => P.push({ text: n + (String(z.kg) === k && ids.length === 1 ? ' ✓' : ''), fn: () => g3Art(ids, k) }));
+}
+
 /* 3D gewählt → dieselben Zeilen im Baum rechts (einzeln: Zeile zeigen, mehrere: gemeinsam ändern) */
+const g3Frisch = () => G3.vom3d && Date.now() - G3.vom3d < 400;   // Auswahl kommt gerade aus dem 3D
 function g3Ids(ids) {
+  G3.wahl = (ids || []).map((i) => +i);   // einzelne Bauteile im 3D – für „Art“ je Bauteil (g3Art)
+  G3.vom3d = Date.now();   // die Zeilen folgen rechts – das 3D behält die angeklickten Bauteile (22.11.2026: sonst leuchtete die ganze Zeile, Wände wirkten „zusammengefügt“)
   const Z = [...new Set((ids || []).map((i) => (G3.zu.get(+i) || {}).z).filter(Boolean).map((z) => z.id))];
   if (!BT || !Z.length) return;
   if (window.seiteReiter && !(G3.bk && G3.bearb)) seiteReiter('gm', 'details');
@@ -50,7 +74,7 @@ async function bauteile3d(zeige) {
   if (lauf !== G3.lauf) return;
   const zuordnen = (Z) => { G3.zu = new Map(); (Z || []).forEach((z) => (z.ids || []).forEach((i, k) => G3.zu.set(+i, { z, nr: (z.nummern || [])[k] || '' }))); };
   let erst = true;
-  BT = bpBauteile.mount(fT, PID, { einlesen: true, baum: true, raeume: () => gmWeg('raeume'), baukasten: () => gmWeg('baukasten'),
+  BT = bpBauteile.mount(fT, PID, { einlesen: true, baum: true, artJe: g3Art, e3: () => G3.wahl || [], raeume: () => gmWeg('raeume'), baukasten: () => gmWeg('baukasten'),
     nachher: () => {
       if (lauf !== G3.lauf || G3.btE !== bE) return;   // Seite inzwischen neu aufgebaut – dieser Stand gilt nicht mehr (der Baum steht rechts, nicht im Dokument geprüft)
       leiste(); const b = NAV.querySelector('.gm-vm'); if (b) BT.menue(b);
@@ -71,9 +95,9 @@ async function bauteile3d(zeige) {
       if (zeige) { const z = zeige; zeige = null; if (window.seiteReiter) seiteReiter('gm', 'details'); BT.zeige(z, z !== '__rw'); const x = ZZ.find((y) => y.id === z); if (x && G3.D3) G3.D3.waehle(x.ids || []); }
       G3.rev = st.rev; erst = false;
     },
-    auswahl: (z) => { if (G3.D3) G3.D3.waehle(z ? z.ids || [] : []); },   // der Baum steht selbst rechts – nur das 3D folgt
+    auswahl: (z) => { if (G3.D3 && !g3Frisch()) G3.D3.waehle(z ? z.ids || [] : []); },   // der Baum steht selbst rechts – nur das 3D folgt
     mehr: (ids) => {   // mehrere Zeilen gewählt (Haken, Strg + Klick): im 3D alle hervorheben, rechts die gemeinsamen Felder
-      if (G3.D3) { const Z = g3Zeilen(BT.zustand()).filter((z) => ids.includes(z.id)); G3.D3.waehle(Z.flatMap((z) => z.ids || [])); }
+      if (G3.D3 && !g3Frisch()) { const Z = g3Zeilen(BT.zustand()).filter((z) => ids.includes(z.id)); G3.D3.waehle(Z.flatMap((z) => z.ids || [])); }
     } });
 }
 const g3Zeilen = (st) => (st.an ? (st.an.liste || {}).zeilen || [] : st.zeilen || []);
@@ -135,7 +159,7 @@ function g3Laden(feld, st) {
   }
   G3.D3 = bp3d.mount(feld, { ...D3O, url: `api/bp/modell/${PID}/netz${st.an ? '?planstand=' + st.an.id : ''}`, wahl: true,
     geladen: (N) => { G3.N = N; if (G3.D3) G3.D3.farben(g3Modi()); },
-    onWahl: (ids) => g3Ids(ids) });
+    kontext: g3ArtPunkte, onWahl: (ids) => g3Ids(ids) });
 }
 function g3Extras(st) {   // Färbung merken, U-Werte nachladen – für Plan und Baukasten gleich
   const feld = g3Feld();
@@ -184,7 +208,7 @@ async function g3Einst(host) {
   host.addEventListener('change', async (e) => { const r = e.target; if (r.type !== 'radio') return;
     try { G3.E = await api('api/bp/modell/einst', 'PUT', { werte: { [r.name.slice(4)]: r.value } }); toast('Gespeichert.'); } catch (er) { toast(er.message, true); } });
 }
-const g3EinstMelden = () => { if (window.BPHead && BPHead.appEinstellungen) BPHead.appEinstellungen([{ key: 'bauteile', label: 'Gebäude: Liste, Wände', render: (h) => g3Einst(h) }, { key: 'gelernt', label: 'Gelerntes aus dem Planungsassistenten', render: (h) => gelernt(h) }]); };   // Gelerntes (D1)   // nach header() (gebaeudemodell.js)
+const g3EinstMelden = () => { if (window.BPHead && BPHead.appEinstellungen) BPHead.appEinstellungen([{ key: 'bauteile', label: 'Gebäude: Liste, Wände', render: (h) => g3Einst(h) }, { key: 'kurzwahl', label: 'Kurzwahl der Aufbauten', render: (h) => kurzwahlEinst(h) }, { key: 'gelernt', label: 'Gelerntes aus dem Planungsassistenten', render: (h) => gelernt(h) }]); };   // Gelerntes (D1)   // nach header() (gebaeudemodell.js)
 /* Aufbau im Eigenschaften-Fenster geändert, während der Baukasten zeigt (I1, 21.11.2026): der Kern führt den Aufbau im Baukasten nach (bauteile_zeile → korb),
    der Baukasten lädt neu – so folgt die Dicke im 3D */
 window.addEventListener('bp:bauteile', () => { if (!G3.bk || !G3.BK) return; clearTimeout(G3.bkT); G3.bkT = setTimeout(() => G3.BK && G3.BK.neu(), 400); });

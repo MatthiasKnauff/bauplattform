@@ -33,7 +33,7 @@ from datetime import datetime
 
 from flask import jsonify, request
 
-from . import anweisung, baukasten, bauteilliste, modell_einst, modell_hand, db, elemente, ki_fragen, lernen, planstand, rueckweg, skizze, stammdaten, verfeinern, versionen, vorgang
+from . import anweisung, baukasten, bauteilliste, kurzwahl, modell_einst, modell_hand, db, elemente, ki_fragen, lernen, planstand, rueckweg, skizze, stammdaten, verfeinern, versionen, vorgang
 from .jsonwert import lies as _j
 
 RICHTUNG = ("beide", "zur_app", "zum_modell")
@@ -534,6 +534,7 @@ def routen(bp, _uid):
 
     bauteilliste.routen(bp, mit, lesen, schreiben)   # /api/bp/modell/<pid>/bauteile/… – Bauteil-Checkliste
     modell_einst.routen(bp, _uid)
+    kurzwahl.routen(bp, _uid)   # Kurzwahl der Aufbauten je Büro (GN-B, F6-A): GET/PUT /api/bp/modell/kurzwahl
     baukasten.routen(bp, mit, lesen, schreiben)   # Gebäude-Baukasten: GET/PUT /api/bp/modell/<pid>/baukasten (20.11.2026)   # Änderungen je Bauteil, Zurücknehmen, Einstellungen A–F (20.11.2026)
     planstand.routen(bp, mit, lesen, schreiben)   # Planstände: einlesen mit Abgleich, ansehen, gelten lassen, aufräumen
     ki_fragen.routen(bp, mit, _uid)   # KI-Gespräch „Fragen“ – nur Ollama, eigene Daten und Preise

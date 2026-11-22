@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-typen-2",
+  "datum": "2026-11-22",
+  "app": "gebaeudemodell",
+  "titel": "Bauteiltypen",
+  "text": "Bauteile sind jetzt nach Typ gruppiert (AW-01, FE-01 …). Ein Aufbau gilt für alle Bauteile eines Typs. Im Eigenschaften-Fenster (Doppelklick) siehst du alle Bauteile des Typs und kannst einen neuen Typ abspalten, Typen zusammenlegen oder umbenennen.",
+  "ziel": ".bt-grp"
+ },
+ {
   "id": "gantt-kette-abgleich",
   "datum": "2026-11-22",
   "app": "gantt",

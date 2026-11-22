@@ -1,0 +1,50 @@
+// Bauteiltypen in der Oberfläche (Gebäudemodell neu, Etappe 2 – 22.11.2026): Baum nach Typ gruppiert (Vorgabe), Eigenschaften-Fenster mit
+// Reiter „Typ AW-01“ (alle Bauteile desselben Typs), „Neuer Typ aus den angehakten …“ (PUT …/typen) mit Rückgängig (Aktion „stand“).
+// Aufgerufen aus oberflaeche.mjs:  const fehler = await bautypenPruefen(browser, repoWurzel)
+import fs from 'node:fs'; import path from 'node:path';
+
+export async function bautypenPruefen(browser, repo) {
+  const R = path.join(repo, 'shared/bpcore/head/'), fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
+  const q = await browser.newPage({ viewport: { width: 1200, height: 900 } });
+  q.on('pageerror', (e) => fehler.push('Fehler im Skript – ' + e.message));
+  const Z = (id, name, typ, teil) => ({ id, bereich: 'rohbau', art: 'Wand', kg: '331', name, menge: 20, einheit: 'm²', zustand: 'ifc', status: 'neu', erlaubt: ['neu'], quelle: 'ifc', ids: [1], nummern: [],
+    teil, typ, vorlage: '331.01', wahl: [0], code: '', kurz: 'AW KS 17,5', berechnen: true });
+  const S = { L: { quelle: { planstand: 4, name: 'Plan', art: 'ifc' }, raeume: [], zeilen: [Z('a', 'AW 24 Nord', 'AW-01', 'Haus'), Z('b', 'AW 24 Süd', 'AW-01', 'Anbau'), Z('c', 'AW 30', 'AW-02', 'Haus')],
+    typen: { 'AW-01': { k: 'AW-01', kg: '331', name: 'Außenwand 24', vorlage: '331.01', wahl: [0], kurz: 'AW KS 17,5' }, 'AW-02': { k: 'AW-02', kg: '331', name: '', vorlage: '331.01', wahl: [0], kurz: 'AW KS 17,5' } } }, put: [] };
+  const alles = () => ({ modell: { bauteilliste: S.L }, rev: 3 + S.put.length, staende: [], links: [] });
+  await q.route('http://typ.test/**', async (r) => {
+    const u = new URL(r.request().url()).pathname, J = (o) => r.fulfill({ contentType: 'application/json', body: JSON.stringify(o) });
+    if (u === '/seite') return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><body><div id="feld"></div><div id="det"></div><script>${fs.readFileSync(R + 'bp.js', 'utf8')}</script><script>${fs.readFileSync(R + 'baum.js', 'utf8')}</script><script>${fs.readFileSync(R + 'gruppen.js', 'utf8')}</script><script>${fs.readFileSync(R + 'eigenschaften.js', 'utf8')}</script><script>${fs.readFileSync(R + 'bauteile.js', 'utf8')}</script>
+      <script>window.bpEingabe = async () => 'Sonderwand'; window.bpHinweis = () => {}; window.U = []; window.rueckgaengig = (t, z) => U.push([t, z]); window.BPHead = { projekt: { name: 'A100' }, conf: { apps: [] }, appUrl: () => '' };
+      window.BT = bpBauteile.mount(document.getElementById('feld'), 7, { baum: true }); BT.details(document.getElementById('det'))</script>` });
+    if (u.endsWith('/typen')) { const d = r.request().postDataJSON(); S.put.push(d);
+      if (d.aktion === 'neu_aus') { S.L.typen['AW-03'] = { ...S.L.typen[d.typ], k: 'AW-03', name: d.name }; S.L.zeilen.forEach((z) => { if (d.zeilen.includes(z.id)) z.typ = 'AW-03'; }); return J({ ...alles(), typ: 'AW-03' }); }
+      if (d.aktion === 'stand') { S.L.typen = d.stand.typen; S.L.zeilen.forEach((z) => { if (d.stand.zeilen[z.id]) z.typ = d.stand.zeilen[z.id].typ; }); return J({ ...alles(), typ: '' }); }
+      return J(alles()); }
+    if (u.endsWith('/bauteile/vorlagen')) return J([{ id: '331.01', kg: '331', name: 'AW', einheit: 'm²', schichten: [] }]);
+    if (u.endsWith('/modell/kuerzel')) return J({ kern: [], lage: [] });
+    if (u.endsWith('/planstaende')) return J({ planstaende: [{ id: 4, name: 'Plan' }], gilt: 4 });
+    if (u.endsWith('/rueckweg')) return J({ vorschlaege: [], schalter: {}, phasen: [], termine: {} });
+    if (u === '/api/bp/modell/7') return J(alles());
+    return r.fulfill({ status: 404, body: '' });
+  });
+  try {
+    await q.goto('http://typ.test/seite'); await q.waitForSelector('.bt-baum [data-btz="a"]');
+    const g = await q.evaluate(() => ({ chips: [...document.querySelectorAll('.bt-grp [data-bpgk]')].map((c) => c.dataset.bpgk).join(), k: [...document.querySelectorAll('.bt-baum tr.bt-bh b')].map((b) => b.textContent) }));
+    pruef(g.chips === 'typ' && g.k.join('|') === 'AW-01 · Außenwand 24|AW-02', `Vorgabe: nach Typ gruppiert – ${JSON.stringify(g)}`);
+    await q.dblclick('.bt-baum tr[data-btz="a"] .bt-tn'); await q.waitForSelector('.bt-pop .bt-typl', { state: 'attached', timeout: 5000 });
+    const p = await q.evaluate(() => ({ titel: document.querySelector('.bt-pop .bp-eigk b').textContent, reiter: [...document.querySelectorAll('.bt-pop [data-btpu]')].map((b) => b.textContent) }));
+    pruef(/Typ AW-01 · Außenwand 24/.test(p.titel) && p.reiter[1] === 'Typ AW-01 (2)', `Fenster: Typ im Titel, Reiter „Typ AW-01 (2)“ – ${JSON.stringify(p)}`);
+    await q.click('.bt-pop [data-btpu="gleich"]');
+    pruef(await q.evaluate(() => [...document.querySelectorAll('.bt-pop .bt-popu tbody tr')].map((t) => t.dataset.btpz).join()) === 'a,b', 'Reiter Typ: beide Bauteile des Typs');
+    await q.click('.bt-pop [data-bttyp="neu"]'); await q.waitForFunction(() => document.querySelectorAll('.bt-baum tr.bt-bh').length === 3);
+    const n = S.put[0] || {};
+    pruef(n.aktion === 'neu_aus' && n.typ === 'AW-01' && n.zeilen.join() === 'a' && n.name === 'Sonderwand', `Neuer Typ aus den angehakten: ${JSON.stringify(n)}`);
+    pruef(await q.evaluate(() => U.length === 1 && /Neuer Typ aus AW-01/.test(U[0][0])), 'Rückgängig angeboten');
+    await q.evaluate(() => U[0][1]()); await q.waitForFunction(() => document.querySelectorAll('.bt-baum tr.bt-bh').length === 2);
+    const s = S.put[1] || {};
+    pruef(s.aktion === 'stand' && s.stand.zeilen.a.typ === 'AW-01' && !s.stand.typen['AW-03'], `Rückgängig: Stand vorher – ${JSON.stringify(s).slice(0, 200)}`);
+  } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n').slice(0, 3).join(' / ')); }
+  await q.close();
+  return fehler;
+}

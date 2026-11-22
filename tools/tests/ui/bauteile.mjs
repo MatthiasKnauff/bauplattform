@@ -176,11 +176,11 @@ export async function bauteilePruefen(browser, repo) {
     pruef(/Elektroinstallation/.test(await q.textContent('#det')), 'angetippte Frage steht in den Details');
     // Bauteile wie der LV-Baum (21.11.2026, Mock A1 … I1): Gruppieren-Leiste (C1), Dreieck = schnelle Aufbau-Wahl (E3), Doppelklick = Eigenschaften-Fenster (D4)
     const chips = () => q.evaluate(() => [...document.querySelectorAll('.bt-grp [data-bpgk]')].map((c) => c.dataset.bpgk).join(','));
-    pruef(await chips() === 'bereich', `Gruppieren: Vorgabe „Bereich“ – ${await chips()}`);
+    pruef(await chips() === 'typ', `Gruppieren: Vorgabe „Typ“ (22.11.2026; ohne Typen steht der Standardbaum) – ${await chips()}`);
     await q.click('.bt-grp [data-bpgplus]'); await q.click('.pickm .pm-o:has-text("Gebäudeteil")'); await q.waitForTimeout(100);
-    pruef(await chips() === 'bereich,teil', `＋ fügt „Gebäudeteil“ an – ${await chips()}`);
-    await q.click('.bt-grp [data-bpgweg="bereich"]'); await q.waitForTimeout(100);
-    pruef(await chips() === 'teil' && await q.evaluate(() => !!document.querySelector('.bt-baum [data-btz="hand:1"]') && JSON.parse(localStorage.getItem('bp.bt.grp')).join() === 'teil'), `nur nach Gebäudeteil, gemerkt, Zeile bleibt – ${await chips()}`);
+    pruef(await chips() === 'typ,teil', `＋ fügt „Gebäudeteil“ an – ${await chips()}`);
+    await q.click('.bt-grp [data-bpgweg="typ"]'); await q.waitForTimeout(100);
+    pruef(await chips() === 'teil' && await q.evaluate(() => !!document.querySelector('.bt-baum [data-btz="hand:1"]') && JSON.parse(localStorage.getItem('bp.bt.grp2')).join() === 'teil'), `nur nach Gebäudeteil, gemerkt, Zeile bleibt – ${await chips()}`);
     await q.click('.bt-grp [data-bpgplus]'); await q.click('.pickm .pm-o:has-text("Bereich")'); await q.waitForTimeout(100); await q.click('.bt-grp [data-bpgweg="teil"]'); await q.waitForTimeout(100);
     await q.evaluate(() => document.querySelector('.bt-baum tr[data-btz="hand:1"]:not(.bt-snz) [data-btschnell]').click());   // Dreieck ohne head.css ohne Größe await q.waitForTimeout(100);
     pruef(await q.evaluate(() => !!document.querySelector('tr.bt-snz [data-btsuch]') && !!document.querySelector('tr.bt-snz [data-btpop]')), 'Dreieck: Zeile mit Aufbau-Suche und „Eigenschaften …“ darunter');

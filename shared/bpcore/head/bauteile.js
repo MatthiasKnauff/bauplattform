@@ -31,7 +31,7 @@
     ['da', 'Dach', '360', (z) => /^36/.test(z.kg || '')]];
   /* Gruppieren oben (Mock „Bauteile wie der LV-Baum“ C1, 21.11.2026) – Ebenen der Baumtabelle, gemerkt je Browser; „Bereich“ allein = die
      gewohnte Gliederung (Rohbau nach Bauteilen, Fragen, „＋ Zeile“ je Gruppe) */
-  const GRUPPEN = { bereich: 'Bereich', teil: 'Gebäudeteil', art: 'Bauteilart', mat: 'Material', aufbau: 'Aufbau', mass: 'Maßnahme' };
+  const GRUPPEN = { typ: 'Typ', bereich: 'Bereich', teil: 'Gebäudeteil', art: 'Bauteilart', mat: 'Material', aufbau: 'Aufbau', mass: 'Maßnahme' };   // Typ: Gebäudemodell neu, Etappe 2 (22.11.2026)
   /* Material (F1, 21.11.2026): das tragende Material des Aufbaus – die dickste Schicht, die keine Dämmung ist (aus den Schichten des Plans), sonst aus dem
      Text des Aufbaus; einmal hier, auch fürs 3D des Gebäudemodells (bpBauteile.material) */
   const MATW = [['kalksand', 'Kalksandstein'], ['stahlbeton', 'Stahlbeton'], ['beton', 'Beton'], ['porenbeton', 'Porenbeton'], ['mauer', 'Mauerwerk'], ['poroton', 'Ziegel'], ['ziegel', 'Ziegel'], ['hlz', 'Ziegel'],
@@ -45,7 +45,7 @@
     if (L.length) return dick(T.length ? T : L);
     return matName(z.kurz || z.material || z.name);
   }
-  const grpLies = () => { try { const v = JSON.parse(localStorage.getItem('bp.bt.grp')); return Array.isArray(v) ? v.filter((k) => k in GRUPPEN) : ['bereich']; } catch { return ['bereich']; } };
+  const grpLies = () => { try { const v = JSON.parse(localStorage.getItem('bp.bt.grp2')); return Array.isArray(v) && v.length ? v.filter((k) => k in GRUPPEN) : ['typ']; } catch { return ['typ']; } };   // Vorgabe seit 22.11.2026: nach Typ (neuer Schlüssel – die frühere Vorgabe „Bereich“ gilt nicht weiter)
   const BEREICH = [['rohbau', 'Rohbau'], ['oeffnung', 'Öffnungen – Fenster und Türen'], ['raum', 'Räume – Oberflächen'], ['ausbau', 'Küche und Bad'], ['frage', 'Nicht im Modell – bitte beantworten'], ['hand', 'Von Hand'], ['leistung', 'Leistungen ohne Bauteil']];
   const HAND = ['hand', 'leistung'];   // Name/Menge hier änderbar, entfernen möglich
   let KONTEXT = null; document.addEventListener('bph:kontext', (e) => { if (KONTEXT) KONTEXT(e); });
@@ -744,11 +744,11 @@
       const ort = (z) => z.bereich !== 'hand' ? z.bereich : /^3[2-6]/.test(z.kg || '') ? 'rohbau' : /^41/.test(z.kg || '') ? 'ausbau' : 'hand';   // „＋ Zeile“ in einer Gruppe: die Zeile steht dort
       const PLUS = { ausbau: '412', hand: '300' };
       let body = ''; Z.gk = [];
-      const G = Z.grp, gewohnt = G.length === 1 && G[0] === 'bereich';
+      const G = Z.grp.join() === 'typ' && (leer || !Object.keys(Li.typen || {}).length) ? ['bereich'] : Z.grp, gewohnt = G.length === 1 && G[0] === 'bereich';   // noch keine Typen (leer, nur von Hand): der Standardbaum
       if (!gewohnt) {   // Ebenen aus der Leiste oben, außen vor innen – je Ebene klappbar
         const artVon = (z) => { if (ort(z) === 'rohbau') { const g = ROHG.find((x) => x[3](z)); return g ? g[1] : 'Sonstiges'; } return (BEREICH.find(([b]) => b === ort(z)) || [, 'Sonstiges'])[1]; };
         const wert = (z, k) => (k === 'bereich' ? (BEREICH.find(([b]) => b === ort(z)) || [, 'Sonstiges'])[1] : k === 'teil' ? z.teil || 'ohne Gebäudeteil' : k === 'art' ? artVon(z)
-          : k === 'aufbau' ? z.kurz || 'ohne Aufbau' : k === 'mat' ? material(z) || 'Material offen' : (z.bereich === 'frage' ? WORT_FRAGE : WORT)[z.status] || z.status || '–');
+          : k === 'aufbau' ? z.kurz || 'ohne Aufbau' : k === 'mat' ? material(z) || 'Material offen' : k === 'typ' ? typName(z.typ) : (z.bereich === 'frage' ? WORT_FRAGE : WORT)[z.status] || z.status || '–');
         const ebene = (R, i, pfad) => {
           if (i >= G.length) { body += R.map((z) => zeilenHtml(z, i)).join(''); return; }
           const M = new Map(); R.forEach((z) => { const w = wert(z, G[i]); (M.get(w) || M.set(w, []).get(w)).push(z); });
@@ -778,7 +778,7 @@
         <input type="file" accept=".ifc,.dxf,.pdf" data-btdatei hidden></div>`;
       el.querySelector('.bt-bw').scrollTop = y;
       const gb = el.querySelector('.bt-grp');
-      if (gb) bpGruppen.an(gb, { lies: () => Z.grp, namen: GRUPPEN, setze: (G2) => { Z.grp = G2.length ? G2 : ['bereich']; try { localStorage.setItem('bp.bt.grp', JSON.stringify(Z.grp)); } catch { /* egal */ } baumZeichnen(); } });
+      if (gb) bpGruppen.an(gb, { lies: () => Z.grp, namen: GRUPPEN, setze: (G2) => { Z.grp = G2.length ? G2 : ['typ']; try { localStorage.setItem('bp.bt.grp2', JSON.stringify(Z.grp)); } catch { /* egal */ } baumZeichnen(); } });
     }
     /* Dreieck an der Zeile (E3): darunter die schnelle Wahl eines fertigen Aufbaus – erst Standardbauteile, dann Schichten (dieselbe Suche wie im Editor) */
     function schnellHtml(z) {
@@ -797,6 +797,7 @@
         const d = E.body; d.onclick = klick; d.onchange = wechsel; d.oninput = suchen; d.onkeydown = suchTaste; d.addEventListener('toggle', blkMerk, true);
         E.unten.onclick = (e) => {   // Haken je Zeile und „alle“ in der Kopfzeile (EF-A1) – statt violetter Hinterlegung und „alle n wählen“
           const b = e.target.closest('[data-btpu]'); if (b) { Z.popU = b.dataset.btpu; return popUnten(); }
+          const ty = e.target.closest('[data-bttyp]'); if (ty) return typBefehl(ty.dataset.bttyp);
           const k = e.target.closest('[data-btpk]'); if (k) return mwUm(k.dataset.btpk, true);
           if (e.target.closest('[data-btpall]')) { const R = Z.popU === 'gleich' ? gleiche() : gewaehlt(), an = gewaehlt().map((x) => x.id), alle = R.length && R.every((x) => an.includes(x.id));
             return mwSetzen(alle ? an.filter((id) => !R.some((x) => x.id === id)) : [...an, ...R.map((x) => x.id)]); }
@@ -805,14 +806,47 @@
       zeichne(); if (opt.mehr) opt.mehr(Z.mw.length ? Z.mw : Z.sel ? [Z.sel] : []);
     }
     const gewaehlt = () => (Z.mw.length ? mwZ() : L().zeilen.filter((x) => x.id === Z.sel));
-    const gleiche = () => { const r = gewaehlt()[0]; return r && r.kurz ? L().zeilen.filter((x) => !x.entfaellt && x.kurz === r.kurz && String(x.kg || '').slice(0, 2) === String(r.kg || '').slice(0, 2)) : []; };
+    /* Bauteiltypen (Gebäudemodell neu, Etappe 2 – 22.11.2026): „gleiche Bauteile“ = derselbe Typ (Kern bpcore/typen.py); ältere Listen ohne Typ: gleicher Aufbau */
+    const gleiche = () => { const r = gewaehlt()[0]; if (!r) return []; if (r.typ) return L().zeilen.filter((x) => !x.entfaellt && x.typ === r.typ);
+      return r.kurz ? L().zeilen.filter((x) => !x.entfaellt && x.kurz === r.kurz && String(x.kg || '').slice(0, 2) === String(r.kg || '').slice(0, 2)) : []; };
+    function typName(k) { const t = (L().typen || {})[k]; return t ? `${k}${t.name ? ' · ' + t.name : ''}` : 'ohne Typ'; }
+    function typStand(ks) {   // Stand vor einer Typ-Aktion – für Rückgängig/Wieder (Aktion „stand“ im Kern)
+      const K = new Set(ks), zl = {};
+      for (const z of L().zeilen) if (z.typ && K.has(z.typ)) zl[z.id] = { typ: z.typ, vorlage: z.vorlage, wahl: [...(z.wahl || [])], code: z.code, kurz: z.kurz, dicken: z.dicken || {}, ausf: z.ausf || {} };
+      return { typen: JSON.parse(JSON.stringify(L().typen || {})), zeilen: zl };
+    }
+    async function typAktion(body, text, ks) {
+      const vor = typStand(ks);
+      const tu = async (b) => { const d = await (await J(`${basis}/typen`, 'PUT', b)).json(); Z.d = d; zeichne(); window.dispatchEvent(new CustomEvent('bp:bauteile', { detail: { pid } })); return d; };
+      try {
+        const d = await tu(body), nach = typStand([...ks, d.typ]);
+        if (window.rueckgaengig) rueckgaengig(text, () => tu({ aktion: 'stand', stand: vor }), 10000, () => tu({ aktion: 'stand', stand: nach }));
+        return d;
+      } catch (e) { sag(e.message, true); return null; }
+    }
+    async function typBefehl(was) {
+      const r = gewaehlt()[0]; if (!r || !r.typ) return; const k = r.typ, T = L().typen || {};
+      if (was === 'neu') {
+        const ids = gewaehlt().filter((x) => x.typ === k).map((x) => x.id), n = await bpEingabe(`Neuer Typ aus ${k} für ${ids.length === 1 ? 'das angehakte Bauteil' : ids.length + ' angehakte Bauteile'} – Name:`, '');
+        if (n == null) return; const d = await typAktion({ aktion: 'neu_aus', typ: k, zeilen: ids, name: n.trim() }, `Neuer Typ aus ${k}`, [k]); if (d) bpHinweis && bpHinweis(`${d.typ} angelegt – der Aufbau gilt jetzt nur für seine Bauteile.`);
+      } else if (was === 'zus') {
+        const vs = k.split('-')[0], A = Object.values(T).filter((t) => t.k !== k && t.k.split('-')[0] === vs);
+        if (!A.length) return bpHinweis(`Es gibt keinen anderen Typ ${vs}-… zum Zusammenlegen.`);
+        pickMenu(Z.pop.querySelector('[data-bttyp="zus"]'), { items: A.map((t) => ({ value: t.k, title: `${t.k}${t.name ? ' · ' + t.name : ''}`, sub: t.kurz || 'ohne Aufbau' })),
+          onPick: async (v) => { if (await bpFrage(`Alle Bauteile von ${k} gehören dann zu ${v} und bekommen dessen Aufbau. ${k} entfällt.`, { ok: 'Zusammenlegen' })) typAktion({ aktion: 'zusammen', typ: k, nach: v }, `${k} mit ${v} zusammengelegt`, [k, v]); } });
+      } else if (was === 'name') {
+        const n = await bpEingabe(`Name des Typs ${k}:`, (T[k] || {}).name || ''); if (n != null) typAktion({ aktion: 'name', typ: k, name: n.trim() }, `${k} umbenannt`, [k]);
+      }
+    }
     function popUnten() {
       const u = Z.pop && Z.pop.querySelector('.bt-popu'); if (!u) return;
       const S = gewaehlt(), GL = gleiche(), R = Z.popU === 'gleich' ? GL : S, an = new Set(S.map((x) => x.id)), nAn = R.filter((x) => an.has(x.id)).length;
-      const E = window.bpEigen.offen('bt.pop'); if (E) E.titel(!S.length ? 'Eigenschaften' : S.length > 1 ? `Eigenschaften · ${S.length} Bauteile` : `Eigenschaften · ${S[0].name}`);
-      u.innerHTML = `<div class="bt-popr"><span class="bt-seg" role="tablist"><button type="button" role="tab" data-btpu="an" class="${Z.popU !== 'gleich' ? 'on' : ''}">angewählte (${S.length})</button><button type="button" role="tab" data-btpu="gleich" class="${Z.popU === 'gleich' ? 'on' : ''}">gleiche Bauteile (${GL.length})</button></span>
+      const ty = S[0] && S[0].typ && S.every((x) => x.typ === S[0].typ) ? S[0].typ : '';
+      const E = window.bpEigen.offen('bt.pop'); if (E) E.titel((!S.length ? 'Eigenschaften' : S.length > 1 ? `Eigenschaften · ${S.length} Bauteile` : `Eigenschaften · ${S[0].name}`) + (ty ? ` · Typ ${typName(ty)}` : ''));
+      const tyL = ty && !Z.an ? `<div class="bt-popr bt-typl"><span class="bt-nr">Der Aufbau gilt für alle Bauteile des Typs ${esc(ty)} mit bauender Antwort.</span><button type="button" class="btn sm" data-bttyp="neu" title="Die angehakten Bauteile bekommen einen eigenen Typ – eine Kopie von ${esc(ty)}">Neuer Typ aus den angehakten …</button><button type="button" class="btn sm" data-bttyp="zus">Mit anderem Typ zusammenlegen …</button><button type="button" class="btn sm" data-bttyp="name">Typ umbenennen …</button></div>` : '';
+      u.innerHTML = `<div class="bt-popr"><span class="bt-seg" role="tablist"><button type="button" role="tab" data-btpu="an" class="${Z.popU !== 'gleich' ? 'on' : ''}">angewählte (${S.length})</button><button type="button" role="tab" data-btpu="gleich" class="${Z.popU === 'gleich' ? 'on' : ''}">${ty ? `Typ ${esc(ty)}` : 'gleiche Bauteile'} (${GL.length})</button></span>
         <span class="bt-nr">Änderung oben gilt für ${S.length === 1 ? 'das angehakte Bauteil' : `${S.length} angehakte`} · daneben in der Tabelle oder im 3D mit Strg + Klick</span></div>
-        <table class="bt-el"><thead><tr><th class="bt-hk"><input type="checkbox" data-btpall${R.length && nAn === R.length ? ' checked' : ''} title="alle / keins" aria-label="alle oder keins"${R.length ? '' : ' disabled'}></th><th>Bauteil</th><th>Gebäudeteil</th><th>Aufbau</th><th class="r">Menge</th></tr></thead><tbody>${R.map((x) => `<tr data-btpz="${esc(x.id)}"><td class="bt-hk"><input type="checkbox" data-btpk="${esc(x.id)}"${an.has(x.id) ? ' checked' : ''} aria-label="${esc(x.name)} mitändern"></td><td>${esc(x.name)}</td><td>${esc(x.teil || '')}</td><td>${esc(x.kurz || '')}</td><td class="r">${zahl(x.menge)} ${esc(x.einheit || '')}</td></tr>`).join('') || '<tr><td colspan="5" class="bt-nr">nichts gewählt</td></tr>'}</tbody></table>`;
+        ${tyL}<table class="bt-el"><thead><tr><th class="bt-hk"><input type="checkbox" data-btpall${R.length && nAn === R.length ? ' checked' : ''} title="alle / keins" aria-label="alle oder keins"${R.length ? '' : ' disabled'}></th><th>Bauteil</th><th>Gebäudeteil</th><th>Aufbau</th><th class="r">Menge</th></tr></thead><tbody>${R.map((x) => `<tr data-btpz="${esc(x.id)}"><td class="bt-hk"><input type="checkbox" data-btpk="${esc(x.id)}"${an.has(x.id) ? ' checked' : ''} aria-label="${esc(x.name)} mitändern"></td><td>${esc(x.name)}</td><td>${esc(x.teil || '')}</td><td>${esc(x.kurz || '')}</td><td class="r">${zahl(x.menge)} ${esc(x.einheit || '')}</td></tr>`).join('') || '<tr><td colspan="5" class="bt-nr">nichts gewählt</td></tr>'}</tbody></table>`;
       const h = u.querySelector('[data-btpall]'); if (h) h.indeterminate = nAn > 0 && nAn < R.length;
     }
     if (opt.baum && window.bpBaum) {

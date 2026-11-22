@@ -16,7 +16,7 @@ annehmen(L, z)         Zeile wird bauend (neue Antwort) → bekommt den Aufbau i
 neu_aus(L, k, zids)    „Neuer Typ aus diesem“: Kopie des Typs, nur diese Zeilen hängen um
 zusammen(L, von, nach) alle Zeilen von „von“ bekommen Typ und Aufbau von „nach“
 neu(L, kg, name)       „＋ Typ“ (ohne Bauteile, bleibt stehen)
-umbenennen(L, k, name), zuweisen(L, k, zids)
+umbenennen(L, k, name), zuweisen(L, k, zids), stand_setzen(L, S) – Rückgängig einer Typ-Aktion
 routen()               PUT /api/bp/modell/<pid>/typen {aktion, …}
 """
 import re
@@ -207,6 +207,22 @@ def umbenennen(L, k, name):
     return k in T
 
 
+def stand_setzen(L, S):
+    """Rückgängig/Wieder einer Typ-Aktion: Typen und die Zuordnung samt Aufbau der genannten Zeilen wie vorher."""
+    if not isinstance(S, dict):
+        return False
+    L["typen"] = sauber(S.get("typen"))
+    Z = S.get("zeilen") if isinstance(S.get("zeilen"), dict) else {}
+    for z in mit_typ(L):
+        w = Z.get(z["id"])
+        if not isinstance(w, dict) or w.get("typ") not in L["typen"]:
+            continue
+        z["typ"] = w["typ"]
+        a = sauber({"XX-01": w})["XX-01"]
+        z.update({k: a[k] for k in AUFBAU})
+    return True
+
+
 def routen(bp, mit, lesen_modell, schreiben_modell):
     from flask import jsonify, request
     from . import bauteilliste as B, planstand as P
@@ -230,6 +246,8 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                 r = neu(L, d.get("kg"), d.get("name"))
             elif a == "name":
                 r = umbenennen(L, k, d.get("name"))
+            elif a == "stand":
+                r = stand_setzen(L, d.get("stand"))
             else:
                 return jsonify(error="Unbekannte Aktion."), 400
             if not r:

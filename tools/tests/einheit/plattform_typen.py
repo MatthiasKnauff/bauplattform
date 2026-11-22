@@ -75,3 +75,18 @@ def test_typ_bleibt_beim_neu_einlesen():
     L2 = B.sauber(B.zeilen_aus_ifc(c, R, B.sauber(L)))
     f2 = next(z for z in L2["zeilen"] if z["id"] == f["id"])
     gleich((f2["typ"], L2["typen"][nk]["name"]), (nk, "Sonderfenster"), "Typ und Name bleiben beim nächsten Einlesen")
+
+
+def test_stand_zurueck():
+    """Rückgängig einer Typ-Aktion (Oberfläche, Etappe 2): Aktion „stand“ setzt Typen und Zuordnung samt Aufbau wie vorher."""
+    c = db()
+    L = _liste(c)
+    a, b = L["zeilen"][:2]
+    k = a["typ"]
+    vor = {"typen": {x: dict(t) for x, t in L["typen"].items()}, "zeilen": {z["id"]: {"typ": z["typ"], **typen.aufbau(z)} for z in L["zeilen"] if z.get("typ") == k}}
+    nk = typen.neu_aus(L, k, [b["id"]])
+    B.setzen(c, L, b["id"], {"wahl": [0, 1]})
+    pruefe(typen.stand_setzen(L, vor), "Stand gesetzt")
+    gleich((b["typ"], b["wahl"]), (k, a["wahl"]), "Zeile wieder im alten Typ mit dessen Aufbau")
+    pruefe(nk not in L["typen"], "neuer Typ wieder weg")
+    pruefe(not typen.stand_setzen(L, "kaputt"), "unsinniger Stand ändert nichts")

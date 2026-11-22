@@ -161,7 +161,7 @@
   function festhalten(planId2, erstes) {   // Soll (neu) festhalten – erstes: nach „Gilt ab jetzt“ (SI-4), ohne Pflicht-Begründung
     const id = planId2 || (P && P.id); if (id == null) return;
     const neu = !!S && String(id) === String(P && P.id), heute = fmtD(todayN());
-    modal(neu ? 'Soll neu festhalten' : 'Als Soll festhalten', `<div class="form" style="max-width:480px">
+    modal(neu ? 'Soll neu festhalten' : 'Plan scharf schalten – Soll festhalten', `<div class="form" style="max-width:480px">
       <div class="hint full" style="margin:0 0 8px">${neu ? `Der heutige Plan wird das neue Soll. Das bisherige Soll („${esc(S.name || 'Soll')}“ vom ${esc(S.tag)}) bleibt als früheres Soll im Verlauf.`
         : 'Der heutige Plan wird als Soll festgehalten und liegt ab jetzt blass unter dem laufenden Plan (Ist). Fortschritt, Überziehung und verschobene Termine trägst du im Ist ein.'}</div>
       <label>Name</label><input id="soName" class="full" value="${esc(erstes ? 'Soll ' + heute : neu ? '' : 'Soll ' + heute)}" placeholder="z. B. Nachtrag 2 – Bauzeitverlängerung">

@@ -31,8 +31,8 @@ export async function kuerzelPruefen(browser, repo) {
     pruef(v.best && v.zl, `Bestätigen und „An den Zeichner“ fehlen – ${JSON.stringify(v)}`);
     await p.click('[data-btbest]'); await p.waitForTimeout(200);
     pruef(S.anfragen.some((a) => a.id === 'w1' && a.bestaetigt === true), `Bestätigen schickt bestaetigt: ${JSON.stringify(S.anfragen)}`);
-    await p.click('[data-btzeichner]'); await p.waitForTimeout(800); await p.screenshot({ path: '/tmp/kz2.png' }); await p.waitForSelector('.bt-zl li', { timeout: 3000 });
-    const L = await p.evaluate(() => [...document.querySelectorAll('.bt-zl li')].map((x) => x.textContent));
+    await p.click('[data-btzeichner]'); await p.waitForTimeout(800); await p.screenshot({ path: '/tmp/kz2.png' }); await p.waitForSelector('.bt-ul li', { timeout: 3000 });
+    const L = await p.evaluate(() => [...document.querySelectorAll('.bt-ul li')].map((x) => x.textContent));
     pruef(L.some((x) => /17,5/.test(x)) && L.some((x) => /ohne Kürzel/.test(x)), `An den Zeichner: ${JSON.stringify(L)}`);
     await p.screenshot({ path: '/tmp/kuerzel.png' });
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }

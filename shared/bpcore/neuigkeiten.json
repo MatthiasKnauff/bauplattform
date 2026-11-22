@@ -1,10 +1,18 @@
 [
  {
+  "id": "gm-raeume-3d-2311",
+  "datum": "2026-11-23",
+  "app": "gebaeudemodell",
+  "titel": "Räume im 3D: Bauteile nicht mehr blass",
+  "text": "Im Reiter „Räume“ bleiben die Bauteile so, wie du sie unter „Darstellung ▾ → Durchsicht“ eingestellt hast. Beim Öffnen rücken die Geschosse etwas auseinander – „↕ auseinander“ ändert das jederzeit.",
+  "ziel": ".b3-l"
+ },
+ {
   "id": "gantt-verzug-soll-2311",
   "datum": "2026-11-23",
   "app": "gantt",
   "titel": "Verzug erst mit Soll",
-  "text": "„… AT im Verzug“ und der Punkt „heute“ am Balken erscheinen erst, wenn für den Plan ein Soll festgehalten ist (Versionsmenü → „📌 Als Soll festhalten …“). Ein neuer Plan ist bis dahin ein Entwurf – auch wenn er in der Vergangenheit liegt.",
+  "text": "„… AT im Verzug“ und der Punkt „heute“ am Balken erscheinen erst, wenn der Plan scharf geschaltet ist: Versionsmenü → „📌 Plan scharf schalten (Soll festhalten) …“. Bis dahin ist ein neuer Plan ein Entwurf – auch wenn er in der Vergangenheit liegt.",
   "ziel": "#chartBody"
  },
  {

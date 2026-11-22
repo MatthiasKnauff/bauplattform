@@ -20,7 +20,7 @@
      gezeichnet(): nach jedem Bild (Griffe nachführen) · zurück dazu: setzen(netz) – neue Geometrie, Blick bleibt · blick() → Richtung zum Auge · bei(x, y) → Element unter dem
      Zeiger · ziel(ids) – grün (Stelle zum Ablegen) · proj([x, y, z]) → [x, y] im Feld (Meter → Bildpunkte), null hinter dem Auge · feld (Element).
 
-   22.11.2026 (GO „Räume als Kisten“, R-B): kisten(K, opt) – Räume als halb durchsichtige Kisten über dem Modell; K = [{ key, g (Geschoss im Netz),
+   22.11.2026 (GO „Räume als Kisten“, R-B): kisten(K, opt) – Räume als halb durchsichtige Kisten über dem Modell (Bauteile nach dem Schieber „Durchsicht“, beim Einschalten Geschosse 3 m auseinander); K = [{ key, g (Geschoss im Netz),
      umriss: [[x, y] m], z, h (m), farbe '#rrggbb', blass, an (gewählt), text }] oder null = aus. Solange Kisten stehen, werden die Bauteile blass
      (Durchsicht mindestens 65 %), Klick/Strg/Rahmen/Doppelklick treffen nur Kisten: opt.wahl(key | null, dazu), opt.rahmen(keys, ab), opt.doppel(key);
      opt.legende [['#rrggbb', 'Text']]; beim Darüberfahren steht text an der Maus. */
@@ -116,7 +116,7 @@
       if (e.kiste) { const x = e.kiste; return x.an ? [0.48, 0.18, 0.97, 0.55] : [...rgb(x.farbe || '#7aa6d6'), x.blass ? 0.1 : 0.35]; }
       if (ZIEL.has(e.i)) return [0.17, 0.62, 0.27, 1];   // Stelle zum Ablegen (Baukasten: Baustein hineinziehen)
       if (WAHL.has(e.i)) return [0.48, 0.18, 0.97, 1];   // angewählt: violett (hebt sich von Rot/Grün/Gelb der Färbungen ab)
-      const du = S.K ? Math.max(S.durch, 0.65) : S.durch, f0 = farbe0(e), f = du ? [f0[0], f0[1], f0[2], f0[3] * (1 - du)] : f0;   // mit Kisten: Bauteile blass   // Durchsicht (20.11.2026): alles außer dem Angewählten durchscheinend
+      const du = S.durch, f0 = farbe0(e), f = du ? [f0[0], f0[1], f0[2], f0[3] * (1 - du)] : f0;   // Durchsicht (20.11.2026): alles außer dem Angewählten durchscheinend – auch mit Kisten nur nach dem Schieber (23.11.2026)
       return HV && HV.size && !HV.has(e.i) ? [f[0] * 0.35 + 0.62, f[1] * 0.35 + 0.62, f[2] * 0.35 + 0.62, Math.min(f[3], 0.35)] : f;
     }
     function farbe0(e) {
@@ -225,7 +225,7 @@
         gl.useProgram(PL); gl.uniformMatrix4fv(gl.getUniformLocation(PL, 'm'), false, M); gl.uniform1f(gl.getUniformLocation(PL, 'zug'), S.zug); gl.uniform1f(gl.getUniformLocation(PL, 'seit'), S.seit); gl.uniform1f(gl.getUniformLocation(PL, 'teil'), S.teil); gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
         for (let i = 0; i < 8; i++) gl.disableVertexAttribArray(i);   // n, c der Flächen aus – die Linien haben nur p
         /* Durchsicht (21.11.2026): Kanten mit dem Schieber deutlich blasser – feiner als ein Bildpunkt zeichnet WebGL keine Linie */
-        const du = S.K ? Math.max(S.durch, 0.65) : S.durch;
+        const du = S.durch;
         S.lin.forEach((B, k) => { if (!B.n) return; gl.uniform4fv(gl.getUniformLocation(PL, 'f'), k === 2 ? [0.2, 0.0, 0.5, 1] : k ? [0.2, 0.22, 0.25, 0.18 * (1 - du * 0.7)] : [0.05 + 0.3 * du, 0.06 + 0.3 * du, 0.08 + 0.3 * du, 0.9 * (1 - du * 0.85)]); attr(PL, 'p', B.b, 3); attr(PL, 'g', B.g, 1); attr(PL, 'q', B.q, 4); gl.drawArrays(gl.LINES, 0, B.n); });
         /* Angewähltes scheint durch alles hindurch (20.11.2026: kleine oder verdeckte Bauteile wie eine Wand im Innenhof sah man sonst nicht leuchten) */
         if (S.wf) { gl.disable(gl.DEPTH_TEST); gl.uniform4fv(gl.getUniformLocation(PL, 'f'), [0.48, 0.18, 0.97, 0.22]); attr(PL, 'p', S.wf.b, 3); attr(PL, 'g', S.wf.g, 1); attr(PL, 'q', S.wf.q, 4); gl.drawArrays(gl.TRIANGLES, 0, S.wf.n);
@@ -382,7 +382,9 @@
     }
     function kisten(K, opt) {   // Räume als Kisten (R-B) – null = aus
       KO = opt || {};
+      const vorher = !!S.K;
       S.K = K && K.length ? K.map(kisteNetz).filter(Boolean) : null;
+      if (S.K && !vorher && !S.zug && S.N && S.N.geschosse.length > 1) S.zug = ZUG / 3;   // Räume an: Geschosse etwas auseinander (Schieber „↕ auseinander“ ändert es jederzeit) – die Bauteile bleiben, wie eingestellt (23.11.2026)
       if (!S.K) { const t = box.querySelector('.b3-tt'); if (t) t.hidden = true; }
       cv.dataset.kisten = S.K ? S.K.length : 0; cv.dataset.kistenan = S.K ? S.K.filter((e) => e.kiste.an).length : 0;   // für die Tests
       if (S.N && S.N.e.length) { leiste(); bauen(); }

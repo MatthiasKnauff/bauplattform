@@ -256,6 +256,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Kopierquelle im LV auf den gemeinsamen Baum (WR-6 A) – eigener Mock **ca. 2 h**
 
 ## Erledigt
+- ~~Adressen: rechts die Details des gewählten Kontakts (Mock AR-1 … AR-5), Liste über die ganze Breite~~ (22.11.2026)
 - ~~Wärmeschutz: Gebäudemodell rechts wie die Kopierquelle (Mock WR-1 … WR-7): „← übernehmen“/Ziehen, links wieder die Bauteile des Nachweises, rechts Gebäudemodell · Bauphysik · 3D~~ (22.11.2026)
 - ~~Wärmeschutz: Schichtaufbau neu (Mock SA-1 … SA-17): Querschnitt mit Ziehen/Fugen/＋, Gefache kreuzweise und in Flucht richtig gerechnet, Draufsicht, R′/R″ ≤ 1,5, Soll fürs Gebäude (GModG, BEG, EH, Passivhaus, AT, CH) mit 5 Stufen, Ausdruck mit Blöcken und Teilflächen~~ (22.11.2026)
 - ~~Pipeline schneller: Freigabe startet nur einmal (vorher zweimal nacheinander), Oberflächentests mit nachgebildetem Server in drei parallelen Jobs neben Bauen und Rauchtest~~ (22.11.2026)

@@ -10,7 +10,6 @@
 <style>
 .adr-ohne{display:flex;gap:.4rem;align-items:center;margin:.1rem 0 .35rem 2.1rem;font-size:.82em;color:var(--mute);cursor:pointer}
 .bp-nav.frei:not(:hover):not(:focus-within) .adr-ohne{visibility:hidden}
-.wrap{max-width:1100px}
 .bar{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:.8rem}
 .bar h1{margin:0}
 .bar .fill{flex:1}
@@ -39,6 +38,15 @@
 .seg button.on{background:var(--y);color:var(--on);font-weight:600}
 .wrap.wide{max-width:none}
 .list[hidden],.tw[hidden]{display:none!important}
+/* rechts: Details des gewählten Kontakts (Mock „Adressen rechts“, 22.11.2026) */
+#adrL{min-width:0}.ct.on{border-color:var(--y);box-shadow:0 0 0 2px color-mix(in srgb,var(--y) 30%,transparent)}.tt tbody tr.on td{background:color-mix(in srgb,var(--y) 9%,var(--card))}
+.adr-r{padding:.8rem .9rem;display:grid;gap:.55rem;font-size:.9rem}.adr-r h3{margin:0;font-size:1.05rem}
+.adr-z{display:grid;grid-template-columns:7.2rem minmax(0,1fr) auto;gap:.5rem;align-items:center}.adr-z>span:first-child{color:var(--mute);font-size:.8rem}.adr-z>span:nth-child(2){overflow-wrap:anywhere}
+.adr-z a{color:var(--ink)}.adr-zk{display:inline-flex;gap:.3rem}
+.adr-k{border:1px solid var(--line);border-radius:calc(5px*var(--rk,1));padding:0 .45rem;font-size:.75rem;color:var(--mute);background:var(--card);cursor:pointer;text-decoration:none;font:inherit;font-size:.75rem}.adr-k:hover{color:var(--ink);border-color:var(--y)}
+.adr-chips{display:flex;gap:.3rem;flex-wrap:wrap}.adr-chips span{border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:0 .5rem;font-size:.78rem}
+.adr-notiz{white-space:pre-wrap;color:var(--mute);font-size:.85rem;border-left:3px solid var(--line);padding-left:.5rem}
+.adr-ab{border-top:1px solid var(--line);padding-top:.45rem;display:grid;gap:.15rem}.adr-pz{display:flex;justify-content:space-between;gap:.6rem}.adr-pz small{white-space:nowrap}
 .tw{overflow:auto;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--card);max-height:calc(100vh - 240px)}
 .tt{border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:.9rem}
 .tt th,.tt td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:0;vertical-align:middle}
@@ -116,14 +124,14 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
 <body>
 <main class="bp-app">
   <aside class="bp-nav" id="navL" aria-label="Adressen"></aside>
-  <section class="pane wrap" id="pane">
+  <section class="pane wrap bp-voll" id="pane">
   <!-- Befehlsleiste wie in allen Apps (befehle.js, 21.11.2026 – vorher eine eigene Knopfreihe, die am Handy über fünf Zeilen umbrach): Rückgängig · Neu · Ansicht · Liste · Datei · Verlauf -->
   <div class="bfl" id="bfl"></div>
   <div class="kz"><span class="cnt" id="cnt"></span>
     <div class="kb" id="kb" hidden><label for="ksort" class="mute">Sortieren</label><select id="ksort"></select><button class="btn sm" id="kdir" title="Reihenfolge umkehren"></button><button class="btn sm" id="kflt" aria-expanded="false"><i class="bp-kl" aria-hidden="true"></i>Filter je Feld</button></div></div>
   <div class="kf" id="kf" hidden></div>
-  <div class="list" id="list"></div>
-  <div class="tw" id="tw" hidden></div>
+  <div id="adrW"><div id="adrL"><div class="list" id="list"></div>
+  <div class="tw" id="tw" hidden></div></div></div>   <!-- rechts: Details des gewählten Kontakts (adressen-rechts.js, seite.js) -->
   </section>
 </main>
 <script src="bp/baukasten.js"></script>
@@ -208,6 +216,7 @@ function render() {
       ${addr(c) ? `<div class="sub">${esc(addr(c))}</div>` : ''}
       <div class="acts">${c.phone ? `<a href="tel:${esc(tel(c.phone))}">☎ ${esc(c.phone)}</a>` : ''}${c.mobile ? `<a href="tel:${esc(tel(c.mobile))}">📱 ${esc(c.mobile)}</a>` : ''}${c.email ? `<a href="mailto:${esc(c.email)}">✉ E-Mail</a>` : ''}${wtTel(c).length + wtMails(c).length - (c.email ? 1 : 0) > 0 ? `<span class="mu" title="${esc(wtText(c))}">+${wtTel(c).length + wtMails(c).length - (c.email ? 1 : 0)} weitere</span>` : ''}</div>
     </div>`).join('') || `<div class="empty">${ALL.length ? 'Keine Treffer – links Filter entfernen (✕).' : 'Noch keine Kontakte – mit „+ Neu“ anlegen.'}</div>`;
+  adrNachRender();
 }
 
 /* Kontakt öffnen: dieselbe Maske wie in allen Apps (bp/kontakt.js) – hier mit Löschen, „verwendet in …“ und Grundstück */
@@ -265,6 +274,7 @@ function renderTable() {
   if (keep) { const n = document.querySelector(`[data-fk="${keep}"]`) || document.querySelector(`[data-flt="${keep}"]`); if (n) n.focus(); }
   bpSpalten.anwenden($('#tw table'));   // Reihenfolge und Ausblenden sofort – ohne sichtbaren Zwischenstand
   fitTw();
+  adrNachRender();
 }
 // Tabelle reicht bis zum Fensterrand – so ist der waagerechte Rollbalken immer sichtbar
 function fitTw() { const t = $('#tw'); if (!t || t.hidden) return; t.style.maxHeight = Math.max(260, innerHeight - t.getBoundingClientRect().top - 14) + 'px'; }
@@ -350,7 +360,7 @@ $('#tw').addEventListener('keydown', (e) => {
   }
 });
 document.addEventListener('bp-spalten', (e) => { if (e.detail.key === 'adressen') renderTable(); });   // Tabellenbreite neu rechnen
-$('#list').addEventListener('click', (e) => { if (e.target.closest('a')) return; const el = e.target.closest('.ct'); if (el) edit(ALL.find((c) => c.id === +el.dataset.id)); });
+$('#list').addEventListener('click', (e) => { if (e.target.closest('a')) return; const el = e.target.closest('.ct'); if (el) adrKlick(ALL.find((c) => c.id === +el.dataset.id)); });   // AR-5 A: Klick zeigt rechts, Doppelklick öffnet (adressen-rechts.js)
 $('#list').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.classList.contains('ct')) edit(ALL.find((c) => c.id === +e.target.dataset.id)); });
 // Export wie in der Liste gefiltert; die Beschreibung des Filters steht im Ausdruck oben
 function exportQS() {
@@ -455,6 +465,7 @@ function adrLeiste() {
 window.bpNachVerlauf = () => load();
 window.bpAeltereStaende = () => () => BPHead.verlaufAlle({ teil: 'kontakt', titel: 'Ältere Stände der Adressen' });   // Rückgängig ▾ → „Ältere Stände …“
 </script>
+<script src="static/adressen-rechts.js"></script>
 <script src="static/adressen-aufraeumen.js"></script>
 </body>
 </html>

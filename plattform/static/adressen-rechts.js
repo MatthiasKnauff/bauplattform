@@ -1,0 +1,101 @@
+'use strict';
+/* Adressen – rechts die Details des gewählten Kontakts (GO 22.11.2026, Mock „Adressen rechts“: AR-1 … AR-5 alle A).
+   Bereich rechts wie in den anderen Apps (seite.js, abdockbar, Breite ziehbar) mit den Reitern
+     Kontakt         – zum Lesen: Name, Art/Gewerk, Ansprechpartner, Telefon/Mail (Kopieren, ✉), Anschrift, Stichwörter, Projekte, die letzten Vorgänge;
+                       „✎ Bearbeiten“ öffnet die Kontaktmaske (bp/kontakt.js)
+     Projekte        – wo der Kontakt beteiligt ist (aus der Kontaktliste)
+     Schriftverkehr  – Mails, LV-Versand, Rügen … aus dem Kern (/api/bp/kontakt/<id>/verlauf), geladen erst beim Öffnen; Sprung in die Kommunikation
+   Ein Klick auf eine Karte oder Tabellenzeile zeigt den Kontakt rechts, Doppelklick öffnet die Kontaktmaske, ↑↓ blättert (AR-5 A);
+   am Handy (schmal) öffnet ein Tippen wie bisher die Maske. Nutzt aus adressen.html: ALL, edit, addr, tel, trades, wtTel, wtMails, KINDN, TV, liste. */
+let ADR_SEL = null, ADR_VL = { id: null, L: null };
+const adrSchmal = () => matchMedia('(max-width: 820px)').matches;
+const adrC = () => ALL.find((c) => c.id === ADR_SEL) || null;
+function adrRechts() {
+  if (!window.seite || adrSchmal() || document.querySelector('#adrW > .sr-r')) return;
+  seite($('#adrW'), 'adr', [{ id: 'kontakt', titel: 'Kontakt', mount: (el) => adrFuellen(el, 'kontakt') }, { id: 'projekte', titel: 'Projekte', mount: (el) => adrFuellen(el, 'projekte') },
+    { id: 'schrift', titel: 'Schriftverkehr', mount: (el) => adrFuellen(el, 'schrift') }], { planung: false, start: 'kontakt', w: 0.62, minL: 420, min: 340 });
+}
+const ADR_FELD = {};   // Reiter → Feld
+function adrFuellen(el, id) {
+  if (el) ADR_FELD[id] = el; el = ADR_FELD[id]; if (!el || !el.isConnected) return;
+  const c = adrC();
+  if (!c) { el.innerHTML = '<div class="adr-r mute">Links einen Kontakt anklicken – hier stehen dann seine Angaben, Projekte und der Schriftverkehr.</div>'; return; }
+  if (id === 'kontakt') el.innerHTML = adrKontaktHtml(c);
+  if (id === 'projekte') el.innerHTML = `<div class="adr-r"><h3>${esc(c.name)}</h3>${adrProjekteHtml(c) || '<p class="mute">In keinem Projekt eingetragen.</p>'}</div>`;
+  if (id === 'schrift') adrSchrift(el, c);
+}
+function adrAlleNeu() { ['kontakt', 'projekte', 'schrift'].forEach((k) => adrFuellen(null, k)); }
+const adrKopie = (v) => `<button type="button" class="adr-k" data-adrkopie="${esc(v)}" title="kopieren">kopieren</button>`;
+function adrKontaktHtml(c) {
+  const z = (l, v, x = '') => (v ? `<div class="adr-z"><span>${l}</span><span>${v}</span>${x || '<span></span>'}</div>` : '');
+  const T = [['Telefon', c.phone], ['Mobil', c.mobile], ...wtTel(c)].filter((x) => x[1]);
+  const M = wtMails(c), chips = [...liste(c.stichworte), ...liste(c.tags)], a = addr(c);
+  return `<div class="adr-r"><div><h3>${esc(c.name)}</h3><div class="mute">${esc(KINDN[c.kind] || c.kind || '')}${c.trade ? ' · ' + esc(c.trade) : ''}</div></div>
+    ${z('Ansprechpartner', esc([c.contact_person, c.role].filter(Boolean).join(' · ')))}
+    ${T.map(([l, v]) => z(esc(l || 'Telefon'), `<a href="tel:${esc(tel(v))}">${esc(v)}</a>`, adrKopie(v))).join('')}
+    ${M.map((m, i) => z(i ? 'E-Mail' : 'E-Mail', esc(m), `<span class="adr-zk"><a class="adr-k" href="mailto:${esc(m)}" title="Mail schreiben">✉</a>${adrKopie(m)}</span>`)).join('')}
+    ${z('Anschrift', esc(a), a ? `<a class="adr-k" href="https://www.openstreetmap.org/search?query=${encodeURIComponent(a)}" target="_blank" rel="noopener" title="Auf der Karte zeigen">Karte</a>` : '')}
+    ${z('Internet', c.website ? `<a href="${esc(/^https?:/i.test(c.website) ? c.website : 'https://' + c.website)}" target="_blank" rel="noopener">${esc(c.website)}</a>` : '')}
+    ${chips.length ? `<div class="adr-chips">${chips.map((x) => `<span>${esc(x)}</span>`).join('')}</div>` : ''}
+    ${c.notes ? `<div class="adr-notiz">${esc(c.notes)}</div>` : ''}
+    ${adrProjekteHtml(c) ? `<div class="adr-ab"><b>Projekte</b>${adrProjekteHtml(c)}</div>` : ''}
+    <div class="adr-ab" data-adrzuletzt><b>Zuletzt</b><div class="mute">wird geladen …</div></div>
+    <div><button type="button" class="btn sm" data-adredit>✎ Bearbeiten</button></div></div>`;
+}
+function adrProjekteHtml(c) {
+  const P = [...new Set([...(c.projects || []), c.site_of].filter(Boolean))];
+  return P.map((p) => `<div class="adr-pz"><span>${esc(p)}</span><small class="mute">${p === c.site_of ? 'Baustelle' : 'beteiligt'}</small></div>`).join('');
+}
+async function adrVerlauf(c) {   // Schriftverkehr aus dem Kern – einmal je Kontakt geholt, für „Zuletzt“ und den Reiter
+  if (ADR_VL.id === c.id && ADR_VL.L) return ADR_VL.L;
+  const id = c.id; ADR_VL = { id, L: null };
+  const L = await api(`api/bp/kontakt/${id}/verlauf`).catch(() => []);
+  if (ADR_VL.id === id) ADR_VL.L = Array.isArray(L) ? L : [];
+  return ADR_VL.L || [];
+}
+const adrDatum = (ts) => { const d = new Date(String(ts || '').replace(' ', 'T')); return isNaN(d) ? '' : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }); };
+const adrVz = (x) => `<div class="adr-pz"><span>${esc(x.betreff || x.art_name || 'Sendung')}${x.projekt ? ` <small class="mute">· ${esc(x.projekt)}</small>` : ''}</span><small class="mute">${esc(adrDatum(x.ts))}</small></div>`;
+async function adrZuletzt(c) {
+  const L = await adrVerlauf(c), box = document.querySelector('.sr-r [data-adrzuletzt], .sr-flo [data-adrzuletzt]');
+  if (!box || ADR_SEL !== c.id) return;
+  box.innerHTML = `<b>Zuletzt</b>${L.slice(0, 3).map(adrVz).join('') || '<div class="mute">Noch kein Schriftverkehr.</div>'}`;
+}
+async function adrSchrift(el, c) {
+  const km = ((window.BPHead && BPHead.conf) || {}).apps ? BPHead.conf.apps.find((a) => a.key === 'kommunikation') : null;
+  el.innerHTML = '<div class="adr-r mute">Schriftverkehr wird geladen …</div>';
+  const L = await adrVerlauf(c); if (ADR_SEL !== c.id) return;
+  el.innerHTML = `<div class="adr-r"><h3>${esc(c.name)}</h3>${L.map(adrVz).join('') || '<p class="mute">Noch kein Schriftverkehr.</p>'}
+    ${km ? `<div><a class="btn sm" href="${esc(BPHead.appUrl(km))}/#kontakt=${c.id}">↗ in der Kommunikation öffnen</a></div>` : ''}</div>`;
+}
+/* Wählen: Karte oder Zeile → rechts zeigen; nichts springt – nur die Markierung wechselt, rechts wird neu gefüllt */
+function adrWaehle(id, fokus) {
+  ADR_SEL = id;
+  document.querySelectorAll('#list .ct.on, #tw tr.on').forEach((x) => x.classList.remove('on'));
+  const k = document.querySelector(`#list .ct[data-id="${id}"], #tw tbody tr[data-id="${id}"]`);
+  if (k) { k.classList.add('on'); if (fokus) { k.scrollIntoView({ block: 'nearest' }); if (k.classList.contains('ct')) k.focus(); } }
+  adrAlleNeu();
+  const c = adrC(); if (c) adrZuletzt(c);
+}
+function adrKlick(c) { if (!c) return; if (adrSchmal() || !document.querySelector('#adrW > .sr-r')) { edit(c); return; } adrWaehle(c.id); }
+function adrNachRender() {   // nach jedem Zeichnen der Liste: Markierung wieder setzen, rechts nachführen (geänderter Kontakt)
+  adrRechts();
+  if (ADR_SEL != null && !adrC()) ADR_SEL = null;
+  if (ADR_SEL != null) { const k = document.querySelector(`#list .ct[data-id="${ADR_SEL}"], #tw tbody tr[data-id="${ADR_SEL}"]`); if (k) k.classList.add('on'); }
+  ADR_VL = { id: null, L: null }; adrAlleNeu(); const c = adrC(); if (c) adrZuletzt(c);
+}
+$('#list').addEventListener('dblclick', (e) => { if (e.target.closest('a')) return; const el = e.target.closest('.ct'); if (el) edit(ALL.find((c) => c.id === +el.dataset.id)); });
+$('#list').addEventListener('keydown', (e) => {   // ↑↓ blättert durch die Karten, Enter öffnet die Maske
+  if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) || !e.target.classList.contains('ct')) return;
+  const K = [...document.querySelectorAll('#list .ct')], i = K.indexOf(e.target), n = K[i + (e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 1)];
+  if (n) { e.preventDefault(); adrWaehle(+n.dataset.id, true); }
+});
+$('#tw').addEventListener('click', (e) => {   // Tabelle: Klick in eine Zeile (nicht in ein Feld) zeigt den Kontakt rechts
+  const tr = e.target.closest('tbody tr[data-id]'); if (!tr || e.target.closest('a,button,[data-open]') || adrSchmal()) return;
+  if (ADR_SEL !== +tr.dataset.id) adrWaehle(+tr.dataset.id);
+});
+document.addEventListener('click', (e) => {
+  const k = e.target.closest && e.target.closest('[data-adrkopie]');
+  if (k) { const v = k.dataset.adrkopie; (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(() => toast(`„${v}“ kopiert.`), () => toast('Kopieren ging nicht – bitte markieren.', true)); return; }
+  if (e.target.closest && e.target.closest('[data-adredit]')) { const c = adrC(); if (c) edit(c); }
+});
+addEventListener('resize', () => { clearTimeout(adrRechts.t); adrRechts.t = setTimeout(adrRechts, 200); });

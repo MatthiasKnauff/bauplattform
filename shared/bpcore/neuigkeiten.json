@@ -1,5 +1,13 @@
 [
  {
+  "id": "adr-rechts-2026-11-22",
+  "datum": "2026-11-22",
+  "app": "adressen",
+  "titel": "Adressen: Details rechts",
+  "text": "Ein Klick auf eine Karte oder Zeile zeigt den Kontakt rechts – Telefon und Mail zum Kopieren, Anschrift, Projekte und die letzten Vorgänge, dazu die Reiter „Projekte“ und „Schriftverkehr“. Doppelklick öffnet wie bisher die Kontaktmaske, ↑↓ blättert. Die Liste nutzt jetzt die ganze Breite.",
+  "ziel": "#adrW"
+ },
+ {
   "id": "ws-gm-rechts-2026-11-22",
   "datum": "2026-11-22",
   "app": "waermeschutz",

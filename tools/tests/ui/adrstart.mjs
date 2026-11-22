@@ -16,6 +16,7 @@ export async function adrStartPruefen(browser, repo) {
     await p.route('http://portal.test/**', (r) => { const u = new URL(r.request().url()), pf = u.pathname.replace(/^\/adressen\//, '');
       if (pf === '' ) return r.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(repo, 'plattform/static/adressen.html'), 'utf8') });
       if (pf === 'bp/baukasten.js') return r.fulfill({ contentType: 'text/javascript', body: baukasten });
+      if (pf.startsWith('static/')) { const f = path.join(repo, 'plattform/static', pf.slice(7)); return fs.existsSync(f) ? r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); }   // eigene Skripte der Seite (adressen-rechts.js …)
       if (pf.startsWith('bp/')) { const f = path.join(KASTEN, pf.slice(3)); return fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); }
       if (pf === 'api/ansicht/start') { const d = JSON.parse(r.request().postData() || '{}'); puts.push(d); return r.fulfill(J({ ohne_projekt: !!d.ohne_projekt, gefragt: !!d.gefragt })); }
       if (pf === 'api/me') return r.fulfill(J({ ok: true, id: 1, name: 'admin', is_admin: true, apps: [], start }));
@@ -52,6 +53,20 @@ export async function adrStartPruefen(browser, repo) {
       await ctx.close(); }
     { const { ctx, p } = await lauf({ ohne_projekt: true, gefragt: true });
       pruef(await zahl(p) === 3, `„immer ohne Projekt“: Start ohne Projektfilter (3) – ${await zahl(p)}`);
+      // Mock „Adressen rechts“ (AR-1 … AR-5 A, 22.11.2026): Klick zeigt rechts, ↓ blättert, Doppelklick öffnet die Maske; die Liste nutzt die Breite
+      await p.waitForSelector('#adrW > .sr-r', { timeout: 5000 });
+      await p.click('#tw tbody tr[data-id="3"] td.ro'); await p.waitForTimeout(200);   // Tabelle: Klick in eine Zeile zeigt rechts
+      pruef(await p.evaluate(() => (document.querySelector('.sr-r .adr-r h3') || {}).textContent === 'Fam. Muster'), 'Tabelle: Klick zeigt den Kontakt rechts');
+      await p.evaluate(() => setView('karten')); await p.waitForSelector('#list .ct');
+      await p.click('#list .ct[data-id="1"]'); await p.waitForTimeout(200);
+      let r = await p.evaluate(() => ({ t: (document.querySelector('.sr-r .adr-r h3') || {}).textContent, on: !!document.querySelector('#list .ct.on[data-id="1"]'), maske: !!document.querySelector('.modal-bg, .bph-dlg'),
+        reiter: [...document.querySelectorAll('.sr-r [role="tab"], .sr-r .sr-tab')].map((x) => x.textContent.trim()).filter(Boolean),
+        luecke: Math.round(document.querySelector('#adrW > .sr-r').getBoundingClientRect().left - document.querySelector('#list').getBoundingClientRect().right) }));
+      pruef(r.t === 'Dach GmbH' && r.on && !r.maske && r.luecke < 40, `Klick zeigt den Kontakt rechts, keine leere Fläche – ${JSON.stringify(r)}`);
+      await p.keyboard.press('ArrowDown'); await p.waitForTimeout(150);
+      pruef(await p.evaluate(() => { const K = [...document.querySelectorAll('#list .ct')], n = K[K.findIndex((k) => k.dataset.id === '1') + 1]; return !!n && ADR_SEL === +n.dataset.id && document.activeElement === n; }), '↓ blättert zur nächsten Karte');
+      await p.dblclick('#list .ct[data-id="2"]'); await p.waitForTimeout(400);
+      pruef(await p.evaluate(() => !!document.querySelector('.modal-bg, .bph-dlg, .bpk')), 'Doppelklick öffnet die Kontaktmaske');
       await ctx.close(); }
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   return fehler;

@@ -150,6 +150,12 @@ export async function ganttHeftPruefen(browser, repo) {
       const r = await p.evaluate(() => { const b = document.querySelector('#chartBody .bar[data-i="0"] rect.b').getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2, es: CAL.es[1] }; });
       await p.mouse.click(r.x, r.y); await p.waitForSelector('.zs-pop .bp-pz', { timeout: 3000 });
       pruef(await p.evaluate(() => !document.querySelector('#chartBody .ph, #chartBody .uh')), 'keine Griffe mehr für Fortschritt und „später fertig“');
+      {   // 23.11.2026: Anfang und Ende haben breite Anfasser mit sichtbarem Griff beim Darüberfahren
+        await p.mouse.move(r.x, r.y); await p.waitForTimeout(200);
+        const a = await p.evaluate(() => { const g = document.querySelector('#chartBody .bar[data-i="0"]'), rh = g.querySelector('rect.rh').getBoundingClientRect(), b = g.querySelector('rect.b').getBoundingClientRect();
+          return { breit: rh.width >= 8, amEnde: Math.abs(rh.right - b.right) < 5, griffe: [...g.querySelectorAll('.gr')].filter((x) => +getComputedStyle(x).opacity > 0.3).length }; });
+        pruef(a.breit && a.amEnde && a.griffe === 2, `Anfasser an Anfang und Ende: ${JSON.stringify(a)}`);
+      }
       await p.click('.zs-pop [data-zsp][data-p="50"]'); await p.waitForTimeout(150);
       const f = await p.evaluate(() => { const g = document.querySelector('#chartBody .bar[data-i="0"]'), b = g.querySelector('rect.b').getBoundingClientRect(), q = g.querySelector('rect.p').getBoundingClientRect(), t = g.querySelector('text.pt');
         return { pct: P.tasks[0].pct, f: q.width / b.width, h: q.height / b.height, txt: t && t.textContent, offen: !!document.querySelector('.zs-pop') }; });

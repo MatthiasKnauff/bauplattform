@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-griffe-2311",
+  "datum": "2026-11-23",
+  "app": "gantt",
+  "titel": "Balken leichter anfassen",
+  "text": "Anfang und Ende eines Balkens lassen sich jetzt leichter greifen: die Fläche ist breiter, und beim Darüberfahren zeigt ein kleiner Griff, wo man ziehen kann.",
+  "ziel": "#chartBody .bar"
+ },
+ {
   "id": "kachel-verwaltung-2311",
   "datum": "2026-11-23",
   "app": "admin",

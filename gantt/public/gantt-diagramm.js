@@ -272,9 +272,9 @@ function renderChart() {
       if (vz && vz.at >= 1) st.push(`<tspan class="st-vz" dx="10">${Math.round(vz.at)} AT im Verzug</tspan>`);
       const sp = g.segs.length > 1;   // unterbrochen: jedes Abschnittsende anfassbar, jeder Abschnitt verknüpfbar (13.11.2026)
       bars += `<g class="bar${cr ? ' crit' : ''}${sp ? ' split' : ''}" data-i="${i}">${h}`
-        + (sp ? g.segs.map((sg, k) => `<rect class="lh" data-seg="${k}" x="${sg.x1 - 3}" y="${y + 4}" width="7" height="16"/><rect class="rh" data-seg="${k}" x="${sg.x2 - 5}" y="${y + 4}" width="8" height="16"/>`
+        + (sp ? g.segs.map((sg, k) => griffe(sg.x1, sg.x2, y, ` data-seg="${k}"`)
           + (k < g.segs.length - 1 ? `<circle class="lkdot" data-seg="${k}" cx="${sg.x2 + 4}" cy="${y + 3}" r="3"/>` : '')).join('')
-          : `<rect class="lh" x="${g.x1 - 3}" y="${y + 4}" width="7" height="16"/><rect class="rh" x="${(g.xp || g.x2) - 5}" y="${y + 4}" width="8" height="16"/>`)
+          : griffe(g.x1, g.xp || g.x2, y, ''))
         + `<circle class="lkdot" cx="${g.x2 + 7}" cy="${y + 12}" r="3.5"/></g>`;
       const R = barLbl.r ? lblVal(i, barLbl.r) : '';   // Stand rechts hinter der Beschriftung – vergleich.js setzt das Soll davor
       bars += `<text class="bst" data-st="${i}" x="${Math.max(g.x2, g.x1 + 8) + 4 + (R ? 10 + String(R).length * 6.6 : 0)}" y="${y + 16}">${st.join('')}</text>`;
@@ -301,6 +301,13 @@ function sumBalken(x1, x2, y, pw, id, f) {
 /* ---------- Balkengeometrie (auch für den Druck) ---------- */
 /* Fortschritt eines Balkens: gefüllte Breite je Abschnitt (w[k], zuletzt der Überzug) und die Spitze px – Zeichnen und Ziehen rechnen gleich.
    Bezug ist die ganze Zeit einschließlich Überzug (Mock „Überzug und Fortschritt“ ÜF-2 A): 50 % = halbe Länge, nie länger als die Zeit. */
+/* Anfasser für Anfang und Ende (23.11.2026): breite Trefferfläche, beim Darüberfahren ein sichtbarer Griff (zwei Rillen) – vorher 7 px unsichtbar.
+   Bei kurzen Balken höchstens ein Drittel je Seite, damit in der Mitte das Verschieben bleibt. */
+function griffe(x1, x2, y, attr) {
+  const w = Math.max(5, Math.min(11, (x2 - x1) / 3)), gr = (x) => `<path class="gr" d="M${x - 1.5} ${y + 8}v8M${x + 1.5} ${y + 8}v8"/>`;
+  return `<rect class="lh"${attr} x="${x1 - 4}" y="${y + 3}" width="${w + 4}" height="18"/><rect class="rh"${attr} x="${x2 - w}" y="${y + 3}" width="${w + 3}" height="18"/>`
+    + gr(x1 + Math.min(4, w / 2)) + gr(x2 - Math.min(4, w / 2));
+}
 function pctTeile(g, pct) {
   const T = g.ue ? [...g.segs, { x1: g.xp, x2: g.x2, d: g.ue }] : g.segs, ges = T.reduce((s, x) => s + x.d, 0);
   let rest = ges * pct / 100, px = g.x1; const w = T.map((sg) => { const b = Math.max(2, sg.x2 - sg.x1), f = Math.max(0, Math.min(1, rest / sg.d)); rest -= sg.d; if (f > 0) px = sg.x1 + b * f; return b * f; });

@@ -8,7 +8,8 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Seite „Ablauf“ auch für Einheiten** (Kisten „Gebäude / Allgemein“, „Einheit 1“, „Einheit 2“ mit Takt-Pfeilen) – Fragen offen, Mock folgt **ca. 30 min**
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; 3D-Auswahl später) – B erledigt durch das Raumbuch (17.11.: Gruppen, abweichender Raum eigene Zeile) **ca. 1,5 h**
-- ~~Kachel „Verwaltung“ abschaltbar – fürs Büro (Apps im Büro) und je Rolle; über ⚙ Einstellungen weiter erreichbar~~ (23.11.2026)
+- ~~Bauzeitenplan: Anfang und Ende der Balken mit breiteren Anfassern und sichtbarem Griff beim Darüberfahren~~ (23.11.2026)
+~~Kachel „Verwaltung“ abschaltbar – fürs Büro (Apps im Büro) und je Rolle; über ⚙ Einstellungen weiter erreichbar~~ (23.11.2026)
 ~~Bautagebuch und Zeiten am Handy: dieselbe Leiste unten wie überall, ＋ in der Mitte statt des eigenen Platzes (Bautagebuch: Schnellauswahl, Zeiten: Zeit erfassen); „Bericht · Kontakte“ als Umschalter oben~~ (23.11.2026)
 ~~Rollen & Rechte: Apps auch für die Geschäftsführung wählbar, Tabelle bei schmalem Fenster ohne Umbruch der Knöpfe; Akquise unter „Apps im Büro“ abschaltbar~~ (23.11.2026)
 ~~Baudaten-Baum: einzige Untergruppe ohne eigene Zeile (Vorbemerkungen), Spaltengrenzen sichtbar, Namen mit „…“~~ (23.11.2026)

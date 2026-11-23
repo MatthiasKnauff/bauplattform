@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-ub-projektwahl",
+  "datum": "2026-11-23",
+  "app": "gantt",
+  "titel": "Plan aus anderem Projekt: bessere Auswahl",
+  "text": "„Aus anderem Plan übernehmen“ und „Neuer Plan aus anderem Bauzeitenplan“ zeigen die Projekte jetzt als durchsuchbare Liste (dieses Projekt vorn, Archiv eingeklappt) und die Versionen als Knöpfe – die zuletzt bearbeitete ist vorgewählt.",
+  "ziel": "#leiste"
+ },
+ {
   "id": "katnetz-breite-2311",
   "datum": "2026-11-23",
   "app": "gantt",

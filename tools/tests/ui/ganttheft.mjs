@@ -49,6 +49,20 @@ export async function ganttHeftPruefen(browser, repo) {
       const r = await p.evaluate(() => P.tasks.map((t) => ({ uid: t.uid, mu: t.mu, preds: t.preds })));
       const k = r.find((t) => t.mu === 1 && t.uid !== 1);
       pruef(r.length === 3 && k && k.preds.some((x) => x.uid === 1 && x.type === 'SS'), `Duplizieren mit Anfang → Anfang: Kopie ohne SS-Verknüpfung – ${JSON.stringify(r)}`); }
+    {   // Aus anderem Plan übernehmen (23.11.2026, „bessere projektauswahl“): keine nativen Listen – Suche, Projekte als Zeilen, Versionen als Knöpfe
+      const u = await p.evaluate(async () => { const alt = projects;
+        projects = [{ id: '7', name: 'A497 Haus Müller', bt_id: 5, bt: 'A497 Haus Müller', updated: '2026-10-01', created: '2026-01-01' },
+          { id: '8', name: 'A497 Haus Müller (2)', bt_id: 5, bt: 'A497 Haus Müller', updated: '2026-11-02', created: '2026-05-01' },
+          { id: '9', name: 'B12 Schule', bt_id: 6, bt: 'B12 Schule', updated: '2026-09-01' }, { id: '10', name: 'C3 Alt', archived: true, updated: '2025-01-01' }];
+        planTeileUebernehmen();
+        const r = { select: !!document.querySelector('#ubL') && !document.querySelector('select#ubP, select#ubQ'), zeilen: document.querySelectorAll('#ubL [data-ubp]').length, arch: !!document.querySelector('#ubL [data-ubarch]') };
+        const S = document.querySelector('#ubS'); S.value = 'müller'; S.dispatchEvent(new Event('input')); r.treffer = document.querySelectorAll('#ubL [data-ubp]').length;
+        document.querySelector('#ubL [data-ubp]').click(); await new Promise((ok) => setTimeout(ok, 300));
+        r.vers = document.querySelectorAll('#ubV [data-ubq]').length; r.q = document.querySelector('#ubQ').value; r.on = (document.querySelector('#ubV .on') || {}).dataset?.ubq;
+        r.teile = /keine Leistungen|Abschnitte/.test(document.querySelector('#ubTeile').textContent);
+        document.querySelector('#ubV [data-ubq="7"]').click(); r.q2 = document.querySelector('#ubQ').value;
+        [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Abbrechen' && b.offsetParent).click(); projects = alt; return r; });
+      pruef(u.select && u.zeilen === 2 && u.arch && u.treffer === 1 && u.vers === 2 && u.q === '8' && u.on === '8' && u.teile && u.q2 === '7', `Aus anderem Plan übernehmen – Projektauswahl: ${JSON.stringify(u)}`); }
     {   // Duplizieren „eigene Verknüpfung“: die Kopie rückt als Block – Abstände in der Kopie wie im Original (Rückmeldung 17.11.2026)
       const r = await p.evaluate(() => { const alt = P.tasks;
         P.tasks = [1, 2, 3, 4].map((u) => ({ uid: u, name: 'L' + u, dur: [2, 4, 4, 2][u - 1], lvl: 0, preds: u > 1 ? [{ uid: u - 1, type: 'FS', lag: 0 }] : [] }));

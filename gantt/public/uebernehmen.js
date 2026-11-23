@@ -20,24 +20,52 @@
     });
     return [...m.values()].sort((a, b) => (b.eigen - a.eigen) || (a.arch - b.arch) || a.name.localeCompare(b.name, 'de'));
   };
+  /* Auswahl ohne native Liste (23.11.2026): Suchfeld, Projekte als Zeilen (dieses Projekt vorn, Archiv eingeklappt),
+     darunter die Versionen als Knöpfe – die zuletzt bearbeitete ist vorgewählt. Ergebnis im versteckten #ubQ (value + change). */
+  const tag = (d) => (d ? String(d).slice(8, 10) + '.' + String(d).slice(5, 7) + '.' + String(d).slice(0, 4) : '');
   const auswahl = (ohne) => {
-    const L = projekteVon(ohne);
-    if (!L.length) return '<p class="hint">Es gibt noch keinen anderen Bauzeitenplan.</p>';
-    const og = (lbl, xs) => (xs.length ? `<optgroup label="${lbl}">${xs.map((x) => `<option value="${E(x.k)}">${E(x.name)}</option>`).join('')}</optgroup>` : '');
-    return `<div style="display:grid;grid-template-columns:3fr 2fr;gap:.5rem"><select id="ubP" class="full" aria-label="Projekt"><option value="">– Projekt wählen –</option>${og('Dieses Projekt', L.filter((x) => x.eigen))}${og('Projekte', L.filter((x) => !x.eigen && !x.arch))}${og('Archiv', L.filter((x) => !x.eigen && x.arch))}</select>
-      <select id="ubQ" class="full" aria-label="Version" disabled><option value="">– Version –</option></select></div>`;
+    if (!projekteVon(ohne).length) return '<p class="hint">Es gibt noch keinen anderen Bauzeitenplan.</p>';
+    return `<div class="ub-wahl"><input type="search" id="ubS" class="full" placeholder="Projekt suchen – Kürzel oder Name" autocomplete="off" aria-label="Projekt suchen">
+      <div class="ub-l" id="ubL" role="listbox" aria-label="Projekt"></div><div class="ub-v" id="ubV" hidden></div><input type="hidden" id="ubQ" value=""></div>`;
   };
   function auswahlBinden(bg, ohne) {
-    const P1 = bg.querySelector('#ubP'), Q = bg.querySelector('#ubQ'); if (!P1 || !Q) return;
-    P1.addEventListener('change', () => {
-      const x = projekteVon(ohne).find((y) => y.k === P1.value);
-      const V = x ? x.plaene.slice().sort((a, b) => (a.created || '').localeCompare(b.created || '') || a.id.localeCompare(b.id)) : [];
-      Q.innerHTML = V.length ? V.map((p, i) => `<option value="${E(p.id)}">${i + 1} · ${E(p.name)}${p.archived ? ' (archiviert)' : ''}</option>`).join('') : '<option value="">– Version –</option>';
-      Q.disabled = !V.length;
-      const neu = V.filter((p) => !p.archived).sort((a, b) => (b.updated || '').localeCompare(a.updated || ''))[0] || V[V.length - 1];   // zuletzt bearbeitete Version vorschlagen
-      if (neu) Q.value = neu.id;
+    const S = bg.querySelector('#ubS'), L = bg.querySelector('#ubL'), V = bg.querySelector('#ubV'), Q = bg.querySelector('#ubQ'); if (!L || !Q) return;
+    const PJ = projekteVon(ohne); let akt = '', archAuf = false;
+    const zuletzt = (x) => x.plaene.reduce((m, p) => ((p.updated || '') > m ? p.updated || '' : m), '');
+    const zeile = (x) => `<button type="button" class="ub-z${x.k === akt ? ' on' : ''}" role="option" aria-selected="${x.k === akt}" data-ubp="${E(x.k)}"><b>${E(x.name)}</b><small>${x.plaene.length > 1 ? x.plaene.length + ' Versionen · ' : ''}zuletzt ${tag(zuletzt(x))}</small></button>`;
+    function liste() {
+      const w = (S ? S.value : '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+      const T = PJ.filter((x) => w.every((t) => (x.name + ' ' + x.plaene.map((p) => p.name).join(' ')).toLowerCase().includes(t)));
+      const gr = (titel, xs) => (xs.length ? `<div class="ub-s">${titel}</div>` + xs.map(zeile).join('') : '');
+      const ar = T.filter((x) => x.arch && !x.eigen);
+      L.innerHTML = gr('Dieses Projekt', T.filter((x) => x.eigen)) + gr(w.length ? 'Treffer' : 'Projekte', T.filter((x) => !x.eigen && !x.arch))
+        + (ar.length ? (w.length || archAuf ? gr('Archiv', ar) : `<button type="button" class="ub-s ub-arch" data-ubarch>${typeof bpKlapp === 'function' ? bpKlapp(false) : ''} Archiv (${ar.length})</button>`) : '')
+        + (T.length ? '' : `<p class="hint">Kein Plan passt zu „${E(S.value.trim())}“.</p>`);
+    }
+    function versionen() {
+      const x = PJ.find((y) => y.k === akt);
+      const VS = x ? x.plaene.slice().sort((a, b) => (a.created || '').localeCompare(b.created || '') || a.id.localeCompare(b.id)) : [];
+      if (!VS.some((p) => p.id === Q.value)) {   // zuletzt bearbeitete Version vorschlagen
+        const neu = VS.filter((p) => !p.archived).sort((a, b) => (b.updated || '').localeCompare(a.updated || ''))[0] || VS[VS.length - 1];
+        Q.value = neu ? neu.id : '';
+      }
+      V.hidden = !VS.length;
+      V.innerHTML = VS.length ? `<span class="hint">Version</span>` + VS.map((p, i) => `<button type="button" class="ub-vk${p.id === Q.value ? ' on' : ''}" data-ubq="${E(p.id)}" title="zuletzt bearbeitet ${tag(p.updated)}">${i + 1} · ${E(p.name)}${p.archived ? ' <small>(archiviert)</small>' : ''}</button>`).join('') : '';
       Q.dispatchEvent(new Event('change'));
+    }
+    liste();
+    if (S) S.addEventListener('input', liste);
+    if (S) S.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); const b = L.querySelector('[data-ubp]'); if (b) b.click(); } });
+    L.addEventListener('click', (e) => {
+      if (e.target.closest('[data-ubarch]')) { archAuf = true; liste(); return; }
+      const b = e.target.closest('[data-ubp]'); if (!b || b.dataset.ubp === akt) return;
+      akt = b.dataset.ubp; Q.value = '';
+      L.querySelectorAll('[data-ubp]').forEach((z) => { const an = z === b; z.classList.toggle('on', an); z.setAttribute('aria-selected', an); });
+      versionen();
     });
+    V.addEventListener('click', (e) => { const b = e.target.closest('[data-ubq]'); if (!b || b.dataset.ubq === Q.value) return; Q.value = b.dataset.ubq; V.querySelectorAll('[data-ubq]').forEach((z) => z.classList.toggle('on', z === b)); Q.dispatchEvent(new Event('change')); });
+    const eigen = PJ.find((x) => x.eigen);   // dieses Projekt hat weitere Pläne → gleich vorschlagen
+    if (eigen) L.querySelector(`[data-ubp="${eigen.k}"]`).click();
   }
 
   /* Leistungen kopieren: neue Nummern, Verknüpfungen nur innerhalb der Auswahl, Termine verschoben */
@@ -66,8 +94,7 @@
 
   /* ---------- 1) neuer Plan aus einem anderen ---------- */
   window.planAusAnderem = function (name0, start0, btId) {
-    const bg = modal('Neuer Plan aus anderem Bauzeitenplan', `<div class="form" style="min-width:min(520px,86vw)">
-        <label>Vorlage – Projekt und Version</label>${auswahl(null)}
+    const bg = modal('Neuer Plan aus anderem Bauzeitenplan', `<div style="min-width:min(520px,86vw)"><div class="ub-kopf">Vorlage – Projekt und Version</div>${auswahl(null)}</div><div class="form" style="margin-top:.6rem">
         <label>Projektname</label><input id="ubName" class="full" value="${E(name0 || '')}" placeholder="Name des neuen Plans" data-bp-projekt autocomplete="off">
         <label>Projektanfang *</label><input id="ubStart" type="date" class="full" value="" required title="Wann beginnt das neue Projekt?">
       </div>${firmenFrage('der Vorlage')}<div style="margin-top:.5rem"><label class="cb"><input type="checkbox" id="ubPct" checked> Fortschritt (% erledigt) zurücksetzen</label>
@@ -109,7 +136,7 @@
   window.planTeileUebernehmen = function () {
     if (!P) return;
     let SRC = null;
-    const bg = modal('Aus anderem Plan übernehmen', `<div class="form" style="min-width:min(560px,88vw)"><label>Aus Projekt und Version</label>${auswahl(P.id)}</div>
+    const bg = modal('Aus anderem Plan übernehmen', `<div style="min-width:min(560px,88vw)"><div class="ub-kopf">Aus Projekt und Version</div>${auswahl(P.id)}</div>
       <div id="ubTeile" style="margin-top:.6rem"></div>
       <div class="form" style="margin-top:.6rem"><label>Beginn der Abschnitte *</label><input id="ubAb" type="date" class="full" value="" title="Ab wann sollen die übernommenen Leistungen frühestens beginnen?"></div>
       ${firmenFrage('dem anderen Plan')}

@@ -885,3 +885,19 @@ html[data-theme="dunkel"] .kp-chip{border-color:#555;color:#bbb}html[data-theme=
 .zs-kopf{display:flex;align-items:center;gap:8px}.zs-kopf b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .zs-x{all:unset;cursor:pointer;width:24px;height:24px;display:grid;place-items:center;border-radius:6px}.zs-x:hover{background:var(--hov,#eef1f5)}
 .zs-fuss{color:var(--mut);font-size:var(--fs-s,12px)}
+
+/* Plan aus anderem Projekt wählen (uebernehmen.js, 23.11.2026): Suche, Projekte als Zeilen, Versionen als Knöpfe */
+.ub-wahl{display:flex;flex-direction:column;gap:.4rem}
+.ub-kopf{font-weight:600;margin-bottom:.35rem}
+.ub-l{height:min(28vh,210px);overflow:auto;border:1px solid var(--bd);border-radius:calc(8px*var(--rk,1));padding:.2rem}
+.ub-s{display:block;font-size:calc(var(--fs)*.85);color:var(--mut);padding:.35rem .5rem .15rem;text-transform:uppercase;letter-spacing:.04em}
+button.ub-s{border:0;background:none;cursor:pointer;width:100%;text-align:left}
+.ub-z{display:flex;justify-content:space-between;align-items:baseline;gap:.6rem;width:100%;text-align:left;border:0;background:none;padding:.35rem .5rem;border-radius:calc(6px*var(--rk,1));cursor:pointer;font:inherit;color:inherit}
+.ub-z b{font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ub-z small{color:var(--mut);white-space:nowrap;flex:none}
+.ub-z:hover{background:var(--grid)}
+.ub-z.on{background:var(--sel);box-shadow:inset 3px 0 0 var(--accent)}
+.ub-v{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem}
+.ub-v .hint{margin:0 .2rem 0 0}
+.ub-vk{border:1px solid var(--bd);background:transparent;border-radius:999px;padding:.2rem .65rem;cursor:pointer;font:inherit;color:inherit}
+.ub-vk.on{border-color:var(--accent);background:var(--sel);font-weight:500}

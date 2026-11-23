@@ -169,6 +169,18 @@ document.addEventListener('click', async (e) => {   // anderes LV im Baum öffne
 function zuAlleKnopf() { if (!items().some((x) => x.typ === 'titel')) return ''; const z = LVZU.zahl();
   return `<button type="button" class="ib" data-zualle="${z ? 'auf' : 'zu'}" title="${z ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}" aria-label="${z ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${z ? '⊞' : '⊟'}</button>`; }
 bpBaum.klappbar(document, { klapp: () => ((tab === 'lv' || tab === 'angebote') && L ? LVZU : null), neu: () => (tab === 'angebote' ? psNeu() : lvNeu()), alle: () => items().filter((x) => x.typ === 'titel').map((x) => x.id) });   // Titel auf- und zuklappen (einzeln und alle)
+/* Beim Hineinziehen (aus Baudaten/Korb oder eine Zeile des LV) kurz über einem zugeklappten Gliederungspunkt verweilen: er klappt auf (23.11.2026) */
+let LVKT = 0, LVKR = null;
+document.addEventListener('dragover', (e) => {
+  const T = [...(e.dataTransfer.types || [])]; if (tab !== 'lv' || !L || !(T.includes('text/x-ava-quelle') || T.includes('text/x-ava-zeile'))) return;
+  const tr = e.target.closest && e.target.closest('table.lv tr.ti[data-i]'), x = tr && items()[+tr.dataset.i];
+  const id = x && LVZU.zu(x.id) ? x.id : null;
+  if (id === LVKR) return;
+  clearTimeout(LVKT); LVKR = id; if (id == null) return;
+  LVKT = setTimeout(() => { if (LVKR === id && LVZU.zu(id)) { LVZU.oeffne(id); lvNeu(); } LVKR = null; }, 650);
+});
+document.addEventListener('dragend', () => { clearTimeout(LVKT); LVKR = null; });
+document.addEventListener('drop', () => { clearTimeout(LVKT); LVKR = null; });
 /* Tastatur in den Bäumen (gemeinsamer Baustein /bp/baum.js): ↑↓ ← → Enter Esc, Tab/Enter in den Feldern, F6 zwischen Baum und Bereich rechts */
 bpBaum.tasten({ wurzel: '#view table.lv.baum:not(.am) > tbody', zeilen: 'tr[data-i]:not(.lang), tr.wurzel', unterzeile: 'tr.lang', tabOhne: '[data-f=art], [data-f=kg]', aktiv: (w) => w.querySelector('tr.akt'),
   waehle: (z, o) => { if (z.dataset.lvopen == null) (z.querySelector('.ozt') || z.querySelector('td')).dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: o.umschalt })); },   // andere LVs: erst Enter öffnet

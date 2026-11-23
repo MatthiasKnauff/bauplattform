@@ -138,6 +138,16 @@ export async function lvGrossPruefen(browser, repo) {
       r.auf = await p.evaluate(() => LVZU.zahl());
       pruef(r.zu.zahl > 0 && r.zu.knopf === 'auf' && r.auf === 0, `${wo}: ⊟/⊞ „alle Titel zu/auf“ wirkt nicht – ${JSON.stringify(r)}`); };
     await zuAlle('LV');
+    // Hineinziehen: über einem zugeklappten Gliederungspunkt verweilen klappt ihn auf (23.11.2026)
+    const zieh = await p.evaluate(async () => {
+      const t = items().find((x) => x.typ === 'titel'); LVZU.setze([t.id]); lvNeu();
+      const tr = () => document.querySelector(`#view table.lv tr.ti[data-i="${items().indexOf(t)}"] td`);
+      const dt = new DataTransfer(); dt.setData('text/x-ava-quelle', '[]');
+      tr().dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: dt }));
+      const vorher = LVZU.zu(t.id); await new Promise((r) => setTimeout(r, 900));
+      return { vorher, nachher: LVZU.zu(t.id) };
+    });
+    pruef(zieh.vorher && !zieh.nachher, `Hineinziehen: zugeklappter Titel geht nicht verzögert auf – ${JSON.stringify(zieh)}`);
     pruef(await p.evaluate(async () => { const a = L; L = { ...L, data: { ...L.data, items: L.data.items.filter((x) => x.typ !== 'titel') } }; render(); const n = document.querySelectorAll('#view [data-zualle]').length; L = a; render(); return n === 0; }), 'LV ohne Titel: ⊟ steht da, obwohl es nichts zu klappen gibt');
     await p.evaluate(() => document.querySelector('[data-tab="angebote"]').click()); await p.waitForSelector('#view table.lv.ps [data-zualle]', { timeout: 20000 });
     await zuAlle('Preisspiegel');

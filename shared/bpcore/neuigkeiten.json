@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-ziehen-aufklappen",
+  "datum": "2026-11-23",
+  "app": "ava",
+  "titel": "Hineinziehen klappt Titel auf",
+  "text": "Zieht man Positionen aus den Baudaten oder dem Korb (oder eine Zeile des LV) und verweilt kurz über einem zugeklappten Gliederungspunkt, klappt er auf – so lässt sich direkt hineinlegen.",
+  "ziel": "#view table.lv"
+ },
+ {
   "id": "adr-spaltenfilter-2311",
   "datum": "2026-11-23",
   "app": "adressen",

@@ -6,7 +6,7 @@ const timeSelect = (val, attrs, blank) => {   // Uhrzeit als Auswahlliste (am iP
   if (val && !opts.includes(val)) { opts.push(val); opts.sort(); }
   return `<select ${attrs} aria-label="Uhrzeit">${blank ? `<option value="" ${val ? '' : 'selected'}>–</option>` : ''}${opts.map(o => `<option ${o === (val || (blank ? '' : '09:00')) ? 'selected' : ''}>${o}</option>`).join('')}<option value="__x">Andere Zeit …</option></select>`;
 };
-function dueUi(i, s) {   // Erledigungsdatum mit E-Mail-Erinnerung (nur Abschnitte mit extra.due)
+function dueUi(i, s, txt) {   // txt: Beschriftung neben dem Symbol (Details rechts)   // Erledigungsdatum mit E-Mail-Erinnerung (nur Abschnitte mit extra.due)
   if (!(s.extra && s.extra.due)) return '';
   if (dueEditId === i.id) {   // Datum (Kalender) + Uhrzeit (Rad) + Schnellwahl; speichert bei jeder Änderung, „Fertig“ schließt
     const tomorrow = new Date(Date.now() + 864e5), tm = new Date(tomorrow - tomorrow.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
@@ -15,13 +15,13 @@ function dueUi(i, s) {   // Erledigungsdatum mit E-Mail-Erinnerung (nur Abschnit
       <button class="dueb" data-act="dueDone" title="Fertig">✓ Fertig</button><button class="dueb" data-act="dueClear" data-id="${i.id}" title="Erledigungsdatum entfernen">Datum löschen</button></div>`;
   }
   if (i.due) return `<button class="due ${!i.done && i.due < todayISO() ? 'late' : ''}" data-act="dueEdit" data-id="${i.id}" title="Erinnerung per E-Mail am ${esc(fmt(i.due))} um ${esc(i.due_time || '09:00')} Uhr – antippen zum Ändern">⏰ ${esc(fmt(i.due))} ${esc(i.due_time || '09:00')}</button>`;
-  return `<button class="dueb" data-act="dueEdit" data-id="${i.id}" title="Erledigungsdatum mit E-Mail-Erinnerung">${ic('cal', 18)}</button>`;
+  return `<button class="dueb" data-act="dueEdit" data-id="${i.id}" title="Erledigungsdatum mit E-Mail-Erinnerung">${ic('cal', 18)}${txt ? `<span>${txt}</span>` : ''}</button>`;
 }
 const fotoOk = (s) => !!s && (s.type === 'list' || !!(s.extra && s.extra.photos));   // Fotos an Einträgen in allen Abschnitten (auch Anwesende)
-function photoUi(i, s, r) {   // kleine Fotos am Eintrag (Mangel, Notiz); das große Bild liegt unter „Bilder“
+function photoUi(i, s, r, txt) {   // kleine Fotos am Eintrag (Mangel, Notiz); das große Bild liegt unter „Bilder“
   if (!fotoOk(s)) return '';
   const th = r.images.filter(x => x.item_id === i.id).map(x => `<span class="itp"><a href="uploads/${esc(x.file)}" target="_blank" title="${esc(x.caption || 'Foto')}"><img loading="lazy" src="api/thumb/96/${esc(x.file)}" alt="${esc(x.caption || 'Foto')}"></a><button type="button" class="itd" data-act="delImg" data-id="${x.id}" title="Foto löschen" aria-label="Foto löschen">×</button></span>`).join('');
-  return `<span class="ith">${th}<button class="ph" data-act="itemPhoto" data-id="${i.id}" title="Foto zu diesem Eintrag">${ic('cam', 18)}</button></span>`;
+  return `<span class="ith">${th}<button class="ph" data-act="itemPhoto" data-id="${i.id}" title="Foto zu diesem Eintrag">${ic('cam', 18)}${txt ? `<span>${txt}</span>` : ''}</button></span>`;
 }
 let secOpen = {}; try { secOpen = JSON.parse(localStorage.getItem('secOpen') || '{}'); } catch {}
 const secIsOpen = (k, n) => (k in secOpen ? secOpen[k] : n > 0);

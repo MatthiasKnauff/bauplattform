@@ -51,6 +51,12 @@ body.bt-rahmen #detail .ln{position:relative;isolation:isolate}body.bt-rahmen #d
 .bt-f{display:grid;gap:.25rem;margin:0 0 .65rem}.bt-f>label{font-size:.75rem;color:var(--mute)}
 .bt-f textarea,.bt-f input:not([type=checkbox]){width:100%;box-sizing:border-box;background:var(--inp);border:1px solid var(--line);border-radius:calc(7px*var(--rk,1));padding:.45rem .6rem;color:var(--ink);font:inherit}
 .bt-f textarea{min-height:5rem;resize:vertical}
+/* Details rechts (23.11.2026): dieselben Bausteine wie die Zeile im Bericht – dort ohne Rand und nur mit Symbolen; hier mit Abstand, wachsendem Textfeld und Beschriftung */
+.bt-det{padding:.35rem .4rem}
+.bt-det .bt-f textarea.ed{margin:0;overflow:auto;field-sizing:content;min-height:9rem;max-height:60vh;line-height:1.45}
+.bt-det .bt-f>:not(label){justify-self:start}.bt-det .bt-f>textarea,.bt-det .bt-f>input,.bt-det .bt-f>.sgw,.bt-det .bt-f>.bt-wert{justify-self:stretch}
+.bt-det .ith{flex-wrap:wrap}.bt-det .ph,.bt-det .dueb{display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--line);border-radius:calc(7px*var(--rk,1));padding:.3rem .65rem;background:var(--card);color:var(--ink);font:inherit;font-size:.85rem;cursor:pointer}
+.bt-det .ph:hover,.bt-det .dueb:hover{border-color:var(--y)}
 .bp-nav .ni{justify-content:flex-start;text-align:left}
 .bt-wert{box-sizing:border-box;padding:.45rem .6rem;border:1px solid var(--line);border-radius:calc(7px*var(--rk,1))}
 .bt-ck{display:flex;gap:.45rem;align-items:center;margin:0 0 .65rem}

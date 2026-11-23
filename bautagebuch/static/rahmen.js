@@ -174,12 +174,12 @@
     if (lk) return `<div class="bt-det">${kopf}<div class="bt-f"><label>Firma</label><div class="bt-wert">${esc(i.text)}</div></div>
       <div class="bt-f"><label>Art der Tätigkeit</label><textarea class="ed" rows="2" data-it="${i.id}" data-k="activity">${esc(i.activity)}</textarea></div>
       <div class="bt-f"><label>Anzahl Mitarbeiter:in</label>${bpZaehler(`<input class="cnt" data-it="${i.id}" data-k="headcount" type="number" min="0" value="${i.headcount ?? ''}">`)}</div>
-      <div class="bt-f"><label>Fotos</label>${photoUi(i, s, r)}</div></div>`;
+      <div class="bt-f"><label>Fotos</label>${photoUi(i, s, r, 'Foto hinzufügen')}</div></div>`;
     return `<div class="bt-det">${kopf}${s.extra && s.extra.company ? `<div class="bt-f"><label>Firma</label><div class="sgw cow"><input class="co" data-it="${i.id}" data-k="company" ${SGATTR} value="${esc(i.company)}"><div class="sug hidden" role="listbox"></div></div></div>` : ''}
-      <div class="bt-f"><label>Text</label><textarea class="ed" rows="4" data-it="${i.id}" data-k="text">${esc(i.text)}</textarea></div>
+      <div class="bt-f"><label>Text</label><textarea class="ed" rows="8" data-it="${i.id}" data-k="text">${esc(i.text)}</textarea></div>
       ${s.checkable ? `<label class="bt-ck"><input type="checkbox" data-act="toggle" data-id="${i.id}" ${i.done ? 'checked' : ''}> erledigt</label>` : ''}
-      ${fotoOk(s) ? `<div class="bt-f"><label>Fotos</label>${photoUi(i, s, r)}</div>` : ''}
-      ${s.extra && s.extra.due ? `<div class="bt-f"><label>Erinnerung</label>${dueUi(i, s)}</div>` : ''}</div>`;
+      ${fotoOk(s) ? `<div class="bt-f"><label>Fotos</label>${photoUi(i, s, r, 'Foto hinzufügen')}</div>` : ''}
+      ${s.extra && s.extra.due ? `<div class="bt-f"><label>Erinnerung</label>${dueUi(i, s, 'Erinnerung setzen')}</div>` : ''}</div>`;
   }
   function fotoHtml() {
     const r = curReport(); if (!r) return '<div class="bt-leer">Kein Tagesbericht.</div>';

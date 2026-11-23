@@ -166,6 +166,12 @@ export async function adrStartPruefen(browser, repo) {
         const voll = await p.evaluate(() => Math.abs(document.querySelector('#tw table').getBoundingClientRect().width - document.querySelector('#tw').clientWidth) <= 1 || document.querySelector('#tw table').scrollWidth > document.querySelector('#tw').clientWidth);
         pruef(i > 0 && Math.abs(nach[i] - vor[i] - 60) <= 2 && vor.every((w, n) => n === i || n === vor.length - 1 || Math.abs(nach[n] - w) <= 1) && voll, `Spaltenbreite ziehen: nur „Gewerk“ ändert sich – vorher ${vor}, nachher ${nach}, voll ${voll}`);
       }
+      {   // 23.11.2026: die Knopfspalte steht fest rechts über den übrigen Spalten – beim Darüberfahren darf nichts durchscheinen (Hintergrund deckend)
+        await p.hover('#tw tbody tr[data-id="1"] td.ro');
+        const bg = await p.evaluate(() => { const st = getComputedStyle(document.querySelector('#tw tbody tr[data-id="1"] td.act')); return { c: st.backgroundColor, i: st.backgroundImage }; });
+        const deckend = (c) => { const m = /rgba?\(([^)]+)\)/.exec(c); if (!m) return false; const v = m[1].split(/[ ,/]+/).filter(Boolean); return v.length < 4 || parseFloat(v[3]) >= 0.99; };
+        pruef(deckend(bg.c), `Knopfspalte beim Darüberfahren durchsichtig (${bg.c} ${bg.i})`);
+      }
       {   // 23.11.2026: mit „Häkchen als Schalter“ bleibt der Auswahl-Haken ein Häkchen und steht neben dem Namen (der Schalter schob den Namen in eine zweite Zeile)
         const sw = await p.evaluate(() => { document.documentElement.dataset.schalter = 'an'; const c = document.querySelector('#tw tbody tr [data-adrck]'), i = document.querySelector('#tw tbody tr td.nm input[data-fk]'), cr = c.getBoundingClientRect(), ir = i.getBoundingClientRect();
           const r = { app: getComputedStyle(c).appearance, nebeneinander: cr.top >= ir.top - 2 && cr.bottom <= ir.bottom + 2 }; delete document.documentElement.dataset.schalter; return r; });

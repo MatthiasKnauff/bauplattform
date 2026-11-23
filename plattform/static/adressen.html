@@ -80,15 +80,15 @@ html.bp-handy #adrSel{left:.5rem;right:.5rem;transform:none;max-width:none;flex-
 .tt th:hover .rz::after,.tt .rz.on::after{border-color:var(--y)}
 .tt td.act,.tt thead th:last-child{position:sticky;right:0;background:var(--card);box-shadow:-1px 0 0 var(--line);z-index:1}
 .tt thead th:last-child{background:var(--card2);z-index:3}
-.tt tbody tr:hover td.act{background:var(--hov)}
+.tt tbody tr:hover td.act{background:linear-gradient(var(--hov),var(--hov)) var(--card)}
 .tw{scrollbar-gutter:stable}
 .tw::-webkit-scrollbar{height:12px;width:12px}
 .tw::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--mute) 55%,transparent);border-radius:calc(6px*var(--rk,1));border:2px solid var(--card)}
 .tw::-webkit-scrollbar-track{background:var(--hov)}
 .tt td.act{padding:.2rem .3rem;white-space:nowrap}
 .tt td.act a,.tt td.act button{padding:.2rem .4rem;font-size:.85rem;text-decoration:none}
-.tt tbody tr:hover td{background:var(--hov)}
-.tt tbody tr.cur td{background:color-mix(in srgb,var(--y) 8%,transparent)}
+.tt tbody tr:hover td{background:linear-gradient(var(--hov),var(--hov)) var(--card)}   /* deckend: die Knopfspalte steht fest rechts über den Spalten dahinter – eine durchsichtige Tönung ließ sie durchscheinen (Video 23.11.2026) */
+.tt tbody tr.cur td{background:color-mix(in srgb,var(--y) 8%,var(--card))}
 .empty{color:var(--mute);padding:2rem 0;text-align:center}
 .bfl{margin:0 0 .6rem}
 .kz{display:flex;flex-wrap:wrap;gap:.3rem .8rem;align-items:center;margin:0 0 .7rem;min-height:2.1rem}   /* Zahl der Kontakte und Sortieren in EINER Zeile */

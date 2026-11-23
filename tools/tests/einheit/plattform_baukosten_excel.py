@@ -62,3 +62,10 @@ def test_im_kostenstand():
     gleich(c["total"], 34000.5, "Summe wie die Liste")
     d2 = baukosten.clean_data({**d, "preise": {"xl:1": 1500}})
     gleich(baukosten.calc(d2)["kg300"], 27300.5, "Betrag überschreiben über Preise")
+
+
+def test_bearbeiten_behaelt_kennungen():
+    """Bearbeiten (23.11.2026): Kennungen bleiben (Preise von Hand hängen daran), neue oder doppelte bekommen eine freie."""
+    x = E.sauber({"zeilen": [{"id": "xl:1", "kg": "331", "betrag": 5}, {"id": "xl:7", "kg": "334", "betrag": 2}, {"kg": "323", "betrag": 1},
+                             {"id": "xl:7", "kg": "335", "betrag": 3}]})
+    gleich([z["id"] for z in x["zeilen"]], ["xl:1", "xl:7", "xl:3", "xl:4"], "Kennungen")

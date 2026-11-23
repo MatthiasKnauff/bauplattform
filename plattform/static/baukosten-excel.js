@@ -17,7 +17,12 @@
 .bkx-hw ul{margin:.3rem 0;padding-left:1.1rem}.bkx-hw li{margin:.15rem 0}.bkx-hw .k{font-weight:600;margin-right:.3rem}
 .bkx-kl{border:0;background:none;color:inherit;font:inherit;padding:0;cursor:pointer;text-align:left}
 .bkx-l{max-height:min(42vh,26rem);overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.3rem .6rem}
-@media (max-width:820px){.bkx-t .bru{display:none}}`;
+.bkx-t input{font:inherit;border:1px solid transparent;border-radius:calc(4px*var(--rk,1));background:transparent;color:inherit;padding:.05rem .25rem;width:100%;box-sizing:border-box}
+.bkx-t input:hover{border-color:var(--line)}.bkx-t input:focus{border-color:var(--af,#2a6);background:var(--card);outline:none}.bkx-t input.n{text-align:right;font-variant-numeric:tabular-nums}
+.bkx-t input.kg{width:3.4rem}.bkx-t td.z input.n{width:calc(100% - 1.1rem)}.bkx-t tr.e1 input,.bkx-t tr.e3 input.n{font-weight:inherit}
+.bkx-pl,.bkx-x{border:0;background:none;color:var(--mute);cursor:pointer;font:inherit;padding:0 .25rem;visibility:hidden}.bkx-t tr:hover .bkx-pl,.bkx-t tr:hover .bkx-x,.bkx-t tr:focus-within .bkx-x{visibility:visible}
+.bkx-pl:hover,.bkx-x:hover{color:var(--ink)}.bkx-nm{display:flex;gap:.2rem;align-items:center}
+@media (max-width:820px){.bkx-t .bru{display:none}.bkx-pl,.bkx-x{visibility:visible}}`;
   document.head.appendChild(css);
 
   const ART = { rechenfehler: ['Rechenfehler', 'rot'], gefahr: ['doppelt?', 'rot'], pruefen: ['prüfen', 'gelb'], luecke: ['Lücke', 'gelb'],
@@ -51,7 +56,13 @@
       if ((je[k] || []).some((z) => z.extern)) t.push('<span class="bkx-tag" title="Betrag kam aus einer anderen Datei">aus anderer Datei</span>');
       return t.join('');
     };
-    const zeile = (cls, k, name, w, tags = '', kl = '') => `<tr class="${cls}"><td>${k}</td><td>${kl}${esc(name)}${tags}</td><td class="z">${w == null ? '' : e2(w)}</td><td class="z bru">${w == null ? '' : e2(w * f)}</td></tr>`;
+    const zeile = (cls, k, name, w, tags = '', kl = '', ein = '', plus = '') => `<tr class="${cls}"><td>${k}${plus}</td><td>${kl}${esc(name)}${tags}</td><td class="z">${ein || (w == null ? '' : e2(w))}</td><td class="z bru">${w == null ? '' : e2(w * f)}</td></tr>`;
+    /* bearbeiten (23.11.2026): Betrag direkt in der Zelle, Einzelbeträge mit KG, Bezeichnung und ✕, ＋ legt einen Betrag in einer KG an */
+    const bIn = (z) => `<input class="n" data-bkxb="${esc(z.id)}" value="${bpZahl(z.betrag, 2, 2)}" inputmode="decimal" aria-label="Betrag netto ${esc(z.kg)}"> €`;
+    const einzeln = (z) => `<tr class="ee"><td><input class="kg" data-bkxkg="${esc(z.id)}" value="${esc(z.kg)}" inputmode="numeric" maxlength="3" aria-label="Kostengruppe"></td>
+      <td><span class="bkx-nm"><input data-bkxn="${esc(z.id)}" value="${esc(z.name)}" aria-label="Bezeichnung"><button type="button" class="bkx-x" data-bkxweg="${esc(z.id)}" title="Betrag entfernen">✕</button></span></td>
+      <td class="z">${bIn(z)}</td><td class="z bru">${e2(z.betrag * f)}</td></tr>`;
+    const plusK = (k) => `<button type="button" class="bkx-pl" data-bkxneu="${k}" title="Betrag in KG ${k} hinzufügen">＋</button>`;
     const L = new Set(X.liste || []), rows = [];
     const ersteEbene = [...new Set(Z.map((z) => z.kg[0]))].sort();
     ersteEbene.forEach((e) => {
@@ -66,11 +77,11 @@
         K3.forEach((k) => {
           const E = je[k] || [], w = E.reduce((a, z) => a + z.betrag, 0), auf = OFFEN.has(k);
           const tags = tagsVon(k) + (!E.length && L.size && !L.has(k) ? '<span class="bkx-tag" title="Kostengruppe der DIN 276:2018, die in der alten Liste fehlte">ergänzt</span>' : '');
-          const kl = E.length > 1 ? `<button type="button" class="bkx-kl" data-bkxk="${k}" aria-expanded="${auf}">${bpKlapp(auf)} </button>` : '';
-          rows.push(zeile('e3' + (E.length ? '' : ' leer'), k, D[k] || (E[0] && E[0].name) || '', E.length ? w : null, tags + (E.length > 1 ? `<span class="bkx-tag">${E.length} Beträge</span>` : ''), kl));
-          if (auf) E.forEach((z) => rows.push(zeile('ee', '', z.name, z.betrag)));
+          const kl = E.length ? `<button type="button" class="bkx-kl" data-bkxk="${k}" aria-expanded="${auf}" title="Einzelbeträge zeigen und bearbeiten">${bpKlapp(auf)} </button>` : '';
+          rows.push(zeile('e3' + (E.length ? '' : ' leer'), k, D[k] || (E[0] && E[0].name) || '', E.length ? w : null, tags + (E.length > 1 ? `<span class="bkx-tag">${E.length} Beträge</span>` : ''), kl, E.length === 1 && !auf ? bIn(E[0]) : '', plusK(k)));
+          if (auf) E.forEach((z) => rows.push(einzeln(z)));
         });
-        if (je[k2]) je[k2].forEach((z) => rows.push(zeile('ee', '', z.name_alt || z.name, z.betrag)));
+        if (je[k2]) je[k2].forEach((z) => rows.push(einzeln(z)));
       });
     });
     const unv = c.risiko ? zeile('e1', '', `Unvorhergesehenes (${bpZahl(B.data.risiko, 0, 2)} %)`, c.risiko) : '';
@@ -81,11 +92,36 @@
     return `${hw}<table class="bkx-t"><colgroup><col style="width:4.5rem"><col><col style="width:9.5rem"><col class="bru" style="width:9.5rem"></colgroup>
       <thead><tr><th>KG</th><th>Bezeichnung (DIN 276:2018)</th><th class="z">netto</th><th class="z bru">brutto</th></tr></thead><tbody>${rows.join('')}${unv}
       <tr class="s"><td></td><td>Summe</td><td class="z">${e2(c.total)}</td><td class="z bru">${e2(c.brutto)}</td></tr></tbody></table>
-      <p class="mute bk-q">Aus „${esc(X.datei)}“, eingelesen am ${esc(bpTag(X.am))}${X.von ? ' von ' + esc(X.von) : ''}. Kostengruppen nach DIN 276:2018-12; die Beträge ändern im Reiter „Bauteile“ (Spalte EP).</p>`;
+      <p class="mute bk-q">Aus „${esc(X.datei)}“, eingelesen am ${esc(bpTag(X.am))}${X.von ? ' von ' + esc(X.von) : ''}. Kostengruppen nach DIN 276:2018-12; Beträge direkt hier ändern, ＋ legt einen Betrag an, ✕ entfernt ihn.</p>`;
   }
 
+  /* Ändern: auf einer Kopie der Zeilen, KG 700 zählt als Baunebenkosten fest (nk_fest), ein Preis von Hand der Zeile fällt weg (der Betrag steht jetzt in der Liste) */
+  const zahl = (v) => { const t = String(v).trim(); return t === '' ? 0 : parseFloat(t.replace(/\./g, '').replace(',', '.')); };
+  function aendern(text, fn, ids) {
+    const X = JSON.parse(JSON.stringify(B.data.excel)); fn(X.zeilen, X); X.zeilen = X.zeilen.filter(Boolean);
+    const P = { ...(B.data.preise || {}) }; (ids || []).forEach((i) => { delete P[i]; });
+    const nk7 = Math.round(X.zeilen.filter((z) => z.kg[0] === '7').reduce((a, z) => a + z.betrag, 0) * 100) / 100;
+    datenAendern(text, { excel: X, preise: P, nk_fest: nk7 });
+  }
+  function neueId(Z) { let n = 0; Z.forEach((z) => { const m = /^xl:(\d+)$/.exec(z.id); if (m) n = Math.max(n, +m[1]); }); return 'xl:' + (n + 1); }
+  V.addEventListener('change', (e) => {
+    if (!B || !B.data || !B.data.excel) return;
+    const t = e.target, D = B.din || {};
+    if (t.dataset.bkxb) { const id = t.dataset.bkxb, v = zahl(t.value); if (!isFinite(v)) { toast('Bitte eine Zahl eingeben.', true); return; }
+      return aendern('Betrag geändert', (Z) => { const z = Z.find((x) => x.id === id); if (z) z.betrag = Math.round(v * 100) / 100; }, [id]); }
+    if (t.dataset.bkxn) { const id = t.dataset.bkxn; return aendern('Bezeichnung geändert', (Z) => { const z = Z.find((x) => x.id === id); if (z) z.name = t.value.trim().slice(0, 200) || 'Betrag'; }); }
+    if (t.dataset.bkxkg) { const id = t.dataset.bkxkg, k = t.value.trim();
+      if (!/^[1-8]\d\d$/.test(k)) { toast('Kostengruppe dreistellig, z. B. 334.', true); t.value = (B.data.excel.zeilen.find((x) => x.id === id) || {}).kg || ''; return; }
+      OFFEN.add(k); return aendern(`Kostengruppe → ${k}`, (Z) => { const z = Z.find((x) => x.id === id); if (z) { if (z.name === (D[z.kg] || '')) z.name = D[k] || z.name; z.kg = k; } }); }
+  });
   V.addEventListener('click', (e) => {
     if (!B || !B.data || !B.data.excel) return;
+    const pl = e.target.closest('[data-bkxneu]');
+    if (pl) { const k = pl.dataset.bkxneu, D = B.din || {}; let id = ''; OFFEN.add(k);
+      aendern(`Betrag in KG ${k} angelegt`, (Z) => { id = neueId(Z); Z.push({ id, kg: k, kg_alt: '', name: D[k] || 'Betrag', name_alt: '', betrag: 0, nr: 1, extern: false }); });
+      setTimeout(() => { const f = V.querySelector(`[data-bkxb="${CSS.escape(id)}"]`); if (f) { f.focus(); f.select(); } }, 400); return; }
+    const x = e.target.closest('[data-bkxweg]');
+    if (x) { const id = x.dataset.bkxweg; return aendern('Betrag entfernt', (Z) => { const i = Z.findIndex((z) => z.id === id); if (i >= 0) Z[i] = null; }, [id]); }
     const k = e.target.closest('[data-bkxk]'); if (k) { const g = k.dataset.bkxk; if (OFFEN.has(g)) OFFEN.delete(g); else OFFEN.add(g); zeichne(); return; }
     if (e.target.closest('[data-bkxgel]')) return datenAendern('Hinweise gelesen', { excel: { ...B.data.excel, gelesen: true } });
     if (e.target.closest('[data-bkxhw]')) return datenAendern('Hinweise wieder zeigen', { excel: { ...B.data.excel, gelesen: false } });

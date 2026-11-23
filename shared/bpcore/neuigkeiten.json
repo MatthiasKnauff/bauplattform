@@ -1,5 +1,13 @@
 [
  {
+  "id": "kosten-excel-bearbeiten",
+  "datum": "2026-11-23",
+  "app": "baukosten",
+  "titel": "Kosten aus Excel bearbeiten",
+  "text": "Auf der Seite „DIN 276“ eines eingelesenen Excel-Stands lassen sich die Beträge direkt ändern. Aufgeklappt hat jeder Einzelbetrag Kostengruppe, Bezeichnung und ✕; ＋ an einer Kostengruppe legt einen neuen Betrag an. Alles mit Rückgängig.",
+  "ziel": ".bkx-t"
+ },
+ {
   "id": "kosten-excel",
   "datum": "2026-11-23",
   "app": "baukosten",

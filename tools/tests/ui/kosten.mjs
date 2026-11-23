@@ -87,6 +87,21 @@ export async function kostenPruefen(browser, repo) {
       pruef(await p.evaluate(() => document.querySelectorAll('.bkx-t tr.ee').length) === 2, 'Einzelbeträge aufklappen');
       const n = S.put.length; await p.click('.bkx-hw [data-bkxnach]'); await p.waitForTimeout(300);
       const pu = S.put[n]; pruef(pu && pu.data.excel.zeilen.filter((z) => z.kg === '444').length === 1, `Vorschlag auf der Seite: ${JSON.stringify(pu && pu.data.excel)}`);
+      // 23.11.2026: bearbeiten wie in der Liste – Betrag in der Zelle, ＋ in einer leeren KG, ✕ entfernt; KG 700 = Baunebenkosten fest
+      const xl = () => p.evaluate((X) => { B = { ...B, data: { ...B.data, preise: { 'xl:3': 2900 }, excel: { ...X, am: '2026-11-23', gelesen: true } },
+        calc: { ...B.calc, zeilen: X.zeilen.map((z) => ({ ...z, quelle: 'excel' })), total: 9200, brutto: 10948, risiko: 0 }, din: { ...B.din, 320: 'Gründung', 322: 'Flachgründungen', 323: 'Tiefgründungen', 440: 'Elektrische Anlagen', 441: 'Hochspannung', 444: 'Niederspannung' } }; tab = 'din'; zeichne(); }, XL);
+      await xl(); let m = S.put.length;
+      await p.fill('[data-bkxb="xl:3"]', '3.500,5'); await p.press('[data-bkxb="xl:3"]', 'Tab'); await p.waitForTimeout(300);
+      let q = S.put[m]; pruef(q && q.data.excel.zeilen.find((z) => z.id === 'xl:3').betrag === 3500.5 && !('xl:3' in q.data.preise) && q.data.nk_fest === 0, `Betrag in der Zelle: ${JSON.stringify(q && q.data)}`);
+      await xl(); m = S.put.length; await p.click('[data-bkxneu="323"]', { force: true }); await p.waitForTimeout(300);
+      q = S.put[m]; const neu = q && q.data.excel.zeilen.find((z) => z.kg === '323');
+      pruef(neu && neu.id === 'xl:4' && neu.betrag === 0 && neu.name === 'Tiefgründungen', `＋ Betrag in leerer KG: ${JSON.stringify(q && q.data.excel.zeilen)}`);
+      await xl(); m = S.put.length;   // 322 ist von oben noch aufgeklappt
+      await p.click('[data-bkxweg="xl:2"]', { force: true }); await p.waitForTimeout(300);
+      q = S.put[m]; pruef(q && q.data.excel.zeilen.length === 2 && !q.data.excel.zeilen.some((z) => z.id === 'xl:2'), `✕ entfernt den Betrag: ${JSON.stringify(q && q.data.excel.zeilen)}`);
+      await xl(); m = S.put.length;
+      await p.fill('[data-bkxkg="xl:1"]', '715'); await p.press('[data-bkxkg="xl:1"]', 'Tab'); await p.waitForTimeout(300);
+      q = S.put[m]; pruef(q && q.data.excel.zeilen.find((z) => z.id === 'xl:1').kg === '715' && q.data.nk_fest === 5000, `KG ändern, KG 700 fest: ${JSON.stringify(q && q.data)}`);
     }
     {   // 20.11.2026: die aktuelle Version lässt sich wie in den anderen Apps über das Versionsmenü löschen (Papierkorb, Rückgängig)
       await p.click('.bk-vm-nav [data-vm="dd"]'); await p.waitForSelector('.bph-vm-m [data-vm="verw"]');

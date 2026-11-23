@@ -164,7 +164,7 @@ def sauber(x):
     """Stand aus dem Browser (Vorschau, ggf. mit übernommenem Vorschlag) → nur bekannte Felder."""
     x = x if isinstance(x, dict) else {}
     s = lambda v, n: str(v if v is not None else "").strip()[:n]   # noqa: E731
-    Z = []
+    Z, ids = [], set()
     for i, z in enumerate((x.get("zeilen") if isinstance(x.get("zeilen"), list) else [])[:3000]):
         if not isinstance(z, dict) or not re.fullmatch(r"[1-8]\d\d", str(z.get("kg") or "")):
             continue
@@ -172,7 +172,11 @@ def sauber(x):
             b = round(float(z.get("betrag") or 0), 2)
         except (TypeError, ValueError):
             continue
-        Z.append({"id": f"xl:{i + 1}", "kg": z["kg"], "kg_alt": s(z.get("kg_alt"), 3), "name": s(z.get("name"), 200) or "Betrag", "name_alt": s(z.get("name_alt"), 200),
+        zid = str(z.get("id") or "")   # Kennung bleibt beim Bearbeiten (Preise von Hand hängen daran); neue/doppelte bekommen eine freie
+        if not re.fullmatch(r"xl:\d{1,5}", zid) or zid in ids:
+            zid = next(f"xl:{n}" for n in range(i + 1, 10 ** 6) if f"xl:{n}" not in ids)
+        ids.add(zid)
+        Z.append({"id": zid, "kg": z["kg"], "kg_alt": s(z.get("kg_alt"), 3), "name": s(z.get("name"), 200) or "Betrag", "name_alt": s(z.get("name_alt"), 200),
                   "betrag": max(-1e9, min(1e9, b)), "nr": int(z.get("nr") or 1) if str(z.get("nr") or "1").isdigit() else 1, "extern": bool(z.get("extern"))})
     B = [{"art": b["art"], "kg": s(b.get("kg"), 3), "text": s(b.get("text"), 300), **({"nach": s(b["nach"], 3)} if b.get("nach") else {})}
          for b in (x.get("befunde") if isinstance(x.get("befunde"), list) else [])[:200] if isinstance(b, dict) and b.get("art") in ARTEN]

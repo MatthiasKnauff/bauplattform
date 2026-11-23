@@ -202,7 +202,8 @@ async function zeichne() {
   V.innerHTML = tab === 'bauteile' ? bauteile() : tab === 'din' ? (B.data.excel ? bkExcel.din() : din()) : tab === 'mittel' ? await mittel() : uebersicht();
   seiteRechts();
 }
-function teilZeichnen() { const f = document.activeElement && document.activeElement.dataset; const k = f && (f.bkep || f.bkz || f.bkmg); zeichne().then(() => { if (k) { const el = V.querySelector(`[data-bkep="${CSS.escape(k)}"],[data-bkz="${CSS.escape(k)}"],[data-bkmg="${CSS.escape(k)}"]`); if (el) el.focus(); } }); }
+const FOKUS = ['bkep', 'bkz', 'bkmg', 'bkxb', 'bkxn', 'bkxkg'];   // Felder, die nach dem Speichern den Fokus behalten (Kosten aus Excel: baukosten-excel.js)
+function teilZeichnen() { const f = document.activeElement && document.activeElement.dataset, a = f && FOKUS.find((x) => f[x]), k = a && f[a]; zeichne().then(() => { if (k) { const el = V.querySelector(`[data-${a}="${CSS.escape(k)}"]`); if (el) el.focus(); } }); }
 function seiteRechts() { if (window.seite) seite(WORK, 'bk', [], { start: 'bauteile' }); }
 
 V.addEventListener('click', async (e) => {

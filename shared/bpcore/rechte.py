@@ -106,8 +106,8 @@ def stufe(user, block):
 def app_stufe(user, app):
     """„an“, „lesen“ oder „aus“ für eine App – aus Rolle und Ausnahmen (users.rechte). Wer „verwaltung“ hat, hat die Verwaltung
     immer ganz (sonst sperrt man sich aus); die übrigen Apps lassen sich auch für sie wählen (23.11.2026)."""
-    if not user or (app == "admin" and hat(user, "verwaltung")):
-        return "an"
+    if not user or _feld(user, "rechte") is None or (app == "admin" and hat(user, "verwaltung")):
+        return "an"   # ohne gespeicherte Rechte (Gäste, Tests) gibt es keine Stufen – „hat“ ersetzt dort jedes Recht durch „Administrator“
     return "aus" if hat(user, f"app.{app}.aus") else "lesen" if hat(user, f"app.{app}.lesen") else "an"
 
 

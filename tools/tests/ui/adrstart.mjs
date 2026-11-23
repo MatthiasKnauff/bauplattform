@@ -88,6 +88,13 @@ export async function adrStartPruefen(browser, repo) {
         reiter: [...document.querySelectorAll('.sr-r [role="tab"], .sr-r .sr-tab')].map((x) => x.textContent.trim()).filter(Boolean),
         luecke: Math.round(document.querySelector('#adrW > .sr-r').getBoundingClientRect().left - document.querySelector('#list').getBoundingClientRect().right) }));
       pruef(r.t === 'Dach GmbH' && r.on && !r.maske && r.luecke < 40, `Klick zeigt den Kontakt rechts, keine leere Fläche – ${JSON.stringify(r)}`);
+      {   // 23.11.2026 (Bildschirmfoto): Schriftverkehr anklickbar – öffnet den Eintrag mit Text, ↓ blättert
+        const v = await p.evaluate(() => { ADR_VL = { id: 1, L: [{ id: 5, ts: '2026-11-16 10:00', betreff: 'Mängelrüge', art_name: 'Rüge', inhalt: 'Bitte bis …', email: 'a@b.de', link: '/aufgaben/' }, { id: 4, ts: '2026-11-10', betreff: 'LV', inhalt: '' }] };
+          const el = document.createElement('div'); el.innerHTML = adrVz(ADR_VL.L[0], 0); document.body.appendChild(el); el.firstChild.click();
+          const m = document.querySelector('.adr-vzm'), r = { t: m && m.textContent, link: !!(m && m.querySelector('a[href="/aufgaben/"]')) };
+          m.querySelector('[data-m="next"]').click(); r.n = document.querySelector('.adr-vzm h3').textContent; document.querySelector('.adr-vzm [data-m="zu"]').click(); el.remove(); r.zu = !document.querySelector('.adr-vzm'); return r; });
+        pruef(/Bitte bis/.test(v.t) && v.link && v.n === 'LV' && v.zu, `Schriftverkehr öffnen: ${JSON.stringify(v)}`);
+        await p.click('#list .ct[data-id="1"]'); await p.waitForTimeout(150); }
       await p.keyboard.press('ArrowDown'); await p.waitForTimeout(150);
       pruef(await p.evaluate(() => { const K = [...document.querySelectorAll('#list .ct')], n = K[K.findIndex((k) => k.dataset.id === '1') + 1]; return !!n && ADR_SEL === +n.dataset.id && document.activeElement === n; }), '↓ blättert zur nächsten Karte');
       await p.dblclick('#list .ct[data-id="2"]'); await p.waitForTimeout(400);

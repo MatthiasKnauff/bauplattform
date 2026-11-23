@@ -1,5 +1,13 @@
 [
  {
+  "id": "adr-schrift-oeffnen",
+  "datum": "2026-11-23",
+  "app": "adressen",
+  "titel": "Schriftverkehr öffnen",
+  "text": "Rechts im Kontakt unter „Schriftverkehr“ und „Zuletzt“ öffnet ein Klick den Eintrag – mit Text, Empfänger:in und Stand; ↑ ↓ blättert, „↗ öffnen“ führt zur Sache.",
+  "ziel": "#adrW"
+ },
+ {
   "id": "gantt-ub-projektwahl",
   "datum": "2026-11-23",
   "app": "gantt",

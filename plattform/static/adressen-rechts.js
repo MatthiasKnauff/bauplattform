@@ -76,19 +76,38 @@ async function adrVerlauf(c) {   // Schriftverkehr aus dem Kern – einmal je Ko
   return ADR_VL.L || [];
 }
 const adrDatum = (ts) => { const d = new Date(String(ts || '').replace(' ', 'T')); return isNaN(d) ? '' : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }); };
-const adrVz = (x) => `<div class="adr-pz"><span>${esc(x.betreff || x.art_name || 'Sendung')}${x.projekt ? ` <small class="mute">· ${esc(x.projekt)}</small>` : ''}</span><small class="mute">${esc(adrDatum(x.ts))}</small></div>`;
+const adrVz = (x, i) => `<div class="adr-pz adr-vz" data-adrvz="${i}" role="button" tabindex="0" title="Öffnen"><span>${esc(x.betreff || x.art_name || 'Sendung')}${x.projekt ? ` <small class="mute">· ${esc(x.projekt)}</small>` : ''}</span><small class="mute">${esc(adrDatum(x.ts))}</small></div>`;
 async function adrZuletzt(c) {
   const L = await adrVerlauf(c), box = document.querySelector('.sr-r [data-adrzuletzt], .sr-flo [data-adrzuletzt]');
   if (!box || ADR_SEL !== c.id) return;
-  box.innerHTML = `<b>Zuletzt</b>${L.slice(0, 3).map(adrVz).join('') || '<div class="mute">Noch kein Schriftverkehr.</div>'}`;
+  box.innerHTML = `<b>Zuletzt</b>${L.slice(0, 3).map((x, i) => adrVz(x, i)).join('') || '<div class="mute">Noch kein Schriftverkehr.</div>'}`;
 }
 async function adrSchrift(el, c) {
   const km = ((window.BPHead && BPHead.conf) || {}).apps ? BPHead.conf.apps.find((a) => a.key === 'kommunikation') : null;
   el.innerHTML = '<div class="adr-r mute">Schriftverkehr wird geladen …</div>';
   const L = await adrVerlauf(c); if (ADR_SEL !== c.id) return;
-  el.innerHTML = `<div class="adr-r"><h3>${esc(c.name)}</h3>${L.map(adrVz).join('') || '<p class="mute">Noch kein Schriftverkehr.</p>'}
+  el.innerHTML = `<div class="adr-r"><h3>${esc(c.name)}</h3>${L.map((x, i) => adrVz(x, i)).join('') || '<p class="mute">Noch kein Schriftverkehr.</p>'}
     ${km ? `<div><a class="btn sm" href="${esc(BPHead.appUrl(km))}/#kontakt=${c.id}">↗ in der Kommunikation öffnen</a></div>` : ''}</div>`;
 }
+/* Schriftverkehr anklicken (23.11.2026): ein Eintrag öffnet sich mit Inhalt, Empfänger:in, Weg und Stand; ↑ ↓ blättert, „↗ öffnen“ führt zur Sache */
+function adrVzOeffnen(i) {
+  const L = ADR_VL.L || []; let k = i;
+  const html = (x) => `<div class="mh"><h3 style="margin:0">${esc(x.betreff || x.art_name || 'Sendung')}</h3><button type="button" class="x" data-m="x" aria-label="Schließen">✕</button></div>
+    <div class="mb adr-vzd"><dl><dt>Datum</dt><dd>${esc(adrDatum(x.ts))}</dd><dt>Art</dt><dd>${esc(x.art_name || '')}${x.weg_name ? ' · ' + esc(x.weg_name) : ''}</dd>
+      <dt>An</dt><dd>${esc([x.name, x.email].filter(Boolean).join(' · ') || '–')}</dd>${x.projekt ? `<dt>Projekt</dt><dd>${esc(x.projekt)}</dd>` : ''}
+      ${x.von ? `<dt>Von</dt><dd>${esc(x.von)}</dd>` : ''}<dt>Stand</dt><dd>${esc(x.status === 'fehler' ? 'nicht gesendet' + (x.fehler ? ' – ' + x.fehler : '') : x.status || 'gesendet')}</dd></dl>
+      ${x.inhalt ? `<div class="adr-vzt">${esc(x.inhalt)}</div>` : '<p class="mute">Kein Text gespeichert.</p>'}</div>
+    <div class="mf"><button type="button" class="btn" data-m="prev"${k > 0 ? '' : ' disabled'}>↑</button><button type="button" class="btn" data-m="next"${k < L.length - 1 ? '' : ' disabled'}>↓</button>
+      <span style="flex:1"></span>${x.link ? `<a class="btn" href="${esc(x.link)}">↗ öffnen</a>` : ''}<button type="button" class="btn" data-m="zu">Schließen</button></div>`;
+  const bg = modalBox(html(L[k]), (m, bg, close) => {
+    if (m === 'x' || m === 'zu') return close();
+    k = Math.max(0, Math.min(L.length - 1, k + (m === 'next' ? 1 : m === 'prev' ? -1 : 0)));
+    bg.querySelector('.modal').innerHTML = html(L[k]);
+  });
+  bg.querySelector('.modal').classList.add('adr-vzm');
+}
+document.addEventListener('click', (e) => { const z = e.target.closest('[data-adrvz]'); if (z) adrVzOeffnen(+z.dataset.adrvz); });
+document.addEventListener('keydown', (e) => { const z = e.key === 'Enter' && e.target.closest && e.target.closest('[data-adrvz]'); if (z) { e.preventDefault(); adrVzOeffnen(+z.dataset.adrvz); } });
 /* Wählen: Karte oder Zeile → rechts zeigen; nichts springt – nur die Markierung wechselt, rechts wird neu gefüllt */
 function adrWaehle(id, fokus) {
   ADR_SEL = id;

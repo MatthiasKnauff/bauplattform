@@ -142,6 +142,17 @@ def _kurz(name, k):   # „Erdgeschoss“ → EG, „1. Obergeschoss“ → 1OG,
     return re.sub(r"[\s.]", "", m.group(1)).upper() if m else f"G{k + 1}"
 
 
+def kuerzel(namen):
+    """Kürzel je Geschoss, eindeutig: zwei Geschosse mit gleichem Namen im IFC (z. B. zweimal „1.Obergeschoss“) bekämen sonst
+    dieselben Raumnummern – die Raumnummer ist überall die Kennung des Raums (Liste, Raumbuch, Auswahl). → 1OG, 1OGb, 1OGc …"""
+    out, da = [], {}
+    for k, n in enumerate(namen):
+        kz = _kurz(n, k)
+        da[kz] = da.get(kz, 0) + 1
+        out.append(kz if da[kz] == 1 else f"{kz}{chr(96 + da[kz])}")
+    return out
+
+
 def raeume(raw):
     N = _Netz(raw)
     E = N.E
@@ -168,7 +179,7 @@ def raeume(raw):
                 Q = [(p[0], p[1]) for p in f]
                 if len(Q) >= 3 and abs(_flaeche(Q)) > 1e-4:
                     teile[k].append((Q, typ in WAND, z0, z1))
-    out = []
+    out, KZ = [], kuerzel([g["n"] for g in G])
     for k, T in teile.items():
         if not any(w for _, w, _, _ in T):
             continue
@@ -225,7 +236,7 @@ def raeume(raw):
             cx, cy = sum(p[0] for p in P) / len(P), sum(p[1] for p in P) / len(P)
             gef.append((cy, cx, fl, um, P))
         gef.sort(key=lambda r: (-round(r[0], 0), r[1]))
-        kz = _kurz(G[k]["n"], k)
+        kz = KZ[k]
         for m, (_, _, fl, um, P) in enumerate(gef):
             out.append({"id": ID0 + len(out), "nr": f"{kz}.{m + 1:02d}", "name": "Raum", "flaeche": round(fl, 2), "umfang": round(um, 2), "hoehe": hoehe,
                         "geschoss": G[k]["n"] if G[k]["i"] else "", "z": round(max(G[k]["z"], min(z0 for _, w, z0, _ in T if w)), 3),

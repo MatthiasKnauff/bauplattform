@@ -73,3 +73,8 @@ def test_ausgeben_legt_ifcspace_an():
     assert len(r2["raeume"]) == 2 and not any("ermittelt" in h for h in r2["hinweise"]), r2
     assert sorted(round(x["flaeche"]) for x in r2["raeume"]) == sorted(round(x["flaeche"]) for x in L["raeume"]), (r2["raeume"], L["raeume"])
     assert any(x["name"] == "Wohnen" for x in r2["raeume"]), r2["raeume"]
+
+
+def test_kuerzel_eindeutig():   # 23.11.2026: zweimal „1.Obergeschoss“ im IFC → je zwei Räume mit derselben Nummer, ein Klick wählte beide
+    K = RS.kuerzel(["Erdgeschoss", "1.Obergeschoss", "1.Obergeschoss", "Dach"])
+    assert K == ["EG", "1OG", "1OGb", "G4"], K

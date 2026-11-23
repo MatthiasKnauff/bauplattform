@@ -1,5 +1,13 @@
 [
  {
+  "id": "kosten-excel",
+  "datum": "2026-11-23",
+  "app": "baukosten",
+  "titel": "Kostenberechnung aus Excel einlesen",
+  "text": "Neu → „Aus Excel …“ liest die alte Excel-Liste (.xls oder .xlsx) als eigenen Kostenstand ein: Kostengruppen von DIN 276:2008 auf 2018 umgesetzt („war …“), Einzelbeträge aufklappbar, Rechenfehler, Lücken und fragliche Zuordnungen als Hinweise. Die Seite „DIN 276“ zeigt den Stand wie die Liste, netto und brutto.",
+  "ziel": "#bfl"
+ },
+ {
   "id": "ava-ziehen-aufklappen",
   "datum": "2026-11-23",
   "app": "ava",

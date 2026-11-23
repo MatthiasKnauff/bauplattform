@@ -158,3 +158,29 @@ def test_rechte_baukosten(ctx):
     anna = ctx.anmelden("Anna Bauer")
     anna.get(f"{BK}/bk", expect=200)
     _weg(ctx, _neu(ctx, client=anna)["id"])
+
+
+def test_aus_excel(ctx):
+    """Excel-Kostenberechnung (Mock XL-0 … XL-8 A, 23.11.2026): Vorschau liest nur, Übernehmen legt einen eigenen Kostenstand an –
+    Summe wie die Liste, KG 700 fest, kein Unvorhergesehenes, keine Bauteile des Modells; Vorschlag 441 → 444 und „gelesen“ bleiben."""
+    from einheit.xls_fiktiv import kosten
+    roh = kosten()
+    c = ctx.admin
+    x = c.req("POST", f"{BK}/bk/excel/vorschau", dateien={"datei": ("kosten_fiktiv.xls", roh, "application/vnd.ms-excel")}).json
+    gleich(x["summe"], 34000.5, "Vorschau: Summe")
+    pruefe(any(b["art"] == "pruefen" and b.get("nach") == "444" for b in x["befunde"]), "Vorschau: 441 → 444")
+    r = c.req("POST", f"{BK}/bk/excel/vorschau", dateien={"datei": ("x.pdf", b"%PDF-1.4", "application/pdf")}, expect=400).json
+    pruefe("Excel" in r["error"], f"falsche Datei: {r}")
+    s = c.pj(f"{BK}/bk/excel", {"project_id": ctx.pid, "name": ctx.name("Aus Excel"), "excel": x})
+    try:
+        gleich(s["calc"]["total"], 34000.5, "Stand: Summe wie die Liste")
+        gleich(s["calc"]["nk"], 4000.0, "Stand: KG 700 fest")
+        gleich(s["data"]["risiko"], 0, "Stand: ohne Unvorhergesehenes")
+        pruefe(not s["data"]["bauteile"] and not s["modell"]["neu"], "Stand: keine Bauteile des Modells")
+        pruefe(s["din"].get("741") == "Tragwerksplanung", "Namen der DIN 276 auch für 700")
+        X = dict(s["data"]["excel"], gelesen=True, zeilen=[dict(z, kg="444") if z["kg"] == "441" else z for z in s["data"]["excel"]["zeilen"]])
+        s2 = c.req("PUT", f"{BK}/bk/{s['id']}", {"rev": s["rev"], "data": {**s["data"], "excel": X}}).json
+        pruefe(s2["data"]["excel"]["gelesen"] and any(z["kg"] == "444" for z in s2["data"]["excel"]["zeilen"]), "Vorschlag übernommen, gelesen")
+        gleich(s2["calc"]["total"], 34000.5, "Summe bleibt")
+    finally:
+        _weg(ctx, s["id"])

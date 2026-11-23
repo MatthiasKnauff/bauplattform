@@ -16,6 +16,9 @@ export async function kostenPruefen(browser, repo) {
       genau: { unten: 8100, oben: 12500, minus: 10, plus: 38.9, ampel: 'rot', ziel: [20, 25], ziel_quelle: 'OLG Hamm', teile: { preise: 6, markt: 8.2, mengen: 2, offen: 30 }, offen: 1, besser: ['„Elektro“ beantworten (bis 2.700 €)'] } },
     modell: { rev: 5, neu: !S.ueb, zeilen: 1, offen: [{ id: 'frage:elektro', name: 'Elektro', moeglich: 2700 }] }, stufen: [['berechnung', 'Kostenberechnung'], ['anschlag', 'Kostenanschlag']].map(([key, name]) => ({ key, name })),
     din: { 300: 'Bauwerk – Baukonstruktionen', 330: 'Außenwände', 400: 'Bauwerk – Technische Anlagen', 700: 'Baunebenkosten' }, ...mehr });
+  const XL = { datei: 'kosten.xls', fassung: '2008', summe: 9200, liste: ['322', '441'], zeilen: [{ id: 'xl:1', kg: '322', kg_alt: '324', name: 'Betrag 1', name_alt: 'Unterböden', betrag: 5000 },
+    { id: 'xl:2', kg: '322', kg_alt: '324', name: 'Betrag 2', name_alt: 'Unterböden', betrag: 1200 }, { id: 'xl:3', kg: '441', kg_alt: '441', name: 'Hochspannung', name_alt: 'Hochspannung', betrag: 3000 }],
+    befunde: [{ art: 'umgesetzt', kg: '322', text: '324 → 322' }, { art: 'pruefen', kg: '441', nach: '444', text: '441 – meist 444' }, { art: 'luecke', kg: '391', text: '391: 0 €' }] };
   const p = await browser.newPage({ viewport: { width: 1500, height: 950 } });
   p.on('pageerror', (e) => fehler.push('Fehler im Skript – ' + e.message));
   await p.route('http://kosten.test/**', (r) => {
@@ -31,7 +34,9 @@ export async function kostenPruefen(browser, repo) {
     if (pf === 'api/bk') return J([{ id: 1, name: 'Startversion', project_id: 7, gueltig: true, total: 11880 }]);
     if (pf === 'api/bk/1' && q.method() === 'DELETE') { S.weg = true; return J({ ok: true, papierkorb: 5 }); }
     if (pf === 'api/bk/1' && q.method() === 'PUT') { const b = JSON.parse(q.postData() || '{}'); S.put.push(b); S.rev++; if (b.data) S.preise = b.data.preise; if (b.stufe) S.stufe = b.stufe; return J(bk()); }
-    if (pf === 'api/bk/1') return J(bk());
+    if (pf === 'api/bk/1' || pf === 'api/bk/2') return J(bk());   // 2 = neu aus Excel
+    if (pf === 'api/bk/excel/vorschau') { S.vorschau = (q.postDataBuffer() || '').length; return J(XL); }
+    if (pf === 'api/bk/excel') { S.excelNeu = JSON.parse(q.postData() || '{}'); return J({ id: 2 }); }
     if (pf === 'api/bk/1/uebernehmen') { S.ueb++; return J(bk()); }
     if (pf === 'api/bk/1/flow') return J({ ok: false, why: 'Für das Projekt gibt es keinen Bauzeitenplan.' });
     if (pf.startsWith('api/bp/modell/7')) return J({ modell: { bauteilliste: { zeilen: [], raeume: [], quelle: {} } }, rev: 5 });
@@ -65,6 +70,24 @@ export async function kostenPruefen(browser, repo) {
     pruef(pm && pm.data && pm.data.mengen && pm.data.mengen.f === 12, `Menge von Hand: ${JSON.stringify(pm)}`);
     await p.evaluate(() => [...document.querySelectorAll('#navL [data-tab]')].find((x) => /DIN/.test(x.textContent)).click()); await p.waitForSelector('.bk-din');
     pruef(await p.evaluate(() => /Außenwände/.test(document.querySelector('.bk-din').textContent)), 'DIN 276 zeigt die 2. Ebene nicht');
+    {   // Excel-Kostenberechnung (23.11.2026): Einlesen über die Befehlsleiste, Vorschau mit 441 → 444, Seite DIN 276 wie die Liste
+      const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.evaluate(() => [...document.querySelectorAll('#bfl button')].find((b) => /Aus Excel/.test(b.textContent)).click())]);
+      await fc.setFiles({ name: 'kosten.xls', mimeType: 'application/vnd.ms-excel', buffer: Buffer.from('xls') });
+      await p.waitForSelector('[data-bkxv]');
+      await p.click('[data-bkxv] [data-bkxnach]'); await p.waitForTimeout(100);
+      pruef(await p.evaluate(() => !document.querySelector('[data-bkxv] [data-bkxnach]')), 'Vorschau: Vorschlag 441 → 444 bleibt stehen');
+      await p.click('.modal [data-m="ok"]'); await p.waitForTimeout(400);
+      const x = S.excelNeu && S.excelNeu.excel;
+      pruef(S.vorschau > 0 && x && S.excelNeu.project_id === 7 && x.zeilen.some((z) => z.kg === '444') && !x.befunde.some((b) => b.nach), `Excel übernehmen: ${JSON.stringify(S.excelNeu)}`);
+      await p.evaluate((X) => { B = { ...B, data: { ...B.data, excel: { ...X, am: '2026-11-23', von: 'admin', gelesen: false } },
+        calc: { ...B.calc, zeilen: X.zeilen.map((z) => ({ ...z, quelle: 'excel', bereich: 'excel' })), total: 9200, brutto: 10948, risiko: 0 }, din: { ...B.din, 320: 'Gründung', 322: 'Flachgründungen und Bodenplatten', 323: 'Tiefgründungen', 440: 'Elektrische Anlagen', 441: 'Hoch- und Mittelspannungsanlagen' } }; tab = 'din'; zeichne(); }, XL);
+      const v = await p.evaluate(() => ({ t: document.querySelector('.bkx-t').innerText, hw: !!document.querySelector('.bkx-hw [data-bkxnach]'), ee: document.querySelectorAll('.bkx-t tr.ee').length }));
+      pruef(/war 324/.test(v.t) && /ergänzt/.test(v.t) && /2 Beträge/.test(v.t) && v.hw && v.ee === 0, `DIN 276 aus Excel: ${JSON.stringify(v)}`);
+      await p.click('[data-bkxk="322"]'); await p.waitForTimeout(100);
+      pruef(await p.evaluate(() => document.querySelectorAll('.bkx-t tr.ee').length) === 2, 'Einzelbeträge aufklappen');
+      const n = S.put.length; await p.click('.bkx-hw [data-bkxnach]'); await p.waitForTimeout(300);
+      const pu = S.put[n]; pruef(pu && pu.data.excel.zeilen.filter((z) => z.kg === '444').length === 1, `Vorschlag auf der Seite: ${JSON.stringify(pu && pu.data.excel)}`);
+    }
     {   // 20.11.2026: die aktuelle Version lässt sich wie in den anderen Apps über das Versionsmenü löschen (Papierkorb, Rückgängig)
       await p.click('.bk-vm-nav [data-vm="dd"]'); await p.waitForSelector('.bph-vm-m [data-vm="verw"]');
       await p.click('.bph-vm-m [data-vm="verw"]'); await p.waitForTimeout(300);

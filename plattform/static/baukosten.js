@@ -8,8 +8,9 @@ const TABS = [['uebersicht', 'Übersicht'], ['bauteile', 'Bauteile'], ['din', 'D
 const IC = { uebersicht: '<path d="M5 20V11M11 20V5M17 20v-7M3 20h18"/>', bauteile: '<path d="M4 7h16M4 12h16M4 17h16"/>', din: '<path d="M5 5h14v14H5zM5 10h14M10 10v9"/>',
   mittel: '<path d="M3 17l5-5 4 3 8-8M15 7h5v5"/>' };
 const ICL = { version: '<path d="M6 3h9l3 3v15H6z"/><path d="M9 3v5h6"/>', druck: '<path d="M7 9V3h10v6M7 17H4v-7h16v7h-3"/><path d="M7 14h10v7H7z"/>',
-  bh: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/>', ueb: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>', details: '<path d="M4 4h16v16H4zM14 4v16"/>' };
-const BEREICH = { rohbau: 'Rohbau', oeffnung: 'Öffnungen', raum: 'Räume – Oberflächen', ausbau: 'Küche und Bad', frage: 'Weitere (nicht im Modell)', hand: 'Von Hand', leistung: 'Leistungen ohne Bauteil' };
+  bh: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/>', ueb: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>', details: '<path d="M4 4h16v16H4zM14 4v16"/>',
+  xl: '<path d="M5 3h10l4 4v14H5z"/><path d="M9 11l5 6M14 11l-5 6"/>' };
+const BEREICH = { rohbau: 'Rohbau', oeffnung: 'Öffnungen', raum: 'Räume – Oberflächen', ausbau: 'Küche und Bad', frage: 'Weitere (nicht im Modell)', hand: 'Von Hand', leistung: 'Leistungen ohne Bauteil', excel: 'Aus der Excel-Liste' };
 const AMPEL = { gruen: ['im Ziel', 'var(--ok,#2e9d5b)'], gelb: ['am Rand des Ziels', 'var(--warn,#c99a06)'], rot: ['außerhalb des Ziels', 'var(--red,#c62f2a)'] };
 let LIST = [], B = null, tab = LS.get('tab') || 'uebersicht', FLOW = null, saveT = 0;
 const eur = (v) => (v == null ? '–' : bpZahl(Math.round(v), 0, 0) + ' €');
@@ -104,7 +105,7 @@ function hinweisModell() {
 function uebersicht() {
   const c = B.calc;
   return `${hinweisModell()}<div class="bk-stufen">${B.stufen.map((s) => `<button type="button" class="btn sm${s.key === B.stufe ? ' pri' : ''}" data-bkstufe="${s.key}">${esc(s.name)}</button>`).join('')}</div>
-    <div class="bk-zwei"><section class="card"><h3>Kosten</h3>${zuschlaege()}<p class="mute bk-q">${B.data.bauteile.length} Bauteile aus dem Projektmodell${c.area ? ` · ${bpZahl(c.area, 0, 2)} m² Räume · ${eur(c.kw)}/m² Bauwerk` : ''}</p></section>
+    <div class="bk-zwei"><section class="card"><h3>Kosten</h3>${zuschlaege()}<p class="mute bk-q">${B.data.excel ? `${B.data.excel.zeilen.length} Beträge aus „${esc(B.data.excel.datei)}“` : `${B.data.bauteile.length} Bauteile aus dem Projektmodell`}${c.area ? ` · ${bpZahl(c.area, 0, 2)} m² Räume · ${eur(c.kw)}/m² Bauwerk` : ''}</p></section>
     <section class="card"><h3>Genauigkeit</h3>${band(c.genau)}</section></div>${teileHtml(c)}`;
 }
 // Gebäudeteile (GT-C1, 18.11.2026): Bauteile je Teil, netto ohne Zuschläge – nur wenn das Modell mehrere Teile hat
@@ -121,7 +122,7 @@ function bauteile() {
   return `${hinweisModell()}<table class="bk-t bk-zl"><thead><tr><th>Bauteil</th><th>KG</th><th>Element</th><th class="z">Menge</th><th class="z">EP</th><th class="z">Spanne</th><th class="z">Betrag</th></tr></thead><tbody>
     ${Object.entries(grp).map(([b, L]) => `<tr class="g"><td colspan="7">${esc(BEREICH[b] || b)}</td></tr>${L.map((z) => `<tr data-bkzl="${esc(z.id)}">
       <td>${esc(z.name)}<div class="mute bk-k">${esc([z.einordnung, z.mat].filter(Boolean).join(' · '))}</div></td><td>${esc(z.kg)}</td><td>${z.code ? `<code>${esc(z.code)}</code>` : z.aufbau ? `<code>${esc(z.aufbau.v)}</code> <span class="mute">nach Wahl</span>` : '<span class="mute">kein Aufbau</span>'}</td>
-      <td class="z"><input class="n${z.hand_menge ? ' hand' : ''}" data-bkmg="${esc(z.id)}" value="${bpZahl(z.menge, 0, 2)}" inputmode="decimal" title="${z.hand_menge ? `Menge hier geändert (Modell: ${bpZahl(z.menge_modell, 0, 2)}) – leeren für die Menge aus dem Modell` : 'Menge aus dem Gebäudemodell – ändern möglich, geht als Vorschlag ans Modell'}" aria-label="Menge ${esc(z.name)}"> ${esc(z.einheit)}</td>
+      <td class="z">${z.quelle === 'excel' ? `${bpZahl(z.menge, 0, 2)}` : `<input class="n${z.hand_menge ? ' hand' : ''}" data-bkmg="${esc(z.id)}" value="${bpZahl(z.menge, 0, 2)}" inputmode="decimal" title="${z.hand_menge ? `Menge hier geändert (Modell: ${bpZahl(z.menge_modell, 0, 2)}) – leeren für die Menge aus dem Modell` : 'Menge aus dem Gebäudemodell – ändern möglich, geht als Vorschlag ans Modell'}" aria-label="Menge ${esc(z.name)}">`} ${esc(z.einheit)}</td>
       <td class="z"><input class="n${z.hand ? ' hand' : ''}" data-bkep="${esc(z.id)}" value="${bpZahl(z.ep, 2, 2)}" inputmode="decimal" title="${z.hand ? 'Preis von Hand – leeren für den Preis aus dem Baukasten' : 'Preis aus dem Baukasten (mittel) – überschreiben möglich'}" aria-label="Einheitspreis ${esc(z.name)}"></td>
       <td class="z mute">${z.ep_von ? `${bpZahl(z.ep_von, 0, 0)}–${bpZahl(z.ep_bis, 0, 0)}` : '–'}</td><td class="z">${eur(z.betrag)}</td></tr>`).join('')}`).join('')}
     <tr class="s"><td colspan="6">Summe Bauteile</td><td class="z">${eur(B.calc.bauwerk + B.calc.extra)}</td></tr></tbody></table>`;
@@ -171,8 +172,9 @@ function leiste() {   // Befehlsleiste wie in allen Apps (befehle.js): Rückgän
   const pid = BPHead.projektId(), bh = window.BPHead && BPHead.bauherrAn && BPHead.bauherrAn();
   befehle(LEISTE, [
     { titel: 'Neu', knoepfe: [B ? { t: 'Version', ic: ICL.version, fn: neueVersion, tip: 'Neue Version als Kopie dieser Kostenermittlung' }
-      : { t: 'Kostenermittlung', ic: ICL.version, fn: anlegen, aus: !pid, tip: 'Kostenermittlung für dieses Projekt anlegen' }] },
-    { titel: 'Modell', knoepfe: [{ t: 'Bauteile übernehmen', ic: ICL.ueb, fn: uebernehmen, aus: !B, tip: 'Bauteile und Mengen aus dem Projektmodell neu übernehmen' }] },
+      : { t: 'Kostenermittlung', ic: ICL.version, fn: anlegen, aus: !pid, tip: 'Kostenermittlung für dieses Projekt anlegen' },
+      { t: 'Aus Excel …', ic: ICL.xl, fn: () => bkExcel.einlesen(), aus: !pid, tip: 'Kostenberechnung aus einer Excel-Liste (.xls/.xlsx) als neuen Kostenstand einlesen – DIN 276:2008 wird auf 2018 umgesetzt' }] },
+    { titel: 'Modell', knoepfe: [{ t: 'Bauteile übernehmen', ic: ICL.ueb, fn: uebernehmen, aus: !B || !!B.data.excel, tip: 'Bauteile und Mengen aus dem Projektmodell neu übernehmen' }] },
     { titel: 'Ausgabe', knoepfe: [{ t: 'Drucken …', ic: ICL.druck, fn: drucken, aus: !B, tip: 'Bericht als PDF: Deckblatt, Zusammenfassung, DIN 276, Genauigkeit, Mittelabfluss … – ankreuzen, Vorschau, senden, ablegen' }] },
     { titel: 'Teilen', knoepfe: [bh ? { t: 'Bauherr:in', ic: ICL.bh, fn: bauherr, aus: !B, tip: 'Kostenstand (DIN 276, 1. Ebene) für die Bauherr:innen freigeben – Bauherrenportal' } : null] },
     { titel: 'Ansicht', rechts: true, knoepfe: [{ t: 'Details', ic: ICL.details, fn: () => window.seiteUmschalten && seiteUmschalten(), aus: !B, tip: 'Bereich rechts (Bauteile, Planung, Fragen) zeigen oder an den Rand klappen' }] },
@@ -197,7 +199,7 @@ async function zeichne() {
     return;
   }
   V.className = 'bp-voll bk';
-  V.innerHTML = tab === 'bauteile' ? bauteile() : tab === 'din' ? din() : tab === 'mittel' ? await mittel() : uebersicht();
+  V.innerHTML = tab === 'bauteile' ? bauteile() : tab === 'din' ? (B.data.excel ? bkExcel.din() : din()) : tab === 'mittel' ? await mittel() : uebersicht();
   seiteRechts();
 }
 function teilZeichnen() { const f = document.activeElement && document.activeElement.dataset; const k = f && (f.bkep || f.bkz || f.bkmg); zeichne().then(() => { if (k) { const el = V.querySelector(`[data-bkep="${CSS.escape(k)}"],[data-bkz="${CSS.escape(k)}"],[data-bkmg="${CSS.escape(k)}"]`); if (el) el.focus(); } }); }

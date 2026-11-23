@@ -19,7 +19,7 @@ from datetime import date, datetime, timedelta
 
 from flask import g, jsonify, redirect, request
 
-from bpcore import baudaten, bauteilliste, db, kosten, modell, papierkorb, rueckweg, sso, versionen
+from bpcore import baudaten, bauteilliste, db, din276, kosten, modell, papierkorb, rueckweg, sso, versionen
 from bpcore.jsonwert import lies as _j
 import common as C
 
@@ -104,7 +104,7 @@ def _s(v, n):
 # ---------------------------------------------------------------- Daten einer Kostenermittlung
 def default_data(c=None):
     return {"bauteile": [], "rooms": [], "modell_rev": 0, "preise": {}, "nk": 20.0, "nk_fest": None, "risiko": 10.0, "mwst": 19.0, "rate": 3.0,
-            "shares": {}, "notes": "", "kostenstand": datetime.now().strftime("%Y-%m"), "mengen": {}}
+            "shares": {}, "notes": "", "kostenstand": datetime.now().strftime("%Y-%m"), "mengen": {}, "excel": None}
 
 
 def _zeile_sauber(b):
@@ -152,6 +152,9 @@ def clean_data(d, c=None):
     o["notes"] = _s(d.get("notes"), 8000)
     if re.fullmatch(r"20\d\d-(0[1-9]|1[0-2])", str(d.get("kostenstand") or "")):
         o["kostenstand"] = d["kostenstand"]
+    if isinstance(d.get("excel"), dict):   # eingelesene Excel-Kostenberechnung (baukosten_excel.py) – Beträge je Kostengruppe
+        import baukosten_excel
+        o["excel"] = baukosten_excel.sauber(d["excel"])
     return o
 
 
@@ -194,6 +197,20 @@ def calc(d, offen=(), stufe="berechnung"):
             else:
                 k4 += betrag
         else:
+            extra += betrag
+    for z in (d.get("excel") or {}).get("zeilen") or []:   # Beträge aus der Excel-Liste: wie Zeilen von Hand (1 psch); KG 700 steckt in nk_fest
+        betrag = round((P.get(z["id"], z["betrag"])), 2)
+        zeilen.append({"id": z["id"], "kg": z["kg"], "name": z["name"], "menge": 1, "einheit": "psch", "ep": betrag, "betrag": betrag, "hand": True,
+                       "quelle": "excel", "src": "excel", "bereich": "excel", "kg_alt": z.get("kg_alt", ""), "name_alt": z.get("name_alt", ""), "extern": z.get("extern")})
+        k = z["kg"]
+        if k[0] in "34":
+            x = kg2.setdefault(k[:2] + "0", {"wert": 0.0, "quelle": "bauteile", "n": 0})
+            x["wert"] += betrag; x["n"] += 1
+            if k[0] == "3":
+                k3 += betrag
+            else:
+                k4 += betrag
+        elif k[0] != "7":
             extra += betrag
     for x in kg2.values():
         x["wert"] = round(x["wert"], 2)
@@ -266,6 +283,8 @@ def _out(c, r, full=True):
         if r["project_id"]:
             _melden(c, r["project_id"])
         Z, R, rev, offen = aus_modell(c, r["project_id"])
+        if d.get("excel"):   # Stand aus einer Excel-Liste: ohne Bauteile des Modells (sonst doppelt) – kein Hinweis „Modell geändert“, nichts Offenes
+            offen, Z = [], []
         o["data"] = d
         o["calc"] = calc(d, offen, r["stufe"])
         if o["calc"]["teile"] and r["project_id"]:   # Namen der Gebäudeteile aus dem Modell
@@ -273,7 +292,7 @@ def _out(c, r, full=True):
             o["calc"]["teile_namen"] = {k: N.get(k) or k for k in o["calc"]["teile"]}
         o["modell"] = {"rev": rev, "neu": rev != d["modell_rev"] and bool(Z or d["bauteile"] or offen), "zeilen": len(Z), "offen": offen}
         o["stufen"] = [{"key": k, "name": STUFE_NAME[k]} for k in STUFEN]
-        o["din"] = DIN
+        o["din"] = {**din276.WEITERE, **din276.NAMEN, **DIN}
     else:
         o["total"] = calc(d)["total"]
     return o
@@ -387,15 +406,56 @@ def bk_one(i):
             sets.append("gantt_id=?"); args.append(gid)
         if "archived" in b:
             sets.append("archived=?"); args.append(1 if b["archived"] else 0)
-        if isinstance(b.get("data"), dict):   # nur Preise, Zuschläge, Notizen – die Bauteile kommen aus dem Projektmodell
+        if isinstance(b.get("data"), dict):   # nur Preise, Zuschläge, Notizen, Excel-Stand (gelesen, Vorschlag übernommen) – die Bauteile kommen aus dem Projektmodell
             d = clean_data(_j(r["data"], {}))
-            neu = clean_data({**d, **{k: v for k, v in b["data"].items() if k in ("preise", "mengen", "nk", "nk_fest", "risiko", "mwst", "rate", "shares", "notes", "kostenstand")}})
+            neu = clean_data({**d, **{k: v for k, v in b["data"].items() if k in ("preise", "mengen", "nk", "nk_fest", "risiko", "mwst", "rate", "shares", "notes", "kostenstand", "excel")}})
             sets.append("data=?"); args.append(json.dumps(neu))
             if r["project_id"] and neu["mengen"] != d["mengen"]:   # Menge hier geändert → Vorschlag ans Gebäudemodell (Schalter „ins Modell“, Standard an)
                 rueckweg.vorschlagen(c, r["project_id"], "kosten", [{"id": k, "menge": v} for k, v in neu["mengen"].items()], {"name": r["name"], "ref": f"bk:{i}"}, g.user["name"])
         if sets:
             _speichern(c, i, sets, args)
         return jsonify(_out(c, _row(c, i)))
+
+
+@app.post("/api/bk/excel/vorschau")
+def bk_excel_vorschau():
+    """Excel-Kostenberechnung (.xls/.xlsx) nur lesen – nichts wird gespeichert (baukosten_excel.lesen)."""
+    import baukosten_excel
+    f = request.files.get("datei")
+    if not f:
+        return jsonify(error="Keine Datei."), 400
+    roh = f.read(20 * 1024 * 1024 + 1)
+    if len(roh) > 20 * 1024 * 1024:
+        return jsonify(error="Die Datei ist größer als 20 MB."), 400
+    try:
+        return jsonify(baukosten_excel.lesen(f.filename, roh))
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
+
+
+@app.post("/api/bk/excel")
+def bk_excel_neu():
+    """Eingelesene Liste als neuen Kostenstand übernehmen (XL-1 … XL-5 A): Beträge als Zeilen, KG 700 als Baunebenkosten fest, Unvorhergesehenes 0 %
+    – so ergibt der Stand dieselbe Summe wie die Liste; die Bauteile des Modells kommen nicht dazu (sonst doppelt)."""
+    import baukosten_excel
+    b = request.get_json(silent=True) or {}
+    x = baukosten_excel.sauber(b.get("excel"))
+    if not x["zeilen"]:
+        return jsonify(error="In der Liste stehen keine Beträge."), 400
+    x.update(am=_now()[:10], von=g.user["name"], gelesen=False)
+    with db.tx() as c:
+        pid = b.get("project_id") if isinstance(b.get("project_id"), int) else None
+        if pid and not c.execute("SELECT 1 FROM projects WHERE id=?", (pid,)).fetchone():
+            pid = None
+        d = default_data()
+        d.update(excel=x, risiko=0.0, nk_fest=round(sum(z["betrag"] for z in x["zeilen"] if z["kg"][0] == "7"), 2))
+        name = _s(b.get("name"), 200) or ("Aus Excel – " + (x["datei"] or "Kostenberechnung"))[:200]
+        now = _now()
+        r = c.execute("INSERT INTO bk_projects(name, project_id, gantt_id, stufe, data, created, updated, updated_by) VALUES(?,?,?,?,?,?,?,?) RETURNING id",
+                      (name, pid, None, "berechnung", json.dumps(clean_data(d)), now, now, g.user["name"])).fetchone()
+        out = _out(c, _row(c, r["id"]))
+    C.audit(g.user["name"], "baukosten", "Excel-Kostenberechnung eingelesen", f"{name} ({len(x['zeilen'])} Beträge)")
+    return jsonify(out)
 
 
 @app.post("/api/bk/<int:i>/uebernehmen")

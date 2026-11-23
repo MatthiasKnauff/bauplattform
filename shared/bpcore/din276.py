@@ -57,6 +57,27 @@ _E3 = {
 }
 NAMEN = dict(sorted({**_E2, **_E3, **{k[:2] + "9": f"Sonstiges zur KG {k}" for k in _E2 if len(k) == 3 and k.endswith("0") and k[1] != "0" and k[:2] + "9" not in _E3}}.items()))   # x9 = Sonstiges (DIN 276)
 
+# KG 100, 600, 700, 800 (DIN 276:2018-12) – nur für Anzeigen (eingelesene Excel-Listen, DIN-276-Ansicht der Kosten); nicht in NAMEN,
+# damit die Vorschlagslisten der Bauteile bei 200 bis 500 bleiben
+WEITERE = {
+    "100": "Grundstück", "110": "Grundstückswert", "120": "Grundstücksnebenkosten", "130": "Rechte Dritter", "190": "Sonstiges zur KG 100",
+    "600": "Ausstattung und Kunstwerke", "610": "Allgemeine Ausstattung", "620": "Besondere Ausstattung", "630": "Informationstechnische Ausstattung",
+    "640": "Künstlerische Ausstattung", "690": "Sonstige Ausstattung",
+    "700": "Baunebenkosten", "710": "Bauherrenaufgaben", "711": "Projektleitung", "712": "Bedarfsplanung", "713": "Projektsteuerung",
+    "714": "Sicherheits- und Gesundheitsschutzkoordination", "715": "Vergabeverfahren", "719": "Sonstiges zur KG 710",
+    "720": "Vorbereitung der Objektplanung", "721": "Untersuchungen", "722": "Wertermittlungen", "723": "Städtebauliche Leistungen",
+    "724": "Landschaftsplanerische Leistungen", "725": "Wettbewerbe", "729": "Sonstiges zur KG 720",
+    "730": "Objektplanung", "731": "Gebäude und Innenräume", "732": "Freianlagen", "733": "Ingenieurbauwerke", "734": "Verkehrsanlagen", "739": "Sonstiges zur KG 730",
+    "740": "Fachplanung", "741": "Tragwerksplanung", "742": "Technische Ausrüstung", "743": "Bauphysik", "744": "Geotechnik", "745": "Ingenieurvermessung",
+    "746": "Lichttechnik, Tageslichttechnik", "747": "Brandschutz", "748": "Altlasten, Kampfmittel, kulturhistorische Funde", "749": "Sonstiges zur KG 740",
+    "750": "Künstlerische Leistungen", "751": "Kunstwettbewerbe", "752": "Honorare", "759": "Sonstiges zur KG 750",
+    "760": "Allgemeine Baunebenkosten", "761": "Gutachten und Beratung", "762": "Prüfungen, Genehmigungen, Abnahmen", "763": "Bewirtschaftungskosten",
+    "764": "Bemusterungskosten", "765": "Betriebskosten nach der Abnahme", "766": "Versicherungen", "769": "Sonstiges zur KG 760",
+    "790": "Sonstige Baunebenkosten",
+    "800": "Finanzierung", "810": "Finanzierungsnebenkosten", "820": "Fremdkapitalzinsen", "830": "Eigenkapitalzinsen", "840": "Bürgschaften",
+    "890": "Sonstige Finanzierungskosten",
+}
+
 # Gewerk (Stichwort im Namen, klein geschrieben) → passende Kennzahlen bzw. Anfänge davon, wichtigste zuerst
 _GEWERK = [
     (("abbruch", "demontage", "rückbau", "rueckbau", "entkernung", "schadstoff"), ("212", "394", "396", "211")),

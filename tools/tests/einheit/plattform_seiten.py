@@ -28,3 +28,10 @@ def test_adressen_der_seite():
     gleich(R.seite_zugang(u, "ava", "GET", "/api/lv"), None, "LV-Liste gesperrt")
     gleich(R.seite_zugang(u, "ava", "POST", "/api/lv/3/versand/senden"), "an", "Erinnerung senden")
     pruefe(all(k in R.KEYS for k in ("seite.ava.nachverfolgen", "seite.ava.nachverfolgen.lesen")), "Rechte bekannt")
+
+
+def test_verwaltung_waehlt_apps():
+    """Auch für Rollen mit „Verwaltung“ (Geschäftsführung) lassen sich Apps wählen – nur die Verwaltung selbst bleibt ganz (23.11.2026)."""
+    gleich(R.app_stufe(_u("verwaltung", "app.zeiten.aus"), "zeiten"), "aus", "Zeiten aus trotz Verwaltung")
+    gleich(R.app_stufe(_u("verwaltung", "app.ava.lesen"), "ava"), "lesen", "nur lesen trotz Verwaltung")
+    gleich(R.app_stufe(_u("verwaltung", "app.admin.aus"), "admin"), "an", "Verwaltung bleibt ganz")

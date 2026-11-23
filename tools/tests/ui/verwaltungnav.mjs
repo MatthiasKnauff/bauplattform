@@ -23,6 +23,9 @@ export async function verwaltungNavPruefen(browser, repo) {
     if (pf === 'api/bt/settings') { if (r.request().method() === 'PUT') { const b = r.request().postDataJSON(); gesetzt.push(b); if ('mail_aus' in b) mailAus = b.mail_aus; return J({ ok: true }); } return J({ mail_user: 'buero@firma.de', mail_pass_set: true, mail_aus: mailAus }); }
     if (pf === 'api/bp/post/zuweisung') return J({ benutzer: [], postfaecher: [], zuordnung: {} });
     if (pf === 'api/bp/kopf') return J({ conf: { apps: [], projekte: [] }, ki: { choice: 'ollama', providers: [{ key: 'ollama', label: 'Ollama', ok: true }] } });
+    if (pf === 'api/rollen') return J({ rollen: ['Geschäftsführung', 'Büroleitung', 'Bauleitung', 'Mitarbeiter:in', 'Azubi', 'Praktikant:in', 'Extern'].map((n, i) => ({ key: 'r' + i, name: n, n: 1, modus: '', rechte: i ? [] : ['verwaltung', 'app.zeiten.aus'] })),
+      rechte_liste: [{ key: 'verwaltung', gruppe: 'Verwaltung', name: 'Verwaltung', erkl: 'Alles in der Verwaltung einstellen' }],
+      apps_liste: [{ key: 'zeiten', name: 'Zeiten', seiten: [] }, { key: 'ava', name: 'Ausschreibung & Abrechnung', seiten: [] }] });
     if (pf === 'api/platform') return J({ apps: [], projekte: [] });
     if (pf === 'api/bp/ki') return J({ choice: 'ollama', providers: [{ key: 'ollama', label: 'Ollama', ok: true }] });
     if (pf === 'api/bp/ki/stufen') return J({ buero: true, extern: false, grund: { extern: 'nicht erlaubt' } });
@@ -56,6 +59,15 @@ export async function verwaltungNavPruefen(browser, repo) {
       if (process.env.BILD2) await p.screenshot({ path: process.env.BILD2 });
       await p.click('#mvAus [data-bs="mailaus"]'); await p.waitForSelector('#mvAus:not(.an)', { timeout: 8000 });
       pruef(gesetzt.some((b) => b.mail_aus === '0'), 'Mailversand wieder einschalten speichert nicht');
+    }
+    {   // 23.11.2026: Rollen & Rechte bei schmalem Fenster – Knöpfe brechen nicht um, die Tabelle rollt für sich; Apps auch für Rollen mit „Verwaltung“ wählbar
+      await p.setViewportSize({ width: 1000, height: 800 });
+      await p.goto('http://adm.test/verwaltung/#rollen'); await p.waitForSelector('.ro-t .ro-mod', { timeout: 8000 });
+      const r = await p.evaluate(() => { const segs = [...document.querySelectorAll('.ro-t .seg')], hoch = segs.filter((s) => s.getBoundingClientRect().height > 2 * s.querySelector('button').getBoundingClientRect().height);
+        const gf = [...document.querySelectorAll('.ro-t [data-roapp="r0"]')];
+        return { hoch: hoch.length, seite: document.documentElement.scrollWidth <= innerWidth, gf: gf.length && gf.every((b) => !b.disabled), aus: (document.querySelector('.ro-t [data-roapp="r0"][data-app="zeiten"].pri') || {}).dataset?.s }; });
+      pruef(!r.hoch && r.seite && r.gf && r.aus === 'aus', 'Rollen & Rechte bei 1.000 px: ' + JSON.stringify(r));
+      if (process.env.BILD3) await p.screenshot({ path: process.env.BILD3, fullPage: true });
     }
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();

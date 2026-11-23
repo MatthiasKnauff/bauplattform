@@ -405,11 +405,13 @@ def test_apps_im_buero_abschalten(ctx):
     """Apps fürs ganze Büro abschalten: verschwinden aus der App-Liste (auch beim Administrator), einschalten bringt sie zurück;
     Verwaltung/Startseite und unbekannte Namen lassen sich nicht abschalten."""
     try:
-        r = ctx.admin.uj("/verwaltung/api/apps_aus", {"aus": ["baudaten", "verwaltung", "gibtsnicht"]})
-        gleich(r["aus"], ["baudaten"], "nur bekannte Apps")
+        r = ctx.admin.uj("/verwaltung/api/apps_aus", {"aus": ["baudaten", "akquise", "verwaltung", "gibtsnicht"]})
+        gleich(r["aus"], ["akquise", "baudaten"], "nur bekannte Apps (auch Akquise, 23.11.2026)")
+        pruefe(any(a["key"] == "akquise" for a in r["apps"]), "Akquise steht in der Liste")
         time.sleep(3.5)   # jeder Arbeitsprozess hält die Einstellung 3 Sekunden vor
         keys = [a["key"] for a in ctx.admin.gj("/verwaltung/api/platform")["apps"]]
-        pruefe("baudaten" not in keys and "admin" in keys, f"abgeschaltet: {keys}")
+        pruefe("baudaten" not in keys and "akquise" not in keys and "admin" in keys, f"abgeschaltet: {keys}")
+        ctx.admin.get("/akquise/api/me", expect=403)   # direkt aufgerufen: gesperrt
         pruefe("baudaten" not in ctx.admin.gj("/verwaltung/api/me")["apps"], "auch nicht in den Apps des Administrators")
     finally:
         ctx.admin.uj("/verwaltung/api/apps_aus", {"aus": []})

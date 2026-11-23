@@ -16,6 +16,7 @@ DOMAIN = os.environ.get("SSO_COOKIE_DOMAIN", "").strip() or None
 SECURE = os.environ.get("COOKIE_SECURE") == "1"
 DAYS = int(os.environ.get("SSO_DAYS", "30") or 30)
 APPS = (("bautagebuch", "Bautagebuch"), ("gantt", "Bauzeitenplan"), ("adressen", "Adressen"), ("baukosten", "Baukosten"), ("aufgaben", "Aufgaben & Post"), ("plaene", "Pläne & Dateien"), ("ava", "Ausschreibung & Abrechnung"), ("kommunikation", "Post (Verschickt)"), ("baudaten", "Baudaten"), ("zeiten", "Zeiten"), ("bauantrag", "Bauantrag"), ("waermeschutz", "Wärmeschutz"), ("wiki", "Wiki"), ("personal", "Personal"), ("gebaeudemodell", "Gebäudemodell"))   # Apps mit Zugriffsrecht je Benutzer
+ABSCHALTBAR = (("honorar", "Honorar"), ("akquise", "Akquise"))   # Apps ohne Zugriffsrecht je Benutzer, die sich im Büro trotzdem abschalten lassen (Verwaltung → Apps)
 _TOUCH = 300   # „zuletzt gesehen“ höchstens alle 5 Minuten schreiben
 
 
@@ -164,7 +165,7 @@ def apps_aus(frisch=False):
 
 
 def apps_aus_setzen(c, keys):
-    keys = sorted({k for k in keys if k in {a for a, _ in APPS} | {"honorar"}})
+    keys = sorted({k for k in keys if k in {a for a, _ in APPS + ABSCHALTBAR}})
     c.execute("INSERT INTO settings(key, value) VALUES('apps_aus', ?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (json.dumps(keys),))
     _AUS.update(t=0.0)
     return keys

@@ -911,7 +911,7 @@ BT_PASS = re.compile(r"^(logo|mail/test|store/(test|run|backfill|status)|backups
 def apps_aus():
     """Apps fürs ganze Büro abschalten: verschwinden für alle (auch Administratoren) aus Kacheln, Menü und Verweisen;
     wer sie direkt aufruft, sieht eine Sperrseite. Verwaltung und Startseite lassen sich nicht abschalten."""
-    alle = [{"key": k, "name": n} for k, n in sso.APPS] + [{"key": "honorar", "name": "Honorar"}]
+    alle = [{"key": k, "name": n} for k, n in sso.APPS + sso.ABSCHALTBAR]
     if request.method == "PUT":
         keys = (request.get_json(silent=True) or {}).get("aus") or []
         with db.tx() as c:

@@ -47,7 +47,7 @@ BLOECKE = [   # key, Bereich, Titel, enthält, stufen
     ("aufgaben", "Apps", "Aufgaben: Erinnerungen & To-do-Regeln", "Erinnerungsmails (Vorlauf, Uhrzeit) und die Regeln der automatischen To-dos fürs Büro", 3),
 ]
 # Apps je Rolle (beschlossen am 17.11.2026): an (nichts eingetragen) · nur lesen („app.<key>.lesen“) · aus („app.<key>.aus“) –
-# in der Rolle und als Ausnahme je Person (rechte_plus/minus) wie jedes Recht. „Verwaltung“ hat immer alle Apps ganz.
+# in der Rolle und als Ausnahme je Person (rechte_plus/minus) wie jedes Recht. „Verwaltung“ hat immer die App Verwaltung ganz.
 from .sso import APPS as _APPS   # noqa: E402 – sso importiert rechte nicht
 APP_STUFEN = ("lesen", "aus")
 APP_BLOCK = {"baukosten": "baukosten", "baudaten": "baudaten", "ava": "ava", "plaene": "plaene", "gantt": "gantt", "aufgaben": "aufgaben"}
@@ -104,8 +104,9 @@ def stufe(user, block):
 
 
 def app_stufe(user, app):
-    """„an“, „lesen“ oder „aus“ für eine App – aus Rolle und Ausnahmen (users.rechte). Wer „verwaltung“ hat, hat alle Apps ganz."""
-    if not user or hat(user, "verwaltung"):
+    """„an“, „lesen“ oder „aus“ für eine App – aus Rolle und Ausnahmen (users.rechte). Wer „verwaltung“ hat, hat die Verwaltung
+    immer ganz (sonst sperrt man sich aus); die übrigen Apps lassen sich auch für sie wählen (23.11.2026)."""
+    if not user or (app == "admin" and hat(user, "verwaltung")):
         return "an"
     return "aus" if hat(user, f"app.{app}.aus") else "lesen" if hat(user, f"app.{app}.lesen") else "an"
 

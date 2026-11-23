@@ -15,7 +15,7 @@ import urllib.parse
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import stammdaten, akquise as AQ, db, honorar as H, papierkorb, platform, projekte, rechte
+from bpcore import stammdaten, akquise as AQ, db, honorar as H, papierkorb, platform, projekte, rechte, sso
 import common as C
 
 app = C.make_app(__name__)
@@ -32,7 +32,7 @@ def guard():
         if p.startswith("/api/"):
             return jsonify(error="Nicht angemeldet", login=C.login_url(C.app_base(KEY) + "/")), 401
         return redirect(C.login_url(request.url))
-    if not (rechte.hat(u, "akquise") or rechte.hat(u, "verwaltung")):
+    if KEY in sso.apps_aus() or not (rechte.hat(u, "akquise") or rechte.hat(u, "verwaltung")):
         return C.gesperrt(KEY, "Die Akquise ist nur mit dem Recht „Akquise“ (ab Werk Geschäftsführung).")
     g.user = u
 

@@ -1,5 +1,13 @@
 [
  {
+  "id": "rollen-apps-gf-2311",
+  "datum": "2026-11-23",
+  "app": "admin",
+  "titel": "Apps auch für die Geschäftsführung",
+  "text": "Unter Rollen & Rechte lässt sich jetzt auch für Rollen mit „Verwaltung“ wählen, welche Apps an, nur zu lesen oder aus sind – nur die Verwaltung selbst bleibt immer offen. Bei schmalem Fenster rollt die Tabelle für sich, die Knöpfe bleiben in einer Zeile. Unter Apps im Büro lässt sich jetzt auch die Akquise abschalten.",
+  "ziel": ".ro-t"
+ },
+ {
   "id": "baudaten-baum-flacher",
   "datum": "2026-11-23",
   "app": "baudaten",

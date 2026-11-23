@@ -88,7 +88,8 @@ export async function wsModellPruefen(browser, repo) {
     // Baustoff wählen: Suche mit Filtern statt langer Liste
     await p.evaluate(() => { BID = 'aw1'; zeichne(); });
     await p.click('.ws-bsb[data-sk="m"][data-si="0"]'); await p.waitForSelector('.ws-bsw', { timeout: 5000 });
-    await p.fill('.modal .bpf-in', 'rockwool'); await p.waitForTimeout(250);
+    await p.fill('.modal .bpf-in', 'rockwool');
+    await p.waitForFunction(() => [...document.querySelectorAll('.ws-bsw tr[data-bsw]')].filter((x) => x.dataset.bsw !== 'eigen').every((x) => /ROCKWOOL/.test(x.textContent)), null, { timeout: 5000 }).catch(() => {});   // gefiltert wird nach dem Tippen – warten, bis die Liste steht
     if (process.env.SHOT) await p.screenshot({ path: process.env.SHOT });
     const w = await p.evaluate(() => [...document.querySelectorAll('.ws-bsw tr[data-bsw]')].filter((x) => x.dataset.bsw !== 'eigen').map((x) => x.textContent));
     pruef(w.length > 20 && w.every((t) => /ROCKWOOL/.test(t)), `Suche „rockwool“: ${w.length} Treffer, nicht alle ROCKWOOL`);

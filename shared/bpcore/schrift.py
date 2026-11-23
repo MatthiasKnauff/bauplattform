@@ -32,9 +32,5 @@ def registrieren(art="lato"):
 
 def fuer(c):
     """Schrift laut Einstellung des Büros (Vorgabe: Lato)."""
-    try:
-        r = c.execute("SELECT value FROM settings WHERE key='co_font'").fetchone()
-        art = (r["value"] if r else "") or "lato"
-    except Exception:   # Einstellung nicht lesbar: Vorgabeschrift Lato
-        art = "lato"
-    return registrieren(art)
+    r = c.execute("SELECT value FROM settings WHERE key='co_font'").fetchone()
+    return registrieren((r["value"] if r else "") or "lato")

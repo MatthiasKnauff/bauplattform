@@ -58,13 +58,10 @@ def _passend(t, pfad, text):
     worte = [w for w in _fold(FIRMA_WEG.sub(" ", text or "")).split() if len(w) >= 4]
     if not worte:
         return None
-    try:
-        for d in sorted(t.dirs(pfad)):
-            f = _fold(d)
-            if all(w in f for w in worte[:2]) or worte[0] in f:
-                return d
-    except Exception:   # dirs() liefert bei Fehlern schon [] – hier nur Absicherung
-        pass
+    for d in sorted(t.dirs(pfad)):   # dirs() liefert bei Fehlern schon []
+        f = _fold(d)
+        if all(w in f for w in worte[:2]) or worte[0] in f:
+            return d
     return None
 
 

@@ -221,11 +221,8 @@ def _monat(s):
 
 
 def layout_werte(c, r, p, stufe):
-    S = {x["key"]: x["value"] for x in c.execute("SELECT key, value FROM settings WHERE key='office_name' OR key LIKE 'co\\_%'").fetchall()}
-    kurz = S.get("co_short") or S.get("office_name") or ""
     adr = ", ".join(x for x in ((p["street"] or "") if p else "", " ".join(y for y in ((p["zip"] or "") if p else "", (p["city"] or "") if p else "") if y)) if x)
-    W = {"buero": S.get("office_name") or kurz, "datum": date.today().strftime("%d.%m.%Y"), "bearbeiter": C.full_name(g.user) if getattr(g, "user", None) else "",
-         "fusszeile": " · ".join(v for v in (kurz, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x), S.get("co_phone"), S.get("co_email"), S.get("co_web")) if v),
+    W = {**layout.buero_werte(c), "bearbeiter": C.full_name(g.user) if getattr(g, "user", None) else "",   # Büro, Absender, Fußzeile, Datum (bpcore/layout.py)
          "projekt": p["name"] if p else "", "bauvorhaben": ", ".join(v for v in ((p["name"] if p else ""), adr if adr and p and adr not in p["name"] else "") if v),
          "bauherr": (p["client"] or "") if p else "", "dokument": stufe, "untertitel": " · ".join(x for x in ((p["name"] if p else ""), r["name"]) if x),
          "lv": f"{stufe} – {r['name']}", "gewerk": "", "auftragnehmer": ""}

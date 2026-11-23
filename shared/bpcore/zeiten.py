@@ -479,20 +479,12 @@ def aufraeumen(c, tage=60):
 
 # ------------------------------------------------------------------ Vorschläge
 def _vorort_alle(c, uid):
-    try:
-        from . import konto
-        return _j(konto._get(c, f"vorort:log:{uid}"), {}) or {}
-    except Exception:   # noqa: BLE001
-        return {}
+    from . import konto
+    return _j(konto._get(c, f"vorort:log:{uid}"), {}) or {}
 
 
 def _vorort(c, uid, tag):
-    try:
-        from . import konto
-        log = _j(konto._get(c, f"vorort:log:{uid}"), {}) or {}
-    except Exception:   # noqa: BLE001
-        return {}
-    return log.get(tag) or {}
+    return _vorort_alle(c, uid).get(tag) or {}
 
 
 def _fahrt(c, pid):

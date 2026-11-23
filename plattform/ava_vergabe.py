@@ -102,11 +102,8 @@ def vorgaben(c):
 
 def plaene(c, pid):
     """Bauzeitenpläne des Projekts zur Auswahl im Protokoll: [{id, name, stand, gueltig}] – der gültige zuerst."""
-    try:
-        from bpcore import plan
-        alle, gid = plan.plans_mit_id(c, pid, alle=True), plan.gueltiger_plan(c, pid)
-    except Exception:   # noqa: BLE001
-        return []
+    from bpcore import plan
+    alle, gid = plan.plans_mit_id(c, pid, alle=True), plan.gueltiger_plan(c, pid)
     st = {r["id"]: (r["updated"] or r["created"] or "")[:10] for r in c.execute("SELECT id, updated, created FROM gantt_projects WHERE id = ANY(?)", ([x[0] for x in alle],)).fetchall()} if alle else {}
     L = [{"id": i, "name": n, "stand": st.get(i, ""), "gueltig": i == gid} for i, n, _ in alle]
     return sorted(L, key=lambda x: (not x["gueltig"], x["name"]))

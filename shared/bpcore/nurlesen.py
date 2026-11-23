@@ -51,11 +51,8 @@ def einrichten(app, app_key):
     def _nur_lesen():
         if request.method not in SCHREIBEN or not request.path.startswith("/api/") or EIGEN.search(request.path):
             return None
-        try:
-            with db.tx() as c:
-                u = sso.current(c, request)
-        except Exception:   # noqa: BLE001 – ohne Datenbank (Rechentests): nichts sperren
-            return None
+        with db.tx() as c:
+            u = sso.current(c, request)
         if u is not None and gesperrt(app_key, u):
             name = dict(APPS).get(app_key, app_key)
             return jsonify(error=f"Nur lesen: In „{name}“ kannst du ansehen, aber nichts ändern. Das legt die Verwaltung in deiner Rolle fest.",

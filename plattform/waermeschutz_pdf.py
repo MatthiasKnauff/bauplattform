@@ -10,7 +10,7 @@ Abgelegt wird über die Druckseite im Ordner aus den Ablage-Einstellungen (C1, V
 """
 import io
 import json
-from datetime import date, datetime
+from datetime import datetime
 
 from flask import Response, g, jsonify, request
 
@@ -137,10 +137,7 @@ def druckdaten(nid):
 
 
 def _werte(c, n, p):
-    S = {x["key"]: x["value"] for x in c.execute("SELECT key, value FROM settings WHERE key='office_name' OR key LIKE 'co\\_%'").fetchall()}
-    kurz = S.get("co_short") or S.get("office_name") or ""
-    W = {"buero": S.get("office_name") or kurz, "datum": date.today().strftime("%d.%m.%Y"), "bearbeiter": C.full_name(g.user),
-         "fusszeile": " · ".join(v for v in (kurz, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x), S.get("co_phone"), S.get("co_email"), S.get("co_web")) if v),
+    W = {**layout.buero_werte(c), "bearbeiter": C.full_name(g.user),   # Büro, Absender, Fußzeile, Datum – eine Stelle (bpcore/layout.py)
          "projekt": p.get("name", ""), "bauvorhaben": p.get("name", ""), "bauherr": p.get("client", ""), "dokument": "Nachweis des Wärmeschutzes",
          "untertitel": n["name"], "lv": "Wärmeschutznachweis", "gewerk": "", "auftragnehmer": ""}
     W.update({k: v for k, v in layout.eigene_werte(c, n["project_id"]).items() if v or k not in W})

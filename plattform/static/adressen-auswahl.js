@@ -114,7 +114,7 @@ function awZusammen() {
   duplikate([{ ids: G.map((c) => c.id), grund: `${G.length} gewählte Adressen`, kontakte: G }]);
 }
 function awExport(art) {
-  const ids = awSichtbar().filter((i) => AW.S.has(i)).concat([...AW.S].filter((i) => !awSichtbar().includes(i)));
+  const V = awSichtbar(), sicht = new Set(V), ids = V.filter((i) => AW.S.has(i)).concat([...AW.S].filter((i) => !sicht.has(i)));   // Reihenfolge wie in der Liste, Ausgeblendete hinten – einmal gefiltert
   const qs = '?' + new URLSearchParams({ ids: ids.join(','), filter: `Auswahl (${ids.length} Kontakte)` });
   if (art === 'pdf') adrDruck(qs, ids.length); else { location.assign('api/contacts/export.xlsx' + qs); toast('Excel-Datei wird geladen …'); }
 }

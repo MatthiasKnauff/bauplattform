@@ -668,9 +668,12 @@ def logo_zeichner(c):
     return zeichne
 
 
-def buero_werte(c):
-    """Werte des Büros für jeden Ausdruck: buero, absender, fusszeile, datum (aus Verwaltung → Büro)."""
-    S = {r[0]: r[1] or "" for r in c.execute("SELECT key, value FROM settings WHERE key IN ('office_name','co_short','co_street','co_zip','co_city','co_phone','co_email','co_web')").fetchall()}
+def buero_werte(c=None, S=None):
+    """Werte des Büros für jeden Ausdruck: buero, absender, fusszeile, datum (aus Verwaltung → Büro). S: schon gelesene Einstellungen
+    (key → value) statt der Datenbank – EINE Stelle für Absender und Fußzeile aller Ausdrucke."""
+    if S is None:
+        S = {r[0]: r[1] or "" for r in c.execute("SELECT key, value FROM settings WHERE key IN ('office_name','co_short','co_street','co_zip','co_city','co_phone','co_email','co_web')").fetchall()}
+    S = {k: v or "" for k, v in S.items()}
     name, kurz = S.get("office_name") or S.get("co_short") or "", S.get("co_short") or S.get("office_name") or ""
     ort = " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x)
     return {"buero": name, "absender": ", ".join(x for x in (kurz, S.get("co_street"), ort) if x), "datum": datetime.now().strftime("%d.%m.%Y"),

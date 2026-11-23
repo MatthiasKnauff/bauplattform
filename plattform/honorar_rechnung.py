@@ -267,13 +267,10 @@ def pdf_erzeugen(rid):
     cv.setTitle(f"{titel} {r['nr']}")
     cv.setAuthor(S.get("office_name") or "")
     y = A4[1] - IB["y"] * mm
-    kurz, ort = S.get("co_short") or S.get("office_name") or "", " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x)
     adr = ", ".join(x for x in ((pr["street"] if pr else ""), " ".join(x for x in ((pr["zip"] if pr else ""), (pr["city"] if pr else "")) if x)) if x)
     V = {"Empfaenger": r["empfaenger"] or a.get("auftraggeber") or "", "Datum": de(r["datum"]), "Bearbeiter": r.get("von") or "",
          "Betreff": f"Rechnungs-Nr. {r['nr']} · {d['projekt']}"}
-    LW = {"buero": S.get("office_name", ""), "absender": ", ".join(x for x in (kurz, S.get("co_street"), ort) if x),
-          "fusszeile": " · ".join(x for x in (kurz, S.get("co_street"), ort, S.get("co_phone"), S.get("co_email"), S.get("co_web")) if x),
-          "datum": de(r["datum"]), "bearbeiter": r.get("von") or "", "projekt": d["projekt"], "bauvorhaben": d["projekt"] + (", " + adr if adr else ""),
+    LW = {**layout.buero_werte(S=S), "datum": de(r["datum"]), "bearbeiter": r.get("von") or "", "projekt": d["projekt"], "bauvorhaben": d["projekt"] + (", " + adr if adr else ""),
           "dokument": titel, "re_nr": r["nr"], "auftraggeber": (V["Empfaenger"].splitlines() or [""])[0], "leistung": a["name"],
           "grundlage": "Schlussrechnung nach § 15 Abs. 1 HOAI" if r["art"] == "schluss" else "Abschlagszahlung nach § 15 Abs. 2 HOAI",
           **{k: v for k, v in EIG.items() if v}}

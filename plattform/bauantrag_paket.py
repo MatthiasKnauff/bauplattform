@@ -379,15 +379,13 @@ def anschreiben_pdf(c, a, W, A, projekt, G=None):
     LAY = layout.aktiv(c, "bauantrag_anschreiben")
     unter, frei, bogen = layout.bogen(c, LAY)   # Briefbogen je Layout: unterlegen · Druck auf Briefpapier · ohne
     EIG = layout.eigene_werte(c, a["project_id"])
-    kurz, ort = S.get("co_short") or S.get("office_name") or "", " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x)
+    kurz = S.get("co_short") or S.get("office_name") or ""
     emp = A["empfaenger"] + (f"\nz. Hd. {A['ansprechpartner']}" if A.get("ansprechpartner") else "")
     if A.get("ansprechpartner") and "\n" in A["empfaenger"]:   # „z. Hd.“ unter den Namen der Behörde, vor die Straße
         z = A["empfaenger"].split("\n")
         emp = "\n".join([z[0], f"z. Hd. {A['ansprechpartner']}"] + z[1:])
     V = {"Empfaenger": emp, "Datum": time.strftime("%d.%m.%Y"), "Bearbeiter": C.full_name(g.user) if g else "", "Betreff": A["betreff"].replace("\n", " · ")}
-    LW = {"buero": S.get("office_name", ""), "absender": ", ".join(x for x in (kurz, S.get("co_street"), ort) if x),
-          "fusszeile": " · ".join(x for x in (kurz, S.get("co_street"), ort, S.get("co_phone"), S.get("co_email"), S.get("co_web")) if x),
-          "datum": V["Datum"], "bearbeiter": V["Bearbeiter"], "projekt": projekt, "bauvorhaben": W.get("bezeichnung") or projekt,
+    LW = {**layout.buero_werte(S=S), "datum": V["Datum"], "bearbeiter": V["Bearbeiter"], "projekt": projekt, "bauvorhaben": W.get("bezeichnung") or projekt,
           "dokument": BA_VERF.get(a["verfahren"], "Bauantrag"), "grundlage": f"Aktenzeichen: {A['aktenzeichen']}" if A.get("aktenzeichen") else "",
           "behoerde": (A["empfaenger"].split("\n") or [""])[0], **{k: v for k, v in EIG.items() if v}}
     buf = io.BytesIO()

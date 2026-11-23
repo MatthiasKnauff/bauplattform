@@ -997,12 +997,9 @@ def nt_nur_beauftragt():
     """Büro-Einstellung: zählen in der Rechnungsprüfung nur beauftragte Nachträge (sonst auch angemeldete)? – kurz zwischengespeichert."""
     import time
     if time.time() - _NTM["t"] > 3:
-        try:
-            with db.tx() as c:
-                r = c.execute("SELECT value FROM settings WHERE key='ava_nt_nur_beauftragt'").fetchone()
-            _NTM["v"] = bool(r and r["value"] == "1")
-        except Exception:
-            pass
+        with db.tx() as c:
+            r = c.execute("SELECT value FROM settings WHERE key='ava_nt_nur_beauftragt'").fetchone()
+        _NTM["v"] = bool(r and r["value"] == "1")
         _NTM["t"] = time.time()
     return _NTM["v"]
 
@@ -3445,12 +3442,9 @@ def pdf_name_tpl():
     """Büro-Einstellung (Verwaltung → Ablage): Schema für die Namen aller PDFs – kurz zwischengespeichert."""
     import time
     if time.time() - _PDFTPL["t"] > 3:
-        try:
-            with db.tx() as c:
-                r = c.execute("SELECT value FROM settings WHERE key='pdf_name_tpl'").fetchone()
-            _PDFTPL["v"] = (r["value"].strip() if r and r["value"] and r["value"].strip() else PDF_NAME_STD)
-        except Exception:
-            pass
+        with db.tx() as c:
+            r = c.execute("SELECT value FROM settings WHERE key='pdf_name_tpl'").fetchone()
+        _PDFTPL["v"] = (r["value"].strip() if r and r["value"] and r["value"].strip() else PDF_NAME_STD)
         _PDFTPL["t"] = time.time()
     return _PDFTPL["v"]
 
@@ -4577,15 +4571,12 @@ def beleg_ki(b):
 def _beleg_stand(bid):
     """Fortschritt der Texterkennung am Beleg festhalten („Seite n von N“) – die Seite zeigt ihn beim Warten."""
     def f(n, N):
-        try:
-            with db.tx() as c:
-                r = c.execute("SELECT auslese FROM ava_beleg WHERE id=?", (bid,)).fetchone()
-                A = _j(r["auslese"], {}) if r else None
-                if A and A.get("laeuft"):
-                    A.update(stand_n=n, stand_N=N, stand_zeit=_now())
-                    c.execute("UPDATE ava_beleg SET auslese=? WHERE id=?", (json.dumps(A), bid))
-        except Exception:
-            pass
+        with db.tx() as c:
+            r = c.execute("SELECT auslese FROM ava_beleg WHERE id=?", (bid,)).fetchone()
+            A = _j(r["auslese"], {}) if r else None
+            if A and A.get("laeuft"):
+                A.update(stand_n=n, stand_N=N, stand_zeit=_now())
+                c.execute("UPDATE ava_beleg SET auslese=? WHERE id=?", (json.dumps(A), bid))
     return f
 
 

@@ -372,7 +372,8 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
     de = _de
     office = S.get("office_name") or ""
     kurz = S.get("co_short") or office   # Kurzname, wo der lange Firmenname nicht passt
-    absender = ", ".join(v for v in (kurz, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x)) if v)
+    BW = layout.buero_werte(S=S)   # Absender und Fußzeile: eine Stelle für alle Ausdrucke (bpcore/layout.py)
+    absender, foot = BW["absender"], BW["fusszeile"]
     bv = p["name"] + (", " + ", ".join(v for v in (p["street"], " ".join(x for x in (p["zip"], p["city"]) if x)) if v) if p and (p["street"] or p["city"]) else "") if p else projekt
     adr = "\n".join(v for v in (E.get("name"), ("z. Hd. " + E["person"]) if E.get("person") else "", E.get("strasse"), E.get("ort")) if v)
     name = C.full_name(g.user)
@@ -435,13 +436,11 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
     def fuss():
         if not bb:
             cv.setFont(FN["n"], 7); cv.setFillColor(mute)
-            foot = " · ".join(v for v in (kurz, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x), S.get("co_phone"), S.get("co_email"), S.get("co_web")) if v)
             cv.drawCentredString(W / 2, 10 * mm, foot[:180])
 
     # Lage der Felder aus dem Druck-Layout (Verwaltung → Büro → Druck-Layouts); Vorgabe wie bisher (DIN 5008 Form B)
     with db.tx() as c:
         EIG = layout.eigene_werte(c, pid)   # eigene Felder (je Projekt eingetragen)
-    foot = " · ".join(v for v in (kurz, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x), S.get("co_phone"), S.get("co_email"), S.get("co_web")) if v)
     LW = {"buero": office, "absender": absender, "fusszeile": foot, "datum": V["Datum"], "bearbeiter": name, "projekt": projekt, "bauvorhaben": bv,
           "dokument": kopf, "grundlage": grundzeile, "firma": E.get("name") or "", "frist": de(frist), "auftrag": auftrag or "",
           "anzahl": str(len([z for z in str(liste or "").split("\n") if z.strip()])), **{k: v for k, v in EIG.items() if v}}

@@ -92,14 +92,10 @@ def aktion(c, b):
 
 def _serverfehler(c, user_name, ts):
     """Fehler (Server/Browser/still) dieses Benutzers – oder ohne Benutzer – in den 30 Minuten vor bis 5 nach der Meldung."""
-    try:
-        from . import fehler
-        t = datetime.fromisoformat(ts)
-        von, bis = (t - timedelta(minutes=30)).isoformat(timespec="seconds"), (t + timedelta(minutes=5)).isoformat(timespec="seconds")
-        return [r.dict() for r in c.execute("""SELECT app, art, meldung, stack, pfad, user_name, anzahl, zuletzt FROM bp_fehler
-                    WHERE zuletzt BETWEEN ? AND ? AND (user_name=? OR user_name='') ORDER BY zuletzt DESC LIMIT 15""", (von, bis, user_name)).fetchall()]
-    except Exception:
-        return []
+    t = datetime.fromisoformat(ts)
+    von, bis = (t - timedelta(minutes=30)).isoformat(timespec="seconds"), (t + timedelta(minutes=5)).isoformat(timespec="seconds")
+    return [r.dict() for r in c.execute("""SELECT app, art, meldung, stack, pfad, user_name, anzahl, zuletzt FROM bp_fehler
+                WHERE zuletzt BETWEEN ? AND ? AND (user_name=? OR user_name='') ORDER BY zuletzt DESC LIMIT 15""", (von, bis, user_name)).fetchall()]
 
 
 def _md(d, sf, bildname):

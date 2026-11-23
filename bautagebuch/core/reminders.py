@@ -77,11 +77,8 @@ def run_once(now=None):
             with db.tx() as c:
                 c.executemany("UPDATE items SET reminded=? WHERE id=?", [("fehler" if e.dauerhaft else "", i["id"]) for i in mine])
             if e.dauerhaft:
-                try:
-                    from . import audit
-                    audit.record("System", "mail", "Erinnerung nicht zustellbar", f"{u['name']} <{u['email']}>: {e}"[:300])
-                except Exception:   # audit.record meldet eigene Fehler selbst – hier nur Absicherung
-                    pass
+                from . import audit
+                audit.record("System", "mail", "Erinnerung nicht zustellbar", f"{u['name']} <{u['email']}>: {e}"[:300])   # meldet eigene Fehler selbst
             if e.gesperrt:
                 break
     return sent

@@ -422,13 +422,10 @@ def angebot_pdf(aid):
     cv.setTitle(f"{titel} {d['projekt']}")
     cv.setAuthor(buero)
     heute = time.strftime("%d.%m.%Y")
-    kurz, ort = S.get("co_short") or buero, " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x)
     adr = ", ".join(x for x in ((pr["street"] if pr else ""), " ".join(x for x in ((pr["zip"] if pr else ""), (pr["city"] if pr else "")) if x)) if x)
     V = {"Empfaenger": empf or a.get("auftraggeber") or "", "Datum": heute, "Bearbeiter": C.full_name(g.user) if getattr(g, "user", None) else "",
          "Betreff": f"{a['name']} · {d['projekt']}" + (f" · {vname}" if vname else "")}
-    LW = {"buero": buero, "absender": ", ".join(x for x in (kurz, S.get("co_street"), ort) if x),
-          "fusszeile": " · ".join(x for x in (kurz, S.get("co_street"), ort, S.get("co_phone"), S.get("co_email"), S.get("co_web")) if x),
-          "datum": heute, "bearbeiter": V["Bearbeiter"], "projekt": d["projekt"], "bauvorhaben": d["projekt"] + (", " + adr if adr else ""),
+    LW = {**layout.buero_werte(S=S), "datum": heute, "bearbeiter": V["Bearbeiter"], "projekt": d["projekt"], "bauvorhaben": d["projekt"] + (", " + adr if adr else ""),
           "dokument": titel, "auftraggeber": (V["Empfaenger"].splitlines() or [""])[0], "leistung": a["name"],
           "grundlage": "Honorar nach HOAI 2021" if a["art"] == "hoai" else "", **{x: v for x, v in EIG.items() if v}}
 

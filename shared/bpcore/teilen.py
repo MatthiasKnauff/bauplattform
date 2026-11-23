@@ -53,10 +53,7 @@ def _logo_kopf(c):
         im.thumbnail((360, 110))
         b = io.BytesIO(); im.save(b, "PNG")
         return b.getvalue()
-    try:
-        png = bplogo._abgeleitet(c, ("teilen",), bauen)
-    except Exception:
-        return ""
+    png = bplogo._abgeleitet(c, ("teilen",), bauen)   # unlesbares Bild = kein Logo (fängt _abgeleitet selbst ab)
     return "data:image/png;base64," + base64.b64encode(png).decode() if png else ""
 
 

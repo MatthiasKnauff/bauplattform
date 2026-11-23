@@ -260,16 +260,13 @@ def _send(cf, to, subject, body, sender="Bauplattform", attachments=None, cc=Non
     if reply_to:
         msg["Reply-To"] = reply_to
     if not direkt:   # Benachrichtigung: unten der persönliche Link „abschalten · pausieren · nach Apps“ (mailaus.py), wie bei einem Newsletter
-        try:
-            from . import mailaus
-            ft, lk = mailaus.fuss(cf, lst(to) + lst(cc))
-            if lk:
-                body = (body or "").rstrip("\n") + ft
-                msg["List-Unsubscribe"] = f"<{lk}>"
-                if html:
-                    html += f'<p style="color:#777;font-size:12px;margin-top:24px">Keine Mails mehr von der Bauplattform? <a href="{lk}">Abschalten, pausieren oder nach Apps auswählen</a></p>'
-        except Exception:   # der Link ist Beiwerk – die Mail geht auch ohne
-            pass
+        from . import mailaus
+        ft, lk = mailaus.fuss(cf, lst(to) + lst(cc))
+        if lk:
+            body = (body or "").rstrip("\n") + ft
+            msg["List-Unsubscribe"] = f"<{lk}>"
+            if html:
+                html += f'<p style="color:#777;font-size:12px;margin-top:24px">Keine Mails mehr von der Bauplattform? <a href="{lk}">Abschalten, pausieren oder nach Apps auswählen</a></p>'
     msg.set_content(body)
     if html:   # dieselbe Mail als HTML (Rich-Signatur); eingebettete Bilder (data:) als Inline-Anhang (cid:), das zeigen alle Mailprogramme
         import base64

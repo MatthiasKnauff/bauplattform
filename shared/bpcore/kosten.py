@@ -5,10 +5,9 @@ Schlüssel „kosten“: Stufe, Kostengruppen, Summen, Datum). Honorar (anrechen
 kosten) und das Bauherrenportal lesen NUR das Modell (stand). Festhalten eines Stands: Modellstand + Linie „Kosten“ auf „fest“ – dann
 bleibt das Ergebnis im Modell stehen, auch wenn in der App weitergerechnet wird.
 
-Übergang: Projekte, deren Kostenermittlung vor dem 16.11.2026 zuletzt gespeichert wurde, haben noch kein Ergebnis im Modell – stand()
-holt es dann einmal aus der App Kosten (nur wo deren Modul im Container liegt) und schreibt es ins Modell.
+Projekte, deren Kostenermittlung vor dem 16.11.2026 zuletzt gespeichert wurde, haben noch kein Ergebnis im Modell: stand() sagt dann,
+die Kostenermittlung einmal in der App Kosten zu öffnen (beim Öffnen meldet sie das Ergebnis). Der Kern importiert die App nicht (23.11.2026).
 """
-import json
 
 
 def ergebnis(bk, k, stufe_name=""):
@@ -46,16 +45,7 @@ def stand(c, pid):
     from . import modell
     k = modell.lesen(c, pid)["modell"].get("kosten") or {}
     if not k:
-        bk = gueltige(c, pid)
-        if not bk:
+        if not gueltige(c, pid):
             return None, "Für das Projekt gibt es noch keine Kosten im Gebäudemodell (App Kosten)."
-        try:   # Übergang (siehe oben)
-            import baukosten as BK
-            d = json.loads(bk["data"]) if isinstance(bk["data"], str) else (bk["data"] or {})
-            melden(c, pid, ergebnis(bk, BK.calc(BK.clean_data(d, c)), BK.STUFE_NAME.get(bk["stufe"], "")))
-            k = modell.lesen(c, pid)["modell"].get("kosten") or {}
-        except Exception:   # noqa: BLE001 – Modul nicht im Container: einmal in der App Kosten öffnen
-            pass
-        if not k:
-            return None, "Die Kosten stehen noch nicht im Gebäudemodell – die Kostenermittlung einmal in der App Kosten öffnen."
+        return None, "Die Kosten stehen noch nicht im Gebäudemodell – die Kostenermittlung einmal in der App Kosten öffnen."
     return k, None

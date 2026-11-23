@@ -362,6 +362,7 @@ chartBody.addEventListener('contextmenu', (e) => {
     ...(window.BP && BP.kannRuege && BP.kannRuege() ? [{ label: 'Terminrüge …', dis: (t.pct || 0) >= 100, fn: () => BP.terminruege(t.uid) }] : []),
     '-',
     { label: 'Leistung einfügen', key: 'Einfg', fn: () => insertTask() },
+    { label: 'Leistung darüber einfügen', key: 'Alt+Einfg', fn: () => insertTask('task', true) },
     { label: 'Leistung löschen', key: 'Entf', fn: deleteSel },
     { label: 'Verknüpfungen dieser Leistung lösen', fn: unlinkSel },
     '-',
@@ -465,7 +466,7 @@ document.addEventListener('keydown', (e) => {
   if (ctrl && lk === 'c' && !e.shiftKey && window.kopierenSel) { if (String(getSelection()).trim()) return; e.preventDefault(); kopierenSel(); return; }   // markierter Text gehört dem Browser
   if (ctrl && lk === 'v' && !e.shiftKey && window.einfuegenSel) { e.preventDefault(); einfuegenSel(); return; }
   if (ctrl && lk === 'd' && window.duplizierenDialog) { e.preventDefault(); duplizierenDialog(); return; }
-  if (k === 'Insert') { e.preventDefault(); insertTask(); return; }
+  if (k === 'Insert' && !ctrl && !e.shiftKey) { e.preventDefault(); insertTask('task', e.altKey); return; }   // Alt+Einfg: darüber (Umschalt/Strg+Einfg bleiben Einfügen/Kopieren wie unter Windows)
   if (k === 'Delete') { e.preventDefault(); deleteSel(); return; }
   if (k === 'F2') { e.preventDefault(); startEdit(cur.r, cur.c); return; }
   const mv = (dr, dc) => {

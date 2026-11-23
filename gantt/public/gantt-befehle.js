@@ -4,10 +4,11 @@
 /* =====================================================================
    Befehle
    ===================================================================== */
-function insertTask(kind = 'task') {
-  let at, lvl;   // unter der aktuellen Zeile (23.11.2026, wie in Listen üblich): bei einer offenen Gruppe als erste Leistung darin, sonst hinter ihr
+function insertTask(kind = 'task', darueber = false) {
+  let at, lvl;   // unter der aktuellen Zeile (23.11.2026, wie in Listen üblich): bei einer offenen Gruppe als erste Leistung darin, sonst hinter ihr;
+  // darueber (Alt+Einfg, wie Excel/MS Project): vor der aktuellen Zeile auf ihrer Ebene
   if (cur.r < vis.length) { const i = vis[cur.r], T = P.tasks[i];
-    if (isSum(i) && !T.collapsed) { at = i + 1; lvl = T.lvl + 1; } else { at = blockEnd(i) + 1; lvl = T.lvl; } }
+    if (darueber) { at = i; lvl = T.lvl; } else if (isSum(i) && !T.collapsed) { at = i + 1; lvl = T.lvl + 1; } else { at = blockEnd(i) + 1; lvl = T.lvl; } }
   else { at = P.tasks.length; const last = vis.length ? P.tasks[vis[vis.length - 1]] : null; lvl = last ? last.lvl : 0; }
   let uid;
   act(() => {
@@ -787,6 +788,7 @@ function taskCtx(e) {
   const has = selIdx().length > 0;
   ctxMenu(e.clientX, e.clientY, [
     { label: 'Leistung einfügen', key: 'Einfg', fn: () => insertTask() },
+    { label: 'Leistung darüber einfügen', key: 'Alt+Einfg', fn: () => insertTask('task', true) },
     { label: 'Meilenstein einfügen', fn: () => insertTask('ms') },
     { label: 'Leistung löschen', key: 'Entf', dis: !has, fn: deleteSel },
     '-',

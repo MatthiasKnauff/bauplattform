@@ -197,8 +197,9 @@ export async function ganttHeftPruefen(browser, repo) {
       const ein = await p.evaluate(() => { const nn = () => P.tasks.map((t) => t.name).join(',');
         P.tasks = [fillTask({ uid: 1, name: 'A', dur: 2, lvl: 0, preds: [] }), fillTask({ uid: 2, name: 'B', dur: 2, lvl: 0, preds: [] }), fillTask({ uid: 3, name: 'G', dur: 1, lvl: 0, preds: [] }), fillTask({ uid: 4, name: 'G1', dur: 1, lvl: 1, preds: [] })];
         P.nextUid = 10; CAL = schedule(); render(); cur.r = 0; insertTask(); if (typeof stopEdit === 'function') stopEdit(); const a = nn();
-        cur.r = rowOfIdx(3); insertTask(); if (typeof stopEdit === 'function') stopEdit(); return [a, nn(), P.tasks[4].lvl]; });
-      pruef(ein[0] === 'A,Neue Leistung,B,G,G1' && ein[1] === 'A,Neue Leistung,B,G,Neue Leistung,G1' && ein[2] === 1, `Einfügen unter der aktuellen Leistung – ${JSON.stringify(ein)}`);
+        cur.r = rowOfIdx(3); insertTask(); if (typeof stopEdit === 'function') stopEdit(); const b = nn(), l = P.tasks[4].lvl;
+        cur.r = rowOfIdx(2); insertTask('task', true); return [a, b, l, nn()]; });
+      pruef(ein[0] === 'A,Neue Leistung,B,G,G1' && ein[1] === 'A,Neue Leistung,B,G,Neue Leistung,G1' && ein[2] === 1 && ein[3] === 'A,Neue Leistung,Neue Leistung,B,G,Neue Leistung,G1', `Einfügen unter (Alt+Einfg: darüber) der aktuellen Leistung – ${JSON.stringify(ein)}`);
     }
     {   // Soll und Ist (Mock „Soll und Ist“, 22.11.2026): Überziehung schiebt die Nachfolger (SI-3); das Soll liegt darunter, „Soll aus“ (SI-2)
       const T0 = [{ uid: 1, name: 'A', dur: 2, lvl: 0, preds: [] }, { uid: 2, name: 'B', dur: 3, lvl: 0, preds: [{ uid: 1, type: 'FS', lag: 0 }] }];

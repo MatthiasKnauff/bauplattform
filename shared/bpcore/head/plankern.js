@@ -232,6 +232,8 @@
     if (erw.length) fest.erweiterung = erw.length > 1 ? 'beides' : erw[0];
     else if (Mx.some((m) => (m.base || {})[G.groesse] && UMBT.includes(m.base[G.groesse]))) fest.erweiterung = 'keine';
     sp(G.std).forEach((x) => rec.add(x)); sp(G.opt).forEach((x) => opt.add(x));
+    const AUS = C.items.filter((i) => i.ph === 'aussen').map((i) => i.id), mitAussen = !sp(G.weg).includes('aussenanl');   // Außenanlagen (KB.aussen)
+    if (mitAussen && Mx.some((m) => m.k === 'nb' || m.erw)) { sp(KB.aussen).forEach((x) => rec.add(x)); AUS.forEach((x) => opt.add(x)); }
     if (t.dm) sp((KB.denkmal || {}).std).forEach((x) => rec.add(x));
     for (const x of sp(G.weg)) if (rec.delete(x)) opt.add(x);
     if (!Mx.some((m) => m.k === 'nb' || m.erw)) for (const x of sp(KB.nurNeu)) if (rec.delete(x)) opt.add(x);
@@ -240,6 +242,7 @@
       for (const bk of t.ber) {
         const B0 = KB.ber.find((b) => b.k === bk); if (!B0) continue;
         sp(B0.ids).forEach((x) => { ok.add(x); opt.add(x); });
+        if (bk === 'ah') sp(KB.aussen).forEach((x) => { ok.add(x); rec.add(x); });
         const ph = new Set(sp(B0.ph)); C.items.filter((i) => ph.has(i.ph)).forEach((i) => { ok.add(i.id); opt.add(i.id); });
         const bp = B0.prof && alt(B0.prof);   // Bad: dessen Standard gilt; Dachgeschoss: nur angeboten
         if (bp) { (bp.rec || []).forEach((x) => { if (B0.profRec) { ok.add(x); rec.add(x); } else { okO.add(x); opt.add(x); } }); (Array.isArray(bp.opt) ? bp.opt : []).forEach((x) => { okO.add(x); opt.add(x); }); }

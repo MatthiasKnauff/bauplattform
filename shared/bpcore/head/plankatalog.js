@@ -620,6 +620,9 @@ window.CATALOG = (() => {
       { k: 'ti', n: 'Tiefgarage', ids: 'tg_zufahrt wu beschicht co_warn lueft lueft_fein stellpl entw_a verbau wasserh' },
     ],
     denkmal: { std: 'denkmal_erl befund bemuster denkmal_doku', zuschlag: 1.4 },
+    /* Außenanlagen am Ende des Plans (23.11.2026): bei Neubau, Anbau, Aufstockung und beim Bereich „Außenanlagen“ immer die üblichen
+       Leistungen vorgewählt, alle übrigen Außenanlagen angeboten – nicht bei Gebäuden ohne eigenes Grundstück (Wohnung: weg enthält aussenanl) */
+    aussen: 'aussenanl zufahrt entw_a garten baeume pflege',
     immer: 'planung vorb abschluss',   // Phasen, die bei gewählten Bereichen immer dabei sind
     // nur mit Neubau, Anbau oder Aufstockung Standard – bei reinen Bestandsmaßnahmen nur angeboten
     nurNeu: 'pruefstat bauantr baugrund stahlhalle trapezdach sandwich indboden hallenhz anliefer guelle stalltech tg_zufahrt wu tor stellpl entw_a kranbahn schaufenster aufzug aufzug_abn spiel',

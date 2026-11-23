@@ -91,6 +91,11 @@ export async function assistentPruefen(browser, repo) {
       const o = S.modell.assistent.order || [];
       pruef(o.indexOf(zug[0]) >= 0 && o.indexOf(zug[0]) < o.indexOf(zug[1]), `Reihenfolge gezogen: ${zug} → ${o.slice(0, 8)}`);
     }
+    {   // 23.11.2026: alle Abschnitte gemeinsam zu/auf
+      await p.click('#work [data-pazualle]'); const z1 = await p.evaluate(() => [...document.querySelectorAll('#work details.pa-ph')].map((d) => d.open));
+      await p.click('#work [data-pazualle]'); const z2 = await p.evaluate(() => [...document.querySelectorAll('#work details.pa-ph')].map((d) => d.open));
+      pruef(z1.length > 3 && (z1.every((x) => !x) && z2.every((x) => x) || z1.every((x) => x) && z2.every((x) => !x)), `alle Abschnitte zu/auf: ${JSON.stringify([z1, z2])}`);
+    }
     await p.fill('#work [data-paq]', 'estrich');   // Suche in den Leistungen: nur Treffer, Abschnitte mit Treffern offen, auch „Weitere Leistungen“
     const such = await p.evaluate(() => { const L = [...document.querySelectorAll('#work .pa-l')].filter((l) => !l.hidden); return { n: L.length, alle: L.every((l) => /estrich/i.test(l.textContent)), zu: [...document.querySelectorAll('#work details.pa-ph')].filter((d) => !d.hidden && !d.open).length }; });
     pruef(such.n > 0 && such.alle && such.zu === 0, `Suche in den Leistungen: ${JSON.stringify(such)}`);

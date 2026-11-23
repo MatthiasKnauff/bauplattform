@@ -1,5 +1,13 @@
 [
  {
+  "id": "aussenanlagen-std-2026-11-23",
+  "datum": "2026-11-23",
+  "app": "gantt",
+  "titel": "Außenanlagen am Ende des Plans",
+  "text": "Bei Neubau, Anbau und Aufstockung sind die üblichen Außenanlagen jetzt vorgewählt: Gelände und Oberboden, Zuwege und Zufahrt, Hofentwässerung, Begrünung, Bäume und Sträucher, Fertigstellungspflege – alle übrigen Außenanlagen werden angeboten. In der Planung → Leistungen klappt „⊟ alle zu / ⊞ alle auf“ alle Abschnitte gemeinsam.",
+  "ziel": "#leiste"
+ },
+ {
   "id": "katalog-suche-zuklappen-2026-11-23",
   "datum": "2026-11-23",
   "app": "gantt",

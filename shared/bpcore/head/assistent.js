@@ -191,7 +191,7 @@
         if (S.has(id) || rec.has(id)) (by[it.ph] ||= []).push([z, S.has(id)]); else mehr.push(z); });
       return `<p class="pa-h"><b><span class="pa-ln">${S.size}</span> Leistungen</b> gewählt${c.sel && c.sel.length ? '' : ' – Empfehlung des Katalogs für diese Angaben'}. Die Dauer ist ein Überschlag aus der Größe des Gebäudes.</p>
         <div class="pa-lk"><label>Bauzeit-Faktor <input data-pafak inputmode="decimal" value="${esc(String(c.fak || 1).replace('.', ','))}" title="für alle Leistungen – z. B. 1,2 = 20 % länger (Winter, enge Baustelle); von Hand gesetzte Dauern bleiben"></label>
-          <button type="button" class="btn sm" data-pavs>Vorlage speichern …</button><button type="button" class="btn sm" data-pavw>Vorlage laden ▾</button></div>
+          <button type="button" class="btn sm" data-pavs>Vorlage speichern …</button><button type="button" class="btn sm" data-pavw>Vorlage laden ▾</button><button type="button" class="btn sm" data-pazualle title="alle Abschnitte zu- bzw. aufklappen">${PH.some((p) => by[p.k] && Z.auf.has(p.k)) ? '⊟ alle zu' : '⊞ alle auf'}</button></div>
         ${(Z.lern || []).filter((v) => v.art === 'dauer').map(vorschlagHtml).join('')}
         <input type="search" class="pa-q" data-paq data-vs="paLst" data-vs-frei autocomplete="off" value="${esc(Z.q || '')}" placeholder="Leistung suchen – in allen Abschnitten und unter „Weitere Leistungen“" aria-label="Leistung suchen">
         ${(Z.lern || []).filter((v) => v.art === 'leistung').map(vorschlagHtml).join('')}
@@ -392,6 +392,11 @@
       if (b.dataset.pafertig != null) return fertigMachen();
       if (b.dataset.pabt != null) { await bauteileLaden(); return bpBauteile.planungNeu(); }   // „Neuer Planstand – mit der Planung“: das ganze Gebäude im Baukasten (21.11.2026)
       if (b.dataset.paakt != null) { const a = (window.bpAssistentAktionen ? window.bpAssistentAktionen(Z.m) : [])[+b.dataset.paakt]; if (a) a.fn(); return; }
+      if (b.dataset.pazualle != null) {   // alle Abschnitte gemeinsam zu/auf (23.11.2026) – an Ort und Stelle, nichts wird neu gezeichnet
+        const D = [...el.querySelectorAll('details.pa-ph')], auf = !D.some((d) => d.open);
+        D.forEach((d) => { d.open = auf; if (auf) Z.auf.add(d.dataset.ph); else Z.auf.delete(d.dataset.ph); });
+        b.textContent = auf ? '⊟ alle zu' : '⊞ alle auf'; return;
+      }
       if (b.dataset.pavs != null) return vorlageSpeichern();
       if (b.dataset.pavw != null) return vorlageLaden();
       if (b.dataset.pago != null) { Z.i = +b.dataset.pago; if (cfg()) { cfg().schritt = Z.i; } return zeig(); }

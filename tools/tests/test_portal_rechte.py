@@ -240,3 +240,12 @@ def test_hilfe_und_aenderungen(ctx):
     pruefe([x["datum"] for x in E] == sorted((x["datum"] for x in E), reverse=True), "neueste zuerst")
     pruefe(isinstance(a.gj("/api/bp/hilfe?kurz=1").get("aenderungen"), int), "Zähler für den gelben Rand am „?“")
     gleich(ctx.anmelden("Clara Wolf").gj("/api/bp/hilfe?kurz=1").get("eingang"), None, "Eingang (Scans) meldet sich nur bei Administratoren")
+
+
+def test_kopf_in_einer_abfrage(ctx):
+    """Die Kopfleiste holt beim Öffnen alles in EINER Abfrage (/api/bp/kopf, 23.11.2026): conf, KI, Projekt, Darstellung – in jeder App gleich."""
+    for app in ("", "/adressen", "/bautagebuch", "/bauzeitenplan"):
+        k = ctx.admin.gj(app + "/api/bp/kopf")
+        pruefe(isinstance(k.get("conf"), dict) and isinstance(k["conf"].get("apps"), list), f"{app or 'Startseite'}: conf fehlt")
+        pruefe(k.get("ki", {}).get("choice") and "farbschema" in k.get("darstellung", {}) and "id" in k.get("projekt", {}), f"{app or 'Startseite'}: Teile fehlen: {sorted(k)}")
+        gleich(sorted(ctx.admin.gj(app + "/api/bp/kopf?conf=0")), ["darstellung", "ki", "projekt"], f"{app or 'Startseite'}: ?conf=0 ohne conf")

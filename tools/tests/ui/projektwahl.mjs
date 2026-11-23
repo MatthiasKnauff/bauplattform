@@ -31,6 +31,7 @@ export async function projektWahlPruefen(browser, repo) {
     if (/^api\/bp\/projekte\/\d+\/fav$/.test(pf)) return J({ fav: [1, 3] });
     if (pf === 'api/bp/projekt') return J(m === 'PUT' ? { id: JSON.parse(r.request().postData() || '{}').id, name: 'x' } : { id: 2, name: 'A450.22 Auf dem Holte 32, Bochum' });
     if (pf === 'api/me') return J({ ok: true, id: 1, name: 'mk', role: 'admin', admin: false, look: {} });
+    if (pf === 'api/bp/kopf') return J({ conf: { apps: [], projekte: [] }, projekt: { id: 2, name: 'A450.22 Auf dem Holte 32, Bochum' } });
     if (pf === 'api/platform') return J({ apps: [], projekte: [] });
     if (pf === 'api/bp/bt/leaders') return J([{ id: 1, name: 'mk' }]);
     if (/(^|\/)api\//.test(pf)) return J(/liste|kontakte|neuigkeit|verlauf|fehler/.test(pf) ? [] : {});

@@ -38,6 +38,7 @@ export async function kartePruefen(browser, repo) {
       if (pf === 'bp/baukasten.js') return r.fulfill({ contentType: 'text/javascript', body: baukasten });
       if (pf.startsWith('bp/')) { const f = path.join(KASTEN, pf.slice(3)); return fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); }
       if (pf === 'api/me') return J({ ok: true, id: 1, name: 'admin', vorname: 'A', role: 'admin', admin: true, is_admin: true, look: {} });
+      if (pf === 'api/bp/kopf') return J({ conf: { apps: [], projekte: [] }, projekt: { id: 7, name: 'Testprojekt', nummer: 'A1' } });
       if (pf === 'api/platform') return J({ apps: [], user: { name: 'admin', role: 'admin' }, projekte: [] });
       if (pf === 'api/bp/projekt') return J({ id: 7, name: 'Testprojekt', nummer: 'A1' });
       if (pf === 'api/bp/modell/7/vorschlag') return J({ felder: [], assistent: {} });

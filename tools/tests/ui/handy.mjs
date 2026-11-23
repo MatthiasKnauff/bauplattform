@@ -22,6 +22,7 @@ export async function handyPruefen(browser, repo) {
       const f = pf.startsWith('bp/') ? path.join(KASTEN, pf.slice(3)) : pf.startsWith('static/') ? path.join(STAT, pf.slice(7)) : null;
       if (f) return fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' });
       if (pf === 'api/me') return J({ ok: true, id: 1, name: 'admin', vorname: 'A', role: 'admin', admin: true, look: {} });
+      if (pf === 'api/bp/kopf') return J({ conf: { apps: APPS, projekte: [] }, darstellung: { theme: 'hell', handy } });
       if (pf === 'api/platform') return J({ apps: APPS, user: { name: 'admin', role: 'admin' }, projekte: [] });
       if (pf === 'api/bp/darstellung') return J({ theme: 'hell', handy });
       if (pf === 'api/bp/handy/link') { posts.push(JSON.parse(q.postData() || '{}')); return J({ ok: true, an: 'a@buero.test' }); }

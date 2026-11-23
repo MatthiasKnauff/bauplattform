@@ -37,6 +37,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
     if (pf === 'bp/baukasten.js') return r.fulfill({ contentType: 'text/javascript', body: baukasten });
     if (pf.startsWith('bp/')) { const f = path.join(KASTEN, pf.slice(3).split('?')[0]); return fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); }
     if (pf === 'api/me') return J({ ok: true, id: 1, name: 'admin', vorname: 'A', role: 'admin', admin: true, is_admin: true, look: {} });
+    if (pf === 'api/bp/kopf') return J({ conf: { apps: [], projekte: [] }, projekt: { id: 7, name: 'Testprojekt', nummer: 'A1' } });
     if (pf === 'api/platform') return J({ apps: [], user: { name: 'admin', role: 'admin' }, projekte: [] });
     if (pf === 'api/bp/projekt') return J({ id: 7, name: 'Testprojekt', nummer: 'A1' });
     if (pf === 'api/bp/modell/7/planstaende') return J(S.keinPs ? { planstaende: [], gilt: null } : { planstaende: [{ id: 1, name: 'Werkplanung', erstellt: '2026-11-16' }, { id: 2, name: 'Baukasten 21.11.2026', erstellt: '2026-11-21' }], gilt: 1 });

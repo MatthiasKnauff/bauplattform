@@ -22,6 +22,7 @@ Die Kopfleiste zeigt: Bauportal / App · aktuelles Projekt · KI-Auswahl · Benu
 /api/bp/kontakt/<id>/verlauf  Benachrichtigungsverlauf (Planversand, Rügen …)
 /api/bp/kontakte    GET ?q= / ?ids=  Kontakte suchen · POST, PUT /<id>  anlegen/ändern (Kontaktfelder der Stammdaten-Masken)
 /api/bp/projekt  GET/PUT {id}  aktuelles Projekt des Benutzers – beim Wechsel der App bleibt man im selben Projekt
+/api/bp/kopf GET  alles für die Kopfleiste beim Öffnen in einer Abfrage: conf (wie /api/platform; ?conf=0 ohne), ki, projekt, darstellung
 /api/bp/ki   GET  Auswahl des Benutzers und welche Anbieter eingerichtet sind
              PUT  {"ki": "intern"|"ollama"|"claude"|"gemini"|"chatgpt"} – gilt in allen Apps und auf allen Geräten
 """
@@ -402,9 +403,10 @@ def blueprint(get_user=None):
         if not u:
             return jsonify(error="Nicht angemeldet"), 401
         with db.tx() as c:
-            prov = ai.providers(c)
-            ch = ai.choice_of(u, c)
-        return jsonify(choice=ch, providers=prov, aus=sorted(ai.abgeschaltet()))
+            return jsonify(**_ki(c, u))
+
+    def _ki(c, u):
+        return {"choice": ai.choice_of(u, c), "providers": ai.providers(c), "aus": sorted(ai.abgeschaltet())}
 
     @bp.put("/api/bp/ki")
     def ki_put():
@@ -421,6 +423,12 @@ def blueprint(get_user=None):
             prov = ai.providers(c)
         return jsonify(choice=k, providers=prov)
 
+    def _darstellung(c, u):
+        pr = konto.prefs(c, u["id"])
+        return {"theme": sso.theme_of(u) or "dunkel", "accent": u["accent"] or "", "farbschema": pr.get("farbschema", ""), "modus": _modus(c, pr, u), "modus_apps": _modus_apps(pr),
+                "ki_immer": bool(pr.get("ki_immer")), "ki_vorgabe": pr.get("ki_vorgabe") or "buero", "schrift": pr.get("schrift", ""), "schrift_g": pr.get("schrift_g", ""),
+                "stil": pr.get("stil") or {}, "logo": pr.get("logo", ""), "handy": pr.get("handy") or []}
+
     @bp.route("/api/bp/darstellung", methods=["GET", "PUT"])
     def darstellung():
         """Farbschema (Hell/Dunkel + benanntes Schema) und Akzentfarbe des angemeldeten Benutzers (gilt in allen Apps)."""
@@ -430,9 +438,7 @@ def blueprint(get_user=None):
             return jsonify(error="Nicht angemeldet"), 401
         if request.method == "GET":
             with db.tx() as c:
-                pr = konto.prefs(c, u["id"])
-                return jsonify(theme=sso.theme_of(u) or "dunkel", accent=u["accent"] or "", farbschema=pr.get("farbschema", ""), modus=_modus(c, pr, u), modus_apps=_modus_apps(pr), ki_immer=bool(pr.get("ki_immer")), ki_vorgabe=pr.get("ki_vorgabe") or "buero",
-                               schrift=pr.get("schrift", ""), schrift_g=pr.get("schrift_g", ""), stil=pr.get("stil") or {}, logo=pr.get("logo", ""), handy=pr.get("handy") or [])
+                return jsonify(**_darstellung(c, u))
         d = request.get_json(silent=True) or {}
         sets, args = [], []
         if "theme" in d:
@@ -566,15 +572,30 @@ def blueprint(get_user=None):
                     projektwahl.zuletzt_merken(c, u["id"], pid)   # „Zuletzt benutzt“ im Fenster „Projekt wählen“
                 else:
                     c.execute("DELETE FROM bp_store WHERE key=?", (key,))
-            try:
-                pid = json.loads(konto._get(c, key) or "{}").get("id")
-            except ValueError:
-                pid = None
-            r = c.execute("SELECT id, name, client, street, zip, city FROM projects WHERE id=?", (pid,)).fetchone() if pid else None
+            return jsonify(**_projekt(c, u))
+
+    def _projekt(c, u):
+        try:
+            pid = json.loads(konto._get(c, f"aktprojekt:{u['id']}") or "{}").get("id")
+        except ValueError:
+            pid = None
+        r = c.execute("SELECT id, name, client, street, zip, city FROM projects WHERE id=?", (pid,)).fetchone() if pid else None
         if not r:
-            return jsonify(id=None)
+            return {"id": None}
         adr = ", ".join(x for x in (r["street"], " ".join(y for y in (r["zip"], r["city"]) if y)) if x)
-        return jsonify(id=r["id"], name=r["name"], client=r["client"] or "", adresse=adr)
+        return {"id": r["id"], "name": r["name"], "client": r["client"] or "", "adresse": adr}
+
+    @bp.get("/api/bp/kopf")
+    def kopf_api():
+        """Alles, was die Kopfleiste beim Öffnen braucht, in EINER Abfrage (23.11.2026 – vorher platform, ki, projekt und danach darstellung
+        einzeln): conf (wie /api/platform), ki, projekt, darstellung. /api/me bleibt je App (jede App gibt dort Eigenes mit)."""
+        from . import platform as _pf
+        u = user()
+        conf = {} if request.args.get("conf") == "0" else {"conf": _pf.config(u)}   # ?conf=0: die App hat /api/platform schon geholt
+        if not u:
+            return jsonify(**conf)
+        with db.tx() as c:
+            return jsonify(**conf, ki=_ki(c, u), projekt=_projekt(c, u), darstellung=_darstellung(c, u))
 
     @bp.get("/api/bp/projekte")
     def projekte_api():

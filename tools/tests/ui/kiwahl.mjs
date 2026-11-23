@@ -23,6 +23,7 @@ export async function kiwahlPruefen(browser, repo) {
     if (pf === 'api/bp/ki/stufen') return J(STUFEN);   // KI-Schieber (kischieber.js) und ⚙ → Persönlich → KI: was die Verwaltung erlaubt
     if (pf === 'api/bp/ki') { if (r.request().method() === 'PUT') put.push(r.request().postData()); return J(KI); }
     if (pf === 'api/me') return J({ ok: true, id: 1, name: 'admin', vorname: 'A', role: 'admin', admin: true, look: {} });
+    if (pf === 'api/bp/kopf') return J({ conf: { apps: [], projekte: [] }, ki: KI });
     if (pf === 'api/platform') return J({ apps: [], projekte: [] });
     if (/(^|\/)api\//.test(pf)) return J(/liste|kontakte|neuigkeit|projekte|verlauf|fehler/.test(pf) ? [] : {});
     return r.fulfill({ status: 404, body: '' });

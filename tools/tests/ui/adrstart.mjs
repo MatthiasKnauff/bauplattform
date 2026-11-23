@@ -23,6 +23,7 @@ export async function adrStartPruefen(browser, repo) {
       if (extra) { const x = extra(pf, r.request()); if (x) return r.fulfill(J(x)); }
       if (pf === 'api/ansicht/start') { const d = JSON.parse(r.request().postData() || '{}'); puts.push(d); return r.fulfill(J({ ohne_projekt: !!d.ohne_projekt, gefragt: !!d.gefragt })); }
       if (pf === 'api/me') return r.fulfill(J({ ok: true, id: 1, name: 'admin', is_admin: true, apps: [], start }));
+      if (pf === 'api/bp/kopf') return r.fulfill(J({ conf: { apps: [], user: { name: 'admin' } }, projekt: { id: 7, name: 'Haus Mustermann' } }));
       if (pf === 'api/platform') return r.fulfill(J({ apps: [], user: { name: 'admin' } }));
       if (pf === 'api/bp/projekt') return r.fulfill(J({ id: 7, name: 'Haus Mustermann' }));
       if (pf === 'api/contacts') return r.fulfill(J(kont));

@@ -111,9 +111,9 @@
       if (e.target.closest('[data-hsf]')) { frei(!bg.classList.contains('frei')); return; }
       const r = e.target.closest('[data-hsr]'); if (r) { reiter = r.dataset.hsr; zeigen(); laden(); return; }
       const f = e.target.closest('[data-hsfi]'); if (f) { filter = f.dataset.hsfi; zeigen(); return; }
-      const z = e.target.closest('[data-hsz]'); if (z && window.bpNeu) { const L = LISTE.slice(), i = +z.dataset.hsz; zu(); bpNeu.zeige(L, i); return; }
-      if (e.target.closest('[data-hsg]') && window.bpNeu) {
-        bpNeu.merken(AE.filter((x) => !x.gesehen).map((x) => x.id)).then(() => { AE.forEach((x) => { x.gesehen = true; }); zeigen(); const q = document.querySelector('.bph-hlp'); if (q) q.classList.remove('neu'); });
+      const z = e.target.closest('[data-hsz]'); if (z) { const L = LISTE.slice(), i = +z.dataset.hsz; zu(); H.baustein('neu').then(() => bpNeu.zeige(L, i)); return; }
+      if (e.target.closest('[data-hsg]')) {
+        H.baustein('neu').then(() => bpNeu.merken(AE.filter((x) => !x.gesehen).map((x) => x.id)).then(() => { AE.forEach((x) => { x.gesehen = true; }); zeigen(); const q = document.querySelector('.bph-hlp'); if (q) q.classList.remove('neu'); }));
       }
     });
     bg.querySelector('[data-hss]').addEventListener('input', (e) => { such = e.target.value.trim().toLowerCase(); zeigen(); });

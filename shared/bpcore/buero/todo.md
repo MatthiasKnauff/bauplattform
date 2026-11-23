@@ -253,7 +253,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 - Wärmeschutz – Soll der weiteren Nachbarländer (NL, BE, LU, FR, DK, PL, CZ): Werte je Land mit Quelle recherchieren und in `WS_REGELN.SOLL` eintragen **ca. 1 h** · Querschnitt auch im Eigenschaften-Fenster des Gebäudemodells (SA-8) **ca. 1 h**
 
-- Baudaten-Baum: App Baudaten UND Reiter „Baudaten“ im LV auf EINEN Baustein (bpBaum + bpGruppen + fenster + tasten), eigene Baum-Logik der App weg – Mock zuerst, Umbau **ca. 3–4 h** (ersetzt WR-6)
+- Baudaten-Baum (GO 23.11.2026, BB-1 … BB-7 alle A): App Baudaten UND Reiter „Baudaten“ im LV auf EINEN Baustein (bpBaum + bpGruppen + fenster + tasten), eigene Baum-Logik der App weg – Mock zuerst, Umbau **ca. 3–4 h** (ersetzt WR-6)
 - Handyansicht Etappe 3: Ansichten der übrigen Apps je **30–60 min**, Verwaltung nur „Für mich“
 
 ## Erledigt
@@ -265,6 +265,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Behörden als Art, Person in einer Zeile (Anrede · Titel · Name · Zusatz), Bauherr:in als Person, Projektnummern am Kontakt (Name aus dem Projektordner), Suche findet Stichwörter~~ (23.11.2026)
 - ~~Adressen: Auswahl einzelner/mehrerer/aller gefilterten (Mock AW-1 … AW-5 A) – Haken, Strg/Umschalt, Leiste unten, Mail an alle, Projekt, Ändern, Zusammenführen, Excel/Drucken, Papierkorb~~ (23.11.2026)
 - ~~Tests nach den Kontakt-Feldern (Amt, Zusatz, ist_firma) nachgezogen~~ (23.11.2026)
+- ~~Kopfleiste schneller: Versand, Freigeben, Ablegen, Live, Unterschrift, Urlaubsanträge, Neuigkeiten laden erst beim ersten Gebrauch (≈ 130 KB und 6–7 Dateien weniger je Seite); beim Öffnen eine Abfrage `/api/bp/kopf` statt ki, projekt und danach darstellung~~ (23.11.2026)
 - ~~Gebäudemodell: ermittelte Räume zweier gleichnamiger Geschosse bekamen dieselben Nummern (ein Klick wählte zwei) – Kürzel je Geschoss eindeutig~~ (23.11.2026)
 - ~~Adressen-Tabelle: Haken stand mitten in der Namenszelle (Stil der Eingabefelder), Zahl der Gewählten oben~~ (23.11.2026)
 - ~~Versand: Anhänge unter der Nachricht, „＋ Plan …“ und „＋ aus der Ablage …“ (Kern liest beim Senden)~~ (23.11.2026)

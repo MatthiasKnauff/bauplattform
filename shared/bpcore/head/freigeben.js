@@ -18,7 +18,6 @@
   const ART = { gebaeude: 'Gebäude', tagesbericht: 'Bautagebuch', termine: 'Termine', rechnung: 'Rechnungen', kosten: 'Kosten', maengel: 'Mängel', plan: 'Pläne', foto: 'Fotos', info: 'Informationen' };
   const dt = (s) => (s ? new Date(s).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) : '');
 
-  H.bauherrAn = () => !!(H.conf && H.conf.bauherren);
   H.bauherrFreigeben = async (o = {}) => {
     if (!o.pid) { toast('Kein Projekt gewählt.', true); return false; }
     const ok = o.ohneFrage || !window.bpFrage ? true : await bpFrage(`„${o.titel || ART[o.art] || 'Inhalt'}“ für die Bauherr:innen dieses Projekts freigeben?\nSie sehen es im Bauherrenportal – ein früherer Stand desselben Inhalts wird ersetzt.`, { ok: 'Freigeben' });

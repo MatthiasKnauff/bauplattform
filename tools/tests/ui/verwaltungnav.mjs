@@ -22,6 +22,7 @@ export async function verwaltungNavPruefen(browser, repo) {
     if (pf === 'api/me') return J({ ok: true, id: 1, name: 'Matthias Knauff', role: 'admin', admin: true, is_admin: true, look: {} });
     if (pf === 'api/bt/settings') { if (r.request().method() === 'PUT') { const b = r.request().postDataJSON(); gesetzt.push(b); if ('mail_aus' in b) mailAus = b.mail_aus; return J({ ok: true }); } return J({ mail_user: 'buero@firma.de', mail_pass_set: true, mail_aus: mailAus }); }
     if (pf === 'api/bp/post/zuweisung') return J({ benutzer: [], postfaecher: [], zuordnung: {} });
+    if (pf === 'api/bp/kopf') return J({ conf: { apps: [], projekte: [] }, ki: { choice: 'ollama', providers: [{ key: 'ollama', label: 'Ollama', ok: true }] } });
     if (pf === 'api/platform') return J({ apps: [], projekte: [] });
     if (pf === 'api/bp/ki') return J({ choice: 'ollama', providers: [{ key: 'ollama', label: 'Ollama', ok: true }] });
     if (pf === 'api/bp/ki/stufen') return J({ buero: true, extern: false, grund: { extern: 'nicht erlaubt' } });

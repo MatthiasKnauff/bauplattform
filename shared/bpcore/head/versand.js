@@ -248,10 +248,6 @@
   }
   /* Ein PDF verschicken – dieselben Vorgaben für das Ansehen-Fenster (⋯ → Per Mail senden) und die Druckseite (✉ Senden):
      { name, datei, pdf, art, pid, projekt, an, betreff, text, link } → Angaben für unterlagenSenden */
-  const mailVorgabe = (m) => { const nm = String(m.name || 'Unterlage').replace(/\.pdf$/i, '');
-    return { titel: `„${nm}“ per Mail senden`, art: m.art || 'unterlagen', pid: m.pid || null, projekt: m.projekt || '', link: m.link || '', an: m.an || [],
-      was: [{ icon: '📄', name: nm, datei: m.datei || nm.replace(/[\\/:*?"<>|\r\n]+/g, '_').slice(0, 100) + '.pdf', pdf: m.pdf, ohneUnterschrift: true }],
-      betreff: m.betreff || nm + (m.projekt ? ' – ' + m.projekt : ''), text: m.text || `Guten Tag,\n\nanbei erhalten Sie ${nm}${m.projekt ? ' zum Bauvorhaben ' + m.projekt : ''}.\n\nMit freundlichen Grüßen`, danach: m.danach, einzeln: m.einzeln }; };
   window.bpVersand = versand;
-  if (H) { H.versand = versand; H.unterlagenSenden = unterlagenSenden; H.mailVorgabe = mailVorgabe; }
+  if (H) { H.versand = versand; H.unterlagenSenden = unterlagenSenden; }
 })();

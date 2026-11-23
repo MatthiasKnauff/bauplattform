@@ -156,7 +156,8 @@ async function abnahmeOeffnen(id, A0, V0, mit) {
   }
 
   /* ---------- Unterschrift: Vollbild mit Zeichenfläche ---------- */
-  function signieren(r) {
+  async function signieren(r) {
+    await BPHead.baustein('unterschrift');   // gemeinsamer Baustein, erst bei Bedarf geladen
     const T = S.d.teilnehmer || {}, u = (S.d.unterschriften || {})[r] || {};
     const el = document.createElement('div'); el.className = 'ab-sig';
     el.innerHTML = `<div class="ab-sk"><b>Unterschrift – ${ROLLE[r]}</b><input value="${esc(u.name || T[r] || (persListe(r)[0] || {}).name || '')}" placeholder="Name" aria-label="Name">${persChips(r, '', 'sigpers')}</div>

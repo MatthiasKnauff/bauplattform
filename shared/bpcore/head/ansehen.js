@@ -89,7 +89,10 @@
     const f = Object.assign(document.createElement('iframe'), { src: u, onload: () => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.open(u, '_blank'); } setTimeout(() => f.remove(), 60000); } });
     f.style.cssText = 'position:fixed;width:0;height:0;border:0;right:0;bottom:0'; document.body.appendChild(f);
   };
-  H.ansehen = function (items, start = 0) {
+  /* ✍ Unterschreiben (unterschrift.js) lädt mit dem Fenster – erst wenn es da ist, öffnet das Fenster, sonst fehlte der Knopf beim ersten Mal */
+  const US = H.baustein('unterschrift').catch(() => {});
+  H.ansehen = (items, start = 0) => (window.bpUnterschrift ? ansehen0(items, start) : US.then(() => ansehen0(items, start)));
+  function ansehen0(items, start) {
     items = (items || []).filter((x) => x && x.url); if (!items.length) return;
     if (gv) gv.close(true);
     const el = document.createElement('div'); el.className = 'bph-gv'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Ansicht');

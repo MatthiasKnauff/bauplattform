@@ -15,10 +15,9 @@
   { const quelle = (document.currentScript && document.currentScript.src) || 'bp/head.js', basis = quelle.replace(/[?#].*$/, '').replace(/[^/]*$/, ''),
       vq = window.BP_V || ((quelle.match(/[?&]v=\w+/) || [''])[0].replace('&', '?'));   // Stand (bpcore/tempo.py) – nachgeladene Bausteine dürfen im Browser bleiben
     window.BP_HEAD_BASIS = [basis, vq];   // für Bausteine, die erst bei Bedarf geladen werden (hilfeseite.js)
-    /* nachgeladene Bausteine jeder App: eigene Auswahllisten (wahl), Datumsauswahl statt Systemkalender (datum), Neuigkeiten (neu),
-       ✍ Unterschreiben in der PDF-Vorschau, „＋ Neu“-Leiste, Live-Aktualisierung (BPHead.live), Dokumente ablegen (BPHead.ablage),
-       Versanddialog (BPHead.versand), Urlaubsanträge (antrag) */
-    ['wahl', 'datum', 'neu', 'unterschrift', 'neuleiste', 'live', 'ablegen', 'versand', 'antrag', 'freigeben'].forEach((n) => { const x = document.createElement('script'); x.src = basis + n + '.js' + vq; document.head.appendChild(x); });
+    /* sofort nachgeladen, weil sie jeden Klick auf ein Auswahl-/Datumsfeld übernehmen: eigene Auswahllisten (wahl), Datumsauswahl (datum),
+       „＋ Neu“-Leiste. Alles Übrige erst beim ersten Gebrauch (BPHead.baustein, Platzhalter unten – 23.11.2026). */
+    ['wahl', 'datum', 'neuleiste'].forEach((n) => { const x = document.createElement('script'); x.src = basis + n + '.js' + vq; document.head.appendChild(x); });
     if (window.top === window && !document.querySelector('link[rel="manifest"]')) {   // App-Beschreibung: das Bauportal lässt sich in Edge/Chrome als App installieren (eigenes Fenster ohne Adressleiste)
       const m = document.createElement('link'); m.rel = 'manifest'; m.href = basis + 'manifest.webmanifest'; document.head.appendChild(m); } }
   const H = window.BPHead = { me: null, conf: null, ki: 'intern', providers: [], app: '', ready: null };
@@ -32,7 +31,18 @@
   spaeter('ansehen', ['ansehen', 'pdfLib', 'pdfIn', 'pdfDrucken', 'pdfZiel']);
   spaeter('masken', ['verlauf', 'kennwort', 'datenMaske', 'projektLoeschen', 'projektDaten', 'vorort', 'postfaecher', 'verlaufAlle']);
   spaeter('hilfe', ['bugMelden', 'hilfe', 'hilfeLive']);
-  H._liveQ = []; H.live = (...a) => { H._liveQ.push(a); };   // bis live.js geladen ist: Anmeldungen merken
+  spaeter('versand', ['versand', 'unterlagenSenden']);   // versand.js – gemeinsamer Versanddialog
+  spaeter('freigeben', ['bauherrFreigeben', 'bauherrPdf', 'bauherrProjekt']);   // freigeben.js – ans Bauherrenportal
+  spaeter('live', ['liveNotiz']);
+  H._liveQ = []; H.live = (...a) => { H._liveQ.push(a); H.baustein('live'); };   // live.js lädt mit der ersten Anmeldung und übernimmt die gemerkten
+  H.ablage = { ablegen: (...a) => H.baustein('ablegen').then(() => H.ablage.ablegen(...a)) };   // ablegen.js ersetzt ablegen; Seiten setzen hier hier/nachher/aus
+  H.bauherrAn = () => !!(H.conf && H.conf.bauherren);   // Knopf „Freigeben“ nur, wenn das Bauherrenportal eingerichtet ist
+  /* Angaben für unterlagenSenden aus { name, datei, pdf, art, pid, projekt, an, betreff, text, link, danach, einzeln } – hier, weil Apps es
+     gleich beim Aufruf von unterlagenSenden(…) brauchen, bevor versand.js geladen ist */
+  H.mailVorgabe = (m) => { const nm = String(m.name || 'Unterlage').replace(/\.pdf$/i, '');
+    return { titel: `„${nm}“ per Mail senden`, art: m.art || 'unterlagen', pid: m.pid || null, projekt: m.projekt || '', link: m.link || '', an: m.an || [],
+      was: [{ icon: '📄', name: nm, datei: m.datei || nm.replace(/[\\/:*?"<>|\r\n]+/g, '_').slice(0, 100) + '.pdf', pdf: m.pdf, ohneUnterschrift: true }],
+      betreff: m.betreff || nm + (m.projekt ? ' – ' + m.projekt : ''), text: m.text || `Guten Tag,\n\nanbei erhalten Sie ${nm}${m.projekt ? ' zum Bauvorhaben ' + m.projekt : ''}.\n\nMit freundlichen Grüßen`, danach: m.danach, einzeln: m.einzeln }; };
   /* Warte-Hinweis für alles, was der Benutzer gerade angestoßen hat (Klick/Taste) und länger braucht – in jeder App derselbe:
      nach 0,4 s erscheint unten in der Mitte, WAS gerade läuft („Texterkennung läuft …“, „PDF wird erstellt …“), nach 3 s mit der
      Dauer. Der Text wird aus der Adresse der Anfrage abgelesen (Liste WAS) – oder ausdrücklich gesetzt: BPHead.warten(promise, 'Text').
@@ -764,7 +774,9 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenus(); });
     if (opt.project) H.setProject(opt.project);
     H.ready = (async () => {
-      const [conf, me, ki, pj] = await Promise.all([opt.conf && opt.conf.apps ? Promise.resolve(opt.conf) : getJ('api/platform').catch(() => ({ apps: [] })), opt.me ? Promise.resolve(opt.me) : getJ('api/me').catch(() => null), getJ('api/bp/ki').catch(() => null), getJ('api/bp/projekt').catch(() => null)]);
+      const mitConf = !(opt.conf && opt.conf.apps);   // EINE Abfrage für die Kopfleiste (bpcore/head.py, /api/bp/kopf): conf, ki, projekt, darstellung – /api/me bleibt je App
+      const [K, me] = await Promise.all([getJ('api/bp/kopf' + (mitConf ? '' : '?conf=0')).catch(() => ({})), opt.me ? Promise.resolve(opt.me) : getJ('api/me').catch(() => null)]);
+      const conf = mitConf ? K.conf || { apps: [] } : opt.conf, ki = K.ki, pj = K.projekt;
       H.conf = conf; H.me = me && me.ok !== false ? me : null;
       try { if (sessionStorage.getItem('bpZurueck') || sessionStorage.getItem('bpZurueckTun')) { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'zurueck.js' + v; document.head.appendChild(sc); } } catch { /* egal */ }   // Rücksprung aus „Zu tun“/Suche (zurueck.js)
       if (H.me && (window.bpDesktop || (H.app === 'portal' && /Windows/i.test(navigator.userAgent)))) H.winapp();   // Windows-App: in der App „genutzt“ melden, auf der Startseite einmal anbieten (winapp.js)
@@ -775,7 +787,7 @@
       H.handyLaden();   // Handyansicht (handy.js): nur wenn schmal, sonst erst, wenn das Fenster schmal wird
       schriftAnwenden(conf.schrift || '', conf.schrift_groesse || '');
       testBanner(conf.version);
-      if (H.me) getJ('api/bp/darstellung').then((d) => { const dm = (d.modus_apps || {})[H.app] || d.modus; if (dm && dm !== H.modus) { try { localStorage.setItem('bpModus', d.modus); if (H.app) localStorage.setItem('bpModus.' + H.app, dm); } catch { /* egal */ } location.reload(); return; } H.me.farbschema = d.farbschema || ''; H.me.stil = d.stil || {}; H.me.handy = d.handy || []; if (window.bpHandy) bpHandy.neu(); stilAnwenden(H.me.stil); H.me.schrift = d.schrift || ''; H.me.schrift_g = d.schrift_g || ''; if (d.schrift || d.schrift_g) schriftAnwenden(sAkt(), gAkt()); H.kiImmer = !!d.ki_immer; H.kiVorgabe = d.ki_vorgabe || 'buero'; logoArt(d.logo); schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } }).catch(() => {});
+      if (H.me && K.darstellung) ((d) => { const dm = (d.modus_apps || {})[H.app] || d.modus; if (dm && dm !== H.modus) { try { localStorage.setItem('bpModus', d.modus); if (H.app) localStorage.setItem('bpModus.' + H.app, dm); } catch { /* egal */ } location.reload(); return; } H.me.farbschema = d.farbschema || ''; H.me.stil = d.stil || {}; H.me.handy = d.handy || []; if (window.bpHandy) bpHandy.neu(); stilAnwenden(H.me.stil); H.me.schrift = d.schrift || ''; H.me.schrift_g = d.schrift_g || ''; if (d.schrift || d.schrift_g) schriftAnwenden(sAkt(), gAkt()); H.kiImmer = !!d.ki_immer; H.kiVorgabe = d.ki_vorgabe || 'buero'; logoArt(d.logo); schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } })(K.darstellung);
       H.projekt = pj && pj.id ? pj : null; kopfProjekt();
       if (ki) { H.ki = ki.choice || 'intern'; H.providers = ki.providers || []; }
       const portal = (conf.apps || []).find((a) => a.key === 'portal');
@@ -794,7 +806,12 @@
     })();
     H.ready.then(skWache).catch(() => {});
     H.ready.then(hilfeStart).catch(() => {});
-    H.ready.then(() => { const los = () => window.bpNeu && bpNeu.start(); if (window.bpNeu) los(); else setTimeout(los, 800); }).catch(() => {});
+    H.ready.then(() => {   // Urlaubsanträge (antrag.js) nur, wenn es etwas zu entscheiden oder zu sehen gibt; Neuigkeiten (neu.js) nur, wo sie von selbst kommen
+      const c = H.conf || {}; if (!H.me) return;
+      if (c.antraege || c.freigeben) H.baustein('antrag').catch(() => {});
+      let tour = false; try { tour = !!localStorage.getItem('bp.neu.tour'); } catch { /* egal */ }
+      if (window.top === window && !navigator.webdriver && (tour || /-test\b/.test(String(c.version || '')))) H.baustein('neu').then(() => bpNeu.start()).catch(() => {});
+    }).catch(() => {});
     return H.ready;
   };
 

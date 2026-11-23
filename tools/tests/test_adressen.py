@@ -312,7 +312,7 @@ def test_einlesen(ctx):
     ids = []
     try:
         r = a.req("POST", "/adressen/api/contacts/einlesen/datei", dateien={"datei": ("liste.csv", datei, "text/csv")}).json
-        gleich(r["spalten"][1], "firma", "Firmenspalte ohne passende Überschrift"); gleich(r["spalten"][3], "", "„nicht eintragen“ bleibt frei")
+        gleich(r["spalten"][1], "firma", "Firmenspalte ohne passende Überschrift"); gleich(r["spalten"][3], "nachname", "Nachname (auch „nicht eintragen“) nur als Ersatz, wenn die Person fehlt")
         K = {k["name"]: k for k in r["kontakte"]}
         d = K[f"RT-Ein Dach {x} GmbH"]
         gleich((len(d["personen"]), [p["name"] for p in d["personen"]], d["zip"], d["city"]), (2, ["Max Beispiel", "Eva Muster"], "45127", "Essen"), "zwei Zeilen = ein Kontakt")

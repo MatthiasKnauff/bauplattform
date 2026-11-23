@@ -47,8 +47,11 @@ def einrichten():
         from bpcore import contacts
         with db.tx() as c:
             n = contacts.projektnr_umziehen(c)   # Projektnummern aus den Stichwörtern (Einlesen bis 22.11.2026) an den Kontakt – PZ-1
+            m = contacts.platzhalter_weg(c)   # „Ansprechpartner:in“ als Name weiterer Personen (Einlesen bis 23.11.2026)
         if n:
             print(f"Dienste: Projektnummern an {n} Kontakten umgezogen", flush=True)
+        if m:
+            print(f"Dienste: Platzhalter-Namen an {m} Kontakten entfernt", flush=True)
     except Exception as e:   # noqa: BLE001
         fehler.still("dienste", "Projektnummern der Kontakte umziehen", e)
     try:

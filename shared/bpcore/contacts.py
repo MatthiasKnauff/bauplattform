@@ -302,6 +302,23 @@ def projekt_kuerzel(name):
     return m.group(1).upper() if m else ""
 
 
+PLATZHALTER = "Ansprechpartner:in"   # stand bis 23.11.2026 als Name weiterer Personen, die ohne Namen eingelesen wurden
+
+
+def platzhalter_weg(c):
+    """Einmal (Dienste beim Start): der Platzhalter „Ansprechpartner:in“ als Name weiterer Personen (Einlesen bis 23.11.2026) fällt weg."""
+    n = 0
+    for r in c.execute("SELECT id, extra FROM contacts WHERE extra LIKE ?", ('%"' + PLATZHALTER + '"%',)).fetchall():
+        ex = _json(r["extra"])
+        W = ex.get("weitere") or []
+        if not any(x.get("typ") == "person" and x.get("wert") == PLATZHALTER for x in W):
+            continue
+        ex["weitere"] = [{k: v for k, v in x.items() if not (k == "wert" and x.get("typ") == "person" and v == PLATZHALTER)} for x in W]
+        c.execute("UPDATE contacts SET extra=? WHERE id=?", (json.dumps(ex, ensure_ascii=False), r["id"]))
+        n += 1
+    return n
+
+
 def projektnr_umziehen(c):
     """Einmal (Dienste beim Start): Projektnummern, die das Einlesen bis 22.11.2026 als Stichwort abgelegt hat, an den Kontakt (extra.projektnr)."""
     n = 0

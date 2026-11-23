@@ -1,5 +1,13 @@
 [
  {
+  "id": "adr-einlesen-namen-2311",
+  "datum": "2026-11-23",
+  "app": "adressen",
+  "titel": "Einlesen: Namen der Ansprechpartner:innen",
+  "text": "Steht der Name nur in der Spalte „Nachname“, wird er jetzt übernommen – statt „Ansprechpartner:in“. Telefon und Mobil bleiben beide, die Projektnummer steht bei der Person. Schon eingelesene Listen einfach noch einmal mit „ergänzen“ einlesen: die Namen kommen dazu.",
+  "ziel": "#tw thead"
+ },
+ {
   "id": "adr-spaltbreite-2311",
   "datum": "2026-11-23",
   "app": "adressen",

@@ -23,8 +23,8 @@ FELDER = {   # Feld → Bezeichnung in der Vorschau
     "mail": "E-Mail", "web": "Internet", "projekt": "Projektnummer", "notiz": "Notizen", "funktion": "Funktion",
 }
 _KOPF = [   # Reihenfolge zählt: das Erste, was passt
-    ("nicht eintragen", ""), ("nicht einlesen", ""), ("ansprech", "person"), ("anrede", "person"), ("kontaktperson", "person"), ("vorname", "person"),
-    ("nachname", "nachname"), ("gewerk", "gewerk"), ("branche", "gewerk"), ("firma", "firma"), ("unternehmen", "firma"),
+    ("nachname", "nachname"), ("nicht eintragen", ""), ("nicht einlesen", ""), ("ansprech", "person"), ("anrede", "person"), ("kontaktperson", "person"), ("vorname", "person"),
+    ("gewerk", "gewerk"), ("branche", "gewerk"), ("firma", "firma"), ("unternehmen", "firma"),
     ("plz ort", "plzort"), ("plz/ort", "plzort"), ("plz", "plz"), ("ort", "ort"), ("stadt", "ort"), ("straße", "strasse"), ("strasse", "strasse"),
     ("adresse", "strasse"), ("anschrift", "strasse"), ("fax", "fax"), ("mobil", "mobil"), ("handy", "mobil"), ("mail", "mail"),
     ("tel", "tel"), ("fon", "tel"), ("web", "web"), ("internet", "web"), ("homepage", "web"), ("projekt", "projekt"),
@@ -128,9 +128,9 @@ def ordnen(c, zeilen, S):
             continue
         gw = w.get("gewerk", "")
         bauherr = bool(re.match(r"\s*bauherr", gw, re.I))
-        anrede, titel, person, zusatz = K.person_zerlegen(w.get("person", ""))
-        if not person and w.get("nachname"):
-            person = w["nachname"]
+        # Nachname nur, wenn die Spalte der Person leer ist – in der Liste des Büros steht dort „nicht eintragen, wird automatisch erzeugt“,
+        # bei manchen Zeilen aber nur dort der Name („Hr. Böttrich“); bis 23.11.2026 fiel er weg und die Person hieß „Ansprechpartner:in“
+        anrede, titel, person, zusatz = K.person_zerlegen(w.get("person") or w.get("nachname", ""))
         name = (w.get("firma") or person or "").strip()[:200]
         behoerde = bool(_BEHOERDE.match(name)) and not bauherr
         if not name:
@@ -148,15 +148,18 @@ def ordnen(c, zeilen, S):
             k["gewerke"].append(gw[:80])
         mails = _MAIL.findall(w.get("mail", ""))
         p = {"anrede": anrede, "titel": titel, "name": person if person != name else "", "zusatz": zusatz, "tel": w.get("tel", ""), "mobil": w.get("mobil", ""),
-             "mail": mails[0] if mails else "", "funktion": w.get("funktion", ""), "amt": gw if k["art"] == "behoerde" else ""}   # Behörde: Gewerk-Spalte = Amt (BH-1)
+             "mail": mails[0] if mails else "", "funktion": w.get("funktion", ""), "amt": gw if k["art"] == "behoerde" else "",
+             "projekt": [x.upper() for x in _PROJ.findall(w.get("projekt", ""))]}   # Behörde: Gewerk-Spalte = Amt (BH-1)
         if k["art"] == "bauherr" and not w.get("firma") and not k["personen"]:   # Bauherr:in = Person (BH-4): Anrede, Titel, Zusatz gehören zum Kontakt selbst
             k["person"] = {"anrede": anrede, "titel": titel, "zusatz": zusatz}
-        if any(p.values()):
+        if any(v for f, v in p.items() if f != "projekt"):
             k["personen"].append(p)
         for m in mails[1:]:
             if m not in k["mails"]:
                 k["mails"].append(m)
-        if w.get("fax") and w["fax"] not in k["tel"]:
+        if w.get("fax") and not re.search(r"\d{3}", w["fax"]):   # in der Fax-Spalte steht keine Nummer (z. B. ein Name) → Notiz, nicht als Fax
+            w["notiz"] = " · ".join(x for x in (w.get("notiz"), "Fax-Spalte: " + w["fax"]) if x)
+        elif w.get("fax") and w["fax"] not in k["tel"]:
             k["tel"].append(w["fax"])
         for nr in _PROJ.findall(w.get("projekt", "")):
             nr = nr.upper()
@@ -199,17 +202,31 @@ def _felder(k):
     if d["website"] and not re.match(r"https?://", d["website"], re.I):
         d["website"] = "https://" + d["website"]
     q = k.get("person") if bh else p0
-    F = {"ap_anrede": q.get("anrede") or "", "ap_titel": q.get("titel") or "", "ap_zusatz": q.get("zusatz") or "", "amt": p0.get("amt") or ""}
+    F = {"ap_anrede": q.get("anrede") or "", "ap_titel": q.get("titel") or "", "ap_zusatz": q.get("zusatz") or "", "amt": p0.get("amt") or "",
+         "ist_firma": "ja" if k.get("art") == "bauherr" and not bh else ""}   # Bauherr:in mit Firmenspalte (Hausverwaltung, WEG) = Firma mit Ansprechpartner:in
     W = []
     for p in P[1:]:
         if p.get("name") or p.get("tel") or p.get("mobil") or p.get("mail"):
-            W.append({"typ": "person", "wert": p.get("name") or "Ansprechpartner:in", "anrede": p.get("anrede") or "", "titel": p.get("titel") or "", "zusatz": p.get("zusatz") or "",
-                      "amt": p.get("amt") or "", "tel": p.get("mobil") or p.get("tel") or "", "mail": p.get("mail") or "", "bez": p.get("funktion") or ""})
+            # kein Platzhalter als Name (bis 23.11.2026 „Ansprechpartner:in“); Funktion, sonst die Projektnummer der Zeile; Telefon UND Mobil bleiben
+            W.append({"typ": "person", "wert": p.get("name") or "", "anrede": p.get("anrede") or "", "titel": p.get("titel") or "", "zusatz": p.get("zusatz") or "",
+                      "amt": p.get("amt") or "", "tel": p.get("tel") or p.get("mobil") or "", "mail": p.get("mail") or "",
+                      "bez": p.get("funktion") or ("Projekt " + ", ".join(p["projekt"]) if p.get("projekt") else "")})
+            if p.get("tel") and p.get("mobil"):
+                W.append({"typ": "tel", "bez": ((p.get("name") or "") + " mobil").strip(), "wert": p["mobil"]})
     for m in k.get("mails") or []:
         W.append({"typ": "mail", "wert": m})
     for t in k.get("tel") or []:
         W.append({"typ": "tel", "bez": "Fax", "wert": t})
     return d, K.weitere_bereinigen(W), {x: v for x, v in K.firma_bereinigen(F).items() if v}, K.projektnr_bereinigen(k.get("projektnr") or [])
+
+
+def _ersetzt(a, w, W):
+    """Person aus einem früheren Einlesen ohne Namen (leer oder Platzhalter) und dieselbe Nummer bzw. Mail wie die neue mit Namen?
+    Früher stand bei Telefon und Mobil nur das Mobil an der Person – das steht jetzt als „<Name> mobil“ daneben."""
+    if not (a.get("typ") == "person" == w["typ"] and w.get("wert") and (a.get("wert") or "") in ("", K.PLATZHALTER)):
+        return False
+    nr = {w.get("tel")} | {x["wert"] for x in W if x["typ"] == "tel" and x.get("bez") == w["wert"] + " mobil"}
+    return bool((a.get("tel") and a["tel"] in nr) or (a.get("mail") and a.get("mail") == w.get("mail")))
 
 
 def einlesen(c, L, wer):
@@ -229,7 +246,8 @@ def einlesen(c, L, wer):
             vorher.append({"id": ziel, "zeile": {f: r[f] for f in d}, "extra": r["extra"]})
             ch = {f: v for f, v in d.items() if v and not (r[f] or "").strip()}
             alt_w = ex.get("weitere") or []
-            dazu = [w for w in W if w not in alt_w and not (w["typ"] == "person" and any(a.get("typ") == "person" and a.get("wert") == w["wert"] for a in alt_w))]
+            alt_w = [a for a in alt_w if not any(_ersetzt(a, w, W) for w in W)]   # ohne Namen eingelesene Person (Platzhalter) → durch dieselbe mit Namen ersetzen
+            dazu = [w for w in W if w not in alt_w and not (w["typ"] == "person" and w.get("wert") and any(a.get("typ") == "person" and a.get("wert") == w["wert"] for a in alt_w))]
             pj = [p for p in P if p not in (ex.get("projektnr") or [])]
             fi = {f: v for f, v in FI.items() if not (ex.get("firma") or {}).get(f)}
             if dazu or pj or fi:

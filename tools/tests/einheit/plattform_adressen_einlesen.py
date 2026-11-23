@@ -32,7 +32,7 @@ Z = [
 
 def test_spalten_und_ordnen():
     S = E.spalten(KOPF, Z)
-    gleich(S, ["gewerk", "firma", "person", "", "strasse", "plzort", "tel", "fax", "mobil", "mail", "web", "projekt", "notiz"], "Zuordnung")
+    gleich(S, ["gewerk", "firma", "person", "nachname", "strasse", "plzort", "tel", "fax", "mobil", "mail", "web", "projekt", "notiz"], "Zuordnung")
     c = db()
     K, n = E.ordnen(c, Z, S)
     gleich([k["name"] for k in K], ["Dach Eins GmbH", "Rita Probe", "Alt Bau GmbH"], "ein Kontakt je Firma, Person ohne Firma")
@@ -60,6 +60,36 @@ def test_einlesen_und_zurueck_felder():
     gleich((a["street"], a["trade"], a["phone"]), ("Straße 3", "Maler", "0201 3"), "nur leere Felder gefüllt")
     gleich(c.execute("SELECT art FROM contacts WHERE name='Rita Probe'").fetchone()["art"], "bauherr", "Art")
     gleich(r["stand"]["vorher"][0]["zeile"]["street"], "", "Stand für Rückgängig")
+
+
+def test_name_nur_im_nachnamen():
+    """23.11.2026 (Video): Bauherr:in mit Firmenspalte (Hausverwaltung) und Personen je Projekt, deren Name nur in der Spalte „Nachname (nicht
+    eintragen …)“ steht – Name aus dieser Spalte, kein Platzhalter „Ansprechpartner:in“, Telefon UND Mobil, Projekt je Person, Name in der
+    Fax-Spalte als Notiz; nochmal eingelesen ersetzt die Personen ohne Namen. Erfundene Daten."""
+    Z2 = [["Bauherr/Ansprechpartner vor Ort", "Hausverwaltung Probe", "", "Hr. Eins", "", "", "0111-1", "", "", "", "", "A401", ""],
+          ["Bauherr/Ansprechpartner vor Ort", "Hausverwaltung Probe", "", "Hr. Zwei", "", "", "0222-2", "", "0170-2", "", "", "A402", ""],
+          ["Bauherr/Ansprechpartner vor Ort", "Hausverwaltung Probe", "", "Fr. Drei", "", "", "0333-3", "Huda", "", "drei@probe.test", "", "A403.1", ""]]
+    c = db()
+    S = E.spalten(KOPF, Z2)
+    K, _ = E.ordnen(c, Z2, S)
+    E.einlesen(c, K, "test")
+    d = c.execute("SELECT * FROM contacts WHERE name='Hausverwaltung Probe'").fetchone()
+    ex = json.loads(d["extra"])
+    P = [w for w in ex["weitere"] if w["typ"] == "person"]
+    gleich((d["art"], d["contact_person"], ex["firma"].get("ist_firma"), ex["firma"].get("ap_anrede")), ("bauherr", "Eins", "ja", "Herr"), "Bauherr:in als Firma mit Ansprechpartner")
+    gleich([(w["wert"], w.get("anrede"), w["tel"], w.get("bez")) for w in P], [("Zwei", "Herr", "0222-2", "Projekt A402"), ("Drei", "Frau", "0333-3", "Projekt A403.1")], "Personen mit Namen und Projekt")
+    gleich([(w.get("bez"), w["wert"]) for w in ex["weitere"] if w["typ"] == "tel"], [("Zwei mobil", "0170-2")], "Mobil bleibt neben dem Telefon")
+    pruefe("Fax-Spalte: Huda" in d["notes"] and not any(w.get("wert") == "Huda" for w in ex["weitere"]), "Name in der Fax-Spalte → Notiz")
+    # früher eingelesen: Personen mit Platzhalter → Dienste nehmen ihn weg, erneutes Einlesen (ergänzen) setzt den Namen
+    alt = {**ex, "weitere": [{**w, "wert": "Ansprechpartner:in"} if w["typ"] == "person" else w for w in ex["weitere"]]}
+    c.execute("UPDATE contacts SET extra=? WHERE id=?", (json.dumps(alt), d["id"]))
+    from bpcore import contacts as KC
+    gleich(KC.platzhalter_weg(c), 1, "Platzhalter entfernt")
+    pruefe(all("wert" not in w for w in json.loads(c.execute("SELECT extra FROM contacts WHERE id=?", (d["id"],)).fetchone()["extra"])["weitere"] if w["typ"] == "person"), "ohne Namen")
+    K, _ = E.ordnen(c, Z2, S)
+    E.einlesen(c, K, "test")
+    P = [w for w in json.loads(c.execute("SELECT extra FROM contacts WHERE id=?", (d["id"],)).fetchone()["extra"])["weitere"] if w["typ"] == "person"]
+    gleich(sorted(w.get("wert", "") for w in P), ["Drei", "Zwei"], "nochmal eingelesen: Namen ersetzen die Personen ohne Namen")
 
 
 def test_csv():

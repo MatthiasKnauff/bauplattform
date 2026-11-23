@@ -50,7 +50,7 @@
         Q.value = neu ? neu.id : '';
       }
       V.hidden = !VS.length;
-      V.innerHTML = VS.length ? `<span class="hint">Version</span>` + VS.map((p, i) => `<button type="button" class="ub-vk${p.id === Q.value ? ' on' : ''}" data-ubq="${E(p.id)}" title="zuletzt bearbeitet ${tag(p.updated)}">${i + 1} · ${E(p.name)}${p.archived ? ' <small>(archiviert)</small>' : ''}</button>`).join('') : '';
+      V.innerHTML = VS.length ? `<span class="hint">Version</span>` + VS.map((p, i) => `<button type="button" class="ub-vk${p.id === Q.value ? ' on' : ''}" data-ubq="${E(p.id)}" title="${E(p.name)} – zuletzt bearbeitet ${tag(p.updated)}">${i + 1} · ${E(p.name)}${p.archived ? ' <small>(archiviert)</small>' : ''}</button>`).join('') : '';
       Q.dispatchEvent(new Event('change'));
     }
     liste();
@@ -113,7 +113,7 @@
     const bg = fenster('Neuer Plan aus anderem Bauzeitenplan', null,
       `<label class="ub-f"><span class="ub-lb">Name des neuen Plans</span><input id="ubName" value="${E(name0 || '')}" placeholder="Name des neuen Plans" data-bp-projekt autocomplete="off"></label>
        <label class="ub-f"><span class="ub-lb">Projektanfang</span><input id="ubStart" type="date" value="${anfang}"></label>
-       <p class="hint" id="ubInfo">Links Projekt und Version als Vorlage wählen – alle Abschnitte werden übernommen.</p>`,
+       <p class="hint" id="ubInfo">Links Projekt und Version als Vorlage wählen – alle Abschnitte werden übernommen.</p><div class="ub-vor" id="ubVor"></div>`,
       firmenZeilen('der Vorlage') + `<div class="ub-sw">${schalter}</div>`, 'Plan anlegen', (bg) => {
         const q = bg.querySelector('#ubQ') && bg.querySelector('#ubQ').value;
         if (!q) { toast('Bitte links Projekt und Version als Vorlage wählen.', true); return false; }
@@ -138,11 +138,14 @@
       sum.textContent = SRC ? `${mz((SRC.tasks || []).filter((t, i, a) => blatt(a, i)).length, 'Leistung', 'Leistungen')} aus „${SRC.name}“${d != null ? ' · Beginn ' + fmtD(snapWork(d)) : ''}` : ''; };
     bg.querySelector('#ubStart').addEventListener('change', fuss);
     if (q) q.addEventListener('change', async () => {
-      const info = bg.querySelector('#ubInfo'); SRC = null; fuss(); if (!q.value) return;
+      const info = bg.querySelector('#ubInfo'); SRC = null; fuss(); bg.querySelector('#ubVor').innerHTML = ''; if (!q.value) return;
       const id = q.value, s = await planApi.get(id).catch((e) => { toast(e.message, true); return null; });
       if (!s || q.value !== id) return;
       SRC = s; fuss();
       info.innerHTML = `<b>${E(s.name)}</b> begann am ${fmtD(s.start)} – alles wird auf den neuen Projektanfang verschoben, mit Dauern, Verknüpfungen, Gewerken und Kalender.`;
+      const T = s.tasks || [];   // was übernommen wird: die Abschnitte mit der Zahl ihrer Leistungen
+      bg.querySelector('#ubVor').innerHTML = T.map((t, i) => i).filter((i) => (T[i].lvl || 0) === 0)
+        .map((i) => `<div><span>${E(T[i].name)}</span><small>${blatt(T, i) ? (T[i].dur ? T[i].dur + ' AT' : 'Meilenstein') : mz(unter(T, i).filter((j) => blatt(T, j)).length, 'Leistung', 'Leistungen')}</small></div>`).join('');
       const nm = bg.querySelector('#ubName'); if (!nm.value.trim()) nm.placeholder = 'z. B. ' + s.name.replace(/\s*\(Kopie\)$/, '') + ' – neues Projekt';
     });
   };

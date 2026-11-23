@@ -54,16 +54,18 @@ export async function ganttHeftPruefen(browser, repo) {
       const u = await p.evaluate(async () => { const alt = projects;
         projects = [{ id: '7', name: 'A497 Haus Müller', bt_id: 5, bt: 'A497 Haus Müller', updated: '2026-10-01', created: '2026-01-01' },
           { id: '8', name: 'A497 Haus Müller (2)', bt_id: 5, bt: 'A497 Haus Müller', updated: '2026-11-02', created: '2026-05-01' },
-          { id: '9', name: 'B12 Schule', bt_id: 6, bt: 'B12 Schule', updated: '2026-09-01' }, { id: '10', name: 'C3 Alt', archived: true, updated: '2025-01-01' }];
+          { id: '9', name: 'B12 Schule', bt_id: 6, bt: 'B12 Schule Ein-/Zweifamilienhaus · Anbau / Erweiterung + Aufstockung + Umbau', updated: '2026-09-01' }, { id: '10', name: 'C3 Alt', archived: true, updated: '2025-01-01' }];
         planTeileUebernehmen();
         const r = { select: !!document.querySelector('#ubL') && !document.querySelector('select#ubP, select#ubQ'), zeilen: document.querySelectorAll('#ubL [data-ubp]').length, arch: !!document.querySelector('#ubL [data-ubarch]') };
         const S = document.querySelector('#ubS'); S.value = 'müller'; S.dispatchEvent(new Event('input')); r.treffer = document.querySelectorAll('#ubL [data-ubp]').length;
         document.querySelector('#ubL [data-ubp]').click(); await new Promise((ok) => setTimeout(ok, 300));
         r.vers = document.querySelectorAll('#ubV [data-ubq]').length; r.q = document.querySelector('#ubQ').value; r.on = (document.querySelector('#ubV .on') || {}).dataset?.ubq;
         r.teile = /keine Leistungen|Abschnitte/.test(document.querySelector('#ubTeile').textContent);
+        {   // 23.11.2026 „totales Chaos“: lange Namen bleiben in der linken Spalte (Liste und Versionen nicht breiter als die Spalte)
+          const li = document.querySelector('.ub-li').getBoundingClientRect(); r.spalte = ['#ubL', '#ubV'].every((s) => document.querySelector(s).getBoundingClientRect().right <= li.right + 1); }
         document.querySelector('#ubV [data-ubq="7"]').click(); r.q2 = document.querySelector('#ubQ').value;
         [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Abbrechen' && b.offsetParent).click(); projects = alt; return r; });
-      pruef(u.select && u.zeilen === 2 && u.arch && u.treffer === 1 && u.vers === 2 && u.q === '8' && u.on === '8' && u.teile && u.q2 === '7', `Aus anderem Plan übernehmen – Projektauswahl: ${JSON.stringify(u)}`); }
+      pruef(u.select && u.zeilen === 2 && u.arch && u.treffer === 1 && u.vers === 2 && u.q === '8' && u.on === '8' && u.teile && u.spalte && u.q2 === '7', `Aus anderem Plan übernehmen – Projektauswahl: ${JSON.stringify(u)}`); }
     {   // UB-1 … UB-5 (23.11.2026): Beginn vorbelegt, Abschnitte als Baum, einzelne Leistungen wählbar, Zusammenfassung im Fuß
       const u = await p.evaluate(async () => { const alt = projects, ag = planApi.get, vorher = P.tasks.length;
         projects = [{ id: '9', name: 'B12 Schule', bt_id: 6, bt: 'B12 Schule', updated: '2026-09-01' }];

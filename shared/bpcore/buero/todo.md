@@ -9,7 +9,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; 3D-Auswahl später) – B erledigt durch das Raumbuch (17.11.: Gruppen, abweichender Raum eigene Zeile) **ca. 1,5 h**
 - ~~Bauzeitenplan: Projektauswahl in „Aus anderem Plan übernehmen“ ohne native Listen (Suche, Zeilen, Versionen als Knöpfe) – 23.11.2026~~
-~~Leistungskatalog „Abhängigkeiten“: Nachfolger zeigten den Namen der Mitte; linke Spalte in der Breite ziehbar~~ (23.11.2026)
+- ~~Leistungskatalog „Abhängigkeiten“: Nachfolger zeigten den Namen der Mitte; linke Spalte in der Breite ziehbar~~ (23.11.2026)
 ~~Handy: aus dem Bautagebuch in die Adressen → erst nur die Beteiligten des Projekts~~ (23.11.2026)
 ~~„Häkchen als Schalter“: Auswahl-Haken in Tabellen und Adressen bleiben Häkchen (Name rutschte in eine zweite Zeile)~~ (23.11.2026)
 ~~Handy: Leiste unten ohne Lücke, wenn weniger als fünf Plätze da sind~~ (23.11.2026)

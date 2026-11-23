@@ -28,7 +28,7 @@
   const EINZUG = 1.15;
   const einzug = (t) => `padding-left:${(t || 0) * EINZUG}rem`;
   function zelle(o) {
-    return `<td class="${o.kl ? o.kl + ' ' : ''}baumz"${o.attr || ''}><div class="bz" style="${einzug(o.tiefe)}"><span class="car${o.auf === true ? ' auf' : o.auf === false ? ' zu' : o.leer ? ' leer' : ''}"${o.klapp != null ? ` data-zu="${o.klapp}" title="${o.auf === false ? 'aufklappen' : 'zuklappen'}"` : ''}${o.car || ''}></span>${o.icon || ''}${o.html || ''}</div></td>`;
+    return `<td class="${o.kl ? o.kl + ' ' : ''}baumz"${o.attr || ''}><div class="bz" style="${einzug(o.tiefe)}"><span class="car${o.auf === true ? ' auf' : o.auf === false ? ' zu' : o.leer ? ' leer' : ''}"${o.klapp != null ? ` data-zu="${window.bpEsc(String(o.klapp))}" title="${o.auf === false ? 'aufklappen' : 'zuklappen'}"` : ''}${o.car || ''}></span>${o.icon || ''}${o.html || ''}</div></td>`;
   }
   const SP = 'bp.baum.';
   function klapp(o) {

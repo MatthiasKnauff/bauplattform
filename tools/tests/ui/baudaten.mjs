@@ -84,7 +84,7 @@ export async function baudatenPruefen(browser, repo) {
     await p.waitForSelector(zeile('["gk3"]'));
     for (const k of ['["gk3"]', '["gk3","330"]', '["gk3","330","330.2"]']) {
       await p.waitForSelector(zeile(k)); const y0 = await oben(zeile(k));
-      await p.click(zeile(k) + ' td.baumz'); await p.waitForTimeout(250);
+      await p.click(zeile(k) + ' [data-zu]'); await p.waitForTimeout(250);   // am Dreieck (23.11.2026: der Pfad als Kennung zerbrach das Attribut data-zu)
       const y1 = await oben(zeile(k)); pruef(y1 != null && Math.abs(y1 - y0) < 2, `Baum: ${k} springt beim Aufklappen um ${Math.round((y1 || 0) - y0)} px`);
     }
     await p.waitForSelector('#bdBaum tr.bdb-p'); const n = await p.evaluate(() => document.querySelectorAll('#bdBaum tr.bdb-p').length);

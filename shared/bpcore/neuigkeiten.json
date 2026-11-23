@@ -1,5 +1,13 @@
 [
  {
+  "id": "handy-leiste-fuenf-2026-11-23",
+  "datum": "2026-11-23",
+  "app": "alle",
+  "titel": "Handy: untere Leiste immer gleich",
+  "text": "Fehlt in der unteren Leiste eine App, weil sie für deine Rolle aus ist, rückt eine andere nach. Die Leiste hat damit immer fünf Plätze, und das ＋ im Bautagebuch und in Zeiten steht immer in der Mitte.",
+  "ziel": ".bph-unten"
+ },
+ {
   "id": "katalog-werk-alles-2026-11-23",
   "datum": "2026-11-23",
   "app": "gantt",

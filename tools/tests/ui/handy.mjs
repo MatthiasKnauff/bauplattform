@@ -55,6 +55,11 @@ export async function handyPruefen(browser, repo) {
         const b = document.querySelector('.bph-uplus').getBoundingClientRect();
         return { vor, geklickt, mitte: Math.abs(b.left + b.width / 2 - innerWidth / 2) < 4, adr: document.querySelector('.bph-unten [data-hu="adressen"]').getAttribute('href') }; });
       pruef(r.vor.L.join('|') === 'Start|Aufgaben|＋|Adressen|Suche' && r.vor.grau && r.geklickt === 1 && r.mitte && /#projekt$/.test(r.adr), `＋ in der Mitte (Adressen mit #projekt) der Leiste: ${JSON.stringify(r)}`);
+      // 23.11.2026: ohne „Aufgaben“ (App für die Rolle aus) rückt eine andere App nach – weiter fünf Plätze, ＋ in der Mitte
+      const o = await S.p.evaluate(() => { const A = BPHead.conf.apps, a = A.find((x) => x.key === 'aufgaben'); if (a) a.allowed = false; bpHandy.neu();
+        const L = [...document.querySelectorAll('.bph-unten>*')], b = document.querySelector('.bph-uplus').getBoundingClientRect();
+        if (a) a.allowed = true; bpHandy.neu(); return { n: L.length, L: L.map((x) => x.classList.contains('bph-uplus') ? '＋' : x.textContent.trim()), mitte: Math.abs(b.left + b.width / 2 - innerWidth / 2) < 4 }; });
+      pruef(o.n === 5 && o.L[2] === '＋' && o.mitte && !o.L.includes('Aufgaben'), `ohne Aufgaben: Leiste füllt auf, ＋ in der Mitte – ${JSON.stringify(o)}`);
     }
     await S.ctx.close();
     S = await seite('eigene Leiste', { breite: 390, datei: 'portal.html', handy: ['portal', 'wiki', 'suche'], posts: [] }); z = await stand(S.p);

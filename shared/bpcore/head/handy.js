@@ -25,9 +25,14 @@
   const stufe = () => STUFE[H.app] || 'lesen';
   const apps = () => ((H.conf || {}).apps || []).filter((a) => a.allowed !== false);
   /* die Plätze der Leiste: gewählt oder Vorgabe; was die Person nicht (mehr) hat, fällt heraus */
+  /* Fehlt ein Platz (App für die Rolle aus), rückt die nächste erlaubte App nach – so viele Plätze wie gewählt (Vorgabe fünf), das ＋ steht so immer
+     in der Mitte zwischen zwei und zwei (23.11.2026: ohne „Aufgaben“ hatte die Leiste nur vier Plätze, das ＋ stand rechts der Mitte) */
+  const ERSATZ = ['aufgaben', 'bautagebuch', 'adressen', 'plaene', 'kommunikation', 'zeiten', 'gantt', 'wiki', 'ava'];
   function plaetze() {
-    const L = Array.isArray(H.me && H.me.handy) && H.me.handy.length ? H.me.handy : VORGABE;
-    return L.filter((k) => k === 'suche' || k === 'portal' || apps().some((a) => a.key === k)).slice(0, 5);
+    const L = Array.isArray(H.me && H.me.handy) && H.me.handy.length ? H.me.handy : VORGABE, da = (k) => k === 'suche' || k === 'portal' || apps().some((a) => a.key === k);
+    const R = L.filter(da).slice(0, 5);
+    for (const k of [...ERSATZ, ...apps().map((a) => a.key)]) { if (R.length >= Math.min(5, L.length)) break; if (k !== 'admin' && da(k) && !R.includes(k)) R.splice(R.includes('suche') ? R.indexOf('suche') : R.length, 0, k); }   // vor die Suche
+    return R;
   }
   function eintrag(k) {
     if (k === 'suche') return { k, titel: 'Suche', ic: LUPE };

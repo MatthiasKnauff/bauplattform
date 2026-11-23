@@ -141,6 +141,11 @@ export async function adrStartPruefen(browser, repo) {
         return null; });
       await p.evaluate(() => setView('tabelle')); await p.waitForSelector('#tw tbody tr[data-id="1"]');
       const reihe = await p.evaluate(() => tableRows().map((c) => c.id));
+      {   // 23.11.2026: mit „Häkchen als Schalter“ bleibt der Auswahl-Haken ein Häkchen und steht neben dem Namen (der Schalter schob den Namen in eine zweite Zeile)
+        const sw = await p.evaluate(() => { document.documentElement.dataset.schalter = 'an'; const c = document.querySelector('#tw tbody tr [data-adrck]'), i = document.querySelector('#tw tbody tr td.nm input[data-fk]'), cr = c.getBoundingClientRect(), ir = i.getBoundingClientRect();
+          const r = { app: getComputedStyle(c).appearance, nebeneinander: cr.top >= ir.top - 2 && cr.bottom <= ir.bottom + 2 }; delete document.documentElement.dataset.schalter; return r; });
+        pruef(sw.app !== 'none' && sw.nebeneinander, `Auswahl-Haken mit Schalter-Stil: ${JSON.stringify(sw)}`);
+      }
       const y0 = await p.evaluate(() => document.querySelector('#tw tbody tr[data-id="1"]').getBoundingClientRect().top);
       await p.click(`#tw tbody tr[data-id="${reihe[0]}"] [data-adrck]`);
       await p.click(`#tw tbody tr[data-id="${reihe[2]}"] td.ro`, { modifiers: ['Shift'] });

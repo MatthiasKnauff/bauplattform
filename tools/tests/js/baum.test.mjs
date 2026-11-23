@@ -8,12 +8,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
+import { ESC_JS } from '../ui/esc.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 function lade() {
   const speicher = new Map();
   const window = {}, localStorage = { getItem: (k) => (speicher.has(k) ? speicher.get(k) : null), setItem: (k, v) => speicher.set(k, String(v)) };
-  vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'shared/bpcore/head/baum.js'), 'utf8'), { window, localStorage });
+  vm.runInNewContext(ESC_JS + '\n' + fs.readFileSync(path.join(ROOT, 'shared/bpcore/head/baum.js'), 'utf8'), { window, localStorage });   // baum.js nimmt window.bpEsc aus bp.js
   return { B: window.bpBaum, speicher };
 }
 // Titel 1 > Titel 1.1 > Positionen; Titel 2 > Position

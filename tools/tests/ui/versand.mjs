@@ -94,7 +94,7 @@ export async function versandPruefen(browser, repo) {
 
   // (5) Druckseite und Ansehen-Fenster: „Senden“ über denselben Baustein
   pruef(/data-d="mail"/.test(fs.readFileSync(path.join(KASTEN, 'druck.js'), 'utf8')) && /unterlagenSenden\(BPHead\.mailVorgabe/.test(fs.readFileSync(path.join(KASTEN, 'druck.js'), 'utf8')), 'Druckseite (druck.js): „✉ Senden“ über BPHead.unterlagenSenden fehlt');
-  pruef(/data-gv="ml"/.test(fs.readFileSync(path.join(KASTEN, 'head.js'), 'utf8')), 'Ansehen-Fenster (head.js): „Per Mail senden“ fehlt');
+  pruef(/data-gv="ml"/.test(fs.readFileSync(path.join(KASTEN, 'ansehen.js'), 'utf8')), 'Ansehen-Fenster (ansehen.js, seit 23.11.2026 aus head.js ausgelagert): „Per Mail senden“ fehlt');
   return fehler;
 }
 

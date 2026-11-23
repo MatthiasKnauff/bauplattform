@@ -104,10 +104,10 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
     try { list = await fetch('api/bt-projects').then(j); } catch (e) { toast('Projekte des Bautagebuchs konnten nicht geladen werden: ' + e.message, true); return; }
     const cur = P._bt ? P._bt.id : '';
     const opts = '<option value="">– keine Verknüpfung –</option>' + list.map((x) => `<option value="${x.id}"${x.id === cur ? ' selected' : ''}>${escH(x.name)}${x.address ? ' – ' + escH(x.address) : ''}${x.archived ? ' (archiviert)' : ''}${x.plan && x.plan !== P.id ? ' · hat schon einen Plan' : ''}</option>`).join('');
-    modal('Mit Projekt verknüpfen', `<div style="max-width:480px;line-height:1.5">
-        <p style="margin-top:0">Der Plan gehört dann zu diesem Projekt. Wer dort als zuständiger Bauleiter:in eingetragen ist, sieht auch den Plan; ohne Eintrag sehen ihn alle.</p>
-        <select id="bpLinkSel" style="width:100%;padding:5px">${opts}</select>
-        ${list.length ? '' : '<p style="color:var(--mut)">Im Bautagebuch gibt es noch keine Projekte.</p>'}</div>`, [
+    modal('Mit Projekt verknüpfen', `<div class="g-txt">
+        <p>Der Plan gehört dann zu diesem Projekt. Wer dort als zuständiger Bauleiter:in eingetragen ist, sieht auch den Plan; ohne Eintrag sehen ihn alle.</p>
+        <select id="bpLinkSel" class="g-voll">${opts}</select>
+        ${list.length ? '' : '<p class="hint">Im Bautagebuch gibt es noch keine Projekte.</p>'}</div>`, [
       { label: 'Abbrechen' },
       { label: 'Übernehmen', cls: 'primary', primary: true, fn: (bg) => {
         const v = bg.querySelector('#bpLinkSel').value;

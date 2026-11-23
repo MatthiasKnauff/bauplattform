@@ -491,9 +491,9 @@ async function libFromProjects() {
   try { src = await fetch('api/library/sources').then(j); } catch (e) { toast('Projekte konnten nicht gelesen werden: ' + e.message, true); return; }
   const have = new Set(window.LIBRARY.map((x) => (x.n + '|' + x.gw).toLowerCase()));
   const rows = [];
-  const body = src.length ? `<div class="hint" style="margin:0 0 8px">Gezeigt werden Leistungen, die nicht aus dem Standardkatalog stammen – von Hand angelegte und eigene Leistungen des Planungsassistenten.</div>
-    <input id="lfQ" class="lv-q" placeholder="Filtern …" style="width:100%;margin-bottom:8px">
-    <div class="lf-list">${src.map((p, pk) => `<details class="lf-p"${pk < 3 ? ' open' : ''}><summary><label class="cb" onclick="event.stopPropagation()"><input type="checkbox" data-lfall="${pk}"> <b>${esc(p.name)}</b></label><small>${p.items.length} Leistungen</small></summary>
+  const body = src.length ? `<div class="hint g-vor">Gezeigt werden Leistungen, die nicht aus dem Standardkatalog stammen – von Hand angelegte und eigene Leistungen des Planungsassistenten.</div>
+    <input id="lfQ" class="lv-q g-voll g-vor" placeholder="Filtern …">
+    <div class="lf-list">${src.map((p, pk) => `<details class="lf-p"${pk < 3 ? ' open' : ''}><summary><label class="cb" data-lfsum><input type="checkbox" data-lfall="${pk}"> <b>${esc(p.name)}</b></label><small>${p.items.length} Leistungen</small></summary>
       <table class="ptab"><tr><th></th><th>Leistung</th><th>Gewerk</th><th>AT</th><th>Abschnitt</th></tr>${p.items.map((it) => { const k = rows.push({ ...it, src: p.name }) - 1, dup = have.has((it.n + '|' + it.gw).toLowerCase()); const ph = it.ph || libGuessPh(it.n, it.gw);
         return `<tr data-lfr="${k}" data-txt="${esc((it.n + ' ' + it.gw).toLowerCase())}"><td><input type="checkbox" data-lf="${k}" data-p="${pk}"${dup ? ' disabled title="schon im Katalog"' : ''}></td><td>${esc(it.n)}${dup ? ' <small class="lv-src">schon im Katalog</small>' : ''}</td><td>${esc(it.gw)}</td><td>${it.d}</td>
         <td><select data-lfph="${k}">${libPhases().map((q) => `<option value="${q.k}"${q.k === ph ? ' selected' : ''}>${esc(q.n.split(' (')[0])}</option>`).join('')}</select></td></tr>`; }).join('')}</table></details>`).join('')}</div>`
@@ -505,6 +505,10 @@ async function libFromProjects() {
     libSet([...window.LIBRARY, ...pick]); showTab('katalog'); toast(`${pick.length} Leistungen in den Katalog übernommen.`);
   } }, { label: 'Abbrechen' }]);
   bg.querySelector('.modal').style.width = 'min(820px,94vw)';
+  bg.addEventListener('click', (e) => {   // Haken im Kopf eines Projekts: anhaken, ohne die Liste auf- oder zuzuklappen
+    const l = e.target.closest('[data-lfsum]'); if (!l) return; e.preventDefault();
+    const c = l.querySelector('input'); c.checked = !c.checked; c.dispatchEvent(new Event('change', { bubbles: true }));
+  });
   bg.addEventListener('change', (e) => { const a = e.target.dataset.lfall; if (a != null) bg.querySelectorAll(`input[data-p="${a}"]:not(:disabled)`).forEach((c) => { if (!c.closest('tr').hidden) c.checked = e.target.checked; }); });
   const q = bg.querySelector('#lfQ'); if (q) q.addEventListener('input', () => { const v = q.value.trim().toLowerCase(); bg.querySelectorAll('tr[data-lfr]').forEach((tr) => { tr.hidden = !!v && !tr.dataset.txt.includes(v); }); });
 }
@@ -633,10 +637,10 @@ async function kstSichern() {
 }
 async function kstListe() {
   let D; try { D = await fetch('api/katalog/staende').then(j); } catch (e) { toast(e.message, true); return; }
-  const html = () => `<div class="hint" style="margin:0 0 6px">Jetzt: ${kstZ(D.jetzt)}</div>
+  const html = () => `<div class="hint g-vor">Jetzt: ${kstZ(D.jetzt)}</div>
     <div class="kst-l">${D.staende.map((x) => `<div class="kst${x.fest ? ' fest' : ''}" data-sid="${x.id}"><div><b>${x.fest ? '⭐ ' : ''}${esc(x.name)}</b><small>${kstDe(x.am)} · ${esc(x.von || '')} · ${kstZ(x.zahlen)}</small><div class="kst-d" hidden></div></div>
       <div class="kst-a"><button type="button" class="btn sm" data-kv>Vergleichen</button>${D.admin ? `<button type="button" class="btn sm" data-kz>Zurückholen …</button><button type="button" class="btn sm" data-kf title="${x.fest ? 'Schutz aufheben' : 'Schützen – wird nie automatisch weggeräumt'}">${x.fest ? '☆' : '⭐'}</button>${x.fest ? '' : '<button type="button" class="btn sm" data-kx title="Löschen">✕</button>'}` : ''}</div></div>`).join('') || '<div class="hint">Noch kein gesicherter Stand.</div>'}</div>
-    <div class="g-sec">Als Datei</div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><a class="btn sm" href="api/katalog/datei" download>⬇ Herunterladen</a>${D.admin ? '<label class="btn sm">⬆ Datei einlesen<input type="file" accept=".json,application/json" data-kdatei hidden></label><span class="hint">Eingelesene Dateien erscheinen oben als Stand – zurückgeholt wird erst auf Wunsch.</span>' : ''}</div>`;
+    <div class="g-sec">Als Datei</div><div class="g-knoepfe"><a class="btn sm" href="api/katalog/datei" download>⬇ Herunterladen</a>${D.admin ? '<label class="btn sm">⬆ Datei einlesen<input type="file" accept=".json,application/json" data-kdatei hidden></label><span class="hint">Eingelesene Dateien erscheinen oben als Stand – zurückgeholt wird erst auf Wunsch.</span>' : ''}</div>`;
   const bg = modal('Leistungskatalog – Stände', `<div id="kstBox">${html()}</div>`, [{ label: 'Schließen', cls: 'primary', primary: true }]);
   bg.querySelector('.modal').style.width = 'min(820px, 96vw)';
   const neu = (d) => { if (d && d.staende) D.staende = d.staende; bg.querySelector('#kstBox').innerHTML = html(); };
@@ -659,8 +663,8 @@ async function kstListe() {
 async function kstZurueck(x) {
   let v = null; try { v = await fetch(`api/katalog/staende/${x.id}/vergleich`).then(j); } catch { /* ohne Vergleich */ }
   const zl = (k) => { const z = v && v.seither[k]; return z ? (z.dazu || z.weg || z.anders ? ` – seither ${[z.dazu ? z.dazu + ' dazu' : '', z.weg ? z.weg + ' weg' : '', z.anders ? z.anders + ' geändert' : ''].filter(Boolean).join(', ')}` : ' – gleich') : ''; };
-  modal(`„${x.name}“ zurückholen`, `<div class="hint" style="margin:0 0 8px">Gesichert ${kstDe(x.am)}. Vorher wird der jetzige Stand automatisch gesichert – zurück geht also jederzeit. Laufende Projektpläne ändern sich nicht.</div>
-    ${KST_TEILE.map(([k, l, t, an]) => `<label class="cb" style="display:flex;gap:8px;align-items:flex-start;margin:6px 0"><input type="checkbox" data-kt="${k}"${an ? ' checked' : ''}><span><b>${l}</b>${esc(zl(k))}<br><small class="hint">${t}</small></span></label>`).join('')}`,
+  modal(`„${x.name}“ zurückholen`, `<div class="hint g-vor">Gesichert ${kstDe(x.am)}. Vorher wird der jetzige Stand automatisch gesichert – zurück geht also jederzeit. Laufende Projektpläne ändern sich nicht.</div>
+    ${KST_TEILE.map(([k, l, t, an]) => `<label class="cb g-kt"><input type="checkbox" data-kt="${k}"${an ? ' checked' : ''}><span><b>${l}</b>${esc(zl(k))}<br><small class="hint">${t}</small></span></label>`).join('')}`,
   [{ label: 'Zurückholen', cls: 'primary', primary: true, fn: (bg) => {
     const teile = [...bg.querySelectorAll('[data-kt]:checked')].map((c) => c.dataset.kt); if (!teile.length) { toast('Bitte mindestens einen Teil wählen.', true); return false; }
     fetch(`api/katalog/staende/${x.id}/zurueck`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ teile }) }).then(j)

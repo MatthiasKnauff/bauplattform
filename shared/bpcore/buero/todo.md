@@ -8,8 +8,9 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Seite „Ablauf“ auch für Einheiten** (Kisten „Gebäude / Allgemein“, „Einheit 1“, „Einheit 2“ mit Takt-Pfeilen) – Fragen offen, Mock folgt **ca. 30 min**
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; 3D-Auswahl später) – B erledigt durch das Raumbuch (17.11.: Gruppen, abweichender Raum eigene Zeile) **ca. 1,5 h**
+- ~~Bauzeitenplan: übrige Fenster wie das Eigenschaften-Fenster (UB-6) – keine Stile von Hand, Vorschlagsliste statt datalist, kein onclick (23.11.2026)~~
 - ~~Bauzeitenplan: „Aus anderem Plan übernehmen“ neu (UB-1 … UB-5): zwei Spalten, Abschnitte als Baum mit einzelnen Leistungen, Beginn vorbelegt, Zusammenfassung im Fuß; „Neuer Plan aus anderem“ im selben Fenster (23.11.2026)~~
-- Bauzeitenplan: übrige alte Fenster nach Muster M (UB-6, ~30 min); Version/Speichern zusammenlegen (UB-7, erst kleiner Mock, ~30 min)
+- Bauzeitenplan: Version/Speichern zusammenlegen (UB-7, erst kleiner Mock, ~30 min)
 - ~~Bautagebuch drucken: „mit Fotos“ aus gilt auch für „Dieser Bericht“ (23.11.2026)~~
 - ~~Adressen einlesen: Name aus der Spalte „Nachname“, kein Platzhalter „Ansprechpartner:in“, Telefon + Mobil, Projekt je Person, Bauherr:in als Firma (23.11.2026)~~
 - ~~Adressen: Spaltenbreite ziehen – nur die gezogene Spalte ändert sich, die Knopfspalte nimmt den Rest (23.11.2026)~~

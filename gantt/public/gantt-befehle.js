@@ -117,9 +117,9 @@ function deleteSel(mode) {
   if (!mode && cand.length && LS.get('delAsk', true)) {
     const leafOpts = (sel0) => '<option value="">– entfällt –</option>' + P.tasks.map((x, j) => (del.has(j) || (j + 1 < P.tasks.length && P.tasks[j + 1].lvl > x.lvl) || !(x.dur > 0)) ? '' : `<option value="${x.uid}"${j === sel0 ? ' selected' : ''}>${j + 1} – ${esc(x.name)}</option>`).join('');
     const tot = cand.reduce((a, c) => a + P.tasks[c.k].dur, 0);
-    const bg = modal('Leistungen löschen', `<div style="margin-bottom:8px">${del.size === 1 ? 'Die Leistung wird' : del.size + ' Leistungen werden'} gelöscht – zusammen <b>${fmtDur(tot)}</b> Arbeit. Soll sich die Gesamtzeit verkürzen oder wird die Dauer auf die Hauptleistung umgelegt?</div>
-      <table class="ptab"><thead><tr><th>Gelöschte Leistung</th><th style="width:80px">Dauer</th><th>Dauer umlegen auf</th></tr></thead><tbody>${cand.map((c) => `<tr><td>${esc(P.tasks[c.k].name)}</td><td>${fmtDur(P.tasks[c.k].dur)}</td><td><select data-mk="${P.tasks[c.k].uid}">${leafOpts(c.to)}</select></td></tr>`).join('')}</tbody></table>
-      <label class="cb" style="margin-top:8px"><input type="checkbox" id="delAskOff"> nicht mehr fragen (immer verkürzen) – wieder einschalten im Reiter „Leistung“ → „Beim Löschen fragen“</label>`,
+    const bg = modal('Leistungen löschen', `<div class="g-vor">${del.size === 1 ? 'Die Leistung wird' : del.size + ' Leistungen werden'} gelöscht – zusammen <b>${fmtDur(tot)}</b> Arbeit. Soll sich die Gesamtzeit verkürzen oder wird die Dauer auf die Hauptleistung umgelegt?</div>
+      <table class="ptab"><thead><tr><th>Gelöschte Leistung</th><th class="g-w80">Dauer</th><th>Dauer umlegen auf</th></tr></thead><tbody>${cand.map((c) => `<tr><td>${esc(P.tasks[c.k].name)}</td><td>${fmtDur(P.tasks[c.k].dur)}</td><td><select data-mk="${P.tasks[c.k].uid}">${leafOpts(c.to)}</select></td></tr>`).join('')}</tbody></table>
+      <label class="cb g-nach"><input type="checkbox" id="delAskOff"> nicht mehr fragen (immer verkürzen) – wieder einschalten im Reiter „Leistung“ → „Beim Löschen fragen“</label>`,
       [{ label: 'Gesamtzeit verkürzen', fn: (b2) => { if (b2.querySelector('#delAskOff').checked) LS.set('delAsk', false); setTimeout(() => deleteSel('cut'), 0); } },
         { label: 'Dauer umlegen', cls: 'primary', primary: true, fn: (b2) => { const m = {}; b2.querySelectorAll('[data-mk]').forEach((s2) => { if (s2.value) m[s2.dataset.mk] = +s2.value; }); setTimeout(() => deleteSel(m), 0); } },
         { label: 'Abbrechen', left: true }]);
@@ -648,25 +648,25 @@ function projectDialog(teil = 'info') {   // 'info': Name, Anfang, Ende · 'kale
   const cal = { week: 5, state: 'DE', free: [], ...(P.cal || {}) };
   let free = (cal.free || []).map((f) => ({ ...f }));
   const freeRows = () => free.map((f, k) => `<tr><td><input type="date" data-fr="from" data-k="${k}" value="${esc(f.from || '')}"></td><td><input type="date" data-fr="to" data-k="${k}" value="${esc(f.to || f.from || '')}"></td>
-      <td><input data-fr="name" data-k="${k}" value="${esc(f.name || '')}" placeholder="z. B. Betriebsferien"></td><td style="text-align:center"><input type="checkbox" data-fr="yearly" data-k="${k}"${f.yearly ? ' checked' : ''} title="jedes Jahr"></td>
-      <td style="width:30px;text-align:center"><button type="button" class="btn sm" data-frdel="${k}" title="Entfernen">✕</button></td></tr>`).join('')
-    || '<tr><td colspan="5" style="color:var(--mut);padding:10px 6px">Noch keine – unten „+ freie Tage“ oder eine Vorlage wählen.</td></tr>';
-  const body = `<div class="form"${teil === 'kalender' ? ' style="display:none"' : ''}>
+      <td><input data-fr="name" data-k="${k}" value="${esc(f.name || '')}" placeholder="z. B. Betriebsferien"></td><td class="g-mitte"><input type="checkbox" data-fr="yearly" data-k="${k}"${f.yearly ? ' checked' : ''} title="jedes Jahr"></td>
+      <td class="g-mitte"><button type="button" class="btn sm" data-frdel="${k}" title="Entfernen">✕</button></td></tr>`).join('')
+    || '<tr><td colspan="5" class="g-leer">Noch keine – unten „+ freie Tage“ oder eine Vorlage wählen.</td></tr>';
+  const body = `<div class="form"${teil === 'kalender' ? ' hidden' : ''}>
       ${P._bt ? `<label>Projekt</label><div class="ro full">${esc(P._bt.name || '')} <span class="qtag s" title="dasselbe Projekt wie in den Projektdaten – Name dort ändern">⇄ Projektdaten</span></div>` : ''}
       <label>${P._bt ? 'Name dieser Version' : 'Projektname'}</label><input id="pName" class="full" value="${esc(P.name)}" data-bp-projekt autocomplete="off">
-      <label>Projektanfang</label><div class="full" style="display:flex;gap:6px;align-items:center"><input id="pStart" type="date" style="flex:1" value="${isoD(P.start)}">${P._bt ? '<span class="qtag s" title="der gültige Plan schreibt den Baubeginn in die Projektdaten – und umgekehrt">⇄ Baubeginn</span>' : ''}</div>
+      <label>Projektanfang</label><div class="full g-zeile"><input id="pStart" type="date" value="${isoD(P.start)}">${P._bt ? '<span class="qtag s" title="der gültige Plan schreibt den Baubeginn in die Projektdaten – und umgekehrt">⇄ Baubeginn</span>' : ''}</div>
       <label>Projektende</label><div class="ro full">${fmtD(CAL.peDay)} (berechnet)</div>
-      <label>Kalender</label><div class="ro full">${esc((WEEKS.find(([v]) => v === +cal.week) || [0, ''])[1])} · ${esc((STATES.find(([v]) => v === calLand(cal)) || [0, ''])[1])} · ${(cal.free || []).length} eigene freie Zeiträume <button type="button" class="btn sm" id="pZurKal" style="margin-left:6px">Arbeitszeit &amp; Feiertage …</button></div>
+      <label>Kalender</label><div class="ro full">${esc((WEEKS.find(([v]) => v === +cal.week) || [0, ''])[1])} · ${esc((STATES.find(([v]) => v === calLand(cal)) || [0, ''])[1])} · ${(cal.free || []).length} eigene freie Zeiträume <button type="button" class="btn sm g-l6" id="pZurKal">Arbeitszeit &amp; Feiertage …</button></div>
     </div>
-    <div${teil === 'kalender' ? '' : ' style="display:none"'}>
-    <div class="g-sec" style="margin-top:0">Arbeitszeit und Feiertage</div>
+    <div${teil === 'kalender' ? '' : ' hidden'}>
+    <div class="g-sec g-erst">Arbeitszeit und Feiertage</div>
     <div class="form">
       <label>Arbeitswoche</label><div class="full kchips" id="pWeek" data-v="${+cal.week || 5}">${WEEKS.map(([v, l]) => `<button type="button" class="kchip${+cal.week === v ? ' on' : ''}" data-kw="${v}">${l}</button>`).join('')}</div>
       <label>Feiertage</label><div class="full" id="pLand">${landSchild(cal)}</div><label></label><div class="full kchips kchips-l" id="pState" data-v="${esc(calLand(cal))}"${cal.state_hand ? ' data-hand="1"' : ''}>${STATES.map(([v, l]) => `<button type="button" class="kchip${calLand(cal) === v ? ' on' : ''}" data-ks="${v}">${l}</button>`).join('')}</div>
     </div>
     <div class="g-sec">Eigene freie Tage</div>
-    <div class="frwrap"><table class="ptab"><thead><tr><th style="width:130px">Von</th><th style="width:130px">Bis</th><th>Bezeichnung</th><th style="width:48px" title="jedes Jahr wiederholen">jährl.</th><th></th></tr></thead><tbody id="frBody">${freeRows()}</tbody></table></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+    <div class="frwrap"><table class="ptab"><thead><tr><th class="g-w130">Von</th><th class="g-w130">Bis</th><th>Bezeichnung</th><th class="g-w48" title="jedes Jahr wiederholen">jährl.</th><th></th></tr></thead><tbody id="frBody">${freeRows()}</tbody></table></div>
+    <div class="g-knoepfe">
       <button type="button" class="btn sm" id="frAdd">+ freie Tage</button>
       <button type="button" class="btn sm" data-q="xmas">+ Weihnachtsferien 24.12.–01.01. (jährlich)</button>
       <button type="button" class="btn sm" data-q="eve">+ Heiligabend und Silvester (jährlich)</button>
@@ -692,7 +692,7 @@ function projectDialog(teil = 'info') {   // 'info': Name, Anfang, Ende · 'kale
     const c = read(bg), a = P.start, z = Math.max(CAL.peDay, P.start + 60);
     const m = freeMap({ state: c.state, free: c.free }, ud(a).getUTCFullYear(), ud(z).getUTCFullYear());
     const rows = [...m.entries()].filter(([d]) => d >= a && d <= z && (c.week === 7 || (c.week === 6 ? wdOf(d) !== 0 : wdOf(d) !== 0 && wdOf(d) !== 6))).sort((x, y) => x[0] - y[0]);
-    bg.querySelector('#frPrev').innerHTML = rows.length ? `<div class="hint" style="margin:0 0 4px">${rows.length} zusätzliche arbeitsfreie Tage zwischen ${fmtD(a)} und ${fmtD(z)}:</div>` + rows.map(([d, n]) => `<span class="frday"><b>${fmtD(d)}</b> ${esc(n)}</span>`).join('') : '<div class="hint" style="margin:0">Keine Feiertage oder freien Tage im Projektzeitraum.</div>';
+    bg.querySelector('#frPrev').innerHTML = rows.length ? `<div class="hint g-vor">${rows.length} zusätzliche arbeitsfreie Tage zwischen ${fmtD(a)} und ${fmtD(z)}:</div>` + rows.map(([d, n]) => `<span class="frday"><b>${fmtD(d)}</b> ${esc(n)}</span>`).join('') : '<div class="hint" style="margin:0">Keine Feiertage oder freien Tage im Projektzeitraum.</div>';
   };
   const redraw = () => { bg.querySelector('#frBody').innerHTML = freeRows(); prev(); };
   bg.addEventListener('change', (e) => { if (e.target.closest('.modal')) { read(bg); prev(); } });
@@ -719,9 +719,9 @@ function gwAuto() {
   P.tasks.forEach((t, i) => { if (!CAL.summ[i] && t.dur > 0 && !t.gw) { const g = guessGw(t); if (g) props.push([i, g]); } });
   const open = P.tasks.filter((t, i) => !CAL.summ[i] && t.dur > 0 && !t.gw).length - props.length;
   if (!props.length) { toast(open ? `Keine eindeutige Zuordnung gefunden – ${open} Leistungen bitte von Hand eintragen.` : 'Alle Leistungen haben bereits ein Gewerk.'); return; }
-  const rows = props.map(([i, g]) => `<tr><td style="text-align:right;color:var(--mut)">${i + 1}</td><td>${esc(P.tasks[i].name)}</td><td><label class="cb"><input type="checkbox" data-i="${i}" checked><span class="gwdot" style="background:${P.gwColors[g] || GW_DEFAULT[g] || '#ccc'}"></span>${esc(g)}</label></td></tr>`).join('');
-  modal('Gewerke erkennen', `<div style="margin-bottom:8px">Für ${props.length} Leistungen ohne Gewerk wurde eine eindeutige Zuordnung gefunden (aus Leistung und Unternehmer:in). Bereits eingetragene Gewerke bleiben unverändert.${open > 0 ? ` <b>${open}</b> weitere Leistungen sind nicht eindeutig und bleiben leer.` : ''}</div>
-    <div style="max-height:52vh;overflow:auto"><table class="ptab"><thead><tr><th>Nr.</th><th>Leistung</th><th>Gewerk</th></tr></thead><tbody>${rows}</tbody></table></div>`,
+  const rows = props.map(([i, g]) => `<tr><td class="g-r">${i + 1}</td><td>${esc(P.tasks[i].name)}</td><td><label class="cb"><input type="checkbox" data-i="${i}" checked><span class="gwdot" style="background:${P.gwColors[g] || GW_DEFAULT[g] || '#ccc'}"></span>${esc(g)}</label></td></tr>`).join('');
+  modal('Gewerke erkennen', `<div class="g-vor">Für ${props.length} Leistungen ohne Gewerk wurde eine eindeutige Zuordnung gefunden (aus Leistung und Unternehmer:in). Bereits eingetragene Gewerke bleiben unverändert.${open > 0 ? ` <b>${open}</b> weitere Leistungen sind nicht eindeutig und bleiben leer.` : ''}</div>
+    <div class="g-roll"><table class="ptab"><thead><tr><th>Nr.</th><th>Leistung</th><th>Gewerk</th></tr></thead><tbody>${rows}</tbody></table></div>`,
   [{ label: 'Übernehmen', cls: 'primary', primary: true, fn: (bg) => {
     const ok = new Set([...bg.querySelectorAll('input[data-i]:checked')].map((x) => +x.dataset.i));
     act(() => { props.forEach(([i, g]) => { if (ok.has(i)) { P.tasks[i].gw = g; gwColor(g); } }); });
@@ -730,10 +730,10 @@ function gwAuto() {
 function gwDialog(fokus) {   // fokus: Gewerk, dessen Zeile gleich markiert ist (Klick auf das Farbkästchen)
   const list = allGw();
   const cnt = (g) => P.tasks.filter((t) => t.gw === g).length;
-  const rows = list.map((g) => `<tr><td><input type="color" data-g="${esc(g)}" value="${gwColor(g)}" style="width:42px;height:24px;padding:0;border:1px solid var(--bd)"></td>
-      <td><input data-r="${esc(g)}" value="${esc(g)}"></td><td style="text-align:right;color:var(--mut);white-space:nowrap">${cnt(g)} Leistungen</td></tr>`).join('')
-    || '<tr><td colspan="3" style="padding:8px;color:var(--mut)">Noch keine Gewerke eingetragen. Spalte „Gewerk“ ausfüllen oder „Gewerke erkennen“ verwenden.</td></tr>';
-  modal('Gewerke & Farben', `<table class="ptab"><thead><tr><th style="width:56px">Farbe</th><th>Gewerk (umbenennen möglich)</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+  const rows = list.map((g) => `<tr><td><input type="color" data-g="${esc(g)}" value="${gwColor(g)}" class="gw-farbe"></td>
+      <td><input data-r="${esc(g)}" value="${esc(g)}"></td><td class="g-r">${cnt(g)} Leistungen</td></tr>`).join('')
+    || '<tr><td colspan="3" class="g-leer">Noch keine Gewerke eingetragen. Spalte „Gewerk“ ausfüllen oder „Gewerke erkennen“ verwenden.</td></tr>';
+  modal('Gewerke & Farben', `<table class="ptab"><thead><tr><th class="g-w56">Farbe</th><th>Gewerk (umbenennen möglich)</th><th></th></tr></thead><tbody>${rows}</tbody></table>
     <div class="hint">Die Farbe gilt für alle Leistungen des Gewerks – im Diagramm, in der Tabelle und beim Drucken.</div>`,
   [{ label: 'Gewerke erkennen…', left: true, fn: () => { setTimeout(gwAuto, 0); } },
     { label: 'OK', cls: 'primary', primary: true, fn: (bg) => {
@@ -747,18 +747,17 @@ function gwDialog(fokus) {   // fokus: Gewerk, dessen Zeile gleich markiert ist 
       });
     } }, { label: 'Abbrechen' }]);
   if (typeof fokus === 'string') setTimeout(() => { const el = [...document.querySelectorAll('.modal input[data-g]')].find((x) => x.dataset.g === fokus); if (!el) return;
-    const tr = el.closest('tr'); tr.style.background = 'var(--sel)'; tr.scrollIntoView({ block: 'nearest' }); el.focus(); }, 0);
+    const tr = el.closest('tr'); tr.classList.add('g-fokus'); tr.scrollIntoView({ block: 'nearest' }); el.focus(); }, 0);
 }
 
-// suggest: optionale Vorschlagsliste. autocomplete="off": sonst schlägt der Browser Einträge aus anderen
-// Dialogen vor (z. B. Projektnamen = Bauvorhabenadressen beim Anlegen eines Gewerks).
+// suggest: optionale Vorschlagsliste (gemeinsame Vorschlagsliste vorschlag.js statt <datalist>, 23.11.2026)
 function promptDialog(title, label, value, onOk, suggest) {
-  const dl = suggest && suggest.length ? `<datalist id="pvList">${suggest.map((s) => `<option value="${esc(s)}">`).join('')}</datalist>` : '';
-  modal(title, `<div class="form"><label>${esc(label)}</label><input id="pv" class="full" value="${esc(value)}" autocomplete="off"${dl ? ' list="pvList"' : ''}${label === 'Projektname' ? ' data-bp-projekt' : ''}>${dl}</div>`,
+  const vs = suggest && suggest.length && window.bpVorschlag; if (vs) bpVorschlag.listen.gPv = suggest.map((w) => ({ w }));
+  modal(title, `<div class="form"><label>${esc(label)}</label><input id="pv" class="full" value="${esc(value)}" autocomplete="off"${vs ? ' data-vs="gPv"' : ''}${label === 'Projektname' ? ' data-bp-projekt' : ''}></div>`,
     [{ label: 'OK', cls: 'primary', primary: true, fn: (bg) => { const v = bg.querySelector('#pv').value.trim(); if (!v) return false; onOk(v); } }, { label: 'Abbrechen' }]);
 }
 function confirmDialog(title, text, onOk, okLabel = 'Löschen') {
-  modal(title, `<div style="max-width:420px;line-height:1.5">${text}</div>`, [{ label: okLabel, cls: 'primary', primary: true, fn: onOk }, { label: 'Abbrechen' }]);
+  modal(title, `<div class="g-txt">${text}</div>`, [{ label: okLabel, cls: 'primary', primary: true, fn: onOk }, { label: 'Abbrechen' }]);
 }
 
 /* ---------- Kontextmenü & Hinweise ---------- */

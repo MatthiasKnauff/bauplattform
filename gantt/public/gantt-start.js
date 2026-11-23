@@ -223,7 +223,7 @@ function fileNew() {
       <button class="nw-opt" data-nw="empty"><b>Leeres Projekt</b><small>Leistungen selbst eintragen</small></button>
       <button class="nw-opt" data-nw="assist"><b>Mit Planungsassistent</b><small>Gebäudetyp wählen, Leistungen vorschlagen lassen</small></button>
       <button class="nw-opt" data-nw="kopie"><b>Aus anderem Bauzeitenplan</b><small>Ablauf eines früheren Projekts übernehmen, auf den neuen Anfang verschoben</small></button>
-    </div><div class="form" style="margin-top:10px"><label>Projektname</label><input id="nwName" class="full" value="" placeholder="Projektnummer oder Name – Vorschläge aus Bautagebuch und Server" data-bp-projekt autocomplete="off"><label>Projektanfang</label><input id="nwStart" type="date" class="full" value="${isoD(startOf('week', todayN() + 7))}"></div>`, [{ label: 'Abbrechen' }]);
+    </div><div class="form g-oben"><label>Projektname</label><input id="nwName" class="full" value="" placeholder="Projektnummer oder Name – Vorschläge aus Bautagebuch und Server" data-bp-projekt autocomplete="off"><label>Projektanfang</label><input id="nwStart" type="date" class="full" value="${isoD(startOf('week', todayN() + 7))}"></div>`, [{ label: 'Abbrechen' }]);
   const bg = [...document.querySelectorAll('.modal-bg')].pop();
   // Projekt, aus dem man gekommen ist (gemeinsames Projekt der Apps): hat es noch keinen Plan, dessen Namen vorschlagen und verknüpfen
   const gp = window.BPHead && BPHead.projekt;
@@ -255,7 +255,7 @@ function fileNew() {
 function archivDialog() {
   if (!P) return;
   const arch = !!P.archived;
-  modal(arch ? 'Archiviertes Projekt' : 'Archivieren oder löschen', `<div style="max-width:460px;line-height:1.5">
+  modal(arch ? 'Archiviertes Projekt' : 'Archivieren oder löschen', `<div class="g-txt">
     <p><b>${arch ? 'Zurückholen' : 'Archivieren'}</b> ${arch ? 'stellt „' + esc(P.name) + '“ wieder zu den laufenden Plänen.' : 'nimmt „' + esc(P.name) + '“ aus den laufenden Plänen – er bleibt mit allen Versionen erhalten und lässt sich jederzeit zurückholen (Öffnen → unten „Archiv“).'}</p>
     <p><b>In den Papierkorb</b> nimmt diese Version mit ihrem Verlauf heraus. Aus dem Papierkorb (Startseite) lässt sie sich wiederherstellen, bis er geleert wird.</p></div>`, [
     { label: '🗑 In den Papierkorb', cls: 'danger', left: true, fn: () => { reallyDelete(); } },
@@ -477,7 +477,7 @@ function saveConflict(d) {
   setSave('Nicht gespeichert – Plan wurde geändert');
   const when = d.updated ? new Date(d.updated).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '';
   const done = () => { conflictOpen = false; };
-  modal('Plan wurde inzwischen geändert', `<div style="max-width:470px;line-height:1.5"><b>${esc(d.by || 'Jemand anderes')}</b> hat „${esc(P.name)}“${when ? ' um ' + when : ''} gespeichert, während du hier Änderungen gemacht hast.<br><br>
+  modal('Plan wurde inzwischen geändert', `<div class="g-txt"><b>${esc(d.by || 'Jemand anderes')}</b> hat „${esc(P.name)}“${when ? ' um ' + when : ''} gespeichert, während du hier Änderungen gemacht hast.<br><br>
       <b>Neu laden</b> übernimmt den gespeicherten Stand – deine letzten Änderungen gehen verloren.<br>
       <b>Meine Fassung speichern</b> überschreibt den anderen Stand (er bleibt in der Versionshistorie).<br>
       <b>Als Kopie speichern</b> legt deine Fassung als eigenes Projekt an.</div>`, [
@@ -539,9 +539,9 @@ async function versionGilt(id, schon) {
 window.ganttVleiste = vleiste;
 function neueVersion() {
   if (!P) return;
-  modal('Neue Version', `<div class="form" style="max-width:460px"><div class="hint" style="margin:0 0 8px">Kopie von „${esc(P.name)}“ mit allen Leistungen, Verknüpfungen, Firmen und Kalender. Danach arbeitest du in der neuen Version weiter, die alte bleibt, wie sie ist.</div>
+  modal('Neue Version', `<div class="hint g-vor g-max">Kopie von „${esc(P.name)}“ mit allen Leistungen, Verknüpfungen, Firmen und Kalender. Danach arbeitest du in der neuen Version weiter, die alte bleibt, wie sie ist.</div><div class="form g-max">
     <label>Name der Version</label><input id="nvName" class="full" placeholder="z. B. 1. Überarbeitung, nach den Sommerferien">
-    ${P._bt ? '<label></label><label class="full" style="display:flex;gap:6px;align-items:center;white-space:normal"><input type="checkbox" id="nvGilt" style="width:auto" checked> gilt ab sofort (Bautagebuch, Erinnerungen, To-dos)</label>' : ''}</div>`, [{ label: 'Anlegen', cls: 'primary', primary: true, fn: (bg) => {
+    ${P._bt ? '<label></label><label class="full g-cbz"><input type="checkbox" id="nvGilt" checked> gilt ab sofort (Bautagebuch, Erinnerungen, To-dos)</label>' : ''}</div>`, [{ label: 'Anlegen', cls: 'primary', primary: true, fn: (bg) => {
     const name = bg.querySelector('#nvName').value.trim(); if (!name) { toast('Bitte einen Namen eingeben.', true); return false; }
     const gilt = !!(bg.querySelector('#nvGilt') || {}).checked, altId = P.id, btId = P._bt ? P._bt.id : null;
     (async () => {
@@ -563,7 +563,7 @@ async function refreshProjectList() {
 }
 function askUnsaved() {
   return new Promise((resolve) => {
-    modal('Nicht gespeicherte Änderungen', `<div style="max-width:440px;line-height:1.5">Sollen die Änderungen an „<b>${esc(P.name)}</b>“ gespeichert werden?</div>`, [
+    modal('Nicht gespeicherte Änderungen', `<div class="g-txt">Sollen die Änderungen an „<b>${esc(P.name)}</b>“ gespeichert werden?</div>`, [
       { label: 'Abbrechen', left: true, fn: () => resolve('cancel') },
       { label: 'Speichern', cls: 'primary', primary: true, fn: () => resolve('save') },
       { label: 'Nicht speichern', fn: () => resolve('discard') }]);
@@ -634,10 +634,10 @@ async function versionHistory() {
     const box = bg.querySelector('#vhBody');
     if (!list.length) { box.innerHTML = '<div class="hint">Noch keine Versionen. Mit „Aktuellen Stand als Version speichern“ legst du einen benannten Planstand an; außerdem entstehen beim Arbeiten automatische Zwischenstände (höchstens alle 15 Minuten, die letzten 60 bleiben).</div>'; return; }
     box.innerHTML = `<div class="vh-cur">Aktueller Stand: <b>${P.tasks.length} Leistungen</b> · Projektende <b>${fmtD(CAL.peDay)}</b></div>
-      <table class="ptab vh"><thead><tr><th style="width:120px">Gespeichert</th><th>Version</th><th style="width:70px">Leistungen</th><th style="width:100px">Projektende</th><th style="width:250px"></th></tr></thead><tbody>`
+      <table class="ptab vh"><thead><tr><th class="vh-w1">Gespeichert</th><th>Version</th><th class="vh-w2">Leistungen</th><th class="vh-w3">Projektende</th><th class="vh-w4"></th></tr></thead><tbody>`
       + list.map((v) => `<tr class="${v.auto ? 'auto' : ''}"><td>${fmtTs(v.created)}</td>
         <td>${v.soll ? '📌 <i class="t in">Soll</i> ' : ''}${v.auto && !v.name ? '<span class="vh-auto">automatischer Zwischenstand</span>' : `<b>${esc(v.name)}</b>`}${v.note ? `<div class="vh-note">${esc(v.note)}</div>` : ''}</td>
-        <td style="text-align:right">${v.n}</td><td>${v.end != null ? fmtD(v.end) : '–'}${v.end != null && v.end !== CAL.peDay ? `<div class="vh-d ${v.end < CAL.peDay ? 'late' : 'early'}">jetzt ${CAL.peDay > v.end ? '+' : ''}${CAL.peDay - v.end} Tage</div>` : ''}</td>
+        <td class="g-r">${v.n}</td><td>${v.end != null ? fmtD(v.end) : '–'}${v.end != null && v.end !== CAL.peDay ? `<div class="vh-d ${v.end < CAL.peDay ? 'late' : 'early'}">jetzt ${CAL.peDay > v.end ? '+' : ''}${CAL.peDay - v.end} Tage</div>` : ''}</td>
         <td class="vh-act"><button class="btn sm" data-vr="${v.id}">Wiederherstellen</button><button class="btn sm" data-vo="${v.id}" title="Als neues Projekt öffnen">Als Projekt</button><button class="btn sm" data-vn="${v.id}" title="Benennen">✎</button>${v.soll ? '' : `<button class="btn sm" data-vd="${v.id}" title="Löschen">✕</button>`}</td></tr>`).join('')
       + '</tbody></table>';
   };

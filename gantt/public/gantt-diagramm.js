@@ -56,7 +56,7 @@ function settingsDialog() {
   if (window.BPHead && BPHead.einstellungen) { BPHead.einstellungen(); return; }   // ⚙ – gleiches Einstellungsfenster wie in allen Apps
   const conf = window.BP && BP.conf, me = window.BP && BP.me;
   const portal = conf && (conf.apps || []).find((a) => a.key === 'portal');
-  modal('Einstellungen', `<div style="max-width:440px;line-height:1.5">Die Einstellungen der Bauplattform (KI, Kennwerte …) nimmt die Verwaltung vor${me ? '' : ''}.<br><br>
+  modal('Einstellungen', `<div class="g-txt">Die Einstellungen der Bauplattform (KI, Kennwerte …) nimmt die Verwaltung vor${me ? '' : ''}.<br><br>
     Deine Farben stellst du auf der Startseite unter <b>Darstellung</b> ein${portal && window.BPHead ? ` – <a href="${esc(BPHead.appUrl(portal))}/#darstellung">zur Startseite</a>` : ''}.<br>
     Ob beim Löschen von Leistungen nachgefragt wird, schaltest du im Reiter <b>Leistung</b> um.</div>`, [{ label: 'OK', cls: 'primary', primary: true }]);
 }

@@ -917,12 +917,28 @@ button.ub-s{border:0;background:none;cursor:pointer;width:100%;text-align:left}
 .ub-kb{all:unset;cursor:pointer;display:inline-flex;padding:0 .2rem}
 .ub-l1{padding-left:1.2rem}.ub-l2{padding-left:2.4rem}.ub-l3{padding-left:3.6rem}.ub-l4,.ub-l5,.ub-l6{padding-left:4.8rem}
 .ub-alle{display:flex;gap:.3rem}
-.ub-f{display:flex;flex-direction:column;gap:.15rem}
-.ub-lb{font-size:calc(var(--fs)*.85);color:var(--mut)}
+.ub-f{display:grid;grid-template-columns:auto 1fr;gap:.6rem;align-items:center}
+.ub-lb{color:var(--ink,#333);white-space:nowrap}
 .ub-f input{font:inherit;padding:4px 7px;border:1px solid var(--bd);border-radius:calc(6px*var(--rk,1))}
-.ub-ein{display:flex;flex-wrap:wrap;gap:.6rem 1.4rem;align-items:flex-end;border-top:1px solid var(--line,#d5d9de);padding:.55rem .75rem}
+.ub-ein{display:flex;flex-wrap:wrap;gap:.6rem 1.4rem;align-items:flex-start;border-top:1px solid var(--line,#d5d9de);padding:.55rem .75rem}
 .ub-abh{align-self:center}
-.ub-firm{display:flex;flex-direction:column;gap:.1rem}
+.ub-firm{display:flex;flex-direction:column;gap:.1rem}.ub-firm .ub-lb{margin-bottom:.1rem}
 .ub-sw{display:flex;flex-direction:column;gap:.1rem}
 .ub-sum{margin-right:auto;color:var(--mut);min-width:0}
 @media (max-width:700px){.ub-sp{grid-template-columns:1fr;height:auto}.ub-li{border-right:0;border-bottom:1px solid var(--line,#d5d9de);height:40vh}.ub-modal .mb{overflow:auto}}
+
+/* Fenster des Bauzeitenplans wie das Eigenschaften-Fenster (UB-6, 23.11.2026): keine Stile von Hand in den Fenstern */
+.g-txt{max-width:480px;line-height:1.5}.g-txt p{margin:0 0 .6em}
+.g-vor{margin:0 0 8px}.g-nach{display:block;margin-top:8px}.g-max{max-width:480px}
+.g-roll{max-height:52vh;overflow:auto}.g-voll{width:100%;box-sizing:border-box}
+.g-zeile{display:flex;gap:6px;align-items:center}.g-zeile input{flex:1}.g-l6{margin-left:6px}
+.g-knoepfe{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.g-sec.g-erst{margin-top:0}
+.form .g-cbz{display:flex;gap:6px;align-items:center;white-space:normal}.form .g-cbz input{width:auto}
+.form[hidden]{display:none}
+.ptab td.g-r{text-align:right;color:var(--mut);white-space:nowrap}.ptab td.g-mitte{text-align:center}.ptab td.g-leer{padding:8px 6px;color:var(--mut)}
+.ptab th.g-w48{width:48px}.ptab th.g-w56{width:56px}.ptab th.g-w80{width:80px}.ptab th.g-w130{width:130px}
+.ptab tr.g-fokus{background:var(--sel)}
+.gw-farbe{width:42px;height:24px;padding:0;border:1px solid var(--bd)}
+label.g-kt{display:flex;gap:8px;align-items:flex-start;margin:6px 0}
+.form.g-oben{margin-top:10px}.ptab.vh th.vh-w1{width:120px}.ptab.vh th.vh-w2{width:70px}.ptab.vh th.vh-w3{width:100px}.ptab.vh th.vh-w4{width:250px}

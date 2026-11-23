@@ -161,6 +161,21 @@ def suche():
     return jsonify(positionen=rows, gesamt=gesamt)
 
 
+@app.get("/api/baum")
+def baum():
+    """Baum der Baudaten (bp/baudatenbaum.js): ebenen=katalog,lb,… · pfad=JSON-Liste der geöffneten Werte · dazu die Filter wie /api/suche."""
+    a = request.args.to_dict()
+    try:
+        pfad = json.loads(a.pop("pfad", "[]") or "[]")
+    except ValueError:
+        pfad = []
+    ebenen = [x for x in (a.pop("ebenen", "") or "katalog,lb").split(",") if x]
+    n = min(500, int(_fn(a.get("n")) or 300))
+    off = max(0, int(_fn(a.get("offset")) or 0))
+    with db.tx() as c:
+        return jsonify(B.baum(c, a, ebenen, pfad if isinstance(pfad, list) else [], n, off))
+
+
 @app.get("/api/position/<int(signed=True):i>")
 def position(i):
     with db.tx() as c:

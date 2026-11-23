@@ -192,11 +192,13 @@ SQL_LISTE = """SELECT p.id, p.katalog, p.code, p.lb_nr, p.gruppe, p.titel, p.kur
   FROM pdb_alle p LEFT JOIN pdb_grundtext gt ON gt.id = p.grund_id LEFT JOIN pdb_gruppe gr ON gr.nr = p.gruppe"""
 
 
-def suche(c, a, n=200, offset=0):
-    """Positionen nach Filtern; Preise umgerechnet (ep_*_akt). Gibt (Liste, Gesamtzahl) zurück."""
+def suche(c, a, n=200, offset=0, dazu=None):
+    """Positionen nach Filtern; Preise umgerechnet (ep_*_akt). Gibt (Liste, Gesamtzahl) zurück. dazu = (WHERE-Teile, Werte) zusätzlich (Baum)."""
     E = einstellungen(c)
     a = {**a, "_f": umrechnung(c, a["katalog"], E) if a.get("katalog") and (a.get("ep_von") or a.get("ep_bis")) else 1}
     w, p = _wo(a, such=bool(a.get("q")) and _such_bereit(c))
+    if dazu and dazu[0]:
+        w, p = " AND ".join([w, *dazu[0]]), [*p, *dazu[1]]
     fk = {}
     erst = [t for t in str(a.get("q") or "").lower().split() if not re.fullmatch(r"[\d.]+", t)][:1]
     order = {"preis_auf": "p.ep_mittel ASC NULLS LAST, p.code", "preis_ab": "p.ep_mittel DESC NULLS LAST, p.code", "code": "p.katalog, p.code"}.get(a.get("sort") or "")
@@ -205,7 +207,7 @@ def suche(c, a, n=200, offset=0):
         order = "p.favorit DESC, " + ("(lower(p.kurz) LIKE ?) DESC, " if erst else "") + "p.katalog, p.code"
         po = ["%" + erst[0] + "%"] if erst else []
     rows = c.execute(f"{SQL_LISTE} WHERE {w} ORDER BY {order} LIMIT ? OFFSET ?", (*p, *po, int(n), int(offset))).fetchall()
-    gesamt = c.execute(f"SELECT COUNT(*) AS n FROM pdb_alle p LEFT JOIN pdb_grundtext gt ON gt.id = p.grund_id WHERE {w}", p).fetchone()["n"]
+    gesamt = c.execute(f"SELECT COUNT(*) AS n FROM pdb_alle p LEFT JOIN pdb_grundtext gt ON gt.id = p.grund_id LEFT JOIN pdb_gruppe gr ON gr.nr = p.gruppe WHERE {w}", p).fetchone()["n"]
     out = []
     for r in rows:
         d = r.dict()
@@ -214,6 +216,44 @@ def suche(c, a, n=200, offset=0):
             d[k + "_akt"] = _rund(d[k] * f) if d[k] is not None else None
         out.append(d)
     return out, gesamt
+
+
+# ---------------------------------------------------------------- Baum (GO 23.11.2026, Mock „Baudaten-Baum“ BB-1 … BB-7): Gruppen mit Zahlen vom Server,
+# Positionen erst beim Aufklappen – nie ein ganzer Katalog im Browser. Ebene → (Ausdruck, Name, Sortierung)
+_ALT = "(lower(COALESCE(p.tags,'')) LIKE '%altbau%' OR lower(COALESCE(p.tags,'')) LIKE '%denkmal%')"
+EBENEN = {
+    "katalog": ("p.katalog", "MIN(k.name)", "MIN(k.sort), MIN(k.name)"),
+    "lb": ("COALESCE(p.lb_nr,'')", "COALESCE(MIN(l.name), MIN(split_part(p.titel, ' › ', 1)), '')", "MIN(COALESCE(l.sort, 0)), 1"),
+    "gruppe": ("COALESCE(p.gruppe,'')", "COALESCE(MIN(gr.name), MIN(p.titel), '')", "1"),
+    "kg": ("substr(COALESCE(p.kg,''), 1, 3)", "''", "1"),
+    "einheit": ("COALESCE(p.einheit,'')", "''", "1"),
+    "bau": (f"CASE WHEN {_ALT} THEN 'altbau' ELSE 'neubau' END", "''", "1"),
+    "genauigkeit": ("COALESCE(p.genauigkeit,'')", "''", "1"),
+}
+EBENEN_NAME = {"katalog": "Katalog", "lb": "Leistungsbereich", "gruppe": "Gruppe", "kg": "Kostengruppe", "einheit": "Einheit", "bau": "Neubau/Altbau", "genauigkeit": "Genauigkeit"}
+_BAUM_VON = """FROM pdb_alle p LEFT JOIN pdb_grundtext gt ON gt.id = p.grund_id LEFT JOIN pdb_gruppe gr ON gr.nr = p.gruppe
+  LEFT JOIN pdb_kataloge k ON k.key = p.katalog LEFT JOIN pdb_leistungsbereich l ON l.nr = p.lb_nr AND p.katalog = 'gk3'"""
+
+
+def baum(c, a, ebenen, pfad, n=300, offset=0):
+    """Eine Ebene des Baums: ebenen = Schlüssel aus EBENEN (außen vor innen), pfad = Werte der schon geöffneten Ebenen.
+    Weniger Werte als Ebenen → {"gruppen": [{w, name, n}]}, sonst {"positionen", "gesamt"} (wie suche, mit offset zum Nachladen)."""
+    ebenen = [e for e in ebenen if e in EBENEN][:4]
+    pfad = [str(x) for x in pfad][:len(ebenen)]
+    dw = [f"{EBENEN[e][0]} = ?" for e in ebenen[:len(pfad)]]
+    if len(pfad) >= len(ebenen):
+        rows, gesamt = suche(c, a, n, offset, (dw, pfad))
+        return {"positionen": rows, "gesamt": gesamt}
+    w, p = _wo(a, such=bool(a.get("q")) and _such_bereit(c))
+    e = ebenen[len(pfad)]
+    aus, name, sort = EBENEN[e]
+    rows = c.execute(f"SELECT {aus} AS w, {name} AS name, COUNT(*) AS n {_BAUM_VON} WHERE {' AND '.join([w, *dw])} GROUP BY {aus} ORDER BY {sort}",
+                     (*p, *pfad)).fetchall()
+    out = [{"w": r["w"], "name": r["name"] or "", "n": r["n"]} for r in rows]
+    if e == "bau":
+        for x in out:
+            x["name"] = "Altbau / Denkmal" if x["w"] == "altbau" else "Neubau"
+    return {"gruppen": out}
 
 
 def position(c, pid):

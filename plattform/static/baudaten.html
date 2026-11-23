@@ -18,31 +18,12 @@
 .fl input.kg{width:5.5rem}
 .info{font-size:.85rem;color:var(--mute);margin-left:auto}
 .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,520px);gap:1rem;align-items:start}
-.side{margin:.2rem -.45rem 0;padding:.2rem 0}   /* Leistungsbereiche: in der Navigation links unter den Katalogen */
-.side h3{margin:.5rem .9rem .3rem;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);font-weight:600}
-.si{display:flex;gap:.5rem;align-items:center;width:100%;text-align:left;border:0;background:none;color:inherit;font:inherit;padding:.38rem .9rem;cursor:pointer;font-size:.92rem}
-.si:hover{background:var(--hov)}.si.on{background:var(--hov)}
-.si span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.si i{font-style:normal;font-size:.75rem;color:var(--mute)}
-.si.sub{padding-left:1.8rem;font-size:.86rem}
-.si .nr{font-variant-numeric:tabular-nums;color:var(--mute);margin-right:.3rem}
-.list{background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));overflow:hidden}
-.row{display:grid;grid-template-columns:8.5rem minmax(0,1fr) 3.2rem 9.5rem;gap:.6rem;padding:.5rem .8rem;border-bottom:1px solid var(--line);cursor:pointer;align-items:baseline}
-.row{grid-template-columns:7.6rem minmax(0,1fr) 3rem 8rem 1.6rem;touch-action:manipulation}
-.kb-ziel{outline:2px dashed var(--y);outline-offset:-4px;background:color-mix(in srgb,var(--y) 8%,transparent)}.row.zieht{opacity:.5}.row .k b{overflow-wrap:anywhere;hyphens:auto}
+.kb-ziel{outline:2px dashed var(--y);outline-offset:-4px;background:color-mix(in srgb,var(--y) 8%,transparent)}
 .kb-z{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:.6rem;padding:.4rem .6rem;border-bottom:1px solid var(--line);align-items:center}.kb-z:last-child{border-bottom:0}.kb-t{min-width:0;overflow-wrap:anywhere}.kb-t small,.kb-p small{display:block;font-size:.76rem}.kb-p{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
-.row-det{padding:.8rem 1rem 1rem;background:var(--card2,var(--card));border-bottom:1px solid var(--line)}.row-det h2{font-size:1.05rem;margin:.3rem 0 .4rem}.row-det pre{white-space:pre-wrap}
 .kb{width:1.6rem;height:1.6rem;border-radius:50%;border:1px solid var(--line);background:none;color:var(--mute);cursor:pointer;font-size:.85rem;line-height:1;padding:0;align-self:start}
 .kb:hover{border-color:var(--y);color:var(--y)}.kb.on{background:var(--y);border-color:var(--y);color:#fff}
 #korbN{display:inline-block;min-width:1.2rem;padding:0 .3rem;border-radius:calc(9px*var(--rk,1));background:var(--hov);font-size:.78rem;text-align:center}
 #korbBtn.voll #korbN{background:var(--y);color:#fff}
-.row:hover{background:var(--hov)}.row.on{background:var(--hov)}
-.row .c{font-size:.78rem;color:var(--mute);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row .k{min-width:0}.row .k b{font-weight:500}
-.row .k small{display:block;color:var(--mute);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row .e{color:var(--mute);font-size:.85rem}
-.row .p{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.row .p small{display:block;color:var(--mute);font-size:.74rem}
 .star{color:var(--y)}
 .det{background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));padding:1rem;position:sticky;top:60px;max-height:calc(100vh - 80px);overflow:auto}
 .det h2{font-size:1.05rem;margin:.1rem 0 .4rem;line-height:1.35}
@@ -88,8 +69,9 @@
   .grid{grid-template-columns:minmax(0,1fr) clamp(420px,32vw,680px);align-items:stretch}
   .det{position:static;max-height:none;overflow:auto}
   .grid>section{display:flex;flex-direction:column;min-height:0;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1))}
-  .grid>section .list{border:0;border-radius:0;overflow:visible}}
-@media (max-width:760px){.grid{grid-template-columns:1fr}.row{grid-template-columns:minmax(0,1fr) 7.5rem 1.8rem}.row .c,.row .e{display:none}}
+  .grid>section{overflow:hidden}}
+@media (max-width:760px){.grid{grid-template-columns:1fr}}
+#bdBaum{flex:1;min-height:0}@media (max-width:1200px){#bdBaum{height:70vh}}   /* Baum (bp/baudatenbaum.js): rollt für sich */
 .modal:has(.pu){width:min(860px,96vw)}   /* Preise umrechnen: Abschnitte, Löhne in Spalten */
 .pu{display:flex;flex-direction:column;gap:.9rem}.pu section{border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.6rem .8rem}
 .pu h4{margin:0 0 .3rem;font-size:.95rem}.pu h4 .mute{font-weight:400;font-size:.8rem}.pu p.mute{margin:0 0 .4rem;font-size:.8rem}
@@ -104,9 +86,6 @@
 .fl input.pr{width:4.5rem;text-align:right}
 .chips{display:flex;flex-wrap:wrap;gap:.35rem;margin:-.4rem 0 .7rem;font-size:.82rem}.chips:empty{display:none}.chip{display:inline-flex;align-items:center;gap:.2rem;background:var(--hov);border-radius:calc(999px*var(--rkp,1));padding:.1rem .2rem .1rem .6rem}
 .chip button{border:0;background:none;color:var(--mute);cursor:pointer;font:inherit;padding:0 .3rem}.chipx{border:0;background:none;color:var(--y);cursor:pointer;font:inherit}
-.row mark{background:color-mix(in srgb,var(--y) 35%,transparent);color:inherit;border-radius:2px;padding:0 1px}
-.lbq{padding:.1rem .9rem .35rem}.lbq input{width:100%;box-sizing:border-box;font:inherit;font-size:.85rem;padding:.3rem .5rem;border-radius:calc(8px*var(--rk,1));border:1px solid var(--line);background:var(--inp);color:var(--ink)}
-.lbfav{display:flex;flex-wrap:wrap;gap:.25rem;padding:0 .9rem .5rem;font-size:.75rem}.lbfav span{width:100%;color:var(--mute);text-transform:uppercase;letter-spacing:.05em;font-size:.68rem}.lbfav button{border:1px solid var(--line);background:none;color:inherit;font:inherit;border-radius:calc(999px*var(--rkp,1));padding:.05rem .5rem;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -115,7 +94,7 @@
   <section class="pane wrap">
   <div class="top">
     <div class="bdq"><input type="search" id="q" placeholder="Suchen – z. B. „Kalksand 17,5“, „Fliesen 60x60“, „Wärmepumpe“ oder Code …" autocomplete="off"><div class="bdhist" id="bdHist" hidden></div></div>
-    <span id="bdIn"></span><span class="seg" id="bdBau" role="group" aria-label="Neubau oder Altbau"></span>
+    <span class="seg" id="bdBau" role="group" aria-label="Neubau oder Altbau"></span>
     <button class="btn sm" id="neuBtn" title="Neue eigene Position anlegen">＋ Eigene Position</button>
     <button class="btn sm" id="korbBtn" title="Gesammelte Positionen – in Ausschreibung (Kopierquelle) und Baukosten übernehmen">Korb <span id="korbN">0</span></button>
     <button class="btn sm" id="csvBtn" title="Gefilterte Positionen für Excel speichern">⤓ Excel (CSV)</button>
@@ -131,7 +110,7 @@
   <div class="chips" id="bdChips">
   </div>
   <div class="grid">
-    <section><div class="list" id="list" aria-live="polite"></div><div id="mehr"></div></section>
+    <section><div id="bdBaum"></div></section>
     <aside class="det" id="det"><div class="leer">Position anklicken – Langtext, Preisspanne, Kalkulation und eigene Preise.</div></aside>
   </div>
   </section>
@@ -140,17 +119,18 @@
 <script src="static/kataloge.js"></script>
 <script src="static/pdbteile.js"></script>
 <script src="static/baudaten-suche.js"></script>
+<script src="bp/baudatenbaum.js"></script>
 <script>
 const LS = bpLS('bd.');
-const F = { katalog: LS.get('katalog', 'gk3'), lb: '', gruppe: '', q: '', kg: '', einheit: '', genauigkeit: '', fav: false }; bdInit();   // dazu Neubau/Altbau, Preis, Sortieren (baudaten-suche.js)
-let S = null, L = [], GES = 0, N = 100, SEL = null, GR = {}, tok = 0;
+const F = { katalog: LS.get('katalog', ''), q: '', kg: '', einheit: '', genauigkeit: '', fav: false }; bdInit();   // katalog '' = alle Kataloge   // dazu Neubau/Altbau, Preis, Sortieren (baudaten-suche.js)
+let S = null, SEL = null, BAUM = null;
 const eur = (v) => (v == null ? '–' : bpZahl(Number(v), 2, 2) + ' €');
 const num = (v, d = 2) => (v == null ? '' : bpZahl(Number(v), 0, d));
 const GEN = { A: 'Standardleistung (−15 % / +20 %)', B: 'mit Produkt-/Mengeneinfluss (−22 % / +30 %)', C: 'stark produkt-/orts-/mengenabhängig (−32 % / +50 %)' };
 
 function params(extra = {}) {
   const p = new URLSearchParams();
-  for (const k of ['katalog', 'lb', 'gruppe', 'q', 'kg', 'einheit', 'genauigkeit']) if (F[k]) p.set(k, F[k]);
+  for (const k of ['katalog', 'q', 'kg', 'einheit', 'genauigkeit']) if (F[k]) p.set(k, F[k]);
   if (F.fav) p.set('fav', '1');
   for (const [k, v] of Object.entries(extra)) p.set(k, v);
   bdParams(p);
@@ -158,9 +138,8 @@ function params(extra = {}) {
 }
 async function start() {
   api('api/baudaten/korb').then((r) => { KORB = new Set(r.map((x) => x.id)); korbZeigen(); }).catch(() => {});
-  S = await api('api/start?katalog=' + encodeURIComponent(F.katalog));
-  if (!S.kataloge.some((k) => k.key === F.katalog)) { F.katalog = 'gk3'; LS.set('katalog', 'gk3'); S = await api('api/start?katalog=gk3'); }
-  const aus = new Set(LS.get('ausgeblendet', []));   // in den Einstellungen ausgeblendete Kataloge (je Browser)
+  S = await api('api/start?katalog=' + encodeURIComponent(F.katalog || 'gk3'));
+  if (F.katalog && !S.kataloge.some((k) => k.key === F.katalog)) { F.katalog = ''; LS.set('katalog', ''); }
   $('#einh').innerHTML = '<option value="">alle</option>' + S.einheiten.map((e) => `<option${e === F.einheit ? ' selected' : ''}>${esc(e)}</option>`).join('');
   bdNav(); laden();
 }
@@ -174,14 +153,7 @@ async function vorbemerkung(k) {
   });
   bg.querySelector('.modal').style.width = 'min(760px,100%)';
 }
-/* Beim Auf-/Zuklappen bleibt die angeklickte Zeile unter der Maus stehen (sonst springt die Liste, wenn oben ein anderer Bereich zuklappt) */
-function festhalten(sel, y0) {   // das angeklickte Element bleibt nach dem Neuzeichnen an seiner Stelle (sel muss genau dieses treffen)
-  const el = $('#side').querySelector(sel); if (!el) return;
-  const d = el.getBoundingClientRect().top - y0; if (!d) return;
-  const sd = $('#navL'), vor = sd.scrollTop; sd.scrollTop += d;   // die Leistungsbereiche rollen mit der Navigation links
-  const rest = d - (sd.scrollTop - vor); if (rest) scrollBy(0, rest);   // die Liste selbst scrollt nicht weit genug: die Seite gleicht aus
-}
-/* Links: Kataloge mit Anzahl, Favoriten, darunter die Leistungsbereiche (#side), Werkzeuge */
+/* Links: Kataloge (Filter des Baums), Favoriten, Werkzeuge, darunter die Preise – die Leistungsbereiche stehen im Baum (23.11.2026) */
 const BD_IC = { kat: '<path d="M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/>', eigen: '<path d="M5 4h14v16H5zM8 9h8M8 13h8M8 17h4"/>',
   fav: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>', set: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>', imp: '<path d="M12 4v12M7 9l5-5 5 5M5 20h14"/>' };
 const BD_F = ['var(--c-b)', 'var(--c-o)', 'var(--c-g)', 'var(--c-v)', 'var(--c-t)', 'var(--c-r)'];
@@ -189,68 +161,49 @@ function bdNav() {
   const aus = new Set(LS.get('ausgeblendet', []));
   const K = S.kataloge.filter((k) => !aus.has(k.key) || k.key === F.katalog);
   bpNav($('#navL'), { kopf: { titel: 'Baudaten', klein: '' }, lage: true, attr: 'bdn', aktiv: F.fav ? 'fav' : 'k:' + F.katalog,
-    gruppen: [{ titel: 'Kataloge', klapp: 'baudaten.kataloge', punkte: K.map((k, i) => ({ id: 'k:' + k.key, text: k.name, icon: /eigen/i.test(k.key + k.name) ? BD_IC.eigen : BD_IC.kat, farbe: BD_F[i % BD_F.length], zahl: k.n.toLocaleString('de-DE') }))
+    gruppen: [{ titel: 'Kataloge', klapp: 'baudaten.kataloge', punkte: [{ id: 'k:', text: 'Alle Kataloge', icon: BD_IC.kat, farbe: 'var(--c-gb)', zahl: K.reduce((a, k) => a + k.n, 0).toLocaleString('de-DE') }].concat(K.map((k, i) => ({ id: 'k:' + k.key, text: k.name, icon: /eigen/i.test(k.key + k.name) ? BD_IC.eigen : BD_IC.kat, farbe: BD_F[i % BD_F.length], zahl: k.n.toLocaleString('de-DE') })))
         .concat([{ id: 'fav', text: '★ Favoriten', icon: BD_IC.fav, farbe: 'var(--c-gb)', zahlTip: 'nur Favoriten im gewählten Katalog' }]) },
-      { titel: 'Werkzeuge', punkte: [{ id: 'set', text: 'Preise & Faktoren …', icon: BD_IC.set }].concat(S.admin ? [{ id: 'imp', text: 'Import …', icon: BD_IC.imp }] : []) }],
+      { titel: 'Werkzeuge', punkte: [{ id: 'vb', text: 'Vorbemerkungen …', icon: BD_IC.eigen }, { id: 'set', text: 'Preise & Faktoren …', icon: BD_IC.set }].concat(S.admin ? [{ id: 'imp', text: 'Import …', icon: BD_IC.imp }] : []) }],
     fuss: '<div class="side" id="side" aria-label="Leistungsbereiche"></div>', nachher: () => seiteLinks() });
   bpNav.breite($('#navL'), { key: 'baudaten' });
 }
 $('#navL').addEventListener('click', (e) => { const b = e.target.closest('[data-bdn]'); if (!b) return; const v = b.dataset.bdn;
-  if (v === 'set') { einstellungen(); return; } if (v === 'imp') { importieren(); return; }
-  if (v === 'fav') { F.fav = !F.fav; N = 100; bdNav(); laden(); return; }
+  if (v === 'set') { einstellungen(); return; } if (v === 'imp') { importieren(); return; } if (v === 'vb') { vorbemerkungWahl(b); return; }
+  if (v === 'fav') { F.fav = !F.fav; bdNav(); laden(); return; }
   const k = v.slice(2); F.fav = false; if (k === F.katalog) { bdNav(); laden(); return; }
-  F.katalog = k; LS.set('katalog', k); F.lb = ''; F.gruppe = ''; GR = {}; N = 100; start(); });
-function seiteLinks() {   // Leistungsbereiche links (nicht seite() aus seite.js – das ist der Bereich rechts)
+  F.katalog = k; LS.set('katalog', k); start(); });
+async function vorbemerkungWahl(b) {   // Vorbemerkungen der Leistungsbereiche (früher unter dem Leistungsbereich links)
+  let L; try { L = await api('api/vorbemerkungen'); } catch (e) { toast(e.message, true); return; }
+  pickMenu(b, { search: 'Leistungsbereich suchen …', items: L.map((x) => ({ value: x.key, title: `${/^\d/.test(x.key) ? x.key + ' ' : ''}${x.titel || ''}` })), onPick: (k) => vorbemerkung(k) });
+}
+function seiteLinks() {   // unter der Navigation: Stand der Preise (Index, Faktor) – nicht seite() aus seite.js, das ist der Bereich rechts
   if (!$('#side')) return;
   const E = S.einstellungen, kat = S.kataloge.find((k) => k.key === F.katalog) || {};
-  let h = `<h3>${esc(kat.name || '')}</h3>${bdSeiteKopf()}<button type="button" class="si${!F.lb ? ' on' : ''}" data-lb=""><span>Alle Leistungsbereiche</span><i>${(kat.n || 0).toLocaleString('de-DE')}</i></button>`;
-  for (const l of S.lbs.filter(bdLbPasst)) {
-    h += `<button type="button" class="si${F.lb === l.nr ? ' on' : ''}" data-lb="${esc(l.nr)}"><span><span class="nr">${esc(l.nr)}</span>${esc(l.name || '')}</span><i>${l.n.toLocaleString('de-DE')}</i></button>`;
-    if (F.lb === l.nr && F.katalog === 'gk3') h += `<button type="button" class="si sub" data-vb="${esc(l.nr)}" title="Kompakte Technische Vorbemerkungen zu diesem Leistungsbereich – in der Ausschreibung unter „Vorbemerkungen“ einfügbar"><span>📄 Vorbemerkungen</span><i></i></button>`;
-    if (F.lb === l.nr && GR[l.nr]) h += GR[l.nr].map((g) => `<button type="button" class="si sub${F.gruppe === g.nr ? ' on' : ''}" data-gr="${esc(g.nr)}"><span>${esc(g.name || g.nr)}</span><i>${g.n}</i></button>`).join('');
-  }
-  h += `<h3>Preise</h3><p class="mute" style="margin:0 .9rem .6rem;font-size:.8rem">Index ${num(E.index_aktuell, 1)} (Basis ${num(E.index_basis, 1)}, 2021 = 100)<br>${esc(E.faktor_name)} × ${num(E.faktor, 3)}${kat.key !== 'gk3' ? `<br>Katalog: Stand ${esc(kat.preisstand || '–')}, ${kat.index_basis ? 'Index ' + num(kat.index_basis, 1) + (kat.index_auto ? ' (aus dem Preisstand)' : '') + ' → fortgeschrieben' : 'ohne Index – nur Faktor'}` : ''}${kat.lizenz ? '<br>' + esc(kat.lizenz) : ''}</p>`;
+  const h = `<h3>Preise</h3><p class="mute" style="margin:0 .9rem .6rem;font-size:.8rem">Index ${num(E.index_aktuell, 1)} (Basis ${num(E.index_basis, 1)}, 2021 = 100)<br>${esc(E.faktor_name)} × ${num(E.faktor, 3)}${kat.key && kat.key !== 'gk3' ? `<br>Katalog: Stand ${esc(kat.preisstand || '–')}, ${kat.index_basis ? 'Index ' + num(kat.index_basis, 1) + (kat.index_auto ? ' (aus dem Preisstand)' : '') + ' → fortgeschrieben' : 'ohne Index – nur Faktor'}` : ''}${kat.lizenz ? '<br>' + esc(kat.lizenz) : ''}</p>`;
   $('#side').innerHTML = h;
 }
-async function laden() {
-  const my = ++tok;
-  try {
-    const r = await api('api/suche?' + params({ n: N }));
-    if (my !== tok) return; L = r.positionen; GES = r.gesamt; liste(); bdLeiste();
-  } catch (e) { if (my === tok) $('#list').innerHTML = `<div class="leer">${esc(e.message)}</div>`; }
-}
-function liste() {
-  $('#info').textContent = `${GES.toLocaleString('de-DE')} Position${GES === 1 ? '' : 'en'} · Preise netto, umgerechnet auf heute`;
-  if (!L.length) { $('#list').innerHTML = `<div class="leer">${F.q || F.kg || F.einheit || F.fav ? 'Nichts gefunden – Suche oder Filter ändern.' : 'Dieser Katalog ist leer.'}</div>`; $('#mehr').innerHTML = ''; return; }
-  $('#list').innerHTML = L.map((x) => `<div class="row${SEL && SEL.id === x.id ? ' on' : ''}" data-id="${x.id}" draggable="true" title="Klick: Details rechts · Doppelklick/Doppeltipp: hier aufklappen · ziehen: in den Korb">
-    <span class="c">${esc(x.code)}</span>
-    <span class="k"><b>${x.favorit ? '<span class="star">★</span> ' : ''}${bdMark(x.bez || x.kurz)}</b><small>${esc([x.gruppe_name || x.titel, x.kg ? 'KG ' + x.kg : ''].filter(Boolean).join(' · '))}</small></span>
-    <span class="e">${esc(x.einheit)}</span>
-    <span class="p">${x.ep_mittel_akt == null ? '–' : eur(x.ep_mittel_akt)}${x.ep_von_akt != null ? `<small>${num(x.ep_von_akt)} – ${num(x.ep_bis_akt)}</small>` : ''}</span>
-    ${korbKnopf(x.id)}</div>`).join('');
-  $('#mehr').innerHTML = GES > L.length ? `<button type="button" class="btn sm" data-mehr style="margin:.6rem 0">+ weitere ${Math.min(200, GES - L.length)} von ${(GES - L.length).toLocaleString('de-DE')}</button>` : '';
+const bdSucht = () => !!(F.q || F.kg || F.einheit || F.genauigkeit || F.ep_von || F.ep_bis || F.fav || F.bau);
+function laden() {   // Baum (bp/baudatenbaum.js): Gruppen mit Zahlen vom Server, Positionen beim Aufklappen
+  $('#info').textContent = 'Preise netto, umgerechnet auf heute'; bdLeiste();
+  if (BAUM) { BAUM.neu(); return; }
+  BAUM = bpBaudatenBaum.mount($('#bdBaum'), { key: 'app', url: 'api/baum', filter: () => params(), suche: bdSucht, mark: bdMark,
+    ebenen: { katalog: 'Katalog', lb: 'Leistungsbereich', gruppe: 'Gruppe', kg: 'Kostengruppe', einheit: 'Einheit', bau: 'Neubau/Altbau', genauigkeit: 'Genauigkeit' },
+    vorgabe: ['katalog', 'lb', 'gruppe'], leer: 'Nichts gefunden – Suche oder Filter ändern.', extra: (x) => korbKnopf(x.id),
+    aktionen: [{ k: 'korb', t: '＋ In den Korb', pri: true }, { k: 'raus', t: 'Aus dem Korb' }],
+    aktion: (k, ids) => { if (k === 'korb') korbAendern({ dazu: ids.filter((i) => !KORB.has(i)) }); else korbAendern({ weg: ids.filter((i) => KORB.has(i)) }); },
+    zeige: (x) => zeigen(x.id), doppel: async (x) => { await zeigen(x.id); if (BD_BREIT) seiteReiter('bd', 'pos'); },
+    ziehen: (e, ids) => { BD_ZIEH = { ids, aus: 'liste' }; e.dataTransfer.effectAllowed = 'copy'; e.dataTransfer.setData('text/plain', ids.join(',')); if (BD_BREIT) setTimeout(() => seiteReiter('bd', 'korb'), 0); } });
 }
 async function zeigen(id) {
   try { SEL = await api('api/position/' + id); } catch (e) { toast(e.message, true); return; }
-  document.querySelectorAll('.row').forEach((r) => r.classList.toggle('on', +r.dataset.id === id));
+  if (BAUM) BAUM.akt(id);
   detail();
   if (BD_BREIT && !DET.isConnected) seiteReiter('bd', 'pos');   // Reiter „Korb“ vorn oder Bereich zugeklappt: die Position nach vorn holen
   if (innerWidth <= 1200) {   // schmaler Bildschirm: Details stehen unter der Liste – hinrollen, mit „↑ zur Liste“ zurück
     const d = DET; if (!d.querySelector('[data-zurliste]')) d.insertAdjacentHTML('afterbegin', '<button type="button" class="btn sm" data-zurliste style="margin:0 0 .5rem">↑ zurück zur Liste</button>');
     d.scrollIntoView({ block: 'start' }); }
 }
-document.addEventListener('click', (e) => { if (!e.target.closest('[data-zurliste]')) return; const r = document.querySelector('.row.on'); (r || document.body).scrollIntoView({ block: 'center' }); });
-/* Doppelklick (am Handy: Doppeltipp) auf eine Zeile: Details direkt unter der Zeile aufklappen – die Detailkarte liegt auf schmalen Bildschirmen sonst weit unten */
-async function aufklappen(row) {
-  const id = +row.dataset.id, alt = document.querySelector('.row-det');
-  if (alt) { const war = +alt.dataset.id === id; alt.remove(); if (war) return; }
-  if (!SEL || SEL.id !== id) await zeigen(id); else document.querySelectorAll('.row').forEach((r) => r.classList.toggle('on', +r.dataset.id === id));
-  if (!SEL || SEL.id !== id) return;
-  const d = document.createElement('div'); d.className = 'row-det'; d.dataset.id = id; d.innerHTML = DET.innerHTML; row.after(d);
-}
-document.addEventListener('dblclick', async (e) => { const r = e.target.closest && e.target.closest('.row'); if (r && !e.target.closest('button,input,select,a')) { e.preventDefault(); if (getSelection) getSelection().removeAllRanges();
-  if (BD_BREIT) { await zeigen(+r.dataset.id); seiteReiter('bd', 'pos'); return; }   // breit: Reiter „Position“ rechts
-  aufklappen(r); } });
+document.addEventListener('click', (e) => { if (!e.target.closest('[data-zurliste]')) return; const r = document.querySelector('#bdBaum tr.akt'); (r || document.body).scrollIntoView({ block: 'center' }); });
 let KORB = new Set();   // Korb: gesammelte Positionen (je Benutzer, auf dem Server)
 const korbKnopf = (id) => `<button type="button" class="kb${KORB.has(id) ? ' on' : ''}" data-korb="${id}" title="${KORB.has(id) ? 'Aus dem Korb nehmen' : 'In den Korb'}" aria-label="${KORB.has(id) ? 'Aus dem Korb nehmen' : 'In den Korb'}">${KORB.has(id) ? '✓' : '＋'}</button>`;
 /* Korb in anderen Fenstern (Kopierquelle der Ausschreibung, zweites Baudaten-Fenster): Bescheid im Browser – ohne Anfrage an den Server */
@@ -292,18 +245,16 @@ async function korbReiter(el) {
 }
 /* Ziehen und Loslassen: Zeile der Liste auf den Korb (Bereich rechts – er wechselt beim Ziehen auf „Korb“ – oder Knopf „Korb“ oben); Korbzeile auf die Liste: heraus */
 let BD_ZIEH = null;
-const kbZiel = (e) => e.target.closest && (BD_ZIEH && BD_ZIEH.aus === 'liste' ? e.target.closest('.kb-r, #korbBtn, [data-srt="korb"]') : BD_ZIEH && BD_ZIEH.aus === 'korb' ? e.target.closest('#list') : null);
-document.addEventListener('dragstart', (e) => {
-  const r = e.target.closest && e.target.closest('#list .row[data-id]'), k = !r && e.target.closest && e.target.closest('.kb-r [data-kbz]');
-  if (!r && !k) return;
-  BD_ZIEH = { id: +(r ? r.dataset.id : k.dataset.kbz), aus: r ? 'liste' : 'korb', el: r || k }; BD_ZIEH.el.classList.add('zieht');
-  e.dataTransfer.effectAllowed = r ? 'copy' : 'move'; e.dataTransfer.setData('text/plain', String(BD_ZIEH.id));
-  if (r && BD_BREIT) setTimeout(() => seiteReiter('bd', 'korb'), 0);   // rechts gleich den Korb zeigen – dort loslassen
+const kbZiel = (e) => e.target.closest && (BD_ZIEH && BD_ZIEH.aus === 'liste' ? e.target.closest('.kb-r, #korbBtn, [data-srt="korb"]') : BD_ZIEH && BD_ZIEH.aus === 'korb' ? e.target.closest('#bdBaum') : null);
+document.addEventListener('dragstart', (e) => {   // aus dem Baum: ziehen() des Bausteins setzt BD_ZIEH; hier nur Zeilen des Korbs
+  const k = e.target.closest && e.target.closest('.kb-r [data-kbz]'); if (!k) return;
+  BD_ZIEH = { ids: [+k.dataset.kbz], aus: 'korb', el: k }; k.classList.add('zieht');
+  e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', k.dataset.kbz);
 });
 document.addEventListener('dragover', (e) => { const z = kbZiel(e); document.querySelectorAll('.kb-ziel').forEach((x) => { if (x !== z) x.classList.remove('kb-ziel'); }); if (!z) return; e.preventDefault(); z.classList.add('kb-ziel'); });
 document.addEventListener('drop', (e) => { const z = kbZiel(e); if (!z) return; e.preventDefault(); const b = BD_ZIEH;
-  if (b.aus === 'liste' && !KORB.has(b.id)) korbAendern({ dazu: [b.id] }); else if (b.aus === 'korb') korbAendern({ weg: [b.id] }); });
-document.addEventListener('dragend', () => { if (BD_ZIEH) BD_ZIEH.el.classList.remove('zieht'); BD_ZIEH = null; document.querySelectorAll('.kb-ziel').forEach((x) => x.classList.remove('kb-ziel')); });
+  if (b.aus === 'liste') { const n = b.ids.filter((i) => !KORB.has(i)); if (n.length) korbAendern({ dazu: n }); } else if (b.aus === 'korb') korbAendern({ weg: b.ids }); });
+document.addEventListener('dragend', () => { if (BD_ZIEH && BD_ZIEH.el) BD_ZIEH.el.classList.remove('zieht'); BD_ZIEH = null; document.querySelectorAll('.kb-ziel').forEach((x) => x.classList.remove('kb-ziel')); });
 document.addEventListener('click', async (e) => {
   const w = e.target.closest && e.target.closest('[data-kbweg]'); if (w) { e.stopPropagation(); korbAendern({ weg: [+w.dataset.kbweg] }); return; }
   if (e.target.closest && e.target.closest('[data-kbleeren]')) { korbAendern({ leeren: true }); return; }
@@ -376,7 +327,6 @@ function detail() {
       ${x.katalog === 'eigen' ? '<button type="button" class="btn sm" data-del>Löschen</button>' : ''}
     </div>${!ro && x.katalog !== 'eigen' ? '<p class="mute">🔒 Katalogposition – schreibgeschützt. Für eigene Texte oder Preise „Als eigene Position“ übernehmen.</p>' : ''}${ro ? '<p class="mute">🔒 Aus einem Katalog der Ausschreibung (z. B. sirAdos, eingelesen in Ausschreibung &amp; Abrechnung → ⚙ → Positionskatalog). Für eigene Preise oder Änderungen als eigene Position übernehmen.</p>' : ''}${kalk}${ro ? '' : eigen}`;
   if (document.getElementById('pFiL')) firmenLaden(x.id);
-  const inl = document.querySelector('.row-det'); if (inl) { if (+inl.dataset.id === x.id) inl.innerHTML = DET.innerHTML; else inl.remove(); }
 }
 function bearbeiten() {
   const x = SEL, SP = { A: [0.85, 1.2], B: [0.78, 1.3], C: [0.68, 1.5] };   // Preisspanne je Genauigkeit (wie im Katalog)
@@ -481,23 +431,16 @@ async function importieren() {
         const fd = new FormData(); fd.append('datei', f); for (const [k, v] of Object.entries(meta)) fd.append(k, v);
         const res = await fetch('api/import', { method: 'POST', body: fd }); r = await res.json().catch(() => ({})); if (!res.ok) throw new Error(r.error || res.statusText);
       } else r = await api('api/import', 'POST', { ...meta, lv_id: +lv });
-      close(); F.katalog = r.key; LS.set('katalog', r.key); F.lb = ''; F.gruppe = ''; await start(); toast(r.hinweis);
+      close(); F.katalog = r.key; LS.set('katalog', r.key); await start(); toast(r.hinweis);
     } catch (e) { btn.disabled = false; btn.textContent = 'Einlesen'; toast(e.message, true); }
   });
 }
 
 document.addEventListener('click', async (e) => {
   const t = e.target;
-  const vb = t.closest('[data-vb]'); if (vb) { vorbemerkung(vb.dataset.vb); return; }
-  const lb = t.closest('[data-lb]'); if (lb) { F.lb = lb.dataset.lb; F.gruppe = ''; N = 100; const y0 = lb.getBoundingClientRect().top, imKopf = !!lb.closest('.lbfav');   // Knopf „oft geöffnet“ oder Zeile der Liste – genau dieses Element bleibt stehen
-    if (F.lb && !GR[F.lb]) { try { GR[F.lb] = await api(`api/gruppen?katalog=${encodeURIComponent(F.katalog)}&lb=${encodeURIComponent(F.lb)}`); } catch { GR[F.lb] = []; } }
-    seiteLinks(); festhalten(`${imKopf ? '.lbfav button' : 'button.si'}[data-lb="${CSS.escape(F.lb)}"]`, y0); laden(); return; }
-  const gr = t.closest('[data-gr]'); if (gr) { F.gruppe = F.gruppe === gr.dataset.gr ? '' : gr.dataset.gr; N = 100; seiteLinks(); laden(); return; }
   const kb = t.closest('[data-korb]'); if (kb) { const id = +kb.dataset.korb; korbAendern(KORB.has(id) ? { weg: [id] } : { dazu: [id] }); return; }
   if (t.closest('[data-korbd]') && SEL) { korbAendern(KORB.has(SEL.id) ? { weg: [SEL.id] } : { dazu: [SEL.id] }); return; }
   if (t.closest('#korbBtn')) { if (BD_BREIT) seiteReiter('bd', 'korb'); else korbDialog(); return; }
-  const row = t.closest('.row[data-id]'); if (row) { zeigen(+row.dataset.id); return; }
-  if (t.closest('[data-mehr]')) { N += 200; laden(); return; }
   if (t.closest('#csvBtn')) { location.href = 'api/export.csv?' + params(); return; }
   if (t.closest('#neuBtn')) { try { SEL = await api('api/position', 'POST', {}); detail(); bearbeiten(); start(); } catch (er) { toast(er.message, true); } return; }
   if (!SEL) return;
@@ -535,9 +478,9 @@ document.addEventListener('click', async (e) => {
     });
   }
 });
-for (const [id, k] of [['einh', 'einheit'], ['gen', 'genauigkeit']]) $('#' + id).addEventListener('change', (e) => { F[k] = e.target.value; N = 100; laden(); });
+for (const [id, k] of [['einh', 'einheit'], ['gen', 'genauigkeit']]) $('#' + id).addEventListener('change', (e) => { F[k] = e.target.value; laden(); });
 let qT = 0;
-for (const [id, k] of [['q', 'q'], ['kg', 'kg']]) $('#' + id).addEventListener('input', (e) => { clearTimeout(qT); qT = setTimeout(() => { F[k] = e.target.value.trim(); N = 100; laden(); }, 300); });
+for (const [id, k] of [['q', 'q'], ['kg', 'kg']]) $('#' + id).addEventListener('input', (e) => { clearTimeout(qT); qT = setTimeout(() => { F[k] = e.target.value.trim(); laden(); }, 300); });
 
 (async () => {
   const [ME, PC] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(ME);   // gleichzeitig

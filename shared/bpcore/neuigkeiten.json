@@ -1,5 +1,13 @@
 [
  {
+  "id": "baudaten-baum-2311",
+  "datum": "2026-11-23",
+  "app": "baudaten",
+  "titel": "Baudaten als Baum",
+  "text": "Die Positionen stehen jetzt in einem Baum: Katalog › Leistungsbereich › Gruppe. Über „Gruppieren“ lassen sich auch Kostengruppe, Einheit, Neubau/Altbau oder Genauigkeit als Ebenen wählen. Beim Suchen gehen die Gruppen mit Treffern von selbst auf. Mit den Haken vorn wählst du mehrere Positionen und legst sie über die Leiste unten gemeinsam in den Korb. Oben stehen die oft geöffneten Leistungsbereiche mit ★.",
+  "ziel": "#bdBaum .bp-grp"
+ },
+ {
   "id": "plotdienst-art-2311",
   "datum": "2026-11-23",
   "app": "adressen",

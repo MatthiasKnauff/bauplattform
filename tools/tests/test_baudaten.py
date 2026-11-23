@@ -419,3 +419,29 @@ def test_suche_filter_wie_ava(ctx):
     gleich(e, sorted(e), "aufsteigend sortiert")
     d = [x["ep_mittel_akt"] for x in c.gj(q + "&sort=preis_ab")["positionen"] if x["ep_mittel_akt"] is not None]
     gleich(d, sorted(d, reverse=True), "absteigend sortiert")
+
+
+def test_baum(ctx):
+    """Baum (bp/baudatenbaum.js, 23.11.2026): Gruppen mit Zahlen vom Server, Positionen erst in der innersten Ebene – mit Filtern und Nachladen."""
+    import json
+    from urllib.parse import quote
+    c = ctx.admin
+    b = lambda eb, pf, f="": c.gj(f"{BD}/baum?ebenen={eb}&pfad={quote(json.dumps(pf))}{f}")
+    k = b("katalog,lb,gruppe", [])["gruppen"]
+    gk3 = finde(k, w="gk3")
+    pruefe(gk3 and gk3["n"] > 10000 and gk3["name"], f"Katalog gk3 als oberste Gruppe: {gk3}")
+    lb = finde(b("katalog,lb,gruppe", ["gk3"])["gruppen"], w="012")
+    pruefe(lb and lb["name"] == "Mauerarbeiten" and lb["n"] > 0, f"Leistungsbereich 012: {lb}")
+    g = b("katalog,lb,gruppe", ["gk3", "012"])["gruppen"]
+    gleich([x["w"] for x in g], ["012.01", "012.02", "012.03", "012.04", "012.05", "012.06"], "Gruppen in LB 012")
+    gleich(sum(x["n"] for x in g), lb["n"], "die Gruppen zählen zusammen den Leistungsbereich")
+    p = b("katalog,lb,gruppe", ["gk3", "012", "012.02"], "&n=5")
+    pruefe(len(p["positionen"]) == 5 and p["gesamt"] == finde(g, w="012.02")["n"], f"Positionen der Gruppe mit Gesamtzahl: {len(p['positionen'])}/{p['gesamt']}")
+    pruefe(all(x["gruppe"] == "012.02" for x in p["positionen"]), "nur Positionen der Gruppe")
+    p2 = b("katalog,lb,gruppe", ["gk3", "012", "012.02"], "&n=5&offset=5")
+    pruefe(not {x["id"] for x in p2["positionen"]} & {x["id"] for x in p["positionen"]}, "Nachladen bringt die nächsten")
+    f = b("lb", [], "&katalog=gk3&q=" + quote("Kalksand"))["gruppen"]
+    pruefe(f and finde(f, w="012") and sum(x["n"] for x in f) < gk3["n"], "Suche: nur Gruppen mit Treffern")
+    e = b("bau,einheit", [], "&katalog=gk3")["gruppen"]
+    gleich(sorted(x["name"] for x in e), ["Altbau / Denkmal", "Neubau"], "Ebene Neubau/Altbau")
+    pruefe(b("einheit", [], "&katalog=gk3&einheit=" + quote("m²"))["gruppen"][0]["w"] == "m²", "Filter Einheit")

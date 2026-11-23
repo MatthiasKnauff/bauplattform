@@ -1,7 +1,8 @@
 // Baudaten: Bereich rechts (seite.js) mit den Reitern „Position“ und „Korb“ – Ablauftest im echten Browser mit nachgebildeten Server-Antworten.
 // Geprüft: Steht „Korb“ vorn oder ist der Bereich zugeklappt, liegen die Details (#det) nicht lose im Raster (sie nahmen dem Bereich
 // rechts die Spalte weg: Liste schmal, rechts leer); Liste und Bereich stehen nebeneinander und füllen die Breite; „Position“ holt die Details zurück.
-// Am Handy: Leistungsbereiche links springen beim Anklicken nicht, „oft geöffnet“ sortiert sich nicht um (21.11.2026).
+// Baum (bp/baudatenbaum.js, 23.11.2026): Aufklappen holt die Ebene vom Server, nichts springt beim Klicken, Haken → schwebende Leiste
+// „n gewählt“ mit „In den Korb“, ★ oft geöffnete Leistungsbereiche über dem Baum.
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await baudatenPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/baudaten.mjs
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
@@ -12,12 +13,21 @@ export async function baudatenPruefen(browser, repo) {
   const baukasten = 'void 0;\n' + BK.map((f) => fs.readFileSync(path.join(KASTEN, f), 'utf8')).join('\n;\n');
   const fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
   const LBS = [310, 320, 330, 340, 350, 360, 370, 380, 390, 410, 420, 430, 440, 450, 460, 470, 480].map((n) => ({ nr: String(n), name: 'Leistungsbereich ' + n, n }));
-  const antwort = (pf) => {
+  const KORB_POST = [];
+  const antwort = (pf, q, meth, body) => {
     if (pf === 'api/me') return { ok: true, id: 1, name: 'admin', vorname: 'A', role: 'admin', admin: true, look: {} };
     if (pf === 'api/platform') return { apps: [], user: { name: 'admin', role: 'admin' }, projekte: [] };
     if (pf === 'api/start') return { kataloge: [{ key: 'gk3', name: 'Positionsdatenbank', n: 0 }], einheiten: [], lbs: LBS, gruppen: [], loehne: [], einstellungen: { index_aktuell: 141.7, index_basis: 141.7, faktor_name: 'Bundesdurchschnitt', faktor: 1 } };
     if (pf === 'api/gruppen') return [1, 2, 3, 4, 5, 6].map((i) => ({ nr: 'g' + i, name: 'Gruppe ' + i, n: i }));
     if (pf === 'api/suche') return { positionen: [], gesamt: 0 };
+    if (pf === 'api/baum') {   // Katalog › Leistungsbereich › Gruppe › Positionen
+      const pfad = JSON.parse(q.get('pfad') || '[]');
+      if (!pfad.length) return { gruppen: [{ w: 'gk3', name: 'Positionsdatenbank', n: 999 }] };
+      if (pfad.length === 1) return { gruppen: LBS.map((l) => ({ w: l.nr, name: l.name, n: l.n })) };
+      if (pfad.length === 2) return { gruppen: [1, 2, 3].map((i) => ({ w: pfad[1] + '.' + i, name: 'Gruppe ' + i, n: 4 })) };
+      return { positionen: [1, 2, 3, 4].map((i) => ({ id: +(pfad[2].replace('.', '')) * 10 + i, code: pfad[2] + '.' + i, kurz: 'Position ' + i, einheit: 'm²', ep_mittel_akt: 10 * i, ep_von_akt: 8 * i, ep_bis_akt: 12 * i })), gesamt: 4 };
+    }
+    if (pf === 'api/baudaten/korb' && meth === 'POST') { KORB_POST.push(JSON.parse(body || '{}')); return { ids: KORB_POST.at(-1).dazu || [] }; }
     return /korb|liste|kontakte|neuigkeit|projekte|verlauf|fehler|gruppen|lvs|firmen/.test(pf) ? [] : {};
   };
   async function lauf(name, merker, pruefen, vp = { width: 1900, height: 1000 }) {
@@ -29,12 +39,12 @@ export async function baudatenPruefen(browser, repo) {
       if (pf === 'bp/baukasten.js') return r.fulfill({ contentType: 'text/javascript', body: baukasten });
       const f = pf.startsWith('bp/') ? path.join(KASTEN, pf.slice(3)) : pf.startsWith('static/') ? path.join(STAT, pf.slice(7)) : null;
       if (f) return fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' });
-      if (/(^|\/)api\//.test(pf)) return r.fulfill({ contentType: 'application/json', body: JSON.stringify(antwort(pf)) });
+      if (/(^|\/)api\//.test(pf)) return r.fulfill({ contentType: 'application/json', body: JSON.stringify(antwort(pf, u.searchParams, r.request().method(), r.request().postData())) });
       return r.fulfill({ status: 404, body: '' });
     });
     try {
       await p.goto('http://portal.test/baudaten');
-      await p.waitForSelector(vp.width < 700 ? '#side button.si' : '.grid.sr-split > .sr-r', { timeout: 20000 }); await p.waitForTimeout(300);
+      await p.waitForSelector(vp.width < 700 ? '#bdBaum tr.bdb-g' : '.grid.sr-split > .sr-r', { timeout: 20000 }); await p.waitForTimeout(300);
       const lage = () => p.evaluate(() => { const g = document.querySelector('.grid'), q = (s) => { const e = g.querySelector(':scope > ' + s); if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, w: b.width }; };
         const b = g.getBoundingClientRect(); return { lose: !!g.querySelector(':scope > #det'), det: DET.isConnected, im: !!DET.closest('.sr-r'), li: q('section'), re: q('.sr-r'), g: { l: b.left, r: b.right } }; });
       await pruefen(vp.width < 700 ? null : await lage(), p, lage);
@@ -65,20 +75,27 @@ export async function baudatenPruefen(browser, repo) {
     pruef(!r.length, 'Grundhilfen: ' + r.join(' · '));
   });
   await lauf('zugeklappt', { 'bp.sr.bd.zu': 'true' }, async (b) => neben(b, 'zugeklappt', 20));
-  // Leistungsbereiche links (Handy): ein Klick auf einen Bereich – in der Liste oder bei „oft geöffnet“ – lässt ihn an seiner Stelle stehen,
-  // und die Knöpfe „oft geöffnet“ tauschen nicht die Plätze (21.11.2026: sie sortierten sich bei jedem Klick um, die Seite sprang nach oben)
-  await lauf('Leistungsbereiche ohne Springen', { 'bd.lbHaeufig': JSON.stringify({ gk3: { 310: 9, 390: 8, 320: 7, 330: 6, 350: 5, 360: 4 } }) }, async (b, p) => {
-    const reihe = () => p.evaluate(() => [...document.querySelectorAll('#side .lbfav button')].map((x) => x.dataset.lb).join(','));
-    const r0 = await reihe();
-    for (const [nr, wo] of [['450', 'button.si'], ['320', 'button.si'], ['430', 'button.si'], ['390', '.lbfav button']]) {
-      const sel = `#side ${wo}[data-lb="${nr}"]`;
-      const y0 = await p.evaluate((s) => { const e = document.querySelector(s); e.scrollIntoView({ block: 'center' }); return e.getBoundingClientRect().top; }, sel);
-      await p.click(sel); await p.waitForTimeout(250);
-      const y1 = await p.evaluate((s) => document.querySelector(s).getBoundingClientRect().top, sel);
-      pruef(Math.abs(y1 - y0) < 3, `Leistungsbereich ${nr} (${wo}): springt um ${Math.round(y1 - y0)} px`);
+  // Baum: Katalog › Leistungsbereich › Gruppe aufklappen – die angeklickte Zeile bleibt stehen; Haken an zwei Positionen → Leiste „2 gewählt“
+  // schwebt unten (die Zeilen rücken nicht), „In den Korb“ schickt beide in EINER Anfrage; ★ zeigt den geöffneten Leistungsbereich
+  await lauf('Baum', {}, async (b, p) => {
+    const zeile = (k) => `#bdBaum tr[data-bdbr='${k}']`, oben = (s) => p.evaluate((x) => { const e = document.querySelector(x); return e ? e.getBoundingClientRect().top : null; }, s);
+    await p.waitForSelector(zeile('["gk3"]'));
+    for (const k of ['["gk3"]', '["gk3","330"]', '["gk3","330","330.2"]']) {
+      await p.waitForSelector(zeile(k)); const y0 = await oben(zeile(k));
+      await p.click(zeile(k) + ' td.baumz'); await p.waitForTimeout(250);
+      const y1 = await oben(zeile(k)); pruef(y1 != null && Math.abs(y1 - y0) < 2, `Baum: ${k} springt beim Aufklappen um ${Math.round((y1 || 0) - y0)} px`);
     }
-    pruef(await reihe() === r0, `„oft geöffnet“ sortiert sich beim Klicken um: ${r0} → ${await reihe()}`);
-  }, { width: 1900, height: 600 });   // breit, aber niedrig (Liste rollt) – unter 820 px ist es die Handyansicht mit der Navigation als Zeile oben
+    await p.waitForSelector('#bdBaum tr.bdb-p'); const n = await p.evaluate(() => document.querySelectorAll('#bdBaum tr.bdb-p').length);
+    pruef(n === 4, `Baum: nach dem Aufklappen der Gruppe ${n} statt 4 Positionen`);
+    const y0 = await oben('#bdBaum tr.bdb-p');
+    await p.click('#bdBaum tr.bdb-p [data-bdbh]'); await p.click('#bdBaum tr.bdb-p:nth-of-type(n) >> nth=1 >> [data-bdbh]'); await p.waitForTimeout(150);
+    pruef(await p.evaluate(() => (document.querySelector('.bdb-mwl b') || {}).textContent) === '2 gewählt', 'Baum: die Leiste „2 gewählt“ fehlt');
+    pruef(Math.abs((await oben('#bdBaum tr.bdb-p')) - y0) < 2, 'Baum: die Leiste „n gewählt“ schiebt die Liste');
+    await p.click('.bdb-mwl [data-bdba="korb"]'); await p.waitForTimeout(250);
+    pruef(KORB_POST.length === 1 && (KORB_POST[0].dazu || []).length === 2, `Baum: „In den Korb“ → ${JSON.stringify(KORB_POST)}`);
+    await p.reload(); await p.waitForSelector('.bdb-fav [data-bdbfav]', { timeout: 8000 }).catch(() => {});
+    pruef(await p.evaluate(() => [...document.querySelectorAll('.bdb-fav [data-bdbfav]')].some((x) => x.textContent.trim() === '330')), 'Baum: ★ oft geöffnet zeigt den geöffneten Leistungsbereich 330 nicht');
+  }, { width: 1900, height: 700 });
   return fehler;
 }
 

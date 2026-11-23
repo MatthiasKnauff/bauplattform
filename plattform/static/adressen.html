@@ -487,19 +487,20 @@ const DF = [['name', 'Firma / Name'], ['trade', 'Gewerk'], ['contact_person', 'A
 async function duplikate(G0) {   // G0: vorgegebene Gruppe (Auswahl zusammenführen, adressen-auswahl.js)
   let G = G0; if (!G) try { G = await api('api/contacts/duplikate'); } catch (e) { toast(e.message, true); return; }
   if (!G.length) { toast('Keine doppelten oder sehr ähnlichen Adressen gefunden.'); return; }
-  let k = 0, ziel = null, wahl = {};
+  let k = 0, ziel = null, wahl = {}, fertig = 0;   // fertig = zusammengeführt oder „keine Duplikate“ (aus G genommen) – die Gesamtzahl bleibt fest
+  const N0 = G.length;
   const bg = modalBox('<div id="dupIn"></div>', async (m, bg, close) => {
     if (m === 'x') { close(); load(); return; }
     const g = G[k];
     if (m === 'weiter') { k++; if (k >= G.length) { close(); load(); toast('Alle Vorschläge durchgesehen.'); return; } zeichne(true); return; }
-    if (m === 'keine') { try { await api('api/contacts/keine-duplikate', 'POST', { ids: g.ids }); } catch (e) { toast(e.message, true); return; } G.splice(k, 1); if (k >= G.length) { close(); load(); toast('Alle Vorschläge durchgesehen.'); return; } zeichne(true); return; }
+    if (m === 'keine') { try { await api('api/contacts/keine-duplikate', 'POST', { ids: g.ids }); } catch (e) { toast(e.message, true); return; } G.splice(k, 1); fertig++; if (k >= G.length) { close(); load(); toast('Alle Vorschläge durchgesehen.'); return; } zeichne(true); return; }
     if (m === 'ok') {
       const quellen = g.kontakte.filter((c) => c.id !== ziel && bg.querySelector(`[data-mit="${c.id}"]`).checked).map((c) => c.id);
       if (!quellen.length) { toast('Mindestens einen weiteren Kontakt zum Zusammenführen anhaken.', true); return; }
       const felder = {}; DF.forEach(([f]) => { felder[f] = wahl[f] ?? ''; });
       try { const r = await api('api/contacts/zusammenfuehren', 'POST', { ziel, quellen, felder }); toast(`${r.n + 1} Adressen zu „${felder.name}“ zusammengeführt – alle Verweise hängen jetzt dort. Zurückholen unter 🕘 Verlauf.`); }
       catch (e) { toast(e.message, true); return; }
-      G.splice(k, 1); if (k >= G.length) { close(); load(); return; } zeichne(true);
+      G.splice(k, 1); fertig++; if (k >= G.length) { close(); load(); return; } zeichne(true);
     }
   });
   bg.querySelector('.modal').style.width = 'min(1100px,100%)';
@@ -515,7 +516,7 @@ async function duplikate(G0) {   // G0: vorgegebene Gruppe (Auswahl zusammenfüh
   function zeichne(neu) {
     if (neu) vorbelegen();
     const g = G[k], K = g.kontakte;
-    bg.querySelector('#dupIn').innerHTML = `<div class="mh"><h3 style="margin:0">Mögliche Duplikate <span class="mute" style="font-weight:400;font-size:.9rem">· ${k + 1} von ${G.length}</span></h3><button class="x" data-m="x" aria-label="Schließen">✕</button></div>
+    bg.querySelector('#dupIn').innerHTML = `<div class="mh"><h3 style="margin:0">Mögliche Duplikate <span class="mute" style="font-weight:400;font-size:.9rem">· ${fertig + k + 1} von ${N0}</span></h3><button class="x" data-m="x" aria-label="Schließen">✕</button></div>
       <p class="mute" style="margin:0 0 .6rem">${esc(g.grund)}. Werte je Zeile anklicken, die bleiben sollen; der Kontakt „bleibt“ übernimmt alle Verweise (Bautagebuch, Baustellenadresse, Bauzeitenpläne, AVA), die anderen werden gelöscht.</p>
       <div style="overflow:auto"><table class="dup"><thead><tr><th></th>${K.map((c) => `<th><label class="dup-z"><input type="radio" name="dupZ" value="${c.id}"${c.id === ziel ? ' checked' : ''}> bleibt</label>
         <label class="dup-m"><input type="checkbox" data-mit="${c.id}" checked${c.id === ziel ? ' disabled' : ''}> zusammenführen</label><div class="mute" style="font-weight:400;font-size:.78rem">${c.used ? `in ${c.used} Einträgen` : 'nicht verwendet'}${c.site_of ? ' · Baustelle ' + esc(c.site_of) : ''}</div></th>`).join('')}<th>Ergebnis</th></tr></thead>

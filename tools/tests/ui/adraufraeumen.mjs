@@ -52,6 +52,13 @@ export async function adrAufraeumenPruefen(browser, repo) {
       await c2.close();
       await p.setViewportSize({ width: 1400, height: 900 }); await p.waitForTimeout(300);
     }
+    {   // Mögliche Duplikate (23.11.2026): „1 von 61“ – die Gesamtzahl bleibt fest, die Stelle zählt hoch (auch nach „Keine Duplikate“ und Zusammenführen)
+      const z = await p.evaluate(async () => { const K = (a, b) => ({ ids: [a, b], grund: 'ähnlicher Name', kontakte: [{ id: a, name: 'X' + a, used: 0 }, { id: b, name: 'Y' + b, used: 0 }] });
+        duplikate([K(1, 2), K(3, 4), K(5, 6)]); const zahl = () => document.querySelector('#dupIn h3 .mute').textContent.replace(/[^\d von]/g, '').trim(); const r = [zahl()];
+        document.querySelector('#dupIn [data-m="keine"]').click(); await new Promise((ok) => setTimeout(ok, 200)); r.push(zahl());
+        document.querySelector('#dupIn [data-m="weiter"]').click(); r.push(zahl());
+        document.querySelector('#dupIn [data-m="x"]').click(); return r; });
+      pruef(z.join('|') === '1 von 3|2 von 3|3 von 3', `Mögliche Duplikate: Zähler ${z.join(' → ')}`); }
     await p.click('#dup'); await p.waitForSelector('[data-afok="0"]', { timeout: 8000 });
     const s = await p.evaluate(() => ({ reiter: [...document.querySelectorAll('[data-afr]')].map((x) => x.textContent), gr: document.querySelectorAll('.af-g').length, gelb: document.querySelectorAll('.af-g.zerl').length, knopf: document.querySelector('[data-afok="0"]').textContent }));
     pruef(s.reiter.length === 5 && /Doppelte Adressen · 2/.test(s.reiter[0]) && /Gewerk · 2/.test(s.reiter[1]) && s.gr === 2 && s.gelb === 1 && /Zusammenführen \(13\)/.test(s.knopf), 'Fenster: ' + JSON.stringify(s));

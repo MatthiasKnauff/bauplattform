@@ -8,6 +8,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Seite „Ablauf“ auch für Einheiten** (Kisten „Gebäude / Allgemein“, „Einheit 1“, „Einheit 2“ mit Takt-Pfeilen) – Fragen offen, Mock folgt **ca. 30 min**
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; 3D-Auswahl später) – B erledigt durch das Raumbuch (17.11.: Gruppen, abweichender Raum eigene Zeile) **ca. 1,5 h**
+- ~~Adressen: „Mögliche Duplikate · 1 von 61“ – Gesamtzahl bleibt fest, die Stelle zählt hoch (23.11.2026)~~
 - ~~Bauzeitenplan: Firmen-Vorgabe je Gewerk für alle Projekte entfernt (GF-5 A) – Spalte, „Vorgaben übernehmen“, „Zurücksetzen …“, Route api/catfirms, gespeicherte Vorgaben (Migration 0110) (23.11.2026)~~
 - ~~Bauzeitenplan: übrige Fenster wie das Eigenschaften-Fenster (UB-6) – keine Stile von Hand, Vorschlagsliste statt datalist, kein onclick (23.11.2026)~~
 - ~~Bauzeitenplan: „Aus anderem Plan übernehmen“ neu (UB-1 … UB-5): zwei Spalten, Abschnitte als Baum mit einzelnen Leistungen, Beginn vorbelegt, Zusammenfassung im Fuß; „Neuer Plan aus anderem“ im selben Fenster (23.11.2026)~~

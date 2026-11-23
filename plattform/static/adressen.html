@@ -311,6 +311,10 @@ function tableRows() {
   if (k) r = r.slice().sort((a, b) => { const x = String(cellVal(a, k)), y = String(cellVal(b, k)); if (!x !== !y) return x ? -1 : 1; return d * x.localeCompare(y, 'de', { numeric: true, sensitivity: 'base' }); });
   return r;
 }
+const tbodyHtml = (rows, cols) => `${rows.length ? bpBaum.fenster.html('adressen', rows.length, (n) => { const c = rows[n]; return `<tr data-id="${c.id}"${awHat(c.id) ? ' class="sel"' : ''}>${cols.map(([k, , , ro]) => ro ? `<td class="ro" title="${esc(cellVal(c, k))}">${esc(cellVal(c, k))}</td>`
+      : `<td${k === 'name' ? ' class="nm"' : ''}>${k === 'name' ? `<input type="checkbox" class="adr-ck" data-adrck="${c.id}"${awHat(c.id) ? ' checked' : ''} aria-label="${esc(c.name)} auswählen">` : ''}<input data-fk="${c.id}:${k}" value="${esc(c[k] || '')}" aria-label="${esc(COLS.find((x) => x[0] === k)[1])} von ${esc(c.name)}" autocomplete="off"${k === 'trade' ? ' data-vs="adrGw"' : ''}></td>`).join('')}
+      <td class="act">${c.phone || c.mobile ? `<a href="tel:${esc(tel(c.mobile || c.phone))}" title="Anrufen">☎</a>` : ''}${c.email ? `<a href="mailto:${esc(c.email)}" data-mailwahl="${esc(c.email)}" data-firma="${esc(c.name)}" title="E-Mail – Outlook oder Schreiben aus der Plattform">✉</a>` : ''}<button class="btn sm" data-open="${c.id}" title="Alle Angaben, Visitenkarte, Löschen">Details</button></td></tr>`; }, { nachher: () => bpSpalten.anwenden($('#tw table')) })   /* nur die Zeilen im Bild (bpBaum.fenster) – 700 Adressen × 20 Spalten brauchten 450 ms je Klick (23.11.2026) */
+      : `<tr><td colspan="${cols.length + 1}" class="ro" style="text-align:center;padding:1.5rem">Keine Treffer – links Filter entfernen (✕).</td></tr>`}`;
 function renderTable() {
   const cols = COLS, ausStd = SP_AUS.map((k) => COLS.findIndex((c) => c[0] === k)), aus = bpSpalten.stand('adressen', COLS.length + 1, ausStd).aus, rows = tableRows(), ae = document.activeElement, keep = ae && ae.dataset && ae.dataset.fk;
   $('#cnt').textContent = `${rows.length} von ${ALL.length} Kontakten · Zelle anklicken und tippen – gespeichert wird beim Verlassen des Feldes · Doppelklick öffnet den Kontakt`;
@@ -318,10 +322,7 @@ function renderTable() {
   $('#tw').innerHTML = `<table class="tt" data-sp="adressen" data-spaus="${ausStd.join(',')}" style="width:${total}px;min-width:100%"><colgroup>${cols.map(([k, , w]) => `<col data-col="${k}" style="width:${cw(k, w)}px">`).join('')}<col style="width:130px"></colgroup>
     <thead><tr class="h">${cols.map(([k, l]) => `<th data-sort="${k}" data-spname="${l}" title="Sortieren · Rand ziehen: Breite ändern · rechte Maustaste: Spalten wählen">${k === 'name' ? '<input type="checkbox" class="adr-ck" data-adrckall aria-label="alle gefilterten wählen" title="alle gefilterten wählen (Strg+A)">' : ''}${l}${TV.sort.k === k ? `<span class="ar">${TV.sort.d > 0 ? '▲' : '▼'}</span>` : ''}<span class="rz" data-rz="${k}" title="Ziehen: Spaltenbreite · Doppelklick: Standardbreite"></span></th>`).join('')}<th></th></tr>
     <tr class="f">${cols.map(([k, l]) => `<th>${fltField(k, l)}</th>`).join('')}<th>${anyFlt() ? '<button class="btn sm" data-clr="*" title="Alle Filter und die Suche löschen">✕ Alle</button>' : ''}</th></tr></thead>
-    <tbody>${rows.length ? bpBaum.fenster.html('adressen', rows.length, (n) => { const c = rows[n]; return `<tr data-id="${c.id}"${awHat(c.id) ? ' class="sel"' : ''}>${cols.map(([k, , , ro]) => ro ? `<td class="ro" title="${esc(cellVal(c, k))}">${esc(cellVal(c, k))}</td>`
-      : `<td${k === 'name' ? ' class="nm"' : ''}>${k === 'name' ? `<input type="checkbox" class="adr-ck" data-adrck="${c.id}"${awHat(c.id) ? ' checked' : ''} aria-label="${esc(c.name)} auswählen">` : ''}<input data-fk="${c.id}:${k}" value="${esc(c[k] || '')}" aria-label="${esc(COLS.find((x) => x[0] === k)[1])} von ${esc(c.name)}" autocomplete="off"${k === 'trade' ? ' data-vs="adrGw"' : ''}></td>`).join('')}
-      <td class="act">${c.phone || c.mobile ? `<a href="tel:${esc(tel(c.mobile || c.phone))}" title="Anrufen">☎</a>` : ''}${c.email ? `<a href="mailto:${esc(c.email)}" data-mailwahl="${esc(c.email)}" data-firma="${esc(c.name)}" title="E-Mail – Outlook oder Schreiben aus der Plattform">✉</a>` : ''}<button class="btn sm" data-open="${c.id}" title="Alle Angaben, Visitenkarte, Löschen">Details</button></td></tr>`; }, { nachher: () => bpSpalten.anwenden($('#tw table')) })   /* nur die Zeilen im Bild (bpBaum.fenster) – 700 Adressen × 20 Spalten brauchten 450 ms je Klick (23.11.2026) */
-      : `<tr><td colspan="${cols.length + 1}" class="ro" style="text-align:center;padding:1.5rem">Keine Treffer – links Filter entfernen (✕).</td></tr>`}</tbody></table>`;
+    <tbody>${tbodyHtml(rows, cols)}</tbody></table>`;
   if (keep) { const n = document.querySelector(`[data-fk="${keep}"]`) || document.querySelector(`[data-flt="${keep}"]`); if (n) n.focus(); }
   bpSpalten.anwenden($('#tw table'));   // Reihenfolge und Ausblenden sofort – ohne sichtbaren Zwischenstand
   fitTw();
@@ -349,7 +350,7 @@ $('#tw').addEventListener('dblclick', (e) => {
 });
 /* ---------- Filter: gelten in Tabelle UND Karten; einzeln oder alle löschen ---------- */
 const fltField = (k, l) => `<span class="fx">${k === 'kind' ? `<select data-flt="kind" aria-label="Filter Art"><option value="">alle</option>${[...Object.entries(KINDN), ...eigeneArten().map((k) => [k, k])].map(([v, n]) => `<option value="${esc(v)}"${TV.flt.kind === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`
-  : `<input data-flt="${k}" value="${esc(TV.flt[k] || '')}" placeholder="Filter" aria-label="Filter ${esc(l)}" autocomplete="off">`}${TV.flt[k] ? `<button type="button" data-clr="f:${k}" title="Filter löschen" aria-label="Filter ${esc(l)} löschen">✕</button>` : ''}</span>`;
+  : `<input data-flt="${k}" data-vs="adrSp" data-vsk="${k}" value="${esc(TV.flt[k] || '')}" placeholder="Filter" aria-label="Filter ${esc(l)}" autocomplete="off">`}${TV.flt[k] ? `<button type="button" data-clr="f:${k}" title="Filter löschen" aria-label="Filter ${esc(l)} löschen">✕</button>` : ''}</span>`;
 function activeFilters() {   // nur noch die Spaltenfilter der Tabelle – Suche und Filter stehen links (AF)
   const a = [];
   Object.entries(TV.flt).filter(([, v]) => v).forEach(([k, v]) => a.push(['f:' + k, COLS.find((c) => c[0] === k)[1], k === 'kind' ? KINDN[v] || v : v]));
@@ -388,7 +389,24 @@ $('#tw').addEventListener('click', (e) => {
   if (th) { const k = th.dataset.sort; TV.sort = TV.sort.k !== k ? { k, d: 1 } : TV.sort.d > 0 ? { k, d: -1 } : { k: '', d: 1 }; tvSave(); renderTable(); return; }
   const o = e.target.closest('[data-open]'); if (o) edit(ALL.find((c) => c.id === +o.dataset.open));
 });
-$('#tw').addEventListener('input', (e) => { const f = e.target.dataset.flt; if (f == null) return; TV.flt[f] = e.target.value; const pos = e.target.selectionStart; renderTable(); const n = document.querySelector(`[data-flt="${f}"]`); if (n && n.setSelectionRange) { n.focus(); n.setSelectionRange(pos, pos); } });
+/* Filter je Spalte: nur die Zeilen neu – die Filterzeile bleibt stehen (Fokus, Text und Vorschlagsliste bleiben, nichts springt; 23.11.2026) */
+$('#tw').addEventListener('input', (e) => { const f = e.target.dataset.flt; if (f == null) return; TV.flt[f] = e.target.value; fltZeilen(e.target); });
+function fltZeilen(inp) {
+  const tb = document.querySelector('#tw tbody'); if (!tb) return renderTable();
+  const rows = tableRows(); tb.innerHTML = tbodyHtml(rows, COLS);
+  $('#cnt').textContent = `${rows.length} von ${ALL.length} Kontakten · Zelle anklicken und tippen – gespeichert wird beim Verlassen des Feldes · Doppelklick öffnet den Kontakt`;
+  if (inp) { const has = !!inp.value, btn = inp.parentElement.querySelector('[data-clr]');   // ✕ im Feld ein-/ausblenden
+    if (has && !btn) inp.insertAdjacentHTML('afterend', `<button type="button" data-clr="f:${inp.dataset.flt}" title="Filter löschen" aria-label="Filter löschen">✕</button>`); else if (!has && btn) btn.remove(); }
+  const ta = document.querySelector('#tw tr.f > th:last-child'); if (ta) ta.innerHTML = anyFlt() ? '<button class="btn sm" data-clr="*" title="Alle Filter und die Suche löschen">✕ Alle</button>' : '';
+  bpSpalten.anwenden($('#tw table')); adrNachRender();
+}
+/* Vervollständigung der Spaltenfilter: vorhandene Werte der Spalte (Listen wie „Dachdecker, Zimmerarbeiten“ einzeln), die häufigsten zuerst;
+   frei tippen geht weiter – gefiltert wird nach dem Text (gemeinsame Vorschlagsliste bp/vorschlag.js) */
+if (window.bpVorschlag) bpVorschlag.listen.adrSp = (inp) => {
+  const k = inp.dataset.vsk, N = new Map();
+  shown().forEach((c) => String(cellVal(c, k) || '').split(/\s*[,;]\s*/).forEach((w) => { w = w.trim(); if (!w) return; const x = N.get(w.toLowerCase()); if (x) x.n++; else N.set(w.toLowerCase(), { w, n: 1 }); }));
+  return [...N.values()].sort((a, b) => b.n - a.n || a.w.localeCompare(b.w, 'de')).slice(0, 200).map((x) => ({ w: x.w, t: `${x.n}×` }));
+};
 $('#tw').addEventListener('change', async (e) => {
   const el = e.target;
   if (el.dataset.flt === 'kind') { TV.flt.kind = el.value; renderTable(); return; }

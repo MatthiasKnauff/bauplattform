@@ -177,6 +177,20 @@ export async function adrStartPruefen(browser, repo) {
       await p.keyboard.press('Escape'); await p.click('#tw tbody'); await p.keyboard.press('Escape');
       pruef(await p.evaluate(() => AW.S.size === 0 && document.querySelector('#adrSel').hidden), 'Esc hebt die Auswahl auf');
       await ctx.close(); }
+    {   // 23.11.2026: Spaltenfilter mit Vervollständigung der vorhandenen Werte (auch Teile von Listen), frei tippen geht; das Feld bleibt stehen
+      const K5 = [...KONT0, { id: 4, name: 'Holz AG', kind: 'firma', trade: 'Dachdecker, Zimmerarbeiten', projects: [], site_of: '' }, { id: 5, name: 'Zimmerei Nord', kind: 'firma', trade: 'Zimmerarbeiten', projects: [], site_of: '' }];
+      const { ctx, p } = await lauf({ ohne_projekt: true, gefragt: true }, K5);
+      await p.evaluate(() => setView('tabelle')); await p.waitForSelector('#tw [data-flt="trade"]');
+      await p.evaluate(() => { window.__fi = document.querySelector('#tw [data-flt="trade"]'); });
+      await p.click('#tw [data-flt="trade"]'); await p.keyboard.type('zim'); await p.waitForTimeout(250);
+      const r = await p.evaluate(() => ({ gleich: window.__fi === document.querySelector('#tw [data-flt="trade"]') && document.activeElement === window.__fi,
+        vs: [...document.querySelectorAll('.bp-vs-z b')].map((b) => b.textContent), ids: [...document.querySelectorAll('#tw tbody tr[data-id]')].map((t) => +t.dataset.id) }));
+      pruef(r.gleich, 'Spaltenfilter: das Feld wird beim Tippen neu gebaut (Fokus/Vorschlagsliste gehen verloren)');
+      pruef(r.vs[0] === 'Zimmerarbeiten', `Spaltenfilter: Vervollständigung ${JSON.stringify(r.vs)}`);
+      pruef(r.ids.join() === '4,5', `Spaltenfilter „zim“: Zeilen ${r.ids}`);
+      await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); await p.waitForTimeout(200);
+      pruef(await p.evaluate(() => document.querySelector('#tw [data-flt="trade"]').value) === 'Zimmerarbeiten', 'Spaltenfilter: Vorschlag wird nicht übernommen');
+      await ctx.close(); }
   } catch (e) { fehler.push("Prüfung bricht ab – " + String(e.message).split("\n").slice(0, 3).join(' | ')); }
   return fehler;
 }

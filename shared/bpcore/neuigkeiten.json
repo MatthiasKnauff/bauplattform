@@ -1,5 +1,13 @@
 [
  {
+  "id": "adr-spaltenfilter-2311",
+  "datum": "2026-11-23",
+  "app": "adressen",
+  "titel": "Spaltenfilter mit Vorschlägen",
+  "text": "In der Tabelle schlagen die Filterfelder über den Spalten beim Tippen die vorhandenen Werte vor, die häufigsten zuerst – z. B. „zim“ → Zimmerarbeiten. Frei tippen geht weiter.",
+  "ziel": "#tw tr.f"
+ },
+ {
   "id": "gantt-einfuegen-unter-2311",
   "datum": "2026-11-23",
   "app": "gantt",

@@ -74,7 +74,7 @@
   function mount(el, pid) {
     stil(el.ownerDocument);
     const merk = (k, v) => { try { if (v === undefined) return localStorage.getItem('bp.pa.' + k); localStorage.setItem('bp.pa.' + k, v); } catch { /* ohne Speicher */ } return null; };
-    const Z = { d: null, m: null, i: 0, t: 0, laeuft: null, fehler: '', sicht: ['alles', 'baukasten'].includes(merk('sicht')) ? merk('sicht') : 'schritt', auf: new Set(), jt: new Set(), tlZu: new Set((() => { try { return JSON.parse(merk('tlzu') || '[]'); } catch { return []; } })()) };   // tlZu: zugeklappte Gebäudeteile (PL-C1)   // sicht: Schritt für Schritt | alles auf einer Seite (wie im Bauzeitenplan)
+    const Z = { d: null, m: null, i: 0, t: 0, laeuft: null, fehler: '', sicht: merk('sicht') === 'alles' ? 'alles' : 'schritt'   /* der Baukasten ist ein eigener Reiter (seite.js) – kein Schalter mehr hier (23.11.2026, doppelt) */, auf: new Set(), jt: new Set(), tlZu: new Set((() => { try { return JSON.parse(merk('tlzu') || '[]'); } catch { return []; } })()) };   // tlZu: zugeklappte Gebäudeteile (PL-C1)   // sicht: Schritt für Schritt | alles auf einer Seite (wie im Bauzeitenplan)
     el.innerHTML = '<div class="pa"><p class="pa-h">Planungsassistent wird geladen …</p></div>';
     const K = () => window.PlanKern, cfg = () => (Z.m.assistent && Z.m.assistent.type ? Z.m.assistent : null);
     const big = (attr, on, titel, sub, ic) => `<button type="button" class="pa-o${on ? ' on' : ''}" ${attr}>${ic ? `<span class="ic">${ic}</span>` : ''}<span><b>${esc(titel)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span></button>`;
@@ -228,15 +228,8 @@
     }
     function zeig() {
       const gm = (((window.BPHead && BPHead.conf) || {}).apps || []).find((a) => a.key === 'gebaeudemodell'), hier = (window.BPHead && BPHead.app === 'gebaeudemodell') || location.pathname.split('/').filter(Boolean)[0] === 'gebaeudemodell';
-      if (hier && Z.sicht === 'baukasten') Z.sicht = 'schritt';   // im Gebäudemodell steht der Baukasten groß in der Mitte – nicht noch einmal hier (21.11.2026)
-      const umsch = (cfg() ? '<button type="button" class="pa-x pa-reset" data-pareset title="Alle Angaben der Planung löschen – mit Rückgängig">Planung zurücksetzen …</button>' : '') + `<div class="pa-um" role="group" aria-label="Ansicht"><button type="button" data-pasicht="schritt" class="${Z.sicht === 'schritt' ? 'on' : ''}">Schritt für Schritt</button><button type="button" data-pasicht="alles" class="${Z.sicht === 'alles' ? 'on' : ''}">Alles auf einer Seite</button>${hier ? '' : `<button type="button" data-pasicht="baukasten" class="${Z.sicht === 'baukasten' ? 'on' : ''}" title="Dasselbe Gebäude per Klick und Ziehen – füllt dieselben Angaben">Baukasten</button>`}</div>`
+      const umsch = (cfg() ? '<button type="button" class="pa-x pa-reset" data-pareset title="Alle Angaben der Planung löschen – mit Rückgängig">Planung zurücksetzen …</button>' : '') + `<div class="pa-um" role="group" aria-label="Ansicht"><button type="button" data-pasicht="schritt" class="${Z.sicht === 'schritt' ? 'on' : ''}">Schritt für Schritt</button><button type="button" data-pasicht="alles" class="${Z.sicht === 'alles' ? 'on' : ''}">Alles auf einer Seite</button></div>`
         + (gm && !hier && window.BPHead.appUrl ? `<a class="btn sm pa-gm" href="${esc(BPHead.appUrl(gm))}/" title="Bauteile, Verknüpfungen und Fragen zum Projekt – im Gebäudemodell">↗ Gebäudemodell</a>` : '');   // RR (18.11.2026): überall ein Knopf ins Gebäudemodell
-      if (Z.sicht === 'baukasten') {   // A3: Fragen ⇄ Baukasten – beide füllen dieselben Angaben (bp/gebaeudekasten.js)
-        el.innerHTML = `<div class="pa pa-bk">${umsch}<div data-pabk><p class="pa-h">Gebäude-Baukasten wird geladen …</p></div></div>`;
-        const f = el.querySelector('[data-pabk]'), [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''];
-        const los = () => { if (f.isConnected && window.bpBaukasten) bpBaukasten.mount(f, pid); };
-        if (window.bpBaukasten) los(); else { const sc = document.createElement('script'); sc.src = b + 'gebaeudekasten.js' + v; sc.onload = los; document.head.appendChild(sc); }
-        return; }
       if (Z.sicht === 'alles') { const rolle = el.closest('.sr-b') || el, pos = rolle.scrollTop;
         el.innerHTML = `<div class="pa pa-alles" data-pa-schritt="alles">${umsch}<div class="pa-n"><span class="pa-st">${Z.fehler ? 'nicht gespeichert' : Z.d.geaendert ? 'gespeichert' : 'noch leer'}</span></div>${allesHtml()}</div>`;
         rolle.scrollTop = pos; return; }
@@ -355,7 +348,7 @@
         if (location.pathname.split('/').filter(Boolean)[0] === 'gebaeudemodell') { document.dispatchEvent(new CustomEvent('bp:verknuepfung', { detail: { app: vk.dataset.pavk } })); return; }
         const gm = (((window.BPHead && BPHead.conf) || {}).apps || []).find((a) => a.key === 'gebaeudemodell'); if (gm && BPHead.appUrl) location.href = BPHead.appUrl(gm) + '/#karte'; return; }
       const b = e.target.closest('button'); if (!b || !Z.m) return;
-      if (b.dataset.pasicht) { const vom = Z.sicht; Z.sicht = b.dataset.pasicht; merk('sicht', Z.sicht); return vom === 'baukasten' && Z.sicht !== 'baukasten' ? mount(el, pid) : zeig(); }   // aus dem Baukasten zurück: Angaben neu holen
+      if (b.dataset.pasicht) { Z.sicht = b.dataset.pasicht; merk('sicht', Z.sicht); return zeig(); }
       if (b.dataset.pa === 'lstauto') { setz((c) => { delete c.sel; }); return zeig(); }
       if (b.dataset.pa === 'ausmodell') { setz((c) => { ausModellSetzen(c); }); sag('Fläche und Geschosse aus dem Gebäudemodell übernommen.'); return zeig(); }
       if (b.dataset.paeneu) {   // Ergänzung zu einem Abschnitt

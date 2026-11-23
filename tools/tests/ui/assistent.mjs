@@ -129,7 +129,7 @@ export async function assistentPruefen(browser, repo) {
     const g = (m.geschosse || []).map((x) => x.name).join(','); pruef(/EG,1\.OG,2\.OG,Staffelgeschoss$/.test(g), `Geschosse im Modell: ${g}`);
     pruef(((m.geschosse || []).find((x) => x.name === 'EG') || {}).flaeche === 210, 'Fläche des EG ging beim Weiterarbeiten verloren');
     // zweite Ansicht: alles auf einer Seite – Angaben oben, darunter die Leistungen
-    pruef(await p.evaluate(() => !!document.querySelector('#work [data-pasicht="baukasten"]')), 'Schalter „Baukasten“ fehlt außerhalb des Gebäudemodells');
+    pruef(await p.evaluate(() => !document.querySelector('#work [data-pasicht="baukasten"]')), 'Schalter „Baukasten“ im Assistenten – den gibt es als eigenen Reiter daneben (23.11.2026: doppelt)');
     await p.evaluate(() => { BPHead.app = 'gebaeudemodell'; document.querySelector('#work [data-pasicht="alles"]').click(); });   // im Gebäudemodell steht der Baukasten in der Mitte (21.11.2026)
     pruef(await p.evaluate(() => !document.querySelector('#work [data-pasicht="baukasten"]')), 'im Gebäudemodell kein zweiter Baukasten im Reiter „Planung“');
     const al = await p.evaluate(() => ({ sec: [...document.querySelectorAll('#work .pa-sec')].map((x) => x.dataset.paSec).join(','), sel: document.querySelectorAll('#work select[data-pachs]').length }));

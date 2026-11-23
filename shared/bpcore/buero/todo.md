@@ -8,6 +8,8 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Seite „Ablauf“ auch für Einheiten** (Kisten „Gebäude / Allgemein“, „Einheit 1“, „Einheit 2“ mit Takt-Pfeilen) – Fragen offen, Mock folgt **ca. 30 min**
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; 3D-Auswahl später) – B erledigt durch das Raumbuch (17.11.: Gruppen, abweichender Raum eigene Zeile) **ca. 1,5 h**
+- ~~Kosten: Tests auf die neue Gliederung umgestellt, Excel-Prüfung ohne openpyxl (23.11.2026)~~
+- ~~Planungsassistent: Schalter „Baukasten“ entfernt – stand doppelt neben dem Reiter „Baukasten“ (23.11.2026)~~
 - ~~Bauzeitenplan: Soll zurücknehmen – jederzeit mit Begründung (Protokoll), Stände bleiben als Versionen, danach ganz ohne Soll, Rückgängig (Mock SZ-1 B, SZ-2 A, SZ-3 B) (23.11.2026)~~
 - ~~Kosten aus Excel Stufe 2: Ausdruck im gewohnten Aufbau (Zusammenstellung, Unterschrift, Anhang Änderungen, netto+brutto, leere KGs mit 0), Excel mit Formeln, Fassung DIN 276:2008 für das Honorar; KG 700 im Ausdruck nicht mehr doppelt (23.11.2026)~~
 - ~~Adressen, Duplikate: gleiche Mail-Domain zählt bei Anbietern für alle (arcor, gmx.net, vodafone, posteo …) nicht mehr – vorher landeten alle @arcor.de-Kontakte in einer Gruppe (23.11.2026)~~

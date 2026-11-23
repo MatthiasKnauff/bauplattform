@@ -933,7 +933,7 @@
   "app": "gebaeudemodell",
   "titel": "Gebäude-Baukasten",
   "text": "Neu neben dem Planungsassistenten: das Gebäude per Klick und Ziehen. ＋ an der Oberkante setzt ein Geschoss darauf (auch Staffelgeschoss), ＋ an einer Wandfläche einen Anbau, − nimmt ein Geschoss weg. Dächer, Gauben, Fenster und Türen aus der Leiste hineinziehen, Größen an den violetten Griffen ziehen, mit Strg mehrere wählen und gemeinsam vergeben. Die Aufbauten liegen im Korb des Projekts – dort für alle tauschen oder eine Kopie machen. Daraus entsteht der Planstand „Assistent“ mit gemessenen Mengen. Im Gebäudemodell unter „Baukasten“, in den Apps als Reiter neben „Planung“ und im Assistenten über den Schalter „Baukasten“.",
-  "ziel": "[data-pasicht=\"baukasten\"], .bp-nav [data-id=\"baukasten\"]"
+  "ziel": ".bp-nav [data-id=\"baukasten\"]"
  },
  {
   "id": "gm-bauteile-3d-2011",

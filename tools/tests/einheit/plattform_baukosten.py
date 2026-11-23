@@ -60,15 +60,13 @@ def test_menge_hier_geaendert():
 
 
 def test_druck_din_zeilen():
-    """Druck (16.11.2026): Kosten nach DIN 276 je Gliederungstiefe; Unvorhergesehenes eigene Zeile vor KG 700; 3. Ebene mit den Bauteilen."""
-    import baukosten_druck as KD
+    """Druck (16.11.2026, seit 23.11.2026 über baukosten_ausgabe.gliederung): Hunderter, Unvorhergesehenes getrennt, Summe = netto; 3. Ebene trägt die Bauteile."""
+    import baukosten_ausgabe as KA
     k = BK.calc(_d(Z1, Z2, Z3, Z4))
-    e1 = KD.din_zeilen(k["zeilen"], k, 1)
-    gleich([(e, kg) for e, kg, _, _ in e1], [(1, "300"), (1, "400"), (1, "500"), (1, ""), (1, "700")], "1. Ebene mit Unvorhergesehenem vor 700")
-    gleich(sum(v for _, _, _, v in e1), k["total"], "Summe der 1. Ebene = Summe netto")
-    e3 = KD.din_zeilen(k["zeilen"], k, 3)
-    pruefe(any(e == 3 and kg == "334" and "Fenster" in n for e, kg, n, _ in e3), f"3. Ebene nennt die Bauteile: {e3}")
-    pruefe(not any(e == 2 for e, _, _, _ in KD.din_zeilen(k["zeilen"], k, 1)), "Tiefe 1 ohne 2. Ebene")
+    G = KA.gliederung(k, _d(Z1, Z2, Z3, Z4))
+    gleich([a["k"] for a in G["g1"]], ["300", "400", "500", "700"], "1. Ebene")
+    gleich(round(sum(a["summe"] for a in G["g1"]) + G["risiko"], 2), k["total"], "Summe der 1. Ebene + Unvorhergesehenes = Summe netto")
+    pruefe(any(x["k"] == "334" and any("Fenster" in n for n, _ in x["teile"]) for a in G["g1"] for b in a["g2"] for x in b["g3"]), f"3. Ebene trägt die Bauteile: {G}")
 
 
 def test_kosten_je_gebaeudeteil():

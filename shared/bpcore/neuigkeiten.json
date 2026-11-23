@@ -1,5 +1,13 @@
 [
  {
+  "id": "handy-adr-projekt-2311",
+  "datum": "2026-11-23",
+  "app": "adressen",
+  "titel": "Am Handy: erst die Beteiligten",
+  "text": "Wer am Handy aus dem Bautagebuch unten auf „Adressen“ tippt, sieht zuerst nur die Beteiligten des Projekts. „Alle Kontakte“ bekommt man, indem man den Filter oben entfernt.",
+  "ziel": "#list"
+ },
+ {
   "id": "gantt-griffe-2311",
   "datum": "2026-11-23",
   "app": "gantt",

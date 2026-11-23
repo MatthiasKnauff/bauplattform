@@ -12,7 +12,7 @@ export async function adrStartPruefen(browser, repo) {
   const J = (o) => ({ contentType: 'application/json', body: JSON.stringify(o) });
   const KONT0 = [{ id: 1, name: 'Dach GmbH', kind: 'firma', trade: 'Dachdecker', projects: ['Haus Mustermann'], site_of: '' },
     { id: 2, name: 'Putz KG', kind: 'firma', trade: 'Putz', projects: [], site_of: '' }, { id: 3, name: 'Fam. Muster', kind: 'bauherr', trade: '', projects: [], site_of: '' }];
-  const lauf = async (start, kont = KONT0, extra = null) => {
+  const lauf = async (start, kont = KONT0, extra = null, ziel = '') => {
     const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } }), p = await ctx.newPage(), puts = [];
     p.on('pageerror', (e) => fehler.push('Fehler im Skript – ' + e.message + ' @ ' + String(e.stack).split('\n').slice(1,3).join(' | ')));
     await p.route('http://portal.test/**', (r) => { const u = new URL(r.request().url()), pf = u.pathname.replace(/^\/adressen\//, '');
@@ -28,11 +28,21 @@ export async function adrStartPruefen(browser, repo) {
       if (pf === 'api/bp/projekt') return r.fulfill(J({ id: 7, name: 'Haus Mustermann' }));
       if (pf === 'api/contacts') return r.fulfill(J(kont));
       return r.fulfill(J(/liste|kontakte|neuigkeit/.test(pf) ? [] : {})); });
-    await p.goto('http://portal.test/adressen/'); await p.waitForSelector('[data-adr="b"]', { timeout: 10000 }); await p.waitForTimeout(300);
+    await p.goto('http://portal.test/adressen/' + ziel); await p.waitForSelector('[data-adr="b"]', { timeout: 10000 }); await p.waitForTimeout(300);
     return { ctx, p, puts };
   };
   const zahl = (p) => p.evaluate(() => shown().length);   // gefilterte Liste (Karten oder Tabelle)
   try {
+    {   // 23.11.2026: am Handy aus dem Bautagebuch (Leiste unten → #projekt) erst nur die Beteiligten – auch bei „immer ohne Projekt“ und wenn es noch keine gibt
+      let { ctx, p } = await lauf({ ohne_projekt: true, gefragt: true }, KONT0, null, '#projekt');
+      const a = { n: await zahl(p), hash: await p.evaluate(() => location.hash) }; await ctx.close();
+      pruef(a.n === 1 && !a.hash, `aus dem Bautagebuch nur die Beteiligten: ${JSON.stringify(a)}`);
+      ({ ctx, p } = await lauf({ ohne_projekt: false, gefragt: true }, KONT0.map((c) => ({ ...c, projects: [] })), null, '#projekt'));
+      const leer = await p.evaluate(() => document.querySelector('#main, body').textContent);
+      await p.click('[data-adrbetweg]'); await p.waitForTimeout(200);
+      const b = { leer, n: await zahl(p) }; await ctx.close();
+      pruef(/Für Haus Mustermann gibt es noch keine Beteiligten/.test(b.leer) && b.n === 3, `ohne Beteiligte: Hinweis und „Alle Kontakte zeigen“: ${JSON.stringify(b)}`);
+    }
     { const { ctx, p, puts } = await lauf({ ohne_projekt: false, gefragt: false });
       pruef(await zahl(p) === 1, `Start: nur die Beteiligten des Projekts (1) – ${await zahl(p)}`);
       pruef(await p.isVisible('.adr-ohne input:not(:checked)'), 'Häkchen „immer ohne Projekt beginnen“ fehlt unter „Beteiligte …“');

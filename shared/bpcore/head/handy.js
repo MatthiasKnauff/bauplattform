@@ -33,7 +33,8 @@
     if (k === 'suche') return { k, titel: 'Suche', ic: LUPE };
     const a = apps().find((x) => x.key === k) || {};
     const titel = k === 'portal' ? 'Start' : String(a.short || a.name || k).replace(/ &.*$/, '');
-    return { k, titel, ic: (H.IC || {})[k === 'portal' ? 'home' : k] || '', href: k === 'portal' ? '/' : a.key && H.appUrl ? H.appUrl(a) + '/' : '' };
+    const pj = k === 'adressen' && H.app !== 'adressen' && H.projekt && H.projekt.id ? '#projekt' : '';   // aus einer App mit Projekt: Adressen beginnen mit dessen Beteiligten (23.11.2026)
+    return { k, titel, ic: (H.IC || {})[k === 'portal' ? 'home' : k] || '', href: k === 'portal' ? '/' : a.key && H.appUrl ? H.appUrl(a) + '/' + pj : '' };
   }
   const PLUSIC = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
   function leiste() {

@@ -250,6 +250,8 @@ async function ohneFragen() {   // Projektfilter weggeklickt: einmal fragen, die
   await startSpeichern(); adrNav();
 }
 $('#navL').addEventListener('change', (e) => { if (!e.target.matches('[data-adrohne]')) return; START.ohne_projekt = e.target.checked; START.gefragt = true; startSpeichern(); });
+const leerText = () => (bet && !ALL.some(istBet) ? `Für ${esc(betN)} gibt es noch keine Beteiligten. <button type="button" class="btn" data-adrbetweg>Alle Kontakte zeigen</button>`   // Karten und Tabelle gleich
+  : ALL.length ? 'Keine Treffer – links Filter entfernen (✕).' : 'Noch keine Kontakte – mit „+ Neu“ anlegen.');
 function render() {
   ableiten(); adrNav();
   if (typeof TV !== 'undefined' && TV.view === 'tabelle') { renderTable(); return; }
@@ -262,7 +264,7 @@ function render() {
       ${c.contact_person ? `<div class="sub">${esc(c.contact_person)}${c.role ? ' · ' + esc(c.role) : ''}</div>` : ''}
       ${addr(c) ? `<div class="sub">${esc(addr(c))}</div>` : ''}
       <div class="acts">${c.phone ? `<a href="tel:${esc(tel(c.phone))}">☎ ${esc(c.phone)}</a>` : ''}${c.mobile ? `<a href="tel:${esc(tel(c.mobile))}">📱 ${esc(c.mobile)}</a>` : ''}${c.email ? `<a href="mailto:${esc(c.email)}">✉ E-Mail</a>` : ''}${addr(c) && window.BPHead && BPHead.adresseUrl ? `<a class="adr-nav" href="${esc(BPHead.adresseUrl(addr(c)))}" target="_blank" rel="noopener" title="Karte / Route zur Anschrift">🧭 Route</a>` : ''}${wtTel(c).length + wtMails(c).length - (c.email ? 1 : 0) > 0 ? `<span class="mu" title="${esc(wtText(c))}">+${wtTel(c).length + wtMails(c).length - (c.email ? 1 : 0)} weitere</span>` : ''}</div>
-    </div>`).join('') || `<div class="empty">${ALL.length ? 'Keine Treffer – links Filter entfernen (✕).' : 'Noch keine Kontakte – mit „+ Neu“ anlegen.'}</div>`;
+    </div>`).join('') || `<div class="empty">${leerText()}</div>`;
   adrNachRender();
 }
 
@@ -314,7 +316,7 @@ function tableRows() {
 const tbodyHtml = (rows, cols) => `${rows.length ? bpBaum.fenster.html('adressen', rows.length, (n) => { const c = rows[n]; return `<tr data-id="${c.id}"${awHat(c.id) ? ' class="sel"' : ''}>${cols.map(([k, , , ro]) => ro ? `<td class="ro" title="${esc(cellVal(c, k))}">${esc(cellVal(c, k))}</td>`
       : `<td${k === 'name' ? ' class="nm"' : ''}>${k === 'name' ? `<input type="checkbox" class="adr-ck" data-adrck="${c.id}"${awHat(c.id) ? ' checked' : ''} aria-label="${esc(c.name)} auswählen">` : ''}<input data-fk="${c.id}:${k}" value="${esc(c[k] || '')}" aria-label="${esc(COLS.find((x) => x[0] === k)[1])} von ${esc(c.name)}" autocomplete="off"${k === 'trade' ? ' data-vs="adrGw"' : ''}></td>`).join('')}
       <td class="act">${c.phone || c.mobile ? `<a href="tel:${esc(tel(c.mobile || c.phone))}" title="Anrufen">☎</a>` : ''}${c.email ? `<a href="mailto:${esc(c.email)}" data-mailwahl="${esc(c.email)}" data-firma="${esc(c.name)}" title="E-Mail – Outlook oder Schreiben aus der Plattform">✉</a>` : ''}<button class="btn sm" data-open="${c.id}" title="Alle Angaben, Visitenkarte, Löschen">Details</button></td></tr>`; }, { nachher: () => bpSpalten.anwenden($('#tw table')) })   /* nur die Zeilen im Bild (bpBaum.fenster) – 700 Adressen × 20 Spalten brauchten 450 ms je Klick (23.11.2026) */
-      : `<tr><td colspan="${cols.length + 1}" class="ro" style="text-align:center;padding:1.5rem">Keine Treffer – links Filter entfernen (✕).</td></tr>`}`;
+      : `<tr><td colspan="${cols.length + 1}" class="ro" style="text-align:center;padding:1.5rem">${leerText()}</td></tr>`}`;
 function renderTable() {
   const cols = COLS, ausStd = SP_AUS.map((k) => COLS.findIndex((c) => c[0] === k)), aus = bpSpalten.stand('adressen', COLS.length + 1, ausStd).aus, rows = tableRows(), ae = document.activeElement, keep = ae && ae.dataset && ae.dataset.fk;
   $('#cnt').textContent = `${rows.length} von ${ALL.length} Kontakten · Zelle anklicken und tippen – gespeichert wird beim Verlassen des Feldes · Doppelklick öffnet den Kontakt`;
@@ -456,10 +458,13 @@ const adrXlsx = () => { if (!tableRows().length) return toast('Keine Kontakte in
   await load();
   BPHead.live('contacts', async () => { await load(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
   if (me.start) START = me.start;
-  if (betN && ALL.some(istBet)) {   // immer mit den Beteiligten des Projekts aus der zuletzt benutzten App beginnen – außer die Person will es ohne
-    if (START.ohne_projekt) { if (AF.wert('projekt') === betN) AF.weg('projekt'); } else if (AF.wert('projekt') !== betN) AF.setzen('projekt', betN);
+  const vonPj = location.hash === '#projekt';   // am Handy aus einer App mit Projekt (Leiste unten, bp/handy.js): erst nur dessen Beteiligte – auch wenn es noch keine gibt
+  if (vonPj) history.replaceState(null, '', location.pathname + location.search);
+  if (betN && (vonPj || ALL.some(istBet))) {   // immer mit den Beteiligten des Projekts aus der zuletzt benutzten App beginnen – außer die Person will es ohne
+    if (START.ohne_projekt && !vonPj) { if (AF.wert('projekt') === betN) AF.weg('projekt'); } else if (AF.wert('projekt') !== betN) AF.setzen('projekt', betN);
   }
   startFertig = true;
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-adrbetweg]')) AF.weg('projekt'); });
   const hk = /^#kontakt=(\d+)/.exec(location.hash);   // aus dem Bautagebuch: „In Adressen bearbeiten“
   if (hk) { const vl = /[#&]verlauf\b/.test(location.hash); history.replaceState(null, '', location.pathname); const c = ALL.find((x) => x.id === +hk[1]); if (c) edit(c, vl); }
   setView(TV.view);

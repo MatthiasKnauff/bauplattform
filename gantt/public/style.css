@@ -887,9 +887,16 @@ html[data-theme="dunkel"] .kp-chip{border-color:#555;color:#bbb}html[data-theme=
 .zs-fuss{color:var(--mut);font-size:var(--fs-s,12px)}
 
 /* Plan aus anderem Projekt wählen (uebernehmen.js, 23.11.2026): Suche, Projekte als Zeilen, Versionen als Knöpfe */
-.ub-wahl{display:flex;flex-direction:column;gap:.4rem}
-.ub-kopf{font-weight:600;margin-bottom:.35rem}
-.ub-l{height:min(28vh,210px);overflow:auto;border:1px solid var(--bd);border-radius:calc(8px*var(--rk,1));padding:.2rem}
+/* Aus anderem Plan übernehmen (Mock UB-1 … UB-5): links woher, rechts was, unten wie, Fuß = Zusammenfassung */
+.modal.ub-modal{width:min(880px,94vw)}
+.ub-modal .mb{padding:0;overflow:hidden;display:flex}
+.ub-fe{display:flex;flex-direction:column;flex:1;min-width:0}
+.ub-sp{display:grid;grid-template-columns:minmax(220px,280px) 1fr;height:min(52vh,420px);min-height:0}
+.ub-li{border-right:1px solid var(--line,#d5d9de);padding:.5rem;min-height:0;display:flex}
+.ub-re{padding:.5rem .75rem;overflow:auto;min-width:0;display:flex;flex-direction:column;gap:.5rem}
+.ub-wahl{display:flex;flex-direction:column;gap:.4rem;flex:1;min-height:0}
+.ub-wahl input[type=search]{font:inherit;padding:4px 7px;border:1px solid var(--bd);border-radius:calc(6px*var(--rk,1));width:100%}
+.ub-l{flex:1;min-height:0;overflow:auto;border:1px solid var(--bd);border-radius:calc(8px*var(--rk,1));padding:.2rem}
 .ub-s{display:block;font-size:calc(var(--fs)*.85);color:var(--mut);padding:.35rem .5rem .15rem;text-transform:uppercase;letter-spacing:.04em}
 button.ub-s{border:0;background:none;cursor:pointer;width:100%;text-align:left}
 .ub-z{display:flex;justify-content:space-between;align-items:baseline;gap:.6rem;width:100%;text-align:left;border:0;background:none;padding:.35rem .5rem;border-radius:calc(6px*var(--rk,1));cursor:pointer;font:inherit;color:inherit}
@@ -901,3 +908,21 @@ button.ub-s{border:0;background:none;cursor:pointer;width:100%;text-align:left}
 .ub-v .hint{margin:0 .2rem 0 0}
 .ub-vk{border:1px solid var(--bd);background:transparent;border-radius:999px;padding:.2rem .65rem;cursor:pointer;font:inherit;color:inherit}
 .ub-vk.on{border-color:var(--accent);background:var(--sel);font-weight:500}
+.ub-kopf{font-weight:600}.ub-kopf .hint{font-weight:400;margin-left:.3rem}
+.ub-ab{display:flex;align-items:center;gap:.3rem;padding:.15rem 0;border-bottom:1px solid var(--grid)}
+.ub-ab label.cb{display:flex;gap:.35rem;align-items:center;min-width:0;flex:1}
+.ub-ab label span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ub-ab small{color:var(--mut);white-space:nowrap}
+.ub-kl{width:1.3rem;flex:none;display:inline-flex}
+.ub-kb{all:unset;cursor:pointer;display:inline-flex;padding:0 .2rem}
+.ub-l1{padding-left:1.2rem}.ub-l2{padding-left:2.4rem}.ub-l3{padding-left:3.6rem}.ub-l4,.ub-l5,.ub-l6{padding-left:4.8rem}
+.ub-alle{display:flex;gap:.3rem}
+.ub-f{display:flex;flex-direction:column;gap:.15rem}
+.ub-lb{font-size:calc(var(--fs)*.85);color:var(--mut)}
+.ub-f input{font:inherit;padding:4px 7px;border:1px solid var(--bd);border-radius:calc(6px*var(--rk,1))}
+.ub-ein{display:flex;flex-wrap:wrap;gap:.6rem 1.4rem;align-items:flex-end;border-top:1px solid var(--line,#d5d9de);padding:.55rem .75rem}
+.ub-abh{align-self:center}
+.ub-firm{display:flex;flex-direction:column;gap:.1rem}
+.ub-sw{display:flex;flex-direction:column;gap:.1rem}
+.ub-sum{margin-right:auto;color:var(--mut);min-width:0}
+@media (max-width:700px){.ub-sp{grid-template-columns:1fr;height:auto}.ub-li{border-right:0;border-bottom:1px solid var(--line,#d5d9de);height:40vh}.ub-modal .mb{overflow:auto}}

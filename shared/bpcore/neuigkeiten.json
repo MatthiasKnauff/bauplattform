@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-uebernehmen-neu",
+  "datum": "2026-11-23",
+  "app": "gantt",
+  "titel": "Aus anderem Plan übernehmen – neues Fenster",
+  "text": "Links Projekt und Version, rechts die Abschnitte als Baum – das Dreieck zeigt die Leistungen, die du auch einzeln anhaken kannst. Der Beginn steht schon auf dem nächsten Arbeitstag nach dem Ende deines Plans, unten steht, was übernommen wird. „Neuer Plan aus anderem Bauzeitenplan“ nutzt dasselbe Fenster.",
+  "ziel": "#leiste"
+ },
+ {
   "id": "bt-druck-fotos-2311",
   "datum": "2026-11-23",
   "app": "bautagebuch",

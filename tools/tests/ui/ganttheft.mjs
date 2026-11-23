@@ -63,6 +63,22 @@ export async function ganttHeftPruefen(browser, repo) {
         document.querySelector('#ubV [data-ubq="7"]').click(); r.q2 = document.querySelector('#ubQ').value;
         [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Abbrechen' && b.offsetParent).click(); projects = alt; return r; });
       pruef(u.select && u.zeilen === 2 && u.arch && u.treffer === 1 && u.vers === 2 && u.q === '8' && u.on === '8' && u.teile && u.q2 === '7', `Aus anderem Plan übernehmen – Projektauswahl: ${JSON.stringify(u)}`); }
+    {   // UB-1 … UB-5 (23.11.2026): Beginn vorbelegt, Abschnitte als Baum, einzelne Leistungen wählbar, Zusammenfassung im Fuß
+      const u = await p.evaluate(async () => { const alt = projects, ag = planApi.get, vorher = P.tasks.length;
+        projects = [{ id: '9', name: 'B12 Schule', bt_id: 6, bt: 'B12 Schule', updated: '2026-09-01' }];
+        planApi.get = async () => ({ id: '9', name: 'B12 Schule', start: 20000, tasks: [{ uid: 1, name: 'Rohbau', lvl: 0, dur: 0 }, { uid: 2, name: 'Mauern', lvl: 1, dur: 5, preds: [] }, { uid: 3, name: 'Decke', lvl: 1, dur: 3, preds: [{ uid: 2, type: 'FS', lag: 0 }] }, { uid: 4, name: 'Dach', lvl: 0, dur: 0 }, { uid: 5, name: 'Dachstuhl', lvl: 1, dur: 4, preds: [] }] });
+        planTeileUebernehmen(); const r = { ab: document.querySelector('#ubAb').value, spalten: !!document.querySelector('.ub-sp .ub-li') && !!document.querySelector('.ub-sp .ub-re') };
+        document.querySelector('#ubL [data-ubp]').click(); await new Promise((ok) => setTimeout(ok, 200));
+        r.abschn = document.querySelectorAll('.ub-baum > .ub-ab').length;
+        document.querySelector('[data-ubauf="0"]').click(); r.auf = document.querySelectorAll('.ub-baum .ub-l1').length;
+        const c = document.querySelector('[data-ubg="2"]'); c.click();
+        r.halb = document.querySelector('[data-ubg="0"]').indeterminate; r.sum = document.querySelector('#ubSum').textContent;
+        r.breit = document.querySelector('.ub-modal .mb').scrollWidth <= document.querySelector('.ub-modal .mb').clientWidth + 1;
+        [...document.querySelectorAll('.mf button')].find((b) => b.textContent.trim() === 'Übernehmen').click();
+        r.neu = P.tasks.slice(vorher).map((t) => t.name + ':' + (t.preds || []).length).join(',');
+        doUndo(); r.zurueck = P.tasks.length === vorher; projects = alt; planApi.get = ag; return r; });
+      pruef(u.spalten && /^\d{4}-\d\d-\d\d$/.test(u.ab) && u.abschn === 2 && u.auf === 2 && u.halb && /1 Leistung aus 1 Abschnitt/.test(u.sum) && u.breit && u.neu === 'Rohbau:0,Decke:0' && u.zurueck,
+        `Aus anderem Plan übernehmen – Baum, Beginn, Fuß: ${JSON.stringify(u)}`); }
     {   // Duplizieren „eigene Verknüpfung“: die Kopie rückt als Block – Abstände in der Kopie wie im Original (Rückmeldung 17.11.2026)
       const r = await p.evaluate(() => { const alt = P.tasks;
         P.tasks = [1, 2, 3, 4].map((u) => ({ uid: u, name: 'L' + u, dur: [2, 4, 4, 2][u - 1], lvl: 0, preds: u > 1 ? [{ uid: u - 1, type: 'FS', lag: 0 }] : [] }));

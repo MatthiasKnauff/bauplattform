@@ -116,6 +116,12 @@ def _domain(w):
     return m.group(1) if m and "." in m.group(1) else ""
 
 
+# Mail-Anbieter für alle – dieselbe Domain heißt dort nichts (23.11.2026: alle @arcor.de-Adressen landeten in einer Gruppe, Bild)
+_FREEMAIL = _re.compile(r"@(?:[\w-]+\.)*(?:gmail|googlemail|gmx|web|t-online|hotmail|outlook|live|msn|yahoo|icloud|me|mac|aol|freenet|online|arcor|vodafone|"
+                        r"posteo|mailbox|mail|email|kabelmail|unitybox|ewetel|versanet|netcologne|osnanet|htp-tel|1und1|protonmail|proton|tutanota|tuta|"
+                        r"nexgo|t-mobile|alice|o2online|yandex|zoho|ok)\.[a-z.]+\s*$", _re.I)
+
+
 def duplikate(c, ignoriert=()):
     """Gruppen ähnlicher Kontakte: gleiche E-Mail, Telefonnummer oder Internetseite, gleicher oder sehr ähnlicher Name
     (ohne GmbH, Fa., & Co …), dieselbe Anschrift. → [{"ids": [...], "grund": "..."}]"""
@@ -125,7 +131,7 @@ def duplikate(c, ignoriert=()):
         r["_n"] = name_norm(r["name"])
         r["_t"] = set(w for w in r["_n"].split() if len(w) >= 3)
         r["_tel"] = {x for x in (_ziffern(r["phone"]), _ziffern(r["mobile"])) if x}
-        r["_dom"] = _domain(r["website"]) or ((r["email"] or "").split("@")[-1].lower() if "@" in (r["email"] or "") and not _re.search(r"@(gmail|gmx|web|t-online|hotmail|outlook|yahoo|icloud|aol|freenet|online)\.", (r["email"] or "").lower()) else "")
+        r["_dom"] = _domain(r["website"]) or ((r["email"] or "").split("@")[-1].lower() if "@" in (r["email"] or "") and not _FREEMAIL.search(r["email"] or "") else "")
         r["_adr"] = (_fold(r["street"]).replace("strasse", "str").replace(" ", "").rstrip("."), (r["zip"] or "").strip()) if (r["street"] or "").strip() else None
         r["_bau"] = "baustelle" in _fold(r["trade"])
     eltern = {r["id"]: r["id"] for r in R}

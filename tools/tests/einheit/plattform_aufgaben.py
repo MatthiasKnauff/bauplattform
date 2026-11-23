@@ -91,6 +91,10 @@ def test_duplikate_gruppen():
         {**leer, "id": 4, "name": "Haustechnik Nord", "email": "info@schulz-elektro.de"},
         {**leer, "id": 5, "name": "Baustelle Hauptstr. 1", "trade": "Baustelle", "phone": "0201 123456"},
         {**leer, "id": 6, "name": "Gmail Nutzer", "email": "anderer@gmail.com"},
+        {**leer, "id": 7, "name": "Fam. Lippe", "email": "marc.lippe@arcor.de"},   # 23.11.2026: Mail-Anbieter für alle verbinden nicht
+        {**leer, "id": 8, "name": "Bedachungen Garnitz", "email": "dach@arcor.de"},
+        {**leer, "id": 9, "name": "Weber", "email": "w@gmx.net"},
+        {**leer, "id": 10, "name": "Kaya Fliesen", "email": "k@gmx.de"},
     ]
     G = contacts.duplikate(_FakeDB(kontakte=K))
     gleich(sorted(g["ids"] for g in G), [[1, 2], [3, 4]], "Gruppen")

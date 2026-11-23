@@ -8,6 +8,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Seite „Ablauf“ auch für Einheiten** (Kisten „Gebäude / Allgemein“, „Einheit 1“, „Einheit 2“ mit Takt-Pfeilen) – Fragen offen, Mock folgt **ca. 30 min**
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; 3D-Auswahl später) – B erledigt durch das Raumbuch (17.11.: Gruppen, abweichender Raum eigene Zeile) **ca. 1,5 h**
+- ~~Adressen, Duplikate: gleiche Mail-Domain zählt bei Anbietern für alle (arcor, gmx.net, vodafone, posteo …) nicht mehr – vorher landeten alle @arcor.de-Kontakte in einer Gruppe (23.11.2026)~~
 - ~~Adressen, Tabelle: beim Darüberfahren schienen die Spalten hinter der festen Knopfspalte durch (PLZ über „Details“) – Hintergrund jetzt deckend (23.11.2026)~~
 - ~~Bautagebuch, Details rechts: Textfeld mit Rand und höher (wächst mit), „Foto hinzufügen“ und „Erinnerung setzen“ als beschriftete Knöpfe links statt verstreuter Symbole (23.11.2026)~~
 - ~~Bauzeitenplan am Handy: Knopf „📱 Handy-Ansicht“ (zurück aus der Desktop-Ansicht) lag unter der Leiste unten – jetzt darüber (23.11.2026)~~

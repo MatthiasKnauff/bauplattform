@@ -216,6 +216,10 @@ export async function ganttHeftPruefen(browser, repo) {
       pruef(await p.evaluate(() => !document.querySelector('#vgl') && /Soll zeigen/.test(document.querySelector('#vgBand').textContent)), '„Soll aus“ blendet das Soll aus, „Soll zeigen“ bleibt');
       await p.click('#vgBand [data-sollan]'); await p.waitForSelector('#vgl .vg-soll', { timeout: 3000 }).catch(() => {});
       pruef(await p.evaluate(() => !!document.querySelector('#vgl .vg-soll')), '„Soll zeigen“ legt es wieder darunter');
+      // 23.11.2026 (Bildschirmfoto „gemurkse“): entfallene an derselben Stelle = EINE Linie mit einem Text, nicht Texte übereinander
+      const weg = await p.evaluate(() => { P.tasks = [fillTask({ uid: 9, name: 'C', dur: 2, lvl: 0, preds: [] })]; CAL = schedule(); render();
+        return { lin: document.querySelectorAll('#vgl .vg-lin').length, li: [...document.querySelectorAll('#gridBody .vg-li')].map((x) => x.textContent), oben: (() => { const sp = document.querySelector('#gridBody .vg-li span'), h = document.querySelector('#gridBody'); return sp && h ? sp.getBoundingClientRect().top >= h.getBoundingClientRect().top - 0.5 : false; })() }; });
+      pruef(weg.lin === 1 && weg.li.length === 1 && /2 entfallen: A, B/.test(weg.li[0]) && weg.oben, `Entfallene an einer Stelle: ${JSON.stringify(weg)}`);
     }
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();

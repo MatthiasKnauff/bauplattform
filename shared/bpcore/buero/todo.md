@@ -8,6 +8,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Seite „Ablauf“ auch für Einheiten** (Kisten „Gebäude / Allgemein“, „Einheit 1“, „Einheit 2“ mit Takt-Pfeilen) – Fragen offen, Mock folgt **ca. 30 min**
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; 3D-Auswahl später) – B erledigt durch das Raumbuch (17.11.: Gruppen, abweichender Raum eigene Zeile) **ca. 1,5 h**
+- ~~Bauzeitenplan Soll/Ist: entfallene Leistungen an derselben Stelle als EINE Linie („n entfallen: …“), Text ganz oben unter der Linie~~ (23.11.2026)
 - ~~Kosten: Excel-Kostenberechnung einlesen (Stufe 1 – .xls/.xlsx, DIN 276:2008 → 2018, Befunde, Seite DIN 276)~~ (23.11.2026)
 - Kosten aus Excel Stufe 2: Ausgabe als PDF und Excel im gewohnten Aufbau, Ausgabe nach DIN 276:2008 für das Honorar (HOAI § 4 Abs. 1 S. 3)
 - ~~LV: beim Hineinziehen klappt ein zugeklappter Gliederungspunkt nach kurzem Verweilen auf~~ (23.11.2026)

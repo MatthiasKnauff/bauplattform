@@ -74,11 +74,17 @@
       const m = x.k === 'neu' ? '<i class="vg-m vg-m-neu">neu</i>' : x.ort ? '<i class="vg-m vg-m-ort" title="An eine andere Stelle gerückt">↕ neue Stelle</i>' : '';
       if (d || m) c.insertAdjacentHTML('beforeend', `<span class="vg-z">${m}${d}</span>`);
     });
-    linien(gridBody, (y, f, t) => `<div class="vg-li" style="top:${y - 1}px;border-color:${f}"><span style="color:${f}">${esc(t)}</span></div>`);
+    linien(gridBody, (y, f, t) => `<div class="vg-li${y ? '' : ' vg-li0'}" style="top:${y - 1}px;border-color:${f}"><span style="color:${f}" title="${esc(t)}">${esc(t)}</span></div>`);
   }
   function alteStellen() {
     const L = [];
-    D.weg.forEach((o) => L.push({ r: D.stelle(o.j), f: '#c0392b', t: `${o.name} – entfällt`, o }));
+    /* Entfallene an derselben Stelle stehen auf EINER Linie mit einem Text (vorher je eine – die Texte lagen übereinander, 23.11.2026) */
+    const G = new Map(); D.weg.filter((o) => !o.summ).forEach((o) => { const r = D.stelle(o.j); if (!G.has(r)) G.set(r, []); G.get(r).push(o); });
+    G.forEach((W, r) => {
+      const N = new Map(); W.forEach((o) => N.set(o.name, (N.get(o.name) || 0) + 1));
+      const namen = [...N].map(([n, k]) => (k > 1 ? `${n} (${k}×)` : n)).join(', ');
+      L.push({ r, f: '#c0392b', t: W.length > 1 ? `${W.length} entfallen: ${namen}` : `${namen} – entfällt`, o: W.reduce((a, o) => (o.sd < a.sd ? o : a)) });
+    });
     D.R.forEach((x, i) => { if (x.ort && vis.indexOf(i) >= 0) L.push({ r: D.stelle(x.o.j), f: '#8e6bd6', t: `${P.tasks[i].name} – stand vorher hier`, o: x.o, i }); });
     return L;
   }
@@ -104,7 +110,7 @@
       if (x.d) stand(i, g, y, x.d > 0 ? 'st-sp' : 'st-fr', kurz(x.d));
     });
     alteStellen().forEach((l) => { const y = l.r * RH, ox = X(l.o.sd); s += `<line class="vg-lin" x1="0" y1="${y}" x2="100%" y2="${y}" style="stroke:${l.f}"/>`
-      + `<text class="vg-t" x="${Math.max(4, ox)}" y="${y - 3}" style="fill:${l.f}">${esc(l.t)}</text>`; });
+      + `<text class="vg-t" x="${Math.max(4, ox)}" y="${y ? y - 3 : 12}" style="fill:${l.f}">${esc(l.t)}</text>`; });   // ganz oben: Text unter der Linie
     const gr = document.createElementNS('http://www.w3.org/2000/svg', 'g'); gr.id = 'vgl'; gr.innerHTML = s;
     const vor = svg.querySelector('.bar, .lk'); svg.insertBefore(gr, vor || null);
     rinne();

@@ -85,7 +85,7 @@ body.g-zl-linie .selband{fill:none;stroke:#e0393e;stroke-width:1.5;stroke-dashar
 .vg-m{font-style:normal;font-size:calc(var(--fs)*.8);font-weight:600;border:1px solid;border-radius:calc(999px*var(--rkp,1));padding:0 .4rem;line-height:1.35}
 .vg-m-neu{color:#2e8b57}.vg-m-ort{color:#8e6bd6}
 .row.vg-neu .c{background:color-mix(in srgb,#2e8b57 9%,var(--card))}.row.vg-ort .c{background:color-mix(in srgb,#8e6bd6 7%,var(--card))}
-.vg-li{position:absolute;left:0;right:0;height:0;border-top:1.5px dashed;pointer-events:none;z-index:3}.vg-li span{position:absolute;left:44px;top:-.6rem;background:var(--card);padding:0 .3rem;font-size:calc(var(--fs)*.8);font-style:italic}
+.vg-li{position:absolute;left:0;right:0;height:0;border-top:1.5px dashed;pointer-events:none;z-index:3}.vg-li span{position:absolute;left:44px;top:-.6rem;background:var(--card);padding:0 .3rem;font-size:calc(var(--fs)*.8);font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:max-content;max-width:calc(100% - 48px)}.vg-li0 span{top:.1rem}
 #vgl .vg-soll{fill:#9aa3ae}#vgl .vg-soll.vg-ortb{fill:#8e6bd6}#vgl .vg-t{font-size:calc(var(--fs)*.8);font-weight:600}
 #vgl .vg-lin{stroke-width:1.5;stroke-dasharray:5 4}#vgl .vg-neub{fill:color-mix(in srgb,#2e8b57 8%,transparent)}
 #vgRinne{width:30px;flex:none;position:relative;overflow:hidden;background:color-mix(in srgb,#8e6bd6 4%,var(--card));border-left:1px solid var(--line)}

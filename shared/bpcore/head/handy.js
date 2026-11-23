@@ -6,7 +6,9 @@
      html[data-hstufe]           voll · ansicht (Ansicht + Handgriffe) · lesen (nur Ansicht) · keine – je App aus STUFE
    und zeigt
      – unten die Leiste mit fünf Plätzen (HG-4: Vorgabe Start · Bautagebuch · Aufgaben · Adressen · Suche, je Person in ⚙ → Darstellung,
-       gespeichert als „handy“ in den persönlichen Einstellungen); nicht im Bautagebuch und in Zeiten – die haben ihre eigene Leiste
+       gespeichert als „handy“ in den persönlichen Einstellungen); in Apps, die ein ＋ anmelden (window.bpHandyPlus = { titel, attr, aus }:
+       Bautagebuch, Zeiten – Mock „Bautagebuch Handyfuß“ BF-1 B … BF-5 A, 23.11.2026), nimmt das ＋ den Platz der App selbst ein, in der Mitte
+       zwischen den übrigen Plätzen; attr = Attribute des Knopfs (der Handler der App fängt den Klick), aus() = gerade nichts hinzuzufügen
      – in „nur Ansicht“-Apps oben den Hinweis „Bearbeiten am Rechner“ mit „Link an mich senden“ (HG-3: Mail an mich selbst mit der
        Adresse genau dieser Stelle, /api/bp/handy/link); die Befehlsleiste zum Bearbeiten fehlt dort (head.css).
    Jede App setzt darauf nur ihre eigene Ansicht (Karten statt Tabellen) – sie fragt bpHandy.an() bzw. hört auf das Ereignis „bp:handy“. */
@@ -33,14 +35,19 @@
     const titel = k === 'portal' ? 'Start' : String(a.short || a.name || k).replace(/ &.*$/, '');
     return { k, titel, ic: (H.IC || {})[k === 'portal' ? 'home' : k] || '', href: k === 'portal' ? '/' : a.key && H.appUrl ? H.appUrl(a) + '/' : '' };
   }
+  const PLUSIC = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
   function leiste() {
     let n = document.querySelector('.bph-unten');
-    if (stufe() === 'eigen') { if (n) n.remove(); return; }
     if (!n) { n = document.createElement('nav'); n.className = 'bph-unten'; n.setAttribute('aria-label', 'Schnellzugriff'); document.body.appendChild(n); }
-    const akt = H.app === 'admin' ? '' : H.app;
-    n.innerHTML = plaetze().map(eintrag).map((e) => e.k === 'suche'
+    const akt = H.app === 'admin' ? '' : H.app, P = window.bpHandyPlus;
+    const H5 = plaetze().map(eintrag).map((e) => e.k === 'suche'
       ? `<button type="button" data-hu="suche">${e.ic}<span>${esc(e.titel)}</span></button>`
-      : `<a href="${esc(e.href || '#')}" data-hu="${esc(e.k)}"${e.k === akt ? ' class="on" aria-current="page"' : ''}>${e.ic}<span>${esc(e.titel)}</span></a>`).join('');
+      : `<a href="${esc(e.href || '#')}" data-hu="${esc(e.k)}"${e.k === akt ? ' class="on" aria-current="page"' : ''}>${e.ic}<span>${esc(e.titel)}</span></a>`);
+    if (P) {   // ＋ statt der eigenen App, in der Mitte (BF-1 B)
+      const L = plaetze().filter((k) => k !== akt).slice(0, 4).map((k) => H5[plaetze().indexOf(k)]), m = Math.ceil(L.length / 2);
+      L.splice(m, 0, `<button type="button" class="bph-uplus" ${P.attr || ''} aria-label="${esc(P.titel || 'Hinzufügen')}" title="${esc(P.titel || 'Hinzufügen')}"${P.aus && P.aus() ? ' disabled' : ''}><i>${PLUSIC}</i></button>`);
+      n.innerHTML = L.join(''); n.style.gridTemplateColumns = `repeat(${L.length},minmax(0,1fr))`;
+    } else { n.innerHTML = H5.join(''); n.style.gridTemplateColumns = ''; }
   }
   /* „nur Ansicht“: Hinweis oben – Bearbeiten am Rechner, Link an mich senden (HG-3) */
   function hinweis() {
@@ -74,7 +81,7 @@
     const l = e.target.closest && e.target.closest('[data-hlink]'); if (l) linkSenden(l);
   });
   mq.addEventListener('change', setzen);
-  window.bpHandy = { an: () => mq.matches, stufe, STUFE, VORGABE, plaetze, eintrag, neu: () => { if (mq.matches) leiste(); },
+  window.bpHandy = { an: () => mq.matches, stufe, STUFE, VORGABE, plaetze, eintrag, neu: () => { if (mq.matches) leiste(); },   // auch nach jeder Änderung von bpHandyPlus.aus()
     /* Auswahl für ⚙ → Darstellung: alle Plätze, die es für diese Person gibt */
     moeglich: () => ['portal', 'suche', ...apps().filter((a) => !a.teil).map((a) => a.key).filter((k) => !['portal', 'admin', 'papierkorb'].includes(k))] };
   setzen();

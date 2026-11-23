@@ -1,7 +1,7 @@
 // Handyansicht – Rahmen (GO 22.11.2026, Mock „Handyansicht je App“ HG-1 … HG-5) im echten Browser mit nachgebildetem Server.
 // Geprüft: (1) Startseite bei 390 px: html.bp-handy, „Zu tun“ als erstes, großes Suchfeld oben, Stufe „voll“, untere Leiste mit Start · Bautagebuch · Aufgaben · Adressen · Suche, Start markiert,
 // kein Hinweis „bearbeiten am Rechner“; Suche öffnet das Suchfeld. (2) Eigene Leiste aus den persönlichen Einstellungen. (3) Wärmeschutz („nur Ansicht“):
-// Hinweis mit „Link an mich senden“ schickt die Adresse an /api/bp/handy/link, Befehlsleiste weg. (4) Bei 1.400 px nichts davon. Kein Fehler im Skript.
+// (5) ＋ einer App (Bautagebuch, Zeiten) statt ihres Platzes in der Mitte. Hinweis mit „Link an mich senden“ schickt die Adresse an /api/bp/handy/link, Befehlsleiste weg. (4) Bei 1.400 px nichts davon. Kein Fehler im Skript.
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await handyPruefen(browser, repoWurzel)
 import fs from 'node:fs'; import path from 'node:path';
 
@@ -45,6 +45,17 @@ export async function handyPruefen(browser, repo) {
     pruef(st.erst === 'w:todos' && st.such, `Startseite am Handy: „Zu tun“ zuerst, Suchfeld oben – ${JSON.stringify(st)}`);
     await S.p.click('.bph-unten [data-hu="suche"]'); await S.p.waitForTimeout(400);
     pruef(await S.p.evaluate(() => !!document.querySelector('.bph-su')), 'Suche in der unteren Leiste öffnet das Suchfeld nicht');
+    {   // 23.11.2026, Mock „Bautagebuch Handyfuß“ BF-1 B: meldet eine App ein ＋ an, nimmt es ihren Platz ein – in der Mitte, die übrigen vier links und rechts
+      const r = await S.p.evaluate(async () => { document.querySelectorAll('.bph-su').forEach((x) => x.remove()); BPHead.app = 'bautagebuch'; let geklickt = 0, aus = true;
+        document.addEventListener('click', (e) => { if (e.target.closest('[data-testplus]')) geklickt++; });
+        window.bpHandyPlus = { titel: 'Hinzufügen', attr: 'data-testplus', aus: () => aus }; bpHandy.neu();
+        const L = () => [...document.querySelectorAll('.bph-unten>*')].map((x) => x.classList.contains('bph-uplus') ? '＋' : x.textContent.trim());
+        const vor = { L: L(), grau: document.querySelector('.bph-uplus').disabled };
+        aus = false; bpHandy.neu(); document.querySelector('.bph-uplus').click();
+        const b = document.querySelector('.bph-uplus').getBoundingClientRect();
+        return { vor, geklickt, mitte: Math.abs(b.left + b.width / 2 - innerWidth / 2) < 4 }; });
+      pruef(r.vor.L.join('|') === 'Start|Aufgaben|＋|Adressen|Suche' && r.vor.grau && r.geklickt === 1 && r.mitte, `＋ in der Mitte der Leiste: ${JSON.stringify(r)}`);
+    }
     await S.ctx.close();
     S = await seite('eigene Leiste', { breite: 390, datei: 'portal.html', handy: ['portal', 'wiki', 'suche'], posts: [] }); z = await stand(S.p);
     pruef(z.leiste.join('|') === 'Start|Wiki|Suche', `eigene Leiste aus den Einstellungen: ${JSON.stringify(z.leiste)}`);

@@ -301,27 +301,26 @@ label.chk input{flex:none;margin:.15rem 0 0}
 
 .bph-dr-bg{z-index:28!important}   /* Einstellungsfenster unter Blättern (#sheet) und Meldungen des Bautagebuchs */
 
-.tabplus{display:none}
 @media (max-width:720px){#fab{bottom:4.8rem}}
 /* ＋ kleiner und wie die Leiste unten: hell, feiner Rahmen, Akzent nur im Zeichen */
 #fab{width:46px;height:46px;border-radius:calc(14px*var(--rk,1));background:#303236;color:var(--y);border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.25);display:grid;place-items:center}
 html:is([data-theme="hell"],[data-theme="klassisch"]) #fab{background:#e7e5e0}
-body.kb #tabs,body.kb #fab{display:none!important}body.kb .sug{max-height:6.5rem}
+body.kb #tabs,body.kb #fab,body.kb .bph-unten{display:none!important}
+html.bp-handy #fab{display:none!important}   /* am Handy sitzt das ＋ in der gemeinsamen Leiste unten */
+html.bp-handy :is(#sheet,#bwz,#pv){bottom:var(--bp-unten)}   /* Blätter, Wochenzettel, Fotoansicht enden über der gemeinsamen Leiste (wie die Schnellauswahl) */
+body.kb .sug{max-height:6.5rem}
 @media (min-width:721px){#sheet .panel{margin-top:64px;border-radius:calc(14px*var(--rk,1))}}
 @media (max-width:720px){
   #repBtn{min-width:0;padding:.35rem .5rem;gap:.2rem}
   #projBtn{padding:.35rem .5rem;gap:.2rem}
   #chev,#rchev{display:none}
-  #tabs{order:3;border-bottom:0;border-top:1px solid var(--line);justify-content:space-around;padding:0}
   #detail{order:2;padding:.5rem}
-  /* Fußleiste am Handy: ruhige Fläche ohne Strich, die gewählte Seite mit hellem Feld hinter dem Symbol */
-  /* Fußleiste am Handy: Bericht – ＋ – Kontakte, flach; das ＋ sitzt in der Mitte statt über den Fotos zu schweben */
-  #tabs{background:var(--card)!important;padding:.15rem .6rem .2rem;gap:.2rem;align-items:center;overflow:visible;position:relative;z-index:16}
-  .tab{flex:1;flex-direction:column;gap:0;font-size:.7rem;padding:.2rem .2rem .1rem;border-bottom:0;border-top:0;font-weight:500}
-  .tab.on{color:color-mix(in srgb,var(--y) 55%,var(--ink));font-weight:700}
-  .tabplus{display:grid!important;place-items:center;flex:none;position:relative;z-index:16;width:46px;height:46px;border-radius:50%;padding:0;margin:-14px .4rem 0;background:var(--y);color:var(--on);border:3px solid var(--bg);box-shadow:var(--sh0,0 3px 10px rgba(0,0,0,.3))}
-  .tabplus:disabled{opacity:.35;box-shadow:none}
-  #fab{display:none!important}
+  /* „Bericht · Kontakte“ als kleiner Umschalter über dem Inhalt (Mock „Bautagebuch Handyfuß“ BF-2 A); unten steht die gemeinsame Leiste mit ＋ (bp/handy.js) */
+  #tabs{background:var(--bg)!important;border-bottom:0;padding:.35rem .5rem .1rem;gap:0;justify-content:center}
+  .tab{flex:1;max-width:11rem;justify-content:center;flex-direction:row;gap:.35rem;font-size:.82rem;padding:.3rem .5rem;border:1px solid var(--line);border-radius:0;font-weight:500;background:var(--card)}
+  .tab:first-child{border-radius:calc(9px*var(--rk,1)) 0 0 calc(9px*var(--rk,1))}.tab:last-child{border-radius:0 calc(9px*var(--rk,1)) calc(9px*var(--rk,1)) 0;border-left:0}
+  .tab svg{width:16px;height:16px}
+  .tab.on{background:color-mix(in srgb,var(--y) 22%,var(--card));color:var(--ink);font-weight:700}
   .split{grid-template-columns:1fr}
   .split.has .clist{display:none}
   .split:not(.has) .cdet{display:none}

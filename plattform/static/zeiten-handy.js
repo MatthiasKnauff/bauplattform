@@ -176,6 +176,13 @@ function zhBlock(code) {   // Fenster zum Ändern eines Blocks (e = gespeichert,
     } catch (er) { toast(er.message, true); }
   });
 }
+document.addEventListener('click', async (e) => {   // ＋ unten (bp/handy.js): Zeit von Hand – aus Woche/Monat erst in „Mein Tag“
+  if (!(e.target.closest && e.target.closest('[data-zplus]'))) return;
+  if (tab !== 'tag') { tab = 'tag'; LS.set('tab', tab); await laden(); }
+  if (!D) return;
+  if (D.bestaetigt) { toast('Der Tag ist bestätigt – erst öffnen, dann Zeiten eintragen.'); return; }
+  zhBlock('n');
+});
 document.addEventListener('click', (e) => {
   const t = e.target.closest && e.target.closest('[data-zh],[data-zhb]'); if (!t || !D) return;
   if (t.dataset.zhb) { zhBlock(t.dataset.zhb); return; }

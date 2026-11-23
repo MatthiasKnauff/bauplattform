@@ -235,6 +235,8 @@ async function laden() {
 function zeichne() {
   document.body.classList.toggle('handy', handy());
   if (!G) return;   // Grunddaten noch nicht geladen (z. B. Größenänderung beim Start)
+  window.bpHandyPlus = { titel: 'Zeit erfassen', attr: 'data-zplus', aus: () => !!(tab === 'tag' && D && D.bestaetigt) };   // ＋ in der gemeinsamen Leiste am Handy (bp/handy.js, BF-3 B)
+  if (window.bpHandy) bpHandy.neu();
   reiter();
   leiste();
   const v = $('#view');

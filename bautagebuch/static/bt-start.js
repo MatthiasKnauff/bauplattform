@@ -6,7 +6,8 @@ function renderDetail() {
   if (tab === 'profil' && window.BPHead && BPHead.einstellungen) { tab = 'bericht'; BPHead.einstellungen({ bereich: 'app' }); }
   const box = $('#detail'); box.classList.toggle('fill', tab === 'kontakte');
   $('#fab').classList.toggle('hidden', !(tab === 'bericht' && curProject() && curReport())); $('#fab').innerHTML = ic('plus', 22, 2.4);
-  { const tp = $('#tabPlus'); if (tp) { tp.innerHTML = ic('plus', 22, 2.4); tp.disabled = !(tab === 'bericht' && curProject() && curReport()); } }
+  window.bpHandyPlus = { titel: 'Foto, Notiz, Mangel … hinzufügen', attr: 'data-act="qOpen"', aus: () => !(tab === 'bericht' && curProject() && curReport()) };   // ＋ in der gemeinsamen Leiste am Handy (bp/handy.js)
+  if (window.bpHandy) bpHandy.neu();
   ({bericht: renderReport, kontakte: renderContacts, profil: renderProfile, suche: renderSearch}[tab])(box);
 }
 

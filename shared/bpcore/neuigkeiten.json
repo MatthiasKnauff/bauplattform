@@ -1,5 +1,13 @@
 [
  {
+  "id": "handyfuss-bt-2311",
+  "datum": "2026-11-23",
+  "app": "bautagebuch",
+  "titel": "Am Handy: dieselbe Leiste unten",
+  "text": "Das Bautagebuch hat am Handy jetzt dieselbe Leiste unten wie alle Apps – mit dem ＋ in der Mitte für Foto, Notiz, Mangel und mehr. „Bericht · Kontakte“ steht als Umschalter oben. In Zeiten öffnet das ＋ „Zeit erfassen“.",
+  "ziel": ".bph-uplus"
+ },
+ {
   "id": "rollen-apps-gf-2311",
   "datum": "2026-11-23",
   "app": "admin",

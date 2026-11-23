@@ -47,7 +47,7 @@
       const L = plaetze().filter((k) => k !== akt).slice(0, 4).map((k) => H5[plaetze().indexOf(k)]), m = Math.ceil(L.length / 2);
       L.splice(m, 0, `<button type="button" class="bph-uplus" ${P.attr || ''} aria-label="${esc(P.titel || 'Hinzufügen')}" title="${esc(P.titel || 'Hinzufügen')}"${P.aus && P.aus() ? ' disabled' : ''}><i>${PLUSIC}</i></button>`);
       n.innerHTML = L.join(''); n.style.gridTemplateColumns = `repeat(${L.length},minmax(0,1fr))`;
-    } else { n.innerHTML = H5.join(''); n.style.gridTemplateColumns = ''; }
+    } else { n.innerHTML = H5.join(''); n.style.gridTemplateColumns = `repeat(${H5.length},minmax(0,1fr))`; }   // weniger Plätze (App im Büro aus): keine Lücke rechts
   }
   /* „nur Ansicht“: Hinweis oben – Bearbeiten am Rechner, Link an mich senden (HG-3) */
   function hinweis() {

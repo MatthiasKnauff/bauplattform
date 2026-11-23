@@ -59,6 +59,10 @@ export async function handyPruefen(browser, repo) {
     await S.ctx.close();
     S = await seite('eigene Leiste', { breite: 390, datei: 'portal.html', handy: ['portal', 'wiki', 'suche'], posts: [] }); z = await stand(S.p);
     pruef(z.leiste.join('|') === 'Start|Wiki|Suche', `eigene Leiste aus den Einstellungen: ${JSON.stringify(z.leiste)}`);
+    {   // 23.11.2026: drei Plätze füllen die ganze Breite – keine Lücke rechts
+      const b = await S.p.evaluate(() => { const L = [...document.querySelectorAll('.bph-unten>*')]; return { r: Math.round(L[L.length - 1].getBoundingClientRect().right), w: innerWidth }; });
+      pruef(b.w - b.r < 4, `Leiste mit drei Plätzen lässt rechts eine Lücke: ${JSON.stringify(b)}`);
+    }
     await S.ctx.close();
     const posts = [];
     S = await seite('Wärmeschutz schmal', { breite: 390, datei: 'waermeschutz.html', handy: [], posts }); z = await stand(S.p);

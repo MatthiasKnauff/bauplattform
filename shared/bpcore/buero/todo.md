@@ -275,7 +275,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Adressverzeichnis drucken im Druck-Layout (wie LV/Kosten) über die gemeinsame Druckseite – auch im Bautagebuch~~ (23.11.2026)
 - ~~Ausdrucke: Absender und Fußzeile in Honorar, Honorarrechnung, Bauantrag, Kosten, Wärmeschutz, Rügen aus `layout.buero_werte` (6 Kopien weg)~~ (23.11.2026)
 - ~~Sahne entfernt: Kosten-Übergang (Kern importierte die App Kosten), Nur-lesen-Sperre ohne Datenbank, Schrift/Einstellungen, Mail-Abmeldelink, Fehlerliste der Bug-Meldung, Logo beim Teilen, AVA-Einstellungen, Plan-Auswahl im Protokoll, Vor-Ort-Protokoll, Ordner-Suche, Erinnerungs-Protokoll~~ (23.11.2026)
-- head.js (357 KB, jede Seite) in einen Kern und bei Bedarf geladene Teile teilen (Ansehen/PDF, Versionsmenü, Kontextmenü, Bug-Meldung) **ca. 2–3 h, vorher besprechen**
+- ~~head.js geteilt: 357 → 188 KB auf jeder Seite; Ansehen/PDF, Masken/Verlauf, Hilfe/🐞, Zolli laden erst bei Bedarf~~ (23.11.2026)
+- head.js weiter verkleinern: Darstellung/Stil-Menü, Einstellungsseiten, Symbole **ca. 1 h**
 - ~~Adressen-Karten schneller (70 → 30 ms bei 700 Adressen): Karten außerhalb des Bildes ohne Anordnung (`content-visibility`)~~ (23.11.2026)
 - ~~Adressen-Tabelle langsam (450 ms je Klick bei 700 Adressen): nur die Zeilen im Bild (`bpBaum.fenster`), keine Browser-Liste fürs Gewerk~~ (23.11.2026)
 - ~~Adressen-Tabelle: Spalten Stichwörter, Projekt, Tags, weitere Ansprechpartner/Nummern/E-Mails, Geändert~~ (22.11.2026)

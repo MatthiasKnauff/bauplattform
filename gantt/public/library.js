@@ -138,8 +138,8 @@ function renderLib() {
       const dt = typeof dinTitle === 'function' ? dinTitle(x.din) : '';
       h += `<tr data-lid="${x.id}"><td><div class="lv-n"><span class="lv-grip lv-lg" draggable="true" title="Ziehen – auch in einen anderen Abschnitt (oder im Namen Alt+↑ / Alt+↓)">⠿</span><span class="gwdot" style="background:${gwColor(x.gw) || '#9e9e9e'}"></span><input data-k="n" value="${esc(x.n)}"></div>${x.src ? `<small class="lv-src">aus: ${esc(x.src)}</small>` : ''}</td>
         <td><select data-k="ph">${libPhases().map((p) => `<option value="${p.k}"${p.k === x.ph ? ' selected' : ''}>${esc(p.n.split(' (')[0])}</option>`).join('')}</select></td>
-        <td><input data-k="gw" list="lvGwList" value="${esc(x.gw)}"></td>
-        <td><input data-k="din" list="fvDinList2" value="${esc(x.din)}" title="${esc(dt || 'ATV DIN-Nummer')}" style="min-width:70px"></td>
+        <td><input data-k="gw" data-vs="lvGw" autocomplete="off" value="${esc(x.gw)}"></td>
+        <td><input data-k="din" data-vs="lvDin" autocomplete="off" value="${esc(x.din)}" title="${esc(dt || 'ATV DIN-Nummer')}" style="min-width:70px"></td>
         <td><input data-k="craft" value="${esc(x.craft)}" placeholder="${esc((typeof CRAFT !== 'undefined' && CRAFT[x.gw]) || '')}"></td>
         <td><select data-k="sc"><option value="we"${x.sc === 'we' && !x.ms ? ' selected' : ''}>je Einheit</option><option value="bau"${x.sc === 'bau' && !x.ms ? ' selected' : ''}>Gebäude</option><option value="gs"${x.sc === 'gs' && !x.ms ? ' selected' : ''}>je Geschoss</option><option value="ms"${x.ms ? ' selected' : ''}>◆ Meilenstein</option></select></td>
         <td>${x.ms ? '<span class="lv-ms" title="Meilenstein – ohne Dauer">◆</span>' : `<input data-k="d" type="number" min="1" max="999" value="${x.d}" class="lv-d">`}</td>
@@ -148,16 +148,23 @@ function renderLib() {
         <td class="lv-rec">${profs.map((p) => `<button class="lv-pr${(x.rec || []).includes(p.k) ? ' on' : ''}" data-rec="${p.k}" title="${esc(p.n)}: ${(x.rec || []).includes(p.k) ? 'im Assistenten vorausgewählt (klicken = aus)' : 'nicht vorausgewählt (klicken = ein)'}">${p.ic}</button>`).join('')}</td>
         <td class="lv-act"><button class="fv-x" data-lnetz="${x.id}" title="Abhängigkeiten dieser Leistung">⇆</button><button class="fv-x" data-lplan="${x.id}" title="In das geöffnete Projekt einfügen">＋ Plan</button><button class="fv-x" data-ldup="${x.id}" title="Duplizieren">⧉</button><button class="fv-x${libDelAsk === x.id ? ' sure' : ''}" data-ldel="${x.id}" title="Aus dem Katalog löschen">${libDelAsk === x.id ? 'Löschen?' : '✕'}</button></td></tr>`;
     }
-    for (const i of std) {
-      const ab = KatBuero.abw(i.id);
-      h += `<tr class="lv-std"><td><div class="lv-n"><span class="gwdot" style="background:${gwColor(i.gw) || '#9e9e9e'}"></span><span>${esc(i.n)}</span></div></td><td>${esc(ph.n.split(' (')[0])}</td><td>${esc(i.gw)}</td><td>${esc(i.din || '')}</td>
-        <td>${esc((typeof CRAFT !== 'undefined' && CRAFT[i.gw]) || '')}</td><td><select data-sscope="${i.id}" class="${stdScope(i) !== i.sc ? 'lv-fown' : ''}" title="Vorgabe für neue Planungen. Standard: ${i.sc === 'bau' ? 'Gebäude' : 'je Einheit'}. In bestehenden Plänen im Planungsassistenten je Projekt umstellbar."><option value="we"${stdScope(i) === 'we' ? ' selected' : ''}>je Einheit</option><option value="bau"${stdScope(i) === 'bau' ? ' selected' : ''}>Gebäude</option></select></td><td class="num">${i.ms ? '◆' : `<input data-kbd="${i.id}" type="number" min="0.5" max="999" step="0.5" value="${i.d}" class="lv-d${ab.includes('d') ? ' lv-fown' : ''}" title="Richtdauer (EFH 140 m²) – ${esc(KatBuero.art(i))}">${ab.includes('d') ? `<button class="lv-ru" data-kbz="${i.id}:d" title="zurück auf Werk: ${KatBuero.werk(i.id).d} AT">↺</button>` : ''}`}</td>
-        <td>${libSchilder(KatBuero.vor(i.id).map((v) => v.id), i.id, ab.includes('a'))}</td><td>${libSchilder(KatBuero.nach(i.id), i.id)}</td><td class="lv-stdh">${ab.length ? '<span class="lv-fown">Büro</span>' : 'Werk'}</td>
+    for (const i of std) {   // Leistungen ab Werk: alles direkt änderbar (Büro-Ebene, gelb mit ↺ – 23.11.2026)
+      const ab = KatBuero.abw(i.id), W = KatBuero.werk(i.id), gelb = (f) => (ab.includes(f) ? ' lv-fown' : '');
+      const ru = (f, t) => (ab.includes(f) ? `<button class="lv-ru" data-kbz="${i.id}:${f}" title="zurück auf Werk: ${esc(t)}">↺</button>` : '');
+      const phn = (k) => ((CATALOG.phases.find((x) => x.k === k) || {}).n || k || '').split(' (')[0];
+      h += `<tr class="lv-std"><td><div class="lv-n"><span class="gwdot" style="background:${gwColor(i.gw) || '#9e9e9e'}"></span><input data-kbf="${i.id}:n" value="${esc(i.n)}" class="${gelb('n')}">${ru('n', W.n)}</div></td>
+        <td><select data-kbf="${i.id}:ph" class="${gelb('ph')}">${libPhases().map((p) => `<option value="${p.k}"${p.k === i.ph ? ' selected' : ''}>${esc(p.n.split(' (')[0])}</option>`).join('')}</select>${ru('ph', phn(W.ph))}</td>
+        <td><input data-kbf="${i.id}:gw" data-vs="lvGw" autocomplete="off" value="${esc(i.gw)}" class="${gelb('gw')}">${ru('gw', W.gw)}</td>
+        <td><input data-kbf="${i.id}:din" data-vs="lvDin" autocomplete="off" value="${esc(i.din || '')}" class="lv-din${gelb('din')}" title="${esc((typeof dinTitle === 'function' && dinTitle(i.din)) || 'ATV DIN-Nummer')}">${ru('din', W.din || '–')}</td>
+        <td><input data-kbf="${i.id}:craft" value="${esc(i.craft || '')}" placeholder="${esc((typeof CRAFT !== 'undefined' && CRAFT[i.gw]) || '')}" class="${gelb('craft')}">${ru('craft', W.craft || (typeof CRAFT !== 'undefined' && CRAFT[W.gw]) || '–')}</td>
+        <td><select data-sscope="${i.id}" class="${stdScope(i) !== i.sc ? 'lv-fown' : ''}" title="Vorgabe für neue Planungen. Standard: ${i.sc === 'bau' ? 'Gebäude' : 'je Einheit'}. In bestehenden Plänen im Planungsassistenten je Projekt umstellbar."><option value="we"${stdScope(i) === 'we' ? ' selected' : ''}>je Einheit</option><option value="bau"${stdScope(i) === 'bau' ? ' selected' : ''}>Gebäude</option></select></td><td class="num">${i.ms ? '◆' : `<input data-kbd="${i.id}" type="number" min="0.5" max="999" step="0.5" value="${i.d}" class="lv-d${gelb('d')}" title="Richtdauer (EFH 140 m²) – ${esc(KatBuero.art(i))}">${ru('d', W.d + ' AT')}`}</td>
+        <td>${libSchilder(KatBuero.vor(i.id).map((v) => v.id), i.id, ab.includes('a'))}</td><td>${libSchilder(KatBuero.nach(i.id), i.id)}</td>
+        <td class="lv-rec${gelb('rec')}">${profs.map((p) => { const an = (p.rec || []).includes(i.id); return `<button class="lv-pr${an ? ' on' : ''}" data-kbrec="${i.id}:${p.k}" title="${esc(p.n)}: ${an ? 'im Assistenten vorausgewählt (klicken = aus)' : 'nicht vorausgewählt (klicken = ein)'}">${p.ic}</button>`; }).join('')}${ru('rec', profs.filter((p) => (W.rec || []).includes(p.k)).map((p) => p.n).join(', ') || 'keine')}</td>
         <td class="lv-act"><button class="fv-x" data-lnetz="${i.id}" title="Abhängigkeiten dieser Leistung">⇆</button><button class="fv-x" data-lcopy="${i.id}" title="Als eigene Leistung kopieren (nur für eine wirklich andere Leistung – ändern geht direkt)">⧉ kopieren</button></td></tr>`;
     }
   }
   if (!shown && libEk === 1) h += `<tr><td colspan="12" class="fv-empty">${q ? 'Keine Treffer.' : 'Noch keine eigenen Leistungen. Mit „Neue Leistung“ anlegen, mit „Aus Projekten übernehmen“ aus vorhandenen Plänen holen oder im Planungsassistenten mit „＋ eigene“ – dort ist „auch im Leistungskatalog speichern“ vorgewählt. Mit „Standardkatalog“ siehst du die mitgelieferten Leistungen und kannst sie als eigene Variante kopieren.'}</td></tr>`;
-  h += '</tbody></table></div></div>' + libLists();
+  h += '</tbody></table></div></div>';
   box.innerHTML = h; nurLesen(); libAfter(box, st, sl);
 }
 let LIBNETZ = null;
@@ -207,10 +214,10 @@ function libSchilder(ids, eigen, gelb) {   // Vorgänger/Nachfolger als Schilder
   if (!ids.length) return '<span class="mut">–</span>';
   return `<span class="lv-chips${gelb ? ' lv-fown' : ''}" data-lnetz="${esc(eigen)}" title="Abhängigkeiten ansehen und ändern">${ids.slice(0, 2).map((id) => `<span class="lv-chip">${esc(n(id))}</span>`).join('')}${ids.length > 2 ? `<span class="lv-chip p">+${ids.length - 2}</span>` : ''}</span>`;
 }
-function libLists() {
-  return `<datalist id="lvGwList">${AssistCore.gewerke().map((g) => `<option value="${esc(g)}">`).join('')}</datalist>
-
-    <datalist id="fvDinList2">${(window.DIN_ATV || []).map((x) => `<option value="${x[0]}">${esc(x[1])}</option>`).join('')}</datalist>`;
+/* Vorschläge für Gewerk und DIN in der Liste – gemeinsame Vorschlagsliste statt <datalist> (23.11.2026) */
+if (window.bpVorschlag) {
+  bpVorschlag.listen.lvGw = () => AssistCore.gewerke().map((g) => ({ w: g }));
+  bpVorschlag.listen.lvDin = () => (window.DIN_ATV || []).map((x) => ({ w: String(x[0]), t: x[1] }));
 }
 function libAfter(box, st, sl = 0) {
   if (typeof enhanceTables === 'function') enhanceTables(box);
@@ -402,6 +409,14 @@ function libSetProjectFirm(keys, nameOf) {
 $('#libView').addEventListener('change', (e) => {
   const t = e.target;
   if (typeof katNetzAendern === 'function' && katNetzAendern(e)) return;
+  if (t.dataset.kbf) {   // Name, Abschnitt, Gewerk, DIN, Fachrichtung einer Werk-Leistung (23.11.2026)
+    if (!libDarf()) { libNurAdmin(); return renderLib(); }
+    const [id, f] = t.dataset.kbf.split(':'), i = CATALOG.items.find((y) => y.id === id), v = String(t.value).trim(); if (!i) return;
+    if (!v && f !== 'craft' && f !== 'din') return renderLib();
+    const FN = { n: 'Name', ph: 'Abschnitt', gw: 'Gewerk', din: 'DIN', craft: 'Fachrichtung' };
+    if (f === 'gw' && v) gwColor(v);
+    KatBuero.setzen(id, { [f]: v }, `${i.n}: ${FN[f]} ${v || '–'}`); renderLib(); return;
+  }
   if (t.dataset.kbd) {   // Richtdauer einer Werk-Leistung: Abweichung des Büros (K5-A)
     if (!libDarf()) { libNurAdmin(); return renderLib(); }
     const i = CATALOG.items.find((y) => y.id === t.dataset.kbd), v = Math.max(0.5, Math.min(999, Math.round((+String(t.value).replace(',', '.') || 1) * 2) / 2));
@@ -436,6 +451,9 @@ $('#libView').addEventListener('click', (e) => {
   const md = e.target.closest('[data-lmodus]'); if (md) { LIBMODUS = md.dataset.lmodus; LS.set('libModus', LIBMODUS); renderLib(); return; }
   const lz = e.target.closest('[data-lern]'); if (lz) { libLernKlick(lz); return; }
   const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.kbrec) { if (!libDarf()) return libNurAdmin(); const [id, pk] = b.dataset.kbrec.split(':'), i = CATALOG.items.find((y) => y.id === id), p = CATALOG.profiles.find((x) => x.k === pk); if (!i || !p) return;
+    const jetzt = CATALOG.profiles.filter((x) => (x.rec || []).includes(id)).map((x) => x.k), an = !jetzt.includes(pk);
+    KatBuero.setzen(id, { rec: an ? [...jetzt, pk] : jetzt.filter((x) => x !== pk) }, `${i.n}: ${an ? 'vorausgewählt' : 'nicht mehr vorausgewählt'} bei ${p.n}`); renderLib(); return; }
   if (b.dataset.kbz) { if (!libDarf()) return libNurAdmin(); const [id, f] = b.dataset.kbz.split(':'); KatBuero.zurueck(id, f); renderLib(); return; }
   if (b.dataset.phdel) {
     const k = b.closest('tr').dataset.phk;
@@ -521,7 +539,7 @@ function leistungWizard(opt = {}) {
   let step = 0, guessed = false, why = '';
   const STEPS = ['Bezeichnung', 'Abschnitt und Gewerk', 'Dauer', 'Reihenfolge', 'Gebäudetypen'];
   const bg = document.createElement('div'); bg.className = 'modal-bg lw-bg';
-  bg.innerHTML = `<div class="modal lw" role="dialog" aria-label="Neue Leistung"><div class="mh">Neue Leistung – Assistent<button type="button" class="mx" title="Schließen (Esc)" aria-label="Schließen">✕</button></div>
+  bg.innerHTML = `<div class="modal lw" role="dialog" aria-label="Neue Leistung"><div class="mh"><span class="lw-t">Neue Leistung – Assistent</span><button type="button" class="mx" title="Schließen (Esc)" aria-label="Schließen">✕</button></div>
     <div class="lw-steps"></div><div class="mb lw-b"></div><div class="mf lw-f"></div></div>`;
   document.body.appendChild(bg);
   const close = () => bg.remove();
@@ -547,16 +565,15 @@ function leistungWizard(opt = {}) {
   };
   const phOpts = () => libPhases().map((p) => `<option value="${p.k}"${p.k === f.ph ? ' selected' : ''}>${esc(p.n)}</option>`).join('');
   function draw() {
+    bg.querySelector('.lw-t').textContent = f.n.trim() ? `Neue Leistung: ${f.n.trim()}` : 'Neue Leistung – Assistent';   // Name bleibt in jedem Schritt sichtbar (23.11.2026)
     bg.querySelector('.lw-steps').innerHTML = STEPS.map((s, i) => `<button class="${i === step ? 'on' : i < step ? 'done' : ''}" data-lwgo="${i}"${!f.n.trim() && i ? ' disabled' : ''}>${i + 1}. ${esc(s)}</button>`).join('');
     let h = '';
     if (step === 0) h = `<p class="lw-q">Wie heißt die Leistung?</p><input data-lw="n" class="lw-in" value="${esc(f.n)}" placeholder="z. B. Bewehrungsabnahme, Innenputz Kalk, Treppenlift einbauen" autocomplete="off">
       <p class="lw-h">Aus der Bezeichnung schlägt der Assistent Abschnitt, Gewerk, DIN und Dauer vor. Mit „Fertig“ kannst du jederzeit abschließen – der Rest bleibt beim Vorschlag.</p>`;
     else if (step === 1) h = `<p class="lw-q">In welchen Abschnitt gehört sie, und welches Gewerk führt sie aus?</p>
       <label>Abschnitt<select data-lw="ph">${phOpts()}</select></label>
-      <label>Gewerk<input data-lw="gw" list="lwGw" value="${esc(f.gw)}" placeholder="z. B. Rohbau, Statiker:in, Architekt:in"></label>
-      <label>DIN (ATV)<input data-lw="din" list="lwDin" value="${esc(f.din)}" placeholder="z. B. 18331"></label>
-      <datalist id="lwGw">${AssistCore.gewerke().map((g) => `<option value="${esc(g)}">`).join('')}</datalist>
-      <datalist id="lwDin">${(window.DIN_ATV || []).map((x) => `<option value="${x[0]}">${esc(x[1])}</option>`).join('')}</datalist>`;
+      <label>Gewerk<input data-lw="gw" data-vs="lvGw" autocomplete="off" value="${esc(f.gw)}" placeholder="z. B. Rohbau, Statiker:in, Architekt:in"></label>
+      <label>DIN (ATV)<input data-lw="din" data-vs="lvDin" autocomplete="off" value="${esc(f.din)}" placeholder="z. B. 18331"></label>`;
     else if (step === 2) h = `<p class="lw-q">Wie lange dauert sie, und gilt sie einmal für das Gebäude, je Geschoss oder je Wohnung/Einheit?</p>
       <label>Richtdauer (Arbeitstage)<input data-lw="d" type="number" min="1" max="999" value="${f.d}" class="lw-n"></label>
       <label>Bezug<select data-lw="sc"><option value="bau"${f.sc === 'bau' ? ' selected' : ''}>einmal für das Gebäude</option><option value="gs"${f.sc === 'gs' ? ' selected' : ''}>je Geschoss</option><option value="we"${f.sc === 'we' ? ' selected' : ''}>je Einheit (Wohnung, Bauabschnitt)</option></select></label>

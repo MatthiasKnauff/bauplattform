@@ -26,9 +26,9 @@ const zrPfeil = (a, b) => `<s>${esc(a)}</s> → <b>${esc(b)}</b>`;
 
 function katZuruecksetzen() {
   if (!libDarf()) return libNurAdmin();
-  const P_ = [], name = (id) => (CATALOG.items.find((i) => i.id === id) || {}).n || id, FN = { d: 'Richtdauer', fix: 'feste Dauer', w: 'Wartezeit', a: 'Vorgänger' };
-  const wert = (f, v) => (f === 'd' ? `${v} AT` : f === 'a' ? `${(v || []).length} Vorgänger` : v ? 'ja' : 'nein');
-  CATALOG.items.forEach((i) => KatBuero.abw(i.id).forEach((f) => P_.push({ g: 'Leistungen ab Werk', t: `${esc(name(i.id))} · ${FN[f]} ${zrPfeil(wert(f, i[f]), wert(f, (KatBuero.werk(i.id) || {})[f]))}`, an: true, art: 'kb', id: i.id, f })));
+  const P_ = [], name = (id) => (CATALOG.items.find((i) => i.id === id) || {}).n || id, FN = { d: 'Richtdauer', fix: 'feste Dauer', w: 'Wartezeit', a: 'Vorgänger', n: 'Name', ph: 'Abschnitt', gw: 'Gewerk', din: 'DIN', craft: 'Fachrichtung', rec: 'Vorausgewählt bei' };
+  const wert = (f, v) => (f === 'd' ? `${v} AT` : f === 'a' ? `${(v || []).length} Vorgänger` : f === 'rec' ? `${(v || []).length} Projektarten` : f === 'ph' ? ((CATALOG.phases.find((p) => p.k === v) || {}).n || v || '').split(' (')[0] : ['n', 'gw', 'din', 'craft'].includes(f) ? `„${v || '–'}“` : v ? 'ja' : 'nein');
+  CATALOG.items.forEach((i) => KatBuero.abw(i.id).forEach((f) => P_.push({ g: 'Leistungen ab Werk', t: `${esc(name(i.id))} · ${FN[f]} ${zrPfeil(wert(f, f === 'rec' ? (KatBuero.daten()[i.id] || {}).rec : i[f]), wert(f, (KatBuero.werk(i.id) || {})[f]))}`, an: true, art: 'kb', id: i.id, f })));
   const SC = window.CATSCOPE || {}, bez = (v) => (v === 'bau' ? 'Gebäude' : 'je Einheit');
   CATALOG.items.forEach((i) => { if (SC[i.id] && SC[i.id] !== i.sc) P_.push({ g: 'Bezug', t: `${esc(i.n)} · ${zrPfeil(bez(SC[i.id]), bez(i.sc))}`, an: true, art: 'sc', id: i.id }); });
   const std = new Map(PH_STD.map((p) => [p.k, p]));

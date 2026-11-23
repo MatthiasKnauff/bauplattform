@@ -1240,7 +1240,8 @@ def catscope():
 
 def catbuero_sauber(b):
     """Abweichungen des Büros vom Werkskatalog (Mock „Leistungskatalog: Abhängigkeiten“ K5-A, 22.11.2026): je Leistung des Katalogs
-    d (Richtdauer AT), fix (0/1 feste Dauer), w (0/1 Wartezeit – läuft in allen Einheiten zugleich), a (Vorgänger: id oder [id, FS|SS, Abstand AT])."""
+    d (Richtdauer AT), fix (0/1 feste Dauer), w (0/1 Wartezeit – läuft in allen Einheiten zugleich), a (Vorgänger: id oder [id, FS|SS, Abstand AT]);
+    seit 23.11.2026 auch n (Name), ph (Abschnitt), gw (Gewerk), din, craft (Fachrichtung), rec (Vorausgewählt bei: Projektarten)."""
     out = {}
     for k, v in list((b if isinstance(b, dict) else {}).items())[:3000]:
         if not re.fullmatch(r"[\w~.-]{1,60}", str(k)) or not isinstance(v, dict):
@@ -1254,6 +1255,13 @@ def catbuero_sauber(b):
         for f in ("fix", "w"):
             if v.get(f) in (0, 1, True, False):
                 x[f] = 1 if v[f] else 0
+        for f, n in (("n", 120), ("gw", 60), ("din", 20), ("craft", 80)):   # Name, Gewerk, DIN, Fachrichtung (23.11.2026)
+            if isinstance(v.get(f), str) and (v[f].strip() or f == "craft"):
+                x[f] = v[f].strip()[:n]
+        if isinstance(v.get("ph"), str) and re.fullmatch(r"[\w~.-]{1,40}", v["ph"]):
+            x["ph"] = v["ph"]
+        if isinstance(v.get("rec"), list):   # Vorausgewählt bei: Projektarten
+            x["rec"] = sorted({r for r in v["rec"][:40] if isinstance(r, str) and re.fullmatch(r"[\w~.:-]{1,40}", r)})
         if isinstance(v.get("a"), list):
             A = []
             for a in v["a"][:16]:

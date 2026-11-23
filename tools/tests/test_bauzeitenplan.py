@@ -657,6 +657,8 @@ def test_katalog_buero_und_lernen(ctx):
         kb = a.uj(f"{G}/catbuero", {"estrich": {"d": 3.2, "w": True, "a": ["putz_tr", ["heiz_roh", "SS", 2], 7]}, "kaputt id!": {"d": 1}})
         gleich(kb, {"estrich": {"d": 3.0, "w": 1, "a": ["putz_tr", ["heiz_roh", "SS", 2]]}}, "bereinigt: halbe Tage, Art, Vorgänger mit Art/Abstand")
         gleich(a.gj(f"{G}/catbuero"), kb, "gespeichert")
+        kb = a.uj(f"{G}/catbuero", {"estrich": {"n": " Estrich (Zement) ", "ph": "rohbau", "gw": "Estrich", "craft": "", "rec": ["neubau_mfh", "neubau_efh", "x y"]}})   # 23.11.2026: alles änderbar
+        gleich(kb, {"estrich": {"n": "Estrich (Zement)", "ph": "rohbau", "gw": "Estrich", "craft": "", "rec": ["neubau_efh", "neubau_mfh"]}}, "Name, Abschnitt, Gewerk, Fachrichtung, Vorausgewählt bei")
     finally:
         a.put(f"{G}/catbuero", kb0 or {})
     vs = lambda d: {"d": d, "n": "Estrich", "p": "1:FS:0", "pl": [{"uid": 1, "type": "FS", "lag": 0}]}   # noqa: E731

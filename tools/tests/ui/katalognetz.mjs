@@ -38,6 +38,16 @@ export async function katalogNetzPruefen(browser, repo) {
     pruef(await p.evaluate(() => document.querySelector('#libView input[data-kbd="estrich"]').classList.contains('lv-fown') && !!document.querySelector('#libView [data-kbz="estrich:d"]') && CATALOG.items.find((i) => i.id === 'estrich').d === 3), 'gelb mit ↺, gilt im Katalog');
     await p.click('#libView [data-kbz="estrich:d"]'); await warte(500);
     pruef(!(letzt('api/catbuero') || {}).estrich && await p.evaluate(() => CATALOG.items.find((i) => i.id === 'estrich').d === 2), '↺ zurück auf Werk');
+    {   // 23.11.2026: Admin ändert bei Leistungen ab Werk alles – Name, Abschnitt, Gewerk, Fachrichtung, Vorausgewählt bei – mit ↺
+      await p.fill('#libView input[data-kbf="estrich:n"]', 'Estrich (Zement)'); await p.press('#libView input[data-kbf="estrich:n"]', 'Tab'); await warte(300);
+      await p.selectOption('#libView select[data-kbf="estrich:ph"]', 'rohbau'); await warte(300);
+      const pk = await p.evaluate(() => { const b = document.querySelector('#libView [data-kbrec^="estrich:"]:not(.on)'); const k = b.dataset.kbrec.split(':')[1]; b.click(); return k; }); await warte(400);
+      const e = letzt('api/catbuero').estrich || {};
+      const st = await p.evaluate((pk) => ({ n: CATALOG.items.find((i) => i.id === 'estrich').n, rec: CATALOG.profiles.find((x) => x.k === pk).rec.includes('estrich'), ru: document.querySelectorAll('#libView [data-kbz^="estrich:"]').length }), pk);
+      pruef(e.n === 'Estrich (Zement)' && e.ph === 'rohbau' && (e.rec || []).includes(pk) && st.n === 'Estrich (Zement)' && st.rec && st.ru >= 3, `Werk-Leistung ganz ändern: ${JSON.stringify({ e, st })}`);
+      for (const f of ['n', 'ph', 'rec']) { await p.click(`#libView [data-kbz="estrich:${f}"]`); await warte(300); }
+      pruef(!(letzt('api/catbuero') || {}).estrich && await p.evaluate((pk) => CATALOG.items.find((i) => i.id === 'estrich').n === 'Estrich einbringen' && !CATALOG.profiles.find((x) => x.k === pk).rec.includes('estrich'), pk), `↺ je Feld zurück auf Werk: ${JSON.stringify(letzt('api/catbuero'))}`);
+    }
     {   // 23.11.2026: ⊟/⊞ oben im Kopf klappt alle Abschnitte zu und wieder auf
       await p.click('#libView [data-lzualle="zu"]'); await warte(300);
       const z = await p.evaluate(() => ({ zu: libPhases().every((x) => libZu.has(x.k)), std: document.querySelectorAll('#libView tr.lv-std').length, k: !!document.querySelector('#libView [data-lzualle="auf"]') }));

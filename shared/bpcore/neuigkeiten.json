@@ -1,5 +1,13 @@
 [
  {
+  "id": "katalog-werk-alles-2026-11-23",
+  "datum": "2026-11-23",
+  "app": "gantt",
+  "titel": "Leistungen ab Werk ganz änderbar",
+  "text": "Im Leistungskatalog lassen sich bei den mitgelieferten Leistungen jetzt auch Name, Abschnitt, Gewerk, DIN, Fachrichtung und „Vorausgewählt bei“ ändern (mit dem Recht für den Leistungskatalog). Geänderte Felder sind gelb, ↺ holt den Wert ab Werk zurück; „Zurücksetzen …“ nimmt alles auf einmal zurück. Im Fenster „Neue Leistung“ steht der Name jetzt in jedem Schritt oben.",
+  "ziel": "#libView"
+ },
+ {
   "id": "aussenanlagen-std-2026-11-23",
   "datum": "2026-11-23",
   "app": "gantt",

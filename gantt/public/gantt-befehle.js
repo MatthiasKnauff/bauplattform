@@ -5,8 +5,9 @@
    Befehle
    ===================================================================== */
 function insertTask(kind = 'task') {
-  let at, lvl;
-  if (cur.r < vis.length) { at = vis[cur.r]; lvl = P.tasks[at].lvl; }
+  let at, lvl;   // unter der aktuellen Zeile (23.11.2026, wie in Listen üblich): bei einer offenen Gruppe als erste Leistung darin, sonst hinter ihr
+  if (cur.r < vis.length) { const i = vis[cur.r], T = P.tasks[i];
+    if (isSum(i) && !T.collapsed) { at = i + 1; lvl = T.lvl + 1; } else { at = blockEnd(i) + 1; lvl = T.lvl; } }
   else { at = P.tasks.length; const last = vis.length ? P.tasks[vis[vis.length - 1]] : null; lvl = last ? last.lvl : 0; }
   let uid;
   act(() => {

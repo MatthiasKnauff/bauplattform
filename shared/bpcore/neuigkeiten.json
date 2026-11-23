@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-einfuegen-unter-2311",
+  "datum": "2026-11-23",
+  "app": "gantt",
+  "titel": "Neue Leistung unter der aktuellen",
+  "text": "„Leistung einfügen“ (Einfg) setzt die neue Leistung jetzt unter die gewählte Zeile, bei einer offenen Gruppe als erste darin. Zeilen kopierst du, indem du sie an der Nummer ziehst und dabei Strg gedrückt hältst.",
+  "ziel": "#gridBody"
+ },
+ {
   "id": "leistung-suche-2311",
   "datum": "2026-11-23",
   "app": "gantt",

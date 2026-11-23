@@ -415,7 +415,7 @@ addEventListener('mousemove', (e) => {
   let ln = document.getElementById('rowDropLine');
   if (!ln) { ln = document.createElement('div'); ln.id = 'rowDropLine'; gridBody.appendChild(ln); }
   ln.style.top = (rt * RH - 1) + 'px';
-  showTip(e, `<b>${rowDrag.kopie ? '＋ Kopieren' : 'Verschieben'}</b>${rowDrag.n} ${rowDrag.n === 1 ? 'Leistung' : 'Leistungen'} ${rt < vis.length ? 'vor Zeile ' + (vis[rt] + 1) : 'ans Ende'}`);
+  showTip(e, `<b>${rowDrag.kopie ? '＋ Kopieren' : 'Verschieben'}</b>${rowDrag.n} ${rowDrag.n === 1 ? 'Leistung' : 'Leistungen'} ${rt < vis.length ? 'vor Zeile ' + (vis[rt] + 1) : 'ans Ende'}${rowDrag.kopie ? '' : '<br><small>mit Strg gedrückt: kopieren</small>'}`);
   // am Rand automatisch blättern
   const pr = gridPane.getBoundingClientRect();
   if (e.clientY > pr.bottom - 30) gridPane.scrollTop += 12; else if (e.clientY < pr.top + HH + 20) gridPane.scrollTop -= 12;

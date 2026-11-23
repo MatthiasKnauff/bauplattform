@@ -266,6 +266,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Adressen: Auswahl einzelner/mehrerer/aller gefilterten (Mock AW-1 … AW-5 A) – Haken, Strg/Umschalt, Leiste unten, Mail an alle, Projekt, Ändern, Zusammenführen, Excel/Drucken, Papierkorb~~ (23.11.2026)
 - ~~Tests nach den Kontakt-Feldern (Amt, Zusatz, ist_firma) nachgezogen~~ (23.11.2026)
 - ~~Kopfleiste schneller: Versand, Freigeben, Ablegen, Live, Unterschrift, Urlaubsanträge, Neuigkeiten laden erst beim ersten Gebrauch (≈ 130 KB und 6–7 Dateien weniger je Seite); beim Öffnen eine Abfrage `/api/bp/kopf` statt ki, projekt und danach darstellung~~ (23.11.2026)
+- ~~Bauzeitenplan: neue Leistung unter der aktuellen einfügen; Hinweis „mit Strg kopieren“ beim Ziehen~~ (23.11.2026)
 - ~~Planung → Leistungen: Suchfeld oben fest mit Wortvervollständigung~~ (23.11.2026)
 - ~~Baudaten-Korb: Klick zeigt mehr unter der Zeile, Doppelklick → Position; Ausschreibung fragt nach dem Einfügen „Korb leeren?“~~ (23.11.2026)
 - ~~Baudaten-Baum: Zeilen einzeilig (von–bis nur in den Details), Spaltenbreiten ziehbar~~ (23.11.2026)

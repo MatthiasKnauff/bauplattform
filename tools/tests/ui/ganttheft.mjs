@@ -193,7 +193,12 @@ export async function ganttHeftPruefen(browser, repo) {
       const tip = await p.evaluate(() => (document.querySelector('#tip, .tip') || {}).textContent || '');
       await p.mouse.up(); await p.waitForTimeout(250); await p.keyboard.press('Escape');
       const nz = await p.evaluate(() => { const t = P.tasks[1]; return t ? { preds: t.preds, cons: t.cons, sd: CAL.sd[1], ende: CAL.fd[0] } : null; });
-      pruef(nz && nz.preds.length === 1 && nz.preds[0].uid === 1 && nz.preds[0].type === 'FS' && nz.sd > nz.ende && /Vorgänger:\s*Rohbau/.test(tip), `gezogene Leistung am Ende des Vorgängers: EA verknüpft – ${JSON.stringify({ nz, tip })}`);
+      pruef(nz && nz.preds.length === 1 && nz.preds[0].uid === 1 && nz.preds[0].type === 'FS' && nz.sd > nz.ende && /Vorgänger:\s*Rohbau/.test(tip), `gezogene Leistung am Ende des Vorgängers: EA verknüpft – ${JSON.stringify({ nz, tip })}`);      // 23.11.2026: „Leistung einfügen“ (Einfg) setzt die neue Leistung UNTER die aktuelle Zeile – bei einer offenen Gruppe als erste darin
+      const ein = await p.evaluate(() => { const nn = () => P.tasks.map((t) => t.name).join(',');
+        P.tasks = [fillTask({ uid: 1, name: 'A', dur: 2, lvl: 0, preds: [] }), fillTask({ uid: 2, name: 'B', dur: 2, lvl: 0, preds: [] }), fillTask({ uid: 3, name: 'G', dur: 1, lvl: 0, preds: [] }), fillTask({ uid: 4, name: 'G1', dur: 1, lvl: 1, preds: [] })];
+        P.nextUid = 10; CAL = schedule(); render(); cur.r = 0; insertTask(); if (typeof stopEdit === 'function') stopEdit(); const a = nn();
+        cur.r = rowOfIdx(3); insertTask(); if (typeof stopEdit === 'function') stopEdit(); return [a, nn(), P.tasks[4].lvl]; });
+      pruef(ein[0] === 'A,Neue Leistung,B,G,G1' && ein[1] === 'A,Neue Leistung,B,G,Neue Leistung,G1' && ein[2] === 1, `Einfügen unter der aktuellen Leistung – ${JSON.stringify(ein)}`);
     }
     {   // Soll und Ist (Mock „Soll und Ist“, 22.11.2026): Überziehung schiebt die Nachfolger (SI-3); das Soll liegt darunter, „Soll aus“ (SI-2)
       const T0 = [{ uid: 1, name: 'A', dur: 2, lvl: 0, preds: [] }, { uid: 2, name: 'B', dur: 3, lvl: 0, preds: [{ uid: 1, type: 'FS', lag: 0 }] }];

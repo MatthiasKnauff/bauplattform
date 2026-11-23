@@ -1,5 +1,13 @@
 [
  {
+  "id": "bt-druck-fotos-2311",
+  "datum": "2026-11-23",
+  "app": "bautagebuch",
+  "titel": "Drucken: „mit Fotos“ gilt auch für einen Bericht",
+  "text": "Ist „mit Fotos“ aus, kommt auch „Dieser Bericht“ ohne Fotos – zum Ansehen und Drucken. Abgelegt wird der Bericht weiter mit Fotos.",
+  "ziel": ""
+ },
+ {
   "id": "adr-einlesen-namen-2311",
   "datum": "2026-11-23",
   "app": "adressen",

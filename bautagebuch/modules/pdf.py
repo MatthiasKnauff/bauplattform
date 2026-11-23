@@ -23,10 +23,13 @@ def report_pdf(i):
         rep = dict(rep) if "wetter" in T else {**dict(rep), "temp": "", "weather": "", "precip": "", "humidity": "", "wind": ""}
         items = [x for x in items if x["kind"] in T]
         images = images if "bilder" in T else []
+    ohne_fotos = request.args.get("fotos") == "0"   # Drucken → „mit Fotos“ aus (23.11.2026: der Haken galt nur für mehrere Berichte)
+    if ohne_fotos:
+        images = []
     pdf = bt_pdf.build(dict(proj), dict(rep), items, images, sections, conf, storage.logo_path(), storage.UP)
     code = re.sub(r"[^A-Za-z0-9._-]", "", (proj["name"].split() or ["Projekt"])[0]) or "Projekt"
     name = scheme.pdf_name(conf, dict(proj), rep, f"{code}_BT_{rep['date']}.pdf")  # Standard z. B. A481_BT_2026-10-28.pdf; nach Rückfrage im Schema des Projekts
-    if request.args.get("vorschau") == "1" or teile is not None:   # Auszug wie Vorschau: keine Version, kein Export, nichts in die Ablage   # Vorschau im Bereich rechts: nur ansehen – keine Version, kein Export, nichts in die Ablage
+    if request.args.get("vorschau") == "1" or teile is not None or ohne_fotos:   # ohne Fotos ist nicht der Bericht: nur ansehen/drucken, keine Version, keine Ablage   # Auszug wie Vorschau: keine Version, kein Export, nichts in die Ablage   # Vorschau im Bereich rechts: nur ansehen – keine Version, kein Export, nichts in die Ablage
         return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": f'inline; filename="{name}"', "Cache-Control": "no-store"})
     with db.tx() as c:   # unverändert seit dem letzten Export unter demselben Namen: nur ansehen – keine neue Version, kein „_old“ auf dem Server
         st, ex = versions.status(c, i)

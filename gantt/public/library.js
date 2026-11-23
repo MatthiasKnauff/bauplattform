@@ -11,7 +11,6 @@ window.LIBRARY = [];
 let LIBMODUS = LS.get('libModus', 'liste') === 'netz' ? 'netz' : 'liste';   // Liste | Abhängigkeiten (Mock LK, K1-A)
 let libLoaded = false, libSaveT = null, libQuery = '', libEk = LS.get('libEk', LS.get('libStd2', true) ? 0 : 1), libZu = new Set(LS.get('libZu', [])),   // Einklappen (GO 18.11.2026, EK-A1 B2): 0 alles · 1 nur eigene · 2 nur Abschnitte
    libDelAsk = null, libFocus = null;
-let CATFIRMS = {}, catfSaveT = null;
 const newLibId = () => 'L' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const libPhases = () => CATALOG.phases;
 const libPhName = (k) => (CATALOG.phases.find((p) => p.k === k) || {}).n || k;
@@ -44,8 +43,8 @@ function savePhases(still) {
   if (window.AssistCore) AssistCore.notifySoon();
 }
 async function loadLibrary() {
-  try { const [a, b, ph, sc, kb] = await Promise.all([fetch('api/library').then(j), fetch('api/catfirms').then(j), fetch('api/phases').then(j), fetch('api/catscope').then(j).catch(() => ({})), fetch('api/catbuero').then(j).catch(() => ({}))]); window.LIBRARY = a; CATFIRMS = b || {}; window.CATSCOPE = sc || {};
-    if (window.KatBuero) KatBuero.laden(kb); /* Abweichungen des Büros vom Werkskatalog (katalogbuero.js, 22.11.2026) */ applyPhaseList(ph); scStand = { ...window.CATSCOPE }; cfStand = { ...CATFIRMS }; libLoaded = true; }
+  try { const [a, ph, sc, kb] = await Promise.all([fetch('api/library').then(j), fetch('api/phases').then(j), fetch('api/catscope').then(j).catch(() => ({})), fetch('api/catbuero').then(j).catch(() => ({}))]); window.LIBRARY = a; window.CATSCOPE = sc || {};
+    if (window.KatBuero) KatBuero.laden(kb); /* Abweichungen des Büros vom Werkskatalog (katalogbuero.js, 22.11.2026) */ applyPhaseList(ph); scStand = { ...window.CATSCOPE }; libLoaded = true; }
   catch (e) { toast('Leistungskatalog konnte nicht geladen werden: ' + e.message, true); }
   if (window.AssistCore) AssistCore.notifySoon();
   if (!$('#libView').hidden) renderLib();
@@ -65,7 +64,7 @@ function libSet(list, now, still) {
 }
 // Bezug der Standardleistungen (Gebäude / je Einheit) – Vorgabe für neue Planungen im Assistenten
 let catsSaveT = null;
-let scStand = null, cfStand = null;   // zuletzt gespeicherter Stand – für Rückgängig
+let scStand = null;   // zuletzt gespeicherter Stand – für Rückgängig
 function saveCatScope(still) {
   if (!libDarf()) return libNurAdmin();
   const alt = scStand || {}, neu = { ...(window.CATSCOPE || {}) };
@@ -76,29 +75,6 @@ function saveCatScope(still) {
     .catch((e) => toast('Bezug nicht gespeichert: ' + e.message, true)), 300);
 }
 const stdScope = (i) => ((window.CATSCOPE || {})[i.id] || i.sc);
-function saveCatFirms(still) {
-  if (!libDarf()) return libNurAdmin();
-  const alt = cfStand || {}, neu = { ...CATFIRMS };
-  if (!still && JSON.stringify(alt) !== JSON.stringify(neu)) libSchritt('Firmen-Vorgabe geändert', () => { CATFIRMS = { ...alt }; saveCatFirms(true); if (window.AssistCore) AssistCore.notifySoon(); });
-  cfStand = neu;
-  clearTimeout(catfSaveT);
-  catfSaveT = setTimeout(() => fetch('api/catfirms', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(CATFIRMS) }).then(j)
-    .catch((e) => toast('Firmen-Vorgaben nicht gespeichert: ' + e.message, true)), 400);
-}
-// Vorgabe je Gewerk (für alle künftigen Pläne, 15.11.2026): eigener Eintrag in den Firmen-Vorgaben (catfirms, Schlüssel gw~…) – sonst die Stammfirma
-const gwKey = (gw) => 'gw~' + String(gw || '').replace(/[^\p{L}\p{N}_]+/gu, '_').slice(0, 55);
-function gwVorgabe(gw, name) {   // name leer = eigene Vorgabe weg (dann wieder die Stammfirma aus dem Adressbuch)
-  if (!libDarf()) return libNurAdmin();
-  const k = gwKey(gw); if (name) CATFIRMS[k] = name; else delete CATFIRMS[k]; CATFIRMS = { ...CATFIRMS }; saveCatFirms(); if (window.AssistCore) AssistCore.notifySoon(); return true;
-}
-// Stammfirma eines Gewerks: Vorgabe des Gewerks, sonst die Firma im Adressbuch, bei der das Gewerk eingetragen ist
-function gwFirm(gw) {
-  const v = gw && String(CATFIRMS[gwKey(gw)] || '').trim();
-  if (v) return /^[-–—]+$/.test(v) ? '' : v;   // „-“ eingetragen = bewusst keine Firma
-  if (!gw || typeof FIRMS === 'undefined') return '';
-  const g = gw.toLowerCase(), l = FIRMS.filter((f) => (f.gewerke || []).some((x) => x.toLowerCase() === g)).sort((a, b) => a.name.localeCompare(b.name, 'de'));
-  return l.length ? l[0].name : '';
-}
 window.Library = {
   async add(it) { if (!libDarf()) throw new Error('Den Leistungskatalog für alle Projekte pflegt der Administrator – die Leistung bleibt in diesem Plan.'); const x = libClean({ ...it, id: it.id || newLibId() }); await libSet([...window.LIBRARY, x], true); if (!$('#libView').hidden) renderLib(); return x; },
 };
@@ -147,7 +123,7 @@ function renderLib() {
   }
   h += `<div class="fv-head"><div><h3>Leistungskatalog</h3><span>${libPhases().length} Abschnitte · ${L.length} eigene Leistungen · gilt für alle neuen Planungen (Planungsassistent)</span></div>${modus}
     <input id="libQ" class="lv-q" placeholder="Suchen …" value="${esc(libQuery)}">
-    <span class="fv-hint">Firmen stehen nicht im Katalog: sie gehören zum Projekt (Reiter „Gewerke &amp; Firmen“, dort auch die Vorgabe je Gewerk für alle Projekte). Eigene Leistungen erscheinen im Planungsassistenten im gewählten Abschnitt – unter „Weitere Leistungen“ oder, wenn unter <b>Vorausgewählt bei</b> die Projektart markiert ist, dort gleich angekreuzt. Beim Einfügen bekommt die Leistung die Firma, die ihr Gewerk im Projekt hat. <b>Abschnitte</b>: Namen in der blauen Zeile überschreiben, am ⠿ ziehen, oben „＋ Abschnitt“.</span></div>
+    <span class="fv-hint">Firmen stehen nicht im Katalog: sie gehören zum Projekt (Reiter „Gewerke &amp; Firmen“). Eigene Leistungen erscheinen im Planungsassistenten im gewählten Abschnitt – unter „Weitere Leistungen“ oder, wenn unter <b>Vorausgewählt bei</b> die Projektart markiert ist, dort gleich angekreuzt. Beim Einfügen bekommt die Leistung die Firma, die ihr Gewerk im Projekt hat. <b>Abschnitte</b>: Namen in der blauen Zeile überschreiben, am ⠿ ziehen, oben „＋ Abschnitt“.</span></div>
     ${libLernHtml()}<div class="fv-scroll"><table class="fv-t lv-t" data-tk="lv-alle"><thead><tr><th style="min-width:250px">Leistung</th><th>Abschnitt</th><th style="min-width:120px">Gewerk</th><th>DIN</th><th style="min-width:140px" title="Rolle der ausführenden Firma oder Planer:in, z. B. Tragwerksplaner, Rohbauer">Fachrichtung</th><th>Bezug</th><th class="num">AT</th><th style="min-width:170px">Folgt auf</th><th style="min-width:150px">Muss fertig sein vor</th><th style="min-width:130px" title="Bei welchen Projektarten der Planungsassistent diese Leistung von sich aus ankreuzt. Symbol anklicken = ein/aus. Bei allen anderen Projektarten steht sie zur Auswahl, ist aber nicht angekreuzt.">Vorausgewählt bei</th><th></th></tr></thead><tbody>`;
   let shown = 0;
   for (const [phi, ph] of libPhases().entries()) {
@@ -626,7 +602,7 @@ document.addEventListener('mouseover', (e) => { const h = e.target.closest && e.
 
 /* ---------- Sichern: benannte Stände, Vergleich, Zurückholen in Teilen, Datei (Server: gantt/katalog.py) ---------- */
 const KST_TEILE = [['leistungen', 'Leistungen', 'eigene Leistungen mit Dauer, Reihenfolge, Vorauswahl', true], ['abschnitte', 'Abschnitte', 'Namen und Reihenfolge', true],
-  ['vorgaben', 'Firmen-Vorgaben', 'Firma je Gewerk, Bezug', true], ['firmen', 'Firmen im Adressbuch', 'Kontaktdaten – gelten für alle Apps; geändert oder wieder angelegt, nie gelöscht', false]];
+  ['vorgaben', 'Vorgaben', 'Bezug, Abweichungen vom Werkskatalog', true], ['firmen', 'Firmen im Adressbuch', 'Kontaktdaten – gelten für alle Apps; geändert oder wieder angelegt, nie gelöscht', false]];
 const kstZ = (z) => z ? `${z.leistungen} Leistungen · ${z.abschnitte} Abschnitte · ${z.vorgaben} Vorgaben · ${z.firmen} Firmen` : '';
 const kstDe = (t) => (t ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)} ${t.slice(11, 16)}` : '');
 async function kstSichern() {

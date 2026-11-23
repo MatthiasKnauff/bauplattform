@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-firmenvorgabe-weg",
+  "datum": "2026-11-23",
+  "app": "gantt",
+  "titel": "Gewerke & Firmen: keine Vorgabe für alle Projekte mehr",
+  "text": "Die Spalte „Vorgabe (alle Projekte)“ und die Befehle „Vorgaben übernehmen“ und „Zurücksetzen …“ sind weg – die Firma eines Gewerks trägst du nur noch im Projekt ein.",
+  "ziel": "#leiste"
+ },
+ {
   "id": "gantt-uebernehmen-neu",
   "datum": "2026-11-23",
   "app": "gantt",

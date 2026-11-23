@@ -33,7 +33,7 @@ BILD = "\u2022bild:"
 STANDARD_CONF = {"alle_tage": 90, "taeglich_tage": 730}     # alle Stände 90 Tage, danach einer je Tag; 0 = unbegrenzt
 VORSCHLAEGE = [("Sparsam", 30, 180), ("Empfohlen", 90, 730), ("Großzügig", 365, 0)]
 
-GS = {"library": "Bibliothek der Leistungen (Bauzeitenplan)", "phases": "Phasen (Bauzeitenplan)", "catfirms": "Firmen je Gewerk (Bauzeitenplan)",
+GS = {"library": "Bibliothek der Leistungen (Bauzeitenplan)", "phases": "Phasen (Bauzeitenplan)",
       "catscope": "Leistungsumfang je Gewerk (Bauzeitenplan)", "settings": "KI und Bauzeitenplan (Verwaltung)", "plattform": "KI-Anbieter (Verwaltung)",
       "presets": "Vorlagen des Bauzeitenplans", "assistcfg": "Assistent des Bauzeitenplans", "assistcfg_vorlagen": "Vorlagen des Assistenten"}
 BP = {"todo:regeln": "Regeln der To-dos (Startseite)", "aufgaben": "Einstellungen „Aufgaben & Mängel“", "plaene": "Einstellungen „Pläne & Dateien“", "ava": "Einstellungen „Ausschreibung & Abrechnung“", "versionen_conf": "Aufbewahrung der Versionen"}

@@ -779,7 +779,6 @@ html[data-theme="dunkel"] .vm-grp{border-color:#444}
 .fv-car{border:0;background:none;cursor:pointer;color:var(--mut,#777);width:16px;padding:0;font-size:.8em;display:inline-block}
 .fv-mini{border:1px solid color-mix(in srgb,var(--acc,#1f5fa8) 35%,transparent);background:none;color:var(--acc,#1f5fa8);border-radius:calc(999px*var(--rkp,1));padding:0 7px;font:inherit;font-size:.85em;cursor:pointer;white-space:nowrap}
 .fv-tag{font-size:.78em;border-radius:999px;padding:0 6px;font-weight:600;white-space:nowrap}.fv-tag.v{background:#e9f7ef;color:#1f8a4c}.fv-tag.a{background:#fff3e0;color:#b35c00}
-.fv-vg{white-space:nowrap}
 .fv-t tr.fv-sub td{background:color-mix(in srgb,var(--mut,#888) 5%,transparent);font-size:.95em}
 .fv-t tr.fv-sub td.fv-subn{padding-left:34px!important;max-width:22rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fv-t td input.fv-abw{background:#fff3e0;border-color:#e0a050}

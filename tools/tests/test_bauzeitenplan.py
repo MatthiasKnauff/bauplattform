@@ -374,27 +374,21 @@ def test_leistungskatalog_und_quellen(ctx):
 
 
 def test_abschnitte_und_vorgaben(ctx):
-    """Abschnitte (Phasen), Firmen je Gewerk und Bezug je Leistung: speichern, bereinigen, laden."""
-    ph0, cf0, cs0 = ctx.admin.gj(f"{G}/phases"), ctx.admin.gj(f"{G}/catfirms"), ctx.admin.gj(f"{G}/catscope")
+    """Abschnitte (Phasen) und Bezug je Leistung: speichern, bereinigen, laden. Firmen je Gewerk für alle Projekte gibt es nicht mehr (23.11.2026)."""
+    ph0, cs0 = ctx.admin.gj(f"{G}/phases"), ctx.admin.gj(f"{G}/catscope")
     k = "rt_" + uuid.uuid4().hex[:6]
     try:
         ph = ctx.admin.uj(f"{G}/phases", ph0 + [{"k": k, "n": "Testabschnitt", "own": True}, {"k": k, "n": "doppelt"}, {"k": "Ungültig!", "n": "x"}])
         gleich([x for x in ph if x["k"] == k], [{"k": k, "n": "Testabschnitt", "own": True}], "Abschnitt einmal, ungültige verworfen")
         gleich(len(ph), len(ph0) + 1, "nur ein Abschnitt dazu")
         gleich(ctx.admin.gj(f"{G}/phases"), ph, "Abschnitte geladen wie gespeichert")
-        g = "gw~" + k
-        cf = ctx.admin.uj(f"{G}/catfirms", {**cf0, g: "firma-1", g + "_leer": "", "L" + k: "firma-2"})
-        gleich(cf.get(g), "firma-1", "Firma je Gewerk")
-        pruefe(g + "_leer" not in cf, "leere Zuordnung wird nicht gespeichert")
-        pruefe("L" + k not in cf, "keine Firma je Leistung mehr (22.11.2026)")
+        ctx.admin.get(f"{G}/catfirms", expect=404)   # Firmen-Vorgabe je Gewerk entfernt (GF-5 A)
         cs = ctx.admin.uj(f"{G}/catscope", {**cs0, k: "bau", k + "_x": "irgendwas"})
         gleich(cs.get(k), "bau", "Bezug „Gebäude“")
         pruefe(k + "_x" not in cs, "ungültiger Bezug verworfen")
         ctx.admin.put(f"{G}/phases", {"k": "keine Liste"}, expect=400)
-        ctx.admin.put(f"{G}/catfirms", ["keine", "Zuordnung"], expect=400)
     finally:
         ctx.admin.put(f"{G}/phases", ph0)
-        ctx.admin.put(f"{G}/catfirms", cf0)
         ctx.admin.put(f"{G}/catscope", cs0)
     gleich(ctx.admin.gj(f"{G}/phases"), ph0, "Abschnitte wieder wie vorher")
 

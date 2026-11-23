@@ -70,9 +70,6 @@ export async function katalogNetzPruefen(browser, repo) {
       await p.evaluate(() => { KatBuero.ersetzen({}, true); }); await warte(400);
       await p.evaluate(() => katZuruecksetzen()); await warte(200);
       pruef(!(await p.$('.zr')), 'ohne Abweichung kein Fenster, nur ein Hinweis');
-      await p.evaluate(() => { P.tasks[0].gw = 'Estrich'; P.tasks[0].res = 'Fa. Alt'; FIRMS.push({ id: 'fz1', name: 'Fa. Alt', gewerke: ['Estrich'] }); P.trades = { Estrich: { firm: 'fz1' } }; CATFIRMS[gwKey('Estrich')] = 'Fa. Neu'; fvZuruecksetzen(); });
-      await p.waitForSelector('.zr .zr-z'); await p.click('.modal [data-m="ok"]'); await warte(300);
-      pruef(await p.evaluate(() => firmById(P.trades.Estrich.firm).name === 'Fa. Neu' && P.tasks[0].res === 'Fa. Neu'), 'Gewerke & Firmen: Firma des Gewerks zurück auf die Vorgabe, Leistung zieht mit');
     }
     // K7: später fertig – Verlängerung am Balken (seit ÜF-3 V1 orange), Grund wählen
     await p.evaluate(() => { showTab('plan'); P.tasks[1].ueber = { at: 3, grund: 'wetter' }; P.tasks[1].pct = 100; render(); }); await warte(300);

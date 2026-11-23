@@ -1111,7 +1111,7 @@ def firms():
         return resp
 
 
-# ---- Leistungskatalog, Abschnitte, Firmen-Vorgaben
+# ---- Leistungskatalog, Abschnitte, Vorgaben
 PHASE_KEY = re.compile(r"^[a-z0-9_]{1,40}$")
 
 
@@ -1190,7 +1190,7 @@ def library(sub=None):
             v = store_get(c, "library", [])
             return jsonify(v if isinstance(v, list) else [])
         if not katalog_darf():
-            return jsonify(error="Den Leistungskatalog für alle Projekte (Leistungen, Abschnitte, Firmen- und Bezugsvorgaben) darfst du nicht ändern – das stellt die Verwaltung je Rolle ein."), 403
+            return jsonify(error="Den Leistungskatalog für alle Projekte (Leistungen, Abschnitte, Bezugsvorgaben) darfst du nicht ändern – das stellt die Verwaltung je Rolle ein."), 403
         b = body()
         if not isinstance(b, list) or len(b) > 5000:
             return jsonify(error="Ungültige Liste"), 400
@@ -1206,7 +1206,7 @@ def phases():
             v = store_get(c, "phases", [])
             return jsonify(v if isinstance(v, list) else [])
         if not katalog_darf():
-            return jsonify(error="Den Leistungskatalog für alle Projekte (Leistungen, Abschnitte, Firmen- und Bezugsvorgaben) darfst du nicht ändern – das stellt die Verwaltung je Rolle ein."), 403
+            return jsonify(error="Den Leistungskatalog für alle Projekte (Leistungen, Abschnitte, Bezugsvorgaben) darfst du nicht ändern – das stellt die Verwaltung je Rolle ein."), 403
         b = body()
         if not isinstance(b, list) or len(b) > 200:
             return jsonify(error="Ungültige Liste"), 400
@@ -1221,22 +1221,6 @@ def phases():
         return jsonify(lst)
 
 
-@app.route("/api/catfirms", methods=["GET", "PUT"])
-def catfirms():
-    with db.tx() as c:
-        if request.method == "GET":
-            v = store_get(c, "catfirms", {})
-            return jsonify(v if isinstance(v, dict) else {})
-        if not katalog_darf():
-            return jsonify(error="Den Leistungskatalog für alle Projekte (Leistungen, Abschnitte, Firmen- und Bezugsvorgaben) darfst du nicht ändern – das stellt die Verwaltung je Rolle ein."), 403
-        b = body()
-        if not isinstance(b, dict):
-            return jsonify(error="Ungültig"), 400
-        o = {k: jstr(v)[:200] for k, v in list(b.items())[:5000] if re.fullmatch(r"gw~[\w.-]{1,57}", k) and truthy(v)}   # nur Vorgaben je Gewerk
-        store_put(c, "catfirms", o, uname())
-        return jsonify(o)
-
-
 @app.route("/api/catscope", methods=["GET", "PUT"])
 def catscope():
     """Bezug (Gebäude / je Einheit) abweichend vom Standardkatalog – Vorgabe für neue Planungen."""
@@ -1245,7 +1229,7 @@ def catscope():
             v = store_get(c, "catscope", {})
             return jsonify(v if isinstance(v, dict) else {})
         if not katalog_darf():
-            return jsonify(error="Den Leistungskatalog für alle Projekte (Leistungen, Abschnitte, Firmen- und Bezugsvorgaben) darfst du nicht ändern – das stellt die Verwaltung je Rolle ein."), 403
+            return jsonify(error="Den Leistungskatalog für alle Projekte (Leistungen, Abschnitte, Bezugsvorgaben) darfst du nicht ändern – das stellt die Verwaltung je Rolle ein."), 403
         b = body()
         if not isinstance(b, dict):
             return jsonify(error="Ungültig"), 400
@@ -1381,7 +1365,7 @@ def import_legacy(c, src):
             cid = save_firm(c, f, by_id, legacy=True)
             if cid is not None:
                 by_id[f["id"]] = c.execute("SELECT * FROM contacts WHERE id=?", (cid,)).fetchone()
-    for key, default in (("presets", []), ("library", []), ("catfirms", {}), ("phases", []), ("settings", {})):
+    for key, default in (("presets", []), ("library", []), ("phases", []), ("settings", {})):
         v = _read_json(os.path.join(src, key + ".json"))
         if v is not None:
             store_put(c, key, v, "Übernahme")

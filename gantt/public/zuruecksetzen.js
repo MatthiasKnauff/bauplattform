@@ -1,13 +1,12 @@
 'use strict';
 /* =====================================================================
-   „↺ Zurücksetzen …“ je Reiter (Mock „Zurücksetzen Leistungskatalog“, GO 22.11.2026): drei Ebenen ab Werk → Büro → Projekt.
+   „↺ Zurücksetzen …“ je Reiter (Mock „Zurücksetzen Leistungskatalog“, GO 22.11.2026): zurück auf die Ebene ab Werk (Firmen je Gewerk für alle Projekte gibt es seit 23.11.2026 nicht mehr).
    Jeder Reiter setzt auf die Ebene davor zurück und zeigt vorher die Liste mit Häkchen – abgehakt = bleibt. Ein Rückgängig für alles.
      katZuruecksetzen() – Leistungskatalog (Büro → ab Werk): Richtdauer/Art/Vorgänger (KatBuero), Bezug (CATSCOPE), Abschnitte (Namen,
                           Reihenfolge); eigene Leistungen und eigene Abschnitte löschen nur, wenn angekreuzt.
-     fvZuruecksetzen()  – Gewerke & Firmen (Projekt → Büro-Vorgabe): Firma je Gewerk = Vorgabe, Leistungen mit eigener Firma = wie Gewerk.
    Einzelne Werte setzt weiter das ↺ an der Zelle zurück; ganze Stände „Ältere Stände …“ am Rückgängig.
    Nutzt aus library.js / katalogbuero.js / firms.js: CATALOG, PH_STD, KatBuero, CATSCOPE, LIBRARY, libDarf, libSchritt, savePhases,
-   saveCatScope, libSet, phLoesche, renderLib, P, act, tradeRows, tradeOf, gwFirm, firmById, firmByName, libProjectRows, isCraftName, renderFirms.
+   saveCatScope, libSet, phLoesche, renderLib.
    ===================================================================== */
 function zrDialog(titel, hin, posten, los) {   // posten: [{ g: Gruppe, t: Text (HTML), an: vorgewählt }] → los(gewählte)
   if (!posten.length) { toast(`${titel}: nichts abweichend – alles wie die Ebene davor.`); return; }
@@ -67,28 +66,3 @@ function katZuruecksetzen() {
   });
 }
 
-function fvZuruecksetzen() {
-  if (!P) return;
-  const P_ = [];
-  tradeRows().forEach((r) => { const d = gwFirm(r.gw), f = firmById(tradeOf(r.gw).firm), cur = f ? f.name : '';
-    if (d && d !== cur) P_.push({ g: 'Firma je Gewerk (Vorgabe für alle Projekte)', t: `${esc(r.gw)} · ${zrPfeil(cur || '– keine –', d)}`, an: true, art: 'gw', gw: r.gw, name: d }); });
-  const firmVon = (g) => { const v = [...new Set(g.idx.map((i) => P.tasks[i].res || ''))]; return v.length === 1 ? v[0] : null; };
-  libProjectRows().forEach((g) => { const f = firmById(tradeOf(g.gw).firm), x = firmVon(g);
-    if (f && (x === null || (x && !isCraftName(x, g.gw) && x !== f.name))) P_.push({ g: 'Leistungen mit eigener Firma', t: `${esc(g.name)} · ${zrPfeil(x === null ? 'verschieden' : x, f.name + ' (wie Gewerk)')}`, an: true, art: 'lp', g0: g, name: f.name }); });
-  zrDialog('Gewerke & Firmen zurücksetzen', `Zurück auf die Vorgaben für alle Projekte – nur in „${esc(P.name)}“. Häkchen weg = bleibt.`, P_, (W) => {
-    let neueFirma = false;
-    act(() => {
-      P.trades = { ...(P.trades || {}) };
-      W.filter((x) => x.art === 'gw').forEach((x) => {
-        let f = firmByName(x.name);
-        if (!f) { f = { id: newFirmId(), name: x.name, gewerke: [x.gw], contact: '', phone: '', mobile: '', mail: '', address: '', note: '' }; FIRMS.push(f); neueFirma = true; }
-        const alt = firmById(tradeOf(x.gw).firm);
-        P.trades[x.gw] = { ...tradeOf(x.gw), firm: f.id };
-        for (const t of P.tasks) if (t.gw === x.gw && (!t.res || (alt && t.res === alt.name))) t.res = f.name;   // wie setTradeFirm: Leistungen mit der alten Firma ziehen mit
-      });
-      W.filter((x) => x.art === 'lp').forEach((x) => { const f = firmById(tradeOf(x.g0.gw).firm); x.g0.idx.forEach((i) => { P.tasks[i].res = f ? f.name : x.name; }); });
-    });
-    if (neueFirma) saveFirmsSoon();
-    renderFirms(); toast(`Gewerke & Firmen: ${W.length} zurückgesetzt – Strg+Z nimmt es zurück.`);
-  });
-}

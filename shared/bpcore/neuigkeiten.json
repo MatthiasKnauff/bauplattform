@@ -1,5 +1,13 @@
 [
  {
+  "id": "katalog-suche-zuklappen-2026-11-23",
+  "datum": "2026-11-23",
+  "app": "gantt",
+  "titel": "Leistungskatalog: Suche, Zuklappen, fester Umschalter",
+  "text": "In „Abhängigkeiten“ findet ein Suchfeld oben jede Leistung aus allen Abschnitten (jedes Wort zählt) und stellt sie in die Mitte. In der Liste klappt ⊟/⊞ oben im Kopf alle Abschnitte zu bzw. auf. Der Umschalter Liste | Abhängigkeiten steht in beiden Ansichten ganz rechts.",
+  "ziel": "#libView .fv-head"
+ },
+ {
   "id": "gantt-scharf-fortschritt",
   "datum": "2026-11-23",
   "app": "gantt",

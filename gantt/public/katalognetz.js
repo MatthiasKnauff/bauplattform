@@ -119,3 +119,16 @@ document.addEventListener('drop', (e) => {
   e.preventDefault(); if (!libDarf()) return libNurAdmin();
   if (z.dataset.kndrop === 'vor') knVerbinde(id, KN.id); else knVerbinde(KN.id, id); renderLib();
 });
+/* Suche oben (23.11.2026): Wortvervollständigung über alle Leistungen aller Abschnitte – jedes Wort irgendwo in Name, Abschnitt oder Gewerk;
+   gewählt (Klick, Enter) → die Leistung steht in der Mitte */
+const knPh = (x) => ((CATALOG.phases.find((p) => p.k === x.ph) || {}).n || '').split(' (')[0];
+if (window.bpVorschlag) bpVorschlag.listen.knSuch = () => knAlle().map((x) => ({ w: x.n, t: `${knPh(x)}${x.gw ? ' · ' + x.gw : ''}`, id: x.id }));
+document.addEventListener('change', (e) => {
+  const q = e.target; if (q.id !== 'knQ') return;
+  const v = q.value.trim().toLowerCase(); if (!v) return;
+  let it = q.dataset.vsId && knIt(q.dataset.vsId); if (it && it.n.toLowerCase() !== v) it = null;
+  if (!it) { const W = v.split(/\s+/); it = knAlle().find((x) => x.n.toLowerCase() === v) || knAlle().find((x) => { const s = `${x.n} ${knPh(x)} ${x.gw || ''}`.toLowerCase(); return W.every((w) => s.includes(w)); }); }
+  if (!it) return toast(`Keine Leistung zu „${q.value.trim()}“.`, true);
+  if (it.id === KN.id) return;   // das Neuzeichnen nimmt das Feld weg – sein „change“ beim Verlassen zeichnet nicht noch einmal
+  KN.id = it.id; q.blur(); renderLib();   // erst verlassen – sonst feuert das Feld beim Entfernen mitten im Neuzeichnen
+});

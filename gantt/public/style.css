@@ -849,7 +849,9 @@ html[data-theme="dunkel"] .kp-chip{border-color:#555;color:#bbb}html[data-theme=
 .bar rect.ue{fill:url(#ueSchraff);stroke:#e8590c;stroke-dasharray:3 2}#ueSchraff .ue-s{fill:#e8590c88}#ueSchraff .ue-h{fill:#fff3ea}
 
 /* Leistungskatalog: Abhängigkeiten, Büro-Abweichungen, Lernen (Mock LK, 22.11.2026) */
-.lv-modus{margin-left:auto}
+.lv-zualle{border:0;background:none;cursor:pointer;font:inherit;font-size:1.1em;line-height:1;padding:0 4px;margin-right:4px;color:var(--accent)}
+.lv-modus{margin-left:auto;order:9}   /* immer ganz rechts – in Liste und Abhängigkeiten an derselben Stelle (23.11.2026) */
+.fv-head .fv-hint{margin-left:0}
 .kn-seg{display:inline-flex;border:1px solid var(--line,#d5d9de);border-radius:999px;padding:2px;background:var(--card,#fff)}.kn-seg button{border:0;background:none;font:inherit;padding:2px 12px;border-radius:999px;cursor:pointer;color:inherit}.kn-seg button.on{background:var(--sel,#e7edf7);font-weight:600}
 .lv-ru{border:0;background:none;color:#b7860b;cursor:pointer;padding:0 2px}.lv-chips{display:inline-flex;flex-wrap:wrap;gap:2px;cursor:pointer;border-radius:4px}.lv-chip{border:1px solid var(--line,#d5d9de);border-radius:999px;padding:0 6px;font-size:.85em;background:var(--card,#fff);white-space:nowrap}.lv-chip.p{color:var(--mut,#6b7380)}
 .lv-lern{margin:6px 0;border:1px solid #c9d6ee;background:#eef3fb;border-radius:8px;padding:5px 10px}.lv-lern summary{cursor:pointer;font-weight:600}.lv-lz{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:5px 0;border-top:1px solid #d9e3f2}

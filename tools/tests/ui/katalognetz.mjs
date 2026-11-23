@@ -27,6 +27,7 @@ export async function katalogNetzPruefen(browser, repo) {
     if (pf === 'api/catlernen') return r.fulfill(J({ dauer: { estrich: [{ p: 'A100', f: 1.5 }, { p: 'A200', f: 1.5 }] }, links: {}, eigene: { 'baustrom-abbau': { n: 'Baustrom-Abbau', gw: 'Elektro', d: 1, p: ['A100', 'A200'] } }, nein: [] }));
     return r.fulfill({ contentType: 'application/json', body: /firms|presets|liste|versions|neuigkeit|kontakte|library/.test(pf) ? '[]' : '{}' }); });
   const warte = (ms) => p.waitForTimeout(ms);
+  let LIBX = 0;
   const letzt = (k) => { const x = PUT.filter((y) => y[0] === k).pop(); return x && x[1]; };
   try {
     await p.goto('http://portal.test/gantt/'); await warte(2000);
@@ -37,6 +38,14 @@ export async function katalogNetzPruefen(browser, repo) {
     pruef(await p.evaluate(() => document.querySelector('#libView input[data-kbd="estrich"]').classList.contains('lv-fown') && !!document.querySelector('#libView [data-kbz="estrich:d"]') && CATALOG.items.find((i) => i.id === 'estrich').d === 3), 'gelb mit ↺, gilt im Katalog');
     await p.click('#libView [data-kbz="estrich:d"]'); await warte(500);
     pruef(!(letzt('api/catbuero') || {}).estrich && await p.evaluate(() => CATALOG.items.find((i) => i.id === 'estrich').d === 2), '↺ zurück auf Werk');
+    {   // 23.11.2026: ⊟/⊞ oben im Kopf klappt alle Abschnitte zu und wieder auf
+      await p.click('#libView [data-lzualle="zu"]'); await warte(300);
+      const z = await p.evaluate(() => ({ zu: libPhases().every((x) => libZu.has(x.k)), std: document.querySelectorAll('#libView tr.lv-std').length, k: !!document.querySelector('#libView [data-lzualle="auf"]') }));
+      await p.click('#libView [data-lzualle="auf"]'); await warte(300);
+      const a = await p.evaluate(() => ({ zu: libZu.size, std: document.querySelectorAll('#libView tr.lv-std').length }));
+      pruef(z.zu && z.std === 0 && z.k && a.zu === 0 && a.std > 0, `alle Abschnitte zu/auf: ${JSON.stringify({ z, a })}`);
+      const lage = await p.evaluate(() => document.querySelector('#libView .lv-modus').getBoundingClientRect().right); LIBX = lage;
+    }
     // B: Abhängigkeiten – Estrich in der Mitte, Vorgänger links, Nachfolger rechts
     await p.click('#libView tr.lv-std [data-lnetz="estrich"]'); await p.waitForSelector('.kn-mk');
     const b = await p.evaluate(() => ({ m: document.querySelector('.kn-mk b').textContent, vor: [...document.querySelectorAll('[data-kndrop="vor"] .kn-k b')].map((x) => x.textContent), nach: document.querySelectorAll('[data-kndrop="nach"] .kn-k').length, nachN: [...document.querySelectorAll('[data-kndrop="nach"] .kn-k b')].map((x) => x.textContent), probe: document.querySelector('.kn-probe').textContent }));
@@ -47,6 +56,17 @@ export async function katalogNetzPruefen(browser, repo) {
       await p.click('.kn-k[data-knk="putz"]'); await warte(300);
       const w = await p.evaluate(() => ({ w: document.querySelector('.kn-l').offsetWidth, griffe: document.querySelectorAll('.kn .bp-nav-griff').length }));
       pruef(w.w >= g.w0 + 60 && w.griffe === 1, `linke Spalte ziehen: ${JSON.stringify({ g, w })}`);
+      await p.evaluate(() => { KN.id = 'estrich'; renderLib(); }); await warte(300);
+    }
+    {   // 23.11.2026: Umschalter steht in beiden Ansichten an derselben Stelle; Suche über alle Abschnitte
+      const r = await p.evaluate(() => document.querySelector('#libView .lv-modus').getBoundingClientRect().right);
+      pruef(Math.abs(r - LIBX) < 2, `Umschalter Liste|Abhängigkeiten springt: ${LIBX} → ${r}`);
+      await p.click('#knQ'); await p.type('#knQ', 'dämm dach'); await warte(250);
+      const v = await p.evaluate(() => [...document.querySelectorAll('.bp-vs .bp-vs-z b')].map((x) => x.textContent));
+      pruef(v.length > 0 && v.every((x) => /dach/i.test(x) && /dämm/i.test(x)), `Vorschläge über alle Abschnitte (jedes Wort): ${JSON.stringify(v)}`);
+      await p.press('#knQ', 'Enter'); await warte(400);
+      const m = await p.evaluate(() => document.querySelector('.kn-mk b').textContent);
+      pruef(m === v[0], `gewählte Leistung steht in der Mitte: ${m} / ${v[0]}`);
       await p.evaluate(() => { KN.id = 'estrich'; renderLib(); }); await warte(300);
     }
     await p.evaluate(() => knVerbinde('el_roh', 'estrich')); await warte(500);

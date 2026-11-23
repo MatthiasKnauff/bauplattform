@@ -111,12 +111,12 @@ function renderLib() {
   let h = '<div class="fv">';
   const nurLesen = () => { if (libDarf()) return;   // Katalog für alle Projekte: nur ansehen
     const fv = box.querySelector('.fv'); fv.insertAdjacentHTML('afterbegin', '<div class="lv-ro">🔒 Nur ansehen – den Katalog für alle Projekte (Leistungen, Abschnitte, Vorgaben) pflegt der Administrator.</div>');
-    fv.querySelectorAll('input:not(#libQ),select,textarea').forEach((x) => { x.disabled = true; });
-    fv.querySelectorAll('button').forEach((x) => { if (!/^(lstd|lsort|phklapp)$/.test(Object.keys(x.dataset)[0] || '')) x.disabled = true; });
+    fv.querySelectorAll('input:not(#libQ):not(#knQ),select,textarea').forEach((x) => { x.disabled = true; });
+    fv.querySelectorAll('button').forEach((x) => { if (!/^(lstd|lsort|phklapp|lzualle)$/.test(Object.keys(x.dataset)[0] || '')) x.disabled = true; });
     fv.querySelectorAll('[draggable]').forEach((x) => x.removeAttribute('draggable')); };
   const modus = `<span class="kn-seg lv-modus" role="tablist"><button type="button" role="tab" data-lmodus="liste" aria-selected="${LIBMODUS === 'liste'}" class="${LIBMODUS === 'liste' ? 'on' : ''}">Liste</button><button type="button" role="tab" data-lmodus="netz" aria-selected="${LIBMODUS === 'netz'}" class="${LIBMODUS === 'netz' ? 'on' : ''}">Abhängigkeiten</button></span>`;
   if (LIBMODUS === 'netz' && window.KatBuero && typeof katNetzHtml === 'function') {
-    box.innerHTML = `<div class="fv"><div class="fv-head"><div><h3>Leistungskatalog</h3><span>eine Leistung in der Mitte – Vorgänger links, Nachfolger rechts</span></div>${modus}</div>${libLernHtml()}${katNetzHtml(LIBNETZ)}</div>`;
+    box.innerHTML = `<div class="fv"><div class="fv-head"><div><h3>Leistungskatalog</h3><span>eine Leistung in der Mitte – Vorgänger links, Nachfolger rechts</span></div>${modus}<input id="knQ" class="lv-q" type="search" data-vs="knSuch" data-vs-woerter autocomplete="off" placeholder="Leistung suchen – alle Abschnitte …" aria-label="Leistung suchen"></div>${libLernHtml()}${katNetzHtml(LIBNETZ)}</div>`;
     LIBNETZ = null;   // nur einmal: danach führt die Ansicht selbst (Klick auf eine Kiste)
     if (window.bpNav && bpNav.breite) bpNav.breite(box.querySelector('.kn-l'), { key: 'katnetz', min: 150, max: 480 });   // linke Spalte in der Breite ziehen (23.11.2026)
     nurLesen(); return;
@@ -124,7 +124,7 @@ function renderLib() {
   h += `<div class="fv-head"><div><h3>Leistungskatalog</h3><span>${libPhases().length} Abschnitte · ${L.length} eigene Leistungen · gilt für alle neuen Planungen (Planungsassistent)</span></div>${modus}
     <input id="libQ" class="lv-q" placeholder="Suchen …" value="${esc(libQuery)}">
     <span class="fv-hint">Firmen stehen nicht im Katalog: sie gehören zum Projekt (Reiter „Gewerke &amp; Firmen“). Eigene Leistungen erscheinen im Planungsassistenten im gewählten Abschnitt – unter „Weitere Leistungen“ oder, wenn unter <b>Vorausgewählt bei</b> die Projektart markiert ist, dort gleich angekreuzt. Beim Einfügen bekommt die Leistung die Firma, die ihr Gewerk im Projekt hat. <b>Abschnitte</b>: Namen in der blauen Zeile überschreiben, am ⠿ ziehen, oben „＋ Abschnitt“.</span></div>
-    ${libLernHtml()}<div class="fv-scroll"><table class="fv-t lv-t" data-tk="lv-alle"><thead><tr><th style="min-width:250px">Leistung</th><th>Abschnitt</th><th style="min-width:120px">Gewerk</th><th>DIN</th><th style="min-width:140px" title="Rolle der ausführenden Firma oder Planer:in, z. B. Tragwerksplaner, Rohbauer">Fachrichtung</th><th>Bezug</th><th class="num">AT</th><th style="min-width:170px">Folgt auf</th><th style="min-width:150px">Muss fertig sein vor</th><th style="min-width:130px" title="Bei welchen Projektarten der Planungsassistent diese Leistung von sich aus ankreuzt. Symbol anklicken = ein/aus. Bei allen anderen Projektarten steht sie zur Auswahl, ist aber nicht angekreuzt.">Vorausgewählt bei</th><th></th></tr></thead><tbody>`;
+    ${libLernHtml()}<div class="fv-scroll"><table class="fv-t lv-t" data-tk="lv-alle"><thead><tr><th style="min-width:250px">${libZuKnopf()}Leistung</th><th>Abschnitt</th><th style="min-width:120px">Gewerk</th><th>DIN</th><th style="min-width:140px" title="Rolle der ausführenden Firma oder Planer:in, z. B. Tragwerksplaner, Rohbauer">Fachrichtung</th><th>Bezug</th><th class="num">AT</th><th style="min-width:170px">Folgt auf</th><th style="min-width:150px">Muss fertig sein vor</th><th style="min-width:130px" title="Bei welchen Projektarten der Planungsassistent diese Leistung von sich aus ankreuzt. Symbol anklicken = ein/aus. Bei allen anderen Projektarten steht sie zur Auswahl, ist aber nicht angekreuzt.">Vorausgewählt bei</th><th></th></tr></thead><tbody>`;
   let shown = 0;
   for (const [phi, ph] of libPhases().entries()) {
     const own = L.filter((x) => x.ph === ph.k && hit(x));
@@ -354,6 +354,10 @@ function libKlapp() {   // drei Stellungen je Klick: alles offen → nur eigene 
   libEk = (libEk + 1) % 3; libZu = new Set(libEk === 2 ? libPhases().map((p) => p.k) : []);
   LS.set('libEk', libEk); LS.set('libZu', [...libZu]); renderLib();
 }
+/* ⊟/⊞ oben in der Kopfzeile wie in allen Bäumen (LV, Bauteile): alle Abschnitte zu bzw. auf (23.11.2026) */
+function libZuKnopf() { const z = libPhases().some((p) => libZu.has(p.k));
+  return `<button type="button" class="ib lv-zualle" data-lzualle="${z ? 'auf' : 'zu'}" title="${z ? 'alle Abschnitte aufklappen' : 'alle Abschnitte zuklappen'}" aria-label="${z ? 'alle Abschnitte aufklappen' : 'alle Abschnitte zuklappen'}">${z ? '⊞' : '⊟'}</button>`; }
+function libZuAlle(zu) { libZu = new Set(zu ? libPhases().map((p) => p.k) : []); if (!zu && libEk === 2) { libEk = 0; LS.set('libEk', 0); } LS.set('libZu', [...libZu]); renderLib(); }
 function libPhKlapp(k) { if (libZu.has(k)) libZu.delete(k); else libZu.add(k); LS.set('libZu', [...libZu]); renderLib(); }
 
 /* ---------- Untertabelle: Firmen im geöffneten Projekt ---------- */
@@ -425,6 +429,7 @@ $('#libView').addEventListener('change', (e) => {
 });
 $('#libView').addEventListener('input', (e) => { if (e.target.id === 'libQ') { libQuery = e.target.value; libFocus = '#libQ'; renderLib(); const q = $('#libQ'); if (q) { const n = q.value.length; q.setSelectionRange(n, n); } } });
 $('#libView').addEventListener('click', (e) => {
+  const za = e.target.closest && e.target.closest('[data-lzualle]'); if (za) { libZuAlle(za.dataset.lzualle === 'zu'); return; }
   const kl = e.target.closest && e.target.closest('[data-phklapp]'); if (kl) { libPhKlapp(kl.dataset.phklapp); return; }
   if (typeof katNetzKlick === 'function' && katNetzKlick(e)) return;
   const nz = e.target.closest('[data-lnetz]'); if (nz) { LIBNETZ = nz.dataset.lnetz; LIBMODUS = 'netz'; LS.set('libModus', 'netz'); renderLib(); return; }

@@ -3,6 +3,7 @@
    Listen: window.bpVorschlag.listen[name] = [{w:'m2', t:'Quadratmeter'}, …] oder Funktion(input) → Liste.
    Optional bpVorschlag.norm[name] = Funktion(wert) → vereinheitlichter Wert beim Verlassen des Feldes.
    Eintrag mit quelle (z. B. {w:'Bauherr*in', quelle:'kontakt.trade'}): 🗑 am Ende – löschen mit Ersatz (begriffe.js, Kern begriffe.py).
+   <input data-vs="x" data-vs-woerter> → jedes Wort irgendwo in w oder t; Einträge mit id setzen beim Wählen inp.dataset.vsId.
    <input data-vs="kammer" data-vs-kern> → Liste aus dem Kern (stammdaten.LISTEN: fest + was im Büro steht), geladen erst beim ersten Zeigen. */
 (() => {
   if (window.bpVorschlag) return;
@@ -31,7 +32,9 @@
     /* data-vs-frei (Such- und Filterfelder, 23.11.2026): der getippte Text gilt selbst – Treffer irgendwo im Wort, nichts vorgewählt,
        Enter übernimmt keinen Vorschlag (sonst filterte „Dach“ nur nach „Dachdecker“); erst ↑/↓ wählt einen */
     const frei = inp.hasAttribute('data-vs-frei');
-    L = q ? li.filter((x) => (frei ? x.w.toLowerCase().includes(q) : x.w.toLowerCase().startsWith(q)) || (x.t || '').toLowerCase().startsWith(q) || (V.norm[n] && V.norm[n](q) === x.w)) : li;
+    /* data-vs-woerter (23.11.2026): jedes getippte Wort muss im Vorschlag (w oder t) vorkommen, in beliebiger Reihenfolge */
+    const W = inp.hasAttribute('data-vs-woerter') ? q.split(/\s+/).filter(Boolean) : null;
+    L = W ? li.filter((x) => { const s = (x.w + ' ' + (x.t || '')).toLowerCase(); return W.every((w) => s.includes(w)); }) : q ? li.filter((x) => (frei ? x.w.toLowerCase().includes(q) : x.w.toLowerCase().startsWith(q)) || (x.t || '').toLowerCase().startsWith(q) || (V.norm[n] && V.norm[n](q) === x.w)) : li;
     if (q && L.length === 1 && L[0].w === inp.value.trim()) L = [];
     if (!L.length) { if (POP) POP.remove(); POP = null; return; }
     if (!POP) { POP = document.createElement('div'); POP.className = 'bp-vs'; POP.setAttribute('role', 'listbox'); document.body.appendChild(POP); }
@@ -45,7 +48,8 @@
   }
   function nehmen(i) {
     const x = L[i], inp = IN; if (!x || !inp) return; zu();
-    inp.value = x.w; STILL = true; try { inp.dispatchEvent(new Event('input', { bubbles: true })); inp.dispatchEvent(new Event('change', { bubbles: true })); } finally { STILL = false; }
+    inp.value = x.w; if (x.id != null) inp.dataset.vsId = x.id; else delete inp.dataset.vsId;   // id: Eintrag eindeutig, auch bei gleichem Text
+    STILL = true; try { inp.dispatchEvent(new Event('input', { bubbles: true })); inp.dispatchEvent(new Event('change', { bubbles: true })); } finally { STILL = false; }
   }
   const ziel = (e) => e.target && e.target.matches && e.target.ownerDocument === document && e.target.matches('input[data-vs]') ? e.target : null;   // nicht in eigenen Fenstern (seite.js)
   /* die ganze Liste klappt nur mit der Maus auf (Klick ins Feld) oder mit Alt+↓ – wer mit Tab/Enter durch die Felder geht, bekommt

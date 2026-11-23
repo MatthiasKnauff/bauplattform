@@ -323,25 +323,34 @@ function renderTable() {
   const cols = COLS, ausStd = SP_AUS.map((k) => COLS.findIndex((c) => c[0] === k)), aus = bpSpalten.stand('adressen', COLS.length + 1, ausStd).aus, rows = tableRows(), ae = document.activeElement, keep = ae && ae.dataset && ae.dataset.fk;
   $('#cnt').textContent = `${rows.length} von ${ALL.length} Kontakten · Zelle anklicken und tippen – gespeichert wird beim Verlassen des Feldes · Doppelklick öffnet den Kontakt`;
   const cw = (k, w) => TV.w[k] || w, total = cols.reduce((a, [k, , w], n) => a + (aus.has(n) ? 0 : cw(k, w)), 0) + 130;
-  $('#tw').innerHTML = `<table class="tt" data-sp="adressen" data-spaus="${ausStd.join(',')}" style="width:${total}px;min-width:100%"><colgroup>${cols.map(([k, , w]) => `<col data-col="${k}" style="width:${cw(k, w)}px">`).join('')}<col style="width:130px"></colgroup>
+  $('#tw').innerHTML = `<table class="tt" data-sp="adressen" data-spaus="${ausStd.join(',')}" style="width:${total}px"><colgroup>${cols.map(([k, , w]) => `<col data-col="${k}" style="width:${cw(k, w)}px">`).join('')}<col class="adr-rest" style="width:130px"></colgroup>
     <thead><tr class="h">${cols.map(([k, l]) => `<th data-sort="${k}" data-spname="${l}" title="Sortieren · Rand ziehen: Breite ändern · rechte Maustaste: Spalten wählen">${k === 'name' ? '<input type="checkbox" class="adr-ck" data-adrckall aria-label="alle gefilterten wählen" title="alle gefilterten wählen (Strg+A)">' : ''}${l}${TV.sort.k === k ? `<span class="ar">${TV.sort.d > 0 ? '▲' : '▼'}</span>` : ''}<span class="rz" data-rz="${k}" title="Ziehen: Spaltenbreite · Doppelklick: Standardbreite"></span></th>`).join('')}<th></th></tr>
     <tr class="f">${cols.map(([k, l]) => `<th>${fltField(k, l)}</th>`).join('')}<th>${anyFlt() ? '<button class="btn sm" data-clr="*" title="Alle Filter und die Suche löschen">✕ Alle</button>' : ''}</th></tr></thead>
     <tbody>${tbodyHtml(rows, cols)}</tbody></table>`;
   if (keep) { const n = document.querySelector(`[data-fk="${keep}"]`) || document.querySelector(`[data-flt="${keep}"]`); if (n) n.focus(); }
   bpSpalten.anwenden($('#tw table'));   // Reihenfolge und Ausblenden sofort – ohne sichtbaren Zwischenstand
-  fitTw();
+  fitTw(); twBreite();
   adrNachRender();
 }
 // Tabelle reicht bis zum Fensterrand – so ist der waagerechte Rollbalken immer sichtbar
 function fitTw() { const t = $('#tw'); if (!t || t.hidden) return; t.style.maxHeight = Math.max(260, innerHeight - t.getBoundingClientRect().top - 14) + 'px'; }
 addEventListener('resize', fitTw);
+/* Breite wie in Excel: jede Spalte behält ihre Breite, nur die letzte (Knöpfe) nimmt den Rest bis zum Rand. Vorher streckte
+   „min-width:100%“ die Tabelle auf die Fensterbreite – beim Ziehen einer Spalte verteilte der Browser den Rest neu auf alle Spalten,
+   alle anderen wanderten mit (Video 23.11.2026). Erst messen, dann setzen. */
+function twBreite() {
+  const t = $('#tw table.tt'); if (!t) return;
+  const sum = [...t.querySelectorAll(':scope > colgroup > col[data-col]:not(.bp-sp-aus)')].reduce((a, c) => a + parseFloat(c.style.width), 0), rest = Math.max(130, $('#tw').clientWidth - sum);
+  t.querySelector(':scope > colgroup > col.adr-rest').style.width = rest + 'px'; t.style.width = (sum + rest) + 'px';
+}
+new ResizeObserver(twBreite).observe($('#tw'));
 // Spaltenbreite mit der Maus ändern (Rand rechts im Spaltenkopf)
 $('#tw').addEventListener('pointerdown', (e) => {
   const h = e.target.closest('[data-rz]'); if (!h) return;
   e.preventDefault(); e.stopPropagation();
-  const k = h.dataset.rz, col = document.querySelector(`col[data-col="${k}"]`), tbl = document.querySelector('.tt'), x0 = e.clientX, w0 = col.getBoundingClientRect().width || parseFloat(col.style.width), t0 = tbl.getBoundingClientRect().width;
+  const k = h.dataset.rz, col = document.querySelector(`col[data-col="${k}"]`), x0 = e.clientX, w0 = parseFloat(col.style.width);
   h.classList.add('on'); h.setPointerCapture(e.pointerId);
-  const mv = (ev) => { const w = Math.max(50, Math.round(w0 + ev.clientX - x0)); col.style.width = w + 'px'; tbl.style.width = (t0 + w - w0) + 'px'; TV.w[k] = w; };
+  const mv = (ev) => { const w = Math.max(50, Math.round(w0 + ev.clientX - x0)); col.style.width = w + 'px'; TV.w[k] = w; twBreite(); };   // nur diese Spalte – rechts davon rückt nach
   const up = () => { h.classList.remove('on'); h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); tvSave(); TV.rzT = Date.now(); };
   h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up);
 });

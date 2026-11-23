@@ -8,6 +8,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Seite „Ablauf“ auch für Einheiten** (Kisten „Gebäude / Allgemein“, „Einheit 1“, „Einheit 2“ mit Takt-Pfeilen) – Fragen offen, Mock folgt **ca. 30 min**
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; 3D-Auswahl später) – B erledigt durch das Raumbuch (17.11.: Gruppen, abweichender Raum eigene Zeile) **ca. 1,5 h**
+- ~~Adressen: Spaltenbreite ziehen – nur die gezogene Spalte ändert sich, die Knopfspalte nimmt den Rest (23.11.2026)~~
 - ~~Adressen: Schriftverkehr rechts anklickbar (Eintrag mit Text, ↑ ↓, ↗ öffnen) – 23.11.2026~~
 - ~~Bauzeitenplan: Projektauswahl in „Aus anderem Plan übernehmen“ ohne native Listen (Suche, Zeilen, Versionen als Knöpfe) – 23.11.2026~~
 - ~~Leistungskatalog „Abhängigkeiten“: Nachfolger zeigten den Namen der Mitte; linke Spalte in der Breite ziehbar~~ (23.11.2026)

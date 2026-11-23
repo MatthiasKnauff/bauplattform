@@ -158,6 +158,14 @@ export async function adrStartPruefen(browser, repo) {
         return null; });
       await p.evaluate(() => setView('tabelle')); await p.waitForSelector('#tw tbody tr[data-id="1"]');
       const reihe = await p.evaluate(() => tableRows().map((c) => c.id));
+      {   // 23.11.2026 (Video): Spaltenbreite ziehen – nur die gezogene Spalte ändert sich, die anderen bleiben stehen; die Tabelle füllt die Breite
+        const br = () => p.evaluate(() => [...document.querySelectorAll('#tw thead tr.h th')].filter((h) => h.offsetWidth).map((h) => Math.round(h.getBoundingClientRect().width)));
+        const vor = await br(), g = await p.evaluate(() => { const r = document.querySelector('#tw [data-rz="trade"]').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+        await p.mouse.move(g.x, g.y); await p.mouse.down(); await p.mouse.move(g.x + 60, g.y, { steps: 4 }); await p.mouse.up();
+        const nach = await br(), i = await p.evaluate(() => [...document.querySelectorAll('#tw thead tr.h th')].filter((h) => h.offsetWidth).findIndex((h) => h.dataset.sort === 'trade'));
+        const voll = await p.evaluate(() => Math.abs(document.querySelector('#tw table').getBoundingClientRect().width - document.querySelector('#tw').clientWidth) <= 1 || document.querySelector('#tw table').scrollWidth > document.querySelector('#tw').clientWidth);
+        pruef(i > 0 && Math.abs(nach[i] - vor[i] - 60) <= 2 && vor.every((w, n) => n === i || n === vor.length - 1 || Math.abs(nach[n] - w) <= 1) && voll, `Spaltenbreite ziehen: nur „Gewerk“ ändert sich – vorher ${vor}, nachher ${nach}, voll ${voll}`);
+      }
       {   // 23.11.2026: mit „Häkchen als Schalter“ bleibt der Auswahl-Haken ein Häkchen und steht neben dem Namen (der Schalter schob den Namen in eine zweite Zeile)
         const sw = await p.evaluate(() => { document.documentElement.dataset.schalter = 'an'; const c = document.querySelector('#tw tbody tr [data-adrck]'), i = document.querySelector('#tw tbody tr td.nm input[data-fk]'), cr = c.getBoundingClientRect(), ir = i.getBoundingClientRect();
           const r = { app: getComputedStyle(c).appearance, nebeneinander: cr.top >= ir.top - 2 && cr.bottom <= ir.bottom + 2 }; delete document.documentElement.dataset.schalter; return r; });

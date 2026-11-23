@@ -1,5 +1,13 @@
 [
  {
+  "id": "adr-spaltbreite-2311",
+  "datum": "2026-11-23",
+  "app": "adressen",
+  "titel": "Spaltenbreite ziehen ohne Wackeln",
+  "text": "In der Tabelle der Adressen ändert sich beim Ziehen am Spaltenrand nur diese Spalte – die anderen bleiben stehen, rechts rückt alles nach.",
+  "ziel": "#tw thead"
+ },
+ {
   "id": "adr-schrift-oeffnen",
   "datum": "2026-11-23",
   "app": "adressen",

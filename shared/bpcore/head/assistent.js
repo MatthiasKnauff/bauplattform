@@ -51,7 +51,7 @@
 .pa-eg .pa-ez{display:flex;gap:.5rem;align-items:baseline;font-size:.86rem}.pa-eg .pa-ez span{flex:1}.pa-x{font:inherit;font-size:.78rem;background:none;border:0;color:var(--red,#c62f2a);cursor:pointer;padding:0;text-decoration:underline}
 .pa-ei{display:flex;gap:.4rem;flex-wrap:wrap}.pa-ei input{flex:1 1 12rem;min-width:0;font:inherit;padding:.25rem .4rem;border:1px solid var(--line,#d5d9de);border-radius:var(--rk,4px);background:var(--card,#fff);color:inherit}.pa-ei input.k{flex:0 0 4.5rem}
 .pa-vs{border:1px solid var(--y,#2f6fb3);border-radius:var(--rk,6px);padding:.3rem .55rem;display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap;font-size:.86rem}.pa-vs span{flex:1 1 14rem}.pa-vs small{opacity:.7}
-.pa-q{width:100%;box-sizing:border-box;font:inherit;padding:.35rem .5rem;border:1px solid var(--line,#d5d9de);border-radius:var(--rk,4px);background:var(--card,#fff);color:inherit}.pa-l[hidden],.pa-ph[hidden]{display:none}
+.pa-q{position:sticky;top:0;z-index:3;box-shadow:0 2px 6px rgba(0,0,0,.06);width:100%;box-sizing:border-box;font:inherit;padding:.35rem .5rem;border:1px solid var(--line,#d5d9de);border-radius:var(--rk,4px);background:var(--card,#fff);color:inherit}.pa-l[hidden],.pa-ph[hidden]{display:none}
 .pa-gm{float:right;text-decoration:none;margin-top:.15rem}.pa-grip{cursor:grab;opacity:.45;user-select:none}.pa-l.ziel{box-shadow:0 -2px 0 var(--af,#3b5a8f)}.pa-dz{white-space:nowrap;font-size:.78rem;opacity:.85}.pa-d{width:3.2rem;font:inherit;text-align:right;padding:0 .2rem;border:1px solid var(--line,#d5d9de);border-radius:var(--rk,4px);background:var(--card,#fff);color:inherit}.pa-d.mod{background:color-mix(in srgb,#e8b400 22%,var(--card,#fff))}
 .pa-lk{display:flex;flex-wrap:wrap;gap:.4rem .8rem;align-items:center;margin:.2rem 0 .5rem;font-size:.84rem}.pa-lk input{width:3.4rem;font:inherit;text-align:right}
 .pa-l .pa-eig{font-size:.72rem;border:1px solid var(--line,#d5d9de);border-radius:1em;padding:0 .4em;margin-left:.3rem}
@@ -193,7 +193,7 @@
         <div class="pa-lk"><label>Bauzeit-Faktor <input data-pafak inputmode="decimal" value="${esc(String(c.fak || 1).replace('.', ','))}" title="für alle Leistungen – z. B. 1,2 = 20 % länger (Winter, enge Baustelle); von Hand gesetzte Dauern bleiben"></label>
           <button type="button" class="btn sm" data-pavs>Vorlage speichern …</button><button type="button" class="btn sm" data-pavw>Vorlage laden ▾</button></div>
         ${(Z.lern || []).filter((v) => v.art === 'dauer').map(vorschlagHtml).join('')}
-        <input type="search" class="pa-q" data-paq value="${esc(Z.q || '')}" placeholder="Leistung suchen – in allen Abschnitten und unter „Weitere Leistungen“" aria-label="Leistung suchen">
+        <input type="search" class="pa-q" data-paq data-vs="paLst" autocomplete="off" value="${esc(Z.q || '')}" placeholder="Leistung suchen – in allen Abschnitten und unter „Weitere Leistungen“" aria-label="Leistung suchen">
         ${(Z.lern || []).filter((v) => v.art === 'leistung').map(vorschlagHtml).join('')}
         ${PH.filter((p) => by[p.k]).map((p) => `<details class="pa-ph" data-ph="${esc(p.k)}"${Z.auf.has(p.k) ? ' open' : ''}><summary><b>${esc(p.n)}</b><span class="pa-z">${by[p.k].filter((x) => x[1]).length} / ${by[p.k].length}</span></summary>${by[p.k].map((x) => x[0]).join('')}
           <div class="pa-ei"><input data-paln="${esc(p.k)}" placeholder="eigene Leistung in „${esc(p.n)}“" aria-label="Name der eigenen Leistung"><input class="k" data-pald="${esc(p.k)}" type="number" min="1" max="999" value="5" aria-label="Dauer in Arbeitstagen" title="Dauer (Arbeitstage)"><input class="k" data-palg="${esc(p.k)}" placeholder="Gewerk" aria-label="Gewerk"><button type="button" class="btn sm" data-palneu="${esc(p.k)}">＋ Leistung</button></div></details>`).join('')}
@@ -467,11 +467,19 @@
     const suchen = () => {   // Leistungen filtern ohne neu zu zeichnen (Fokus bleibt im Feld); Abschnitte mit Treffern gehen auf
       const q = (Z.q || '').trim().toLowerCase(), D = [...el.querySelectorAll('details.pa-ph')];
       D.forEach((d) => {
-        let n = 0; d.querySelectorAll('.pa-l').forEach((l) => { const ja = !q || l.textContent.toLowerCase().includes(q); l.hidden = !ja; n += ja; });
+        const W = q.split(/\s+/).filter(Boolean);   // jedes Wort muss vorkommen („sockel putz“)
+        let n = 0; d.querySelectorAll('.pa-l').forEach((l) => { const t = l.textContent.toLowerCase(), ja = W.every((w) => t.includes(w)); l.hidden = !ja; n += ja; });
         d.hidden = !!q && !n; if (q && n) d.open = true; else if (!q) d.open = Z.auf.has(d.dataset.ph);
       });
     };
     el.addEventListener('input', (e) => { if (e.target.matches('[data-paq]')) { Z.q = e.target.value; suchen(); } });
+    /* Wortvervollständigung im Suchfeld der Leistungen (23.11.2026): Wörter aus den Namen aller Leistungen hier, die häufigsten zuerst –
+       gemeinsame Vorschlagsliste (bp/vorschlag.js) wie im Bauzeitenplan; das Feld steht oben fest (sticky), auch beim Rollen durch die Liste */
+    if (window.bpVorschlag) bpVorschlag.listen.paLst = () => {
+      const N = new Map();
+      el.querySelectorAll('.pa-l').forEach((l) => String(l.textContent).split(/[^\p{L}\p{N}-]+/u).forEach((w) => { w = w.replace(/^-+|-+$/g, ''); if (w.length < 3 || /^\d+$/.test(w)) return; const k = w.toLowerCase(), x = N.get(k); if (x) x.n++; else N.set(k, { w, n: 1 }); }));
+      return [...N.values()].sort((a, b) => b.n - a.n || a.w.localeCompare(b.w, 'de')).map((x) => ({ w: x.w, t: `${x.n}×` }));
+    };
     new MutationObserver(() => { if (Z.q && el.querySelector('[data-paq]')) suchen(); }).observe(el, { childList: true });
     el.addEventListener('toggle', (e) => { const d = e.target; if (d.dataset && d.dataset.patd) { if (d.open) Z.tlZu.delete(d.dataset.patd); else Z.tlZu.add(d.dataset.patd); merk('tlzu', JSON.stringify([...Z.tlZu])); return; }
       if (d.dataset && d.dataset.ph && !Z.q) { if (d.open) Z.auf.add(d.dataset.ph); else Z.auf.delete(d.dataset.ph); } }, true);   // offene Abschnitte der Leistungen merken

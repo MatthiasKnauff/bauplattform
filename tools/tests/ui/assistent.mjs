@@ -13,7 +13,7 @@ export async function assistentPruefen(browser, repo) {
   const fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
   const SEITE = (pid) => `<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/bp/bp.css"><link rel="stylesheet" href="/bp/head.css"><body>
     <div id="work" style="display:grid;margin-bottom:40px"><section>Tabelle</section></div><div id="ohne" style="display:grid"><section>ohne Projektbezug</section></div>
-    <script>window.BP_HEAD_BASIS = ['/bp/', '']; window.BPHead = { projektId: () => ${pid} };</script>${ESC}<script src="/bp/bp.js"></script><script src="/bp/seite.js"></script>
+    <script>window.BP_HEAD_BASIS = ['/bp/', '']; window.BPHead = { projektId: () => ${pid} };</script>${ESC}<script src="/bp/bp.js"></script><script src="/bp/seite.js"></script><script src="/bp/vorschlag.js"></script>
     <script>seite(document.getElementById('work'), 'ba', [{ id: 'pdf', titel: 'PDF', mount: (el) => { el.textContent = 'PDF'; } }], { start: 'pdf' });
       seite(document.getElementById('ohne'), 'bt', [{ id: 'kal', titel: 'Kalender', mount: (el) => { el.textContent = 'K'; } }]);</script>`;
   const LINKS = [{ app: 'termine', name: 'Termine', richtung: 'beide', uebernahme: 'uebernahme', zustand: 'lebendig' }, { app: 'kosten', name: 'Kosten', richtung: 'zur_app', uebernahme: 'auto', zustand: 'lebendig' }];
@@ -96,6 +96,13 @@ export async function assistentPruefen(browser, repo) {
     pruef(such.n > 0 && such.alle && such.zu === 0, `Suche in den Leistungen: ${JSON.stringify(such)}`);
     await p.fill('#work [data-paq]', '');
     pruef(await p.evaluate(() => ![...document.querySelectorAll('#work .pa-l')].some((l) => l.hidden)), 'Suche leeren zeigt wieder alle');
+    if (await p.evaluate(() => !!window.bpVorschlag)) {   // Wortvervollständigung (23.11.2026): Wörter aus den Leistungen, das Feld steht oben fest
+      await p.click('#work [data-paq]'); await p.keyboard.type('estr'); await p.waitForTimeout(250);
+      const v = await p.evaluate(() => [...document.querySelectorAll('.bp-vs-z b')].map((b) => b.textContent));
+      pruef(v.some((w) => /^estrich/i.test(w)), `Suche in den Leistungen: keine Vervollständigung für „estr“ (${v.slice(0, 5)})`);
+      pruef(await p.evaluate(() => getComputedStyle(document.querySelector('#work [data-paq]')).position === 'sticky'), 'Suchfeld der Leistungen steht nicht oben fest');
+      await p.fill('#work [data-paq]', ''); await p.keyboard.press('Escape');
+    }
     await p.click('#work .pa-nav .btn.primary'); await p.fill('#work [data-pam="baubeginn"]', '2027-03-01'); await p.dispatchEvent('#work [data-pam="baubeginn"]', 'change');
     await p.click('#work .pa-nav .btn.primary'); pruef(await schritt(p) === 'fertig', 'letzter Schritt fehlt');
     const apps = await p.evaluate(() => [...document.querySelectorAll('#work .pa-app b')].map((b) => b.textContent).join('|') + ' rot=' + document.querySelectorAll('#work .pa-app .pa-z.rot').length);

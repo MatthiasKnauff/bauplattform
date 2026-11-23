@@ -1,5 +1,13 @@
 [
  {
+  "id": "leistung-suche-2311",
+  "datum": "2026-11-23",
+  "app": "gantt",
+  "titel": "Leistungen suchen mit Vervollständigung",
+  "text": "In der Planung (Schritt Leistungen) bleibt das Suchfeld beim Rollen oben stehen. Beim Tippen schlägt es Wörter aus den Leistungen vor (z. B. „estr“ → Estrich). Gefiltert wird nach jedem Wort, z. B. „sockel putz“.",
+  "ziel": "[data-paq]"
+ },
+ {
   "id": "korb-mehr-2311",
   "datum": "2026-11-23",
   "app": "baudaten",

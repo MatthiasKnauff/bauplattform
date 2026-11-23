@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-soll-zurueck",
+  "datum": "2026-11-23",
+  "app": "gantt",
+  "titel": "Soll zurücknehmen",
+  "text": "Ein festgehaltenes Soll lässt sich jetzt zurücknehmen – mit Begründung, die im Protokoll steht. Der Plan ist danach wieder ein Entwurf ohne Soll; die Stände bleiben als Versionen. Knopf „Soll zurück“ bei „Fortschritt“ oder im Soll-Band.",
+  "ziel": "#leiste"
+ },
+ {
   "id": "kosten-excel-ausgabe",
   "datum": "2026-11-23",
   "app": "baukosten",

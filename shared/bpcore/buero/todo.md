@@ -8,6 +8,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Seite „Ablauf“ auch für Einheiten** (Kisten „Gebäude / Allgemein“, „Einheit 1“, „Einheit 2“ mit Takt-Pfeilen) – Fragen offen, Mock folgt **ca. 30 min**
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; 3D-Auswahl später) – B erledigt durch das Raumbuch (17.11.: Gruppen, abweichender Raum eigene Zeile) **ca. 1,5 h**
+- ~~Bauzeitenplan: Soll zurücknehmen – jederzeit mit Begründung (Protokoll), Stände bleiben als Versionen, danach ganz ohne Soll, Rückgängig (Mock SZ-1 B, SZ-2 A, SZ-3 B) (23.11.2026)~~
 - ~~Kosten aus Excel Stufe 2: Ausdruck im gewohnten Aufbau (Zusammenstellung, Unterschrift, Anhang Änderungen, netto+brutto, leere KGs mit 0), Excel mit Formeln, Fassung DIN 276:2008 für das Honorar; KG 700 im Ausdruck nicht mehr doppelt (23.11.2026)~~
 - ~~Adressen, Duplikate: gleiche Mail-Domain zählt bei Anbietern für alle (arcor, gmx.net, vodafone, posteo …) nicht mehr – vorher landeten alle @arcor.de-Kontakte in einer Gruppe (23.11.2026)~~
 - ~~Adressen, Tabelle: beim Darüberfahren schienen die Spalten hinter der festen Knopfspalte durch (PLZ über „Details“) – Hintergrund jetzt deckend (23.11.2026)~~
@@ -18,7 +19,6 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ~~Bauzeitenplan: übliche Außenanlagen bei Neubau/Anbau/Aufstockung vorgewählt, Planung → Leistungen: alle Abschnitte zu/auf (23.11.2026)~~
 - ~~Leistungskatalog: Suche über alle Abschnitte in „Abhängigkeiten“, ⊟/⊞ alle Abschnitte zu/auf, Umschalter springt nicht mehr (23.11.2026)~~
 - ~~Bauzeitenplan: „Scharf schalten“ / „Soll neu“ in der Befehlsleiste bei „Fortschritt“ statt im Versionsmenü (23.11.2026)~~
-- Bauzeitenplan: Soll zurücknehmen (Mock SZ-1 … SZ-3, ~20 min)
 - ~~Adressen: „Mögliche Duplikate · 1 von 61“ – Gesamtzahl bleibt fest, die Stelle zählt hoch (23.11.2026)~~
 - ~~Bauzeitenplan: Firmen-Vorgabe je Gewerk für alle Projekte entfernt (GF-5 A) – Spalte, „Vorgaben übernehmen“, „Zurücksetzen …“, Route api/catfirms, gespeicherte Vorgaben (Migration 0110) (23.11.2026)~~
 - ~~Bauzeitenplan: übrige Fenster wie das Eigenschaften-Fenster (UB-6) – keine Stile von Hand, Vorschlagsliste statt datalist, kein onclick (23.11.2026)~~

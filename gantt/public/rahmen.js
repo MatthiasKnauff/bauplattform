@@ -74,7 +74,8 @@
   const sollKnopf = () => { if (!P || !window.GVGL || !(window.BP && BP.me && BP.me.soll)) return [];
     const S = GVGL.soll();
     return [{ t: S ? 'Soll neu' : 'Scharf schalten', ic: '<path d="M9 3h6l-1 6 3 3H7l3-3z"/><path d="M12 12v9"/>', fn: () => GVGL.festhalten(),
-      tip: S ? `Soll vom ${S.tag} gilt – den heutigen Plan als neues Soll festhalten (mit Begründung)` : 'Plan scharf schalten: den heutigen Plan als Soll festhalten – alles Weitere ist dann das Ist' }]; };
+      tip: S ? `Soll vom ${S.tag} gilt – den heutigen Plan als neues Soll festhalten (mit Begründung)` : 'Plan scharf schalten: den heutigen Plan als Soll festhalten – alles Weitere ist dann das Ist' },
+      ...(S ? [{ t: 'Soll zurück', ic: '<path d="M4 10h11a5 5 0 0 1 0 10h-3"/><path d="M8 6 4 10l4 4"/>', fn: () => GVGL.zuruecknehmen(), tip: 'Soll zurücknehmen (mit Begründung) – der Plan ist danach wieder ein Entwurf ohne Soll' }] : [])]; };
   // Fortschritt der markierten Leistung(en): Stufen 0 · 25 · 50 · 75 · 100 und kleiner Schieber darunter (Baustein bpProzent)
   function pzLeiste() {
     const ix = P && CAL ? selIdx().filter((i) => !CAL.summ[i]) : [], w = ix.length ? Math.round(CAL.pct[ix[0]]) : 0;

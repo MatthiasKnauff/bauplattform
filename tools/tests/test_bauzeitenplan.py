@@ -678,7 +678,7 @@ def test_katalog_buero_und_lernen(ctx):
 
 def test_soll_und_ist(ctx):
     """Soll und Ist (Mock „Soll und Ist“ SI-1 … SI-7, 22.11.2026): ein Stand wird als Soll festgehalten (Version mit soll), liegt unter dem Plan
-    (api/projects/<id>/soll), lässt sich nicht löschen; neu festhalten nur mit Begründung; das jüngste gilt."""
+    (api/projects/<id>/soll), lässt sich nicht löschen; neu festhalten nur mit Begründung; das jüngste gilt; zurücknehmen mit Begründung."""
     a = ctx.admin
     p = neuer_plan(a, ctx.name("Soll"), [leistung(1, "Rohbau", 5), leistung(2, "Dach", 3, preds=[1])])
     try:
@@ -691,5 +691,16 @@ def test_soll_und_ist(ctx):
         gleich((g["id"], g["name"], g["frueher"], len(g["data"]["tasks"])), (s2["id"], "Nachtrag", 1, 2), "das jüngste Soll gilt, ein früheres")
         a.delete(f"{G}/projects/{p['id']}/versions/{s1['id']}", expect=403)
         pruefe(a.gj(f"{G}/me").get("soll"), "Verwaltung darf das Soll festhalten (BP.me.soll)")
+        # Soll zurücknehmen (Mock SZ-1 B, SZ-2 A, SZ-3 B, 23.11.2026): nur mit Begründung, danach ganz ohne Soll, Versionen bleiben, Rückgängig
+        a.post(f"{G}/projects/{p['id']}/soll/zuruecknehmen", {"grund": ""}, expect=400)
+        z = a.post(f"{G}/projects/{p['id']}/soll/zuruecknehmen", {"grund": "versehentlich vor Baubeginn"}).json
+        gleich(sorted(z["ids"]), sorted([s1["id"], s2["id"]]), "beide Soll-Stände zurückgenommen")
+        gleich(a.gj(f"{G}/projects/{p['id']}/soll"), {}, "danach ganz ohne Soll (auch das ältere gilt nicht wieder)")
+        vs = a.gj(f"{G}/projects/{p['id']}/versions")
+        pruefe({s1["id"], s2["id"]} <= {v["id"] for v in vs} and all(v.get("soll_aus") for v in vs if v["id"] in (s1["id"], s2["id"])), "bleiben als Versionen im Verlauf")
+        s3 = a.post(f"{G}/projects/{p['id']}/versions", {"soll": True, "name": "neu"}, expect=201).json   # ohne geltendes Soll: keine Begründung nötig
+        a.post(f"{G}/projects/{p['id']}/soll/zuruecknehmen", {"grund": "nochmal"})
+        a.post(f"{G}/projects/{p['id']}/soll/zuruecknehmen", {"wieder": [s3["id"]]})
+        gleich(a.gj(f"{G}/projects/{p['id']}/soll").get("id"), s3["id"], "Rückgängig stellt das zurückgenommene Soll wieder her")
     finally:
         weg(ctx, p["id"])

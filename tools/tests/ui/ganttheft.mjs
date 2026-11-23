@@ -10,7 +10,7 @@ export async function ganttHeftPruefen(browser, repo) {
   const BK = /BAUKASTEN = \(([^)]*)\)/.exec(fs.readFileSync(path.join(repo, 'shared/bpcore/head.py'), 'utf8'))[1].match(/"[^"]+"/g).map((s) => s.slice(1, -1));
   const baukasten = 'void 0;\n' + BK.map((f) => fs.readFileSync(path.join(KASTEN, f), 'utf8')).join('\n;\n');
   const fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
-  let SOLL = {};   // Soll und Ist (SI): erst am Ende ein Soll liefern – sonst steht das Band über allen anderen Prüfungen
+  let SOLL = {}; const SOLL_WEG = [];   // Soll und Ist (SI): erst am Ende ein Soll liefern – sonst steht das Band über allen anderen Prüfungen
   const J = (o) => ({ contentType: 'application/json', body: JSON.stringify(o) });
   const ART = (f) => (f.endsWith('.css') ? 'text/css' : f.endsWith('.js') ? 'text/javascript' : f.endsWith('.html') ? 'text/html' : 'application/octet-stream');
   const ctx = await browser.newContext({ viewport: { width: 1600, height: 900 } }), p = await ctx.newPage();
@@ -26,6 +26,7 @@ export async function ganttHeftPruefen(browser, repo) {
     if (pf === 'api/me') return r.fulfill(J({ ok: true, id: 1, name: 'admin', vorname: 'A', role: 'admin', admin: true, is_admin: true, look: {} }));
     if (pf === 'api/platform') return r.fulfill(J({ apps: [], user: { name: 'admin', role: 'admin' }, projekte: [] }));
     if (pf === 'api/projects/1/soll') return r.fulfill(J(SOLL));
+    if (pf === 'api/projects/1/soll/zuruecknehmen') { const b = JSON.parse(r.request().postData() || '{}'); if (!b.grund && !b.wieder) return r.fulfill({ status: 400, contentType: 'application/json', body: '{"error":"Begründung"}' }); SOLL_WEG.push(b); if (b.grund) SOLL = {}; return r.fulfill(J({ ids: ['s1'] })); }
     if (pf === 'api/projects') return r.fulfill(J([{ id: 1, name: 'Testplan', updated: '2026-11-15' }]));
     if (/^api\/projects\/(1|undefined)$/.test(pf)) return r.fulfill(J({ id: 1, name: 'Testplan', rev: 1, start: 20773, nextUid: 3, tasks: [{ uid: 1, name: 'A', dur: 2, lvl: 0, preds: [] }, { uid: 2, name: 'B', dur: 3, lvl: 0, preds: [] }] }));
     return r.fulfill({ contentType: 'application/json', body: /projects$|firms|presets|liste|versions|neuigkeit|kontakte|library/.test(pf) ? '[]' : '{}' }); });
@@ -258,6 +259,18 @@ export async function ganttHeftPruefen(browser, repo) {
       pruef(await p.evaluate(() => !document.querySelector('#vgl') && /Soll zeigen/.test(document.querySelector('#vgBand').textContent)), '„Soll aus“ blendet das Soll aus, „Soll zeigen“ bleibt');
       await p.click('#vgBand [data-sollan]'); await p.waitForSelector('#vgl .vg-soll', { timeout: 3000 }).catch(() => {});
       pruef(await p.evaluate(() => !!document.querySelector('#vgl .vg-soll')), '„Soll zeigen“ legt es wieder darunter');
+      {   // 23.11.2026 (Mock „Soll zurücknehmen“ SZ-1 B · SZ-2 A · SZ-3 B): mit Begründung, danach ganz ohne Soll; ohne Begründung geht nichts hinaus
+        const mitSoll = SOLL;
+        await p.click('#vgBand [data-sollweg]'); await p.waitForSelector('#soWeg');
+        await p.click('.modal-bg .mf .btn.primary'); await p.waitForTimeout(200);
+        pruef(SOLL_WEG.length === 0 && await p.$('#soWeg'), 'Soll zurücknehmen ohne Begründung schickt nichts und lässt das Fenster offen');
+        await p.fill('#soWeg', 'versehentlich vor Baubeginn'); await p.click('.modal-bg .mf .btn.primary');
+        await p.waitForSelector('#vgBand', { state: 'detached', timeout: 5000 }).catch(() => {});
+        const w = await fk();
+        pruef(SOLL_WEG.length === 1 && SOLL_WEG[0].grund === 'versehentlich vor Baubeginn' && !(await p.$('#vgBand')) && /Scharf schalten/.test(w || '') && !/Soll zurück/.test(w || ''),
+          `Soll zurückgenommen: Band weg, wieder „Scharf schalten“ (${JSON.stringify(SOLL_WEG)}, ${w})`);
+        SOLL = mitSoll; await p.evaluate(() => GVGL.laden()); await p.waitForSelector('#vgBand', { timeout: 5000 });
+      }
       // 23.11.2026 (Bildschirmfoto „gemurkse“): entfallene an derselben Stelle = EINE Linie mit einem Text, nicht Texte übereinander
       const weg = await p.evaluate(() => { P.tasks = [fillTask({ uid: 9, name: 'C', dur: 2, lvl: 0, preds: [] })]; CAL = schedule(); render();
         return { lin: document.querySelectorAll('#vgl .vg-lin').length, li: [...document.querySelectorAll('#gridBody .vg-li')].map((x) => x.textContent), oben: (() => { const sp = document.querySelector('#gridBody .vg-li span'), h = document.querySelector('#gridBody'); return sp && h ? sp.getBoundingClientRect().top >= h.getBoundingClientRect().top - 0.5 : false; })() }; });

@@ -77,7 +77,8 @@ def einbinden(app, *, store_get, store_put, uname, body, darf):
             Z, soll = [], {}
             for v in c.execute("SELECT gantt_id, meta, data FROM gantt_versions ORDER BY created, id").fetchall():   # je Plan das jüngste Soll (SI-7)
                 try:
-                    if json.loads(v["meta"] or "{}").get("soll"):
+                    m = json.loads(v["meta"] or "{}")
+                    if m.get("soll") and not m.get("soll_aus"):   # zurückgenommene zählen nicht
                         soll[v["gantt_id"]] = json.loads(v["data"] or "{}")
                 except (TypeError, ValueError):
                     continue

@@ -658,10 +658,16 @@ def presence(pid):
 
 
 # ---------------------------------------------------------------- Versionshistorie je Plan
+def ist_soll(meta):
+    """Gilt diese Version als Soll? Zurückgenommene (soll_aus, Mock „Soll zurücknehmen“ SZ-2 A) bleiben als Version, sind aber kein Soll mehr."""
+    m = meta if isinstance(meta, dict) else json.loads(meta or "{}")
+    return bool(m.get("soll")) and not m.get("soll_aus")
+
+
 def _soll(c, pid):
-    """Das geltende Soll des Plans (jüngstes festgehaltene) – Zeile aus gantt_versions oder None."""
+    """Das geltende Soll des Plans (jüngstes festgehaltene, nicht zurückgenommene) – Zeile aus gantt_versions oder None."""
     for v in c.execute("SELECT * FROM gantt_versions WHERE gantt_id=? ORDER BY created DESC, id DESC", (pid,)).fetchall():
-        if json.loads(v["meta"] or "{}").get("soll"):
+        if ist_soll(v["meta"]):
             return v
     return None
 
@@ -676,8 +682,48 @@ def project_soll(pid):
         v = _soll(c, pid)
         if not v:
             return jsonify({})
-        frueher = sum(1 for x in c.execute("SELECT meta FROM gantt_versions WHERE gantt_id=?", (pid,)) if json.loads(x["meta"] or "{}").get("soll")) - 1
+        frueher = sum(1 for x in c.execute("SELECT meta FROM gantt_versions WHERE gantt_id=?", (pid,)) if ist_soll(x["meta"])) - 1
         return jsonify({**_vmeta(v), "frueher": frueher, "data": json.loads(v["data"])})
+
+
+@app.post("/api/projects/<pid>/soll/zuruecknehmen")
+def soll_zuruecknehmen(pid):
+    """Soll zurücknehmen (GO 23.11.2026, Mock „Soll zurücknehmen“: SZ-1 B immer, mit Begründung im Protokoll · SZ-2 A bleibt als Version ·
+    SZ-3 B danach ganz ohne Soll – auch ein älteres gilt nicht wieder). {grund} → {ids} der zurückgenommenen Versionen.
+    {wieder: [ids]} macht ein Zurücknehmen rückgängig (Rückgängig der Seite)."""
+    if not soll_darf():
+        return jsonify(error="Das Soll zurücknehmen darfst du nicht – das stellt die Verwaltung je Rolle ein."), 403
+    b = body()
+    with db.tx() as c:
+        r, err = _project_or_error(c, pid)
+        if err:
+            return err
+        V = c.execute("SELECT id, meta FROM gantt_versions WHERE gantt_id=?", (pid,)).fetchall()
+        if isinstance(b.get("wieder"), list):
+            ids = {x for x in b["wieder"] if isinstance(x, str)}
+            for v in V:
+                m = json.loads(v["meta"] or "{}")
+                if v["id"] in ids and m.get("soll_aus"):
+                    m.pop("soll_aus")
+                    c.execute("UPDATE gantt_versions SET meta=? WHERE id=?", (json.dumps(m, ensure_ascii=False), v["id"]))
+            c.execute("INSERT INTO audit_log(ts, user_name, cat, action, detail) VALUES(?,?,?,?,?)",
+                      (now_iso(), uname(), "gantt", "Soll wiederhergestellt", r["name"][:200]))
+            return jsonify(ok=True)
+        grund = jstr(b.get("grund") or "").strip()[:500]
+        if not grund:
+            return jsonify(error="Bitte begründen, warum das Soll zurückgenommen wird."), 400
+        aus, ids = {"am": now_iso(), "von": uname(), "grund": grund}, []
+        for v in V:
+            m = json.loads(v["meta"] or "{}")
+            if ist_soll(m):
+                m["soll_aus"] = aus
+                c.execute("UPDATE gantt_versions SET meta=? WHERE id=?", (json.dumps(m, ensure_ascii=False), v["id"]))
+                ids.append(v["id"])
+        if not ids:
+            return jsonify(error="Der Plan hat kein Soll."), 400
+        c.execute("INSERT INTO audit_log(ts, user_name, cat, action, detail) VALUES(?,?,?,?,?)",
+                  (now_iso(), uname(), "gantt", "Soll zurückgenommen", f"{r['name'][:120]}: {grund}"))
+        return jsonify(ids=ids)
 
 
 def _vmeta(v):
@@ -727,7 +773,7 @@ def versions(pid, vid=None):
             return jsonify(error="Version nicht gefunden"), 404
         if request.method == "GET":
             return jsonify({**_vmeta(v), "data": json.loads(v["data"])})
-        if json.loads(v["meta"]).get("soll") and request.method == "DELETE":
+        if ist_soll(v["meta"]) and request.method == "DELETE":
             return jsonify(error="Ein festgehaltenes Soll bleibt erhalten – neu festhalten legt ein weiteres an."), 403
         if request.method == "PATCH":
             b = body()

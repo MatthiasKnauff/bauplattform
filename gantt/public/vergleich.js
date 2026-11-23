@@ -52,7 +52,7 @@
     let b = document.getElementById('vgBand');
     if (!S) { if (b) b.remove(); return; }
     if (!b) { b = document.createElement('div'); b.id = 'vgBand'; const w = document.getElementById('work'); w.parentElement.insertBefore(b, w); }
-    const neu = darf() ? '<button type="button" class="btn sm" data-sollneu>📌 Soll neu festhalten …</button>' : '';
+    const neu = darf() ? '<button type="button" class="btn sm" data-sollneu>📌 Soll neu festhalten …</button><button type="button" class="btn sm" data-sollweg>↺ Soll zurücknehmen …</button>' : '';
     if (!V) { b.className = 'vg-aus'; b.innerHTML = `<b>Soll</b><span class="mute">vom ${esc(S.tag)} ausgeblendet</span><span class="vg-sp0"></span><button type="button" class="btn sm" data-sollan>Soll zeigen</button>${neu}`; return; }
     b.className = '';
     const dE = CAL.peDay - V.C2.peDay;
@@ -179,6 +179,23 @@
         LS.set('sollAus', false); toast(`Soll „${name}“ festgehalten.`); if (String(id) === String(P && P.id)) laden(); })().catch((e) => toast('Fehler: ' + e.message, true));
     } }, { label: erstes ? 'Später' : 'Abbrechen' }]);
   }
+  /* Soll zurücknehmen (GO 23.11.2026, Mock SZ-1 B · SZ-2 A · SZ-3 B): jederzeit mit Begründung (Protokoll), die Version bleibt im Verlauf,
+     danach hat der Plan gar kein Soll – auch ein älteres gilt nicht wieder; Rückgängig stellt die zurückgenommenen wieder her */
+  function zuruecknehmen() {
+    if (!S || !P) return; const id = P.id, url = `api/projects/${encodeURIComponent(id)}/soll/zuruecknehmen`;
+    modal('Soll zurücknehmen', `<div class="hint g-vor g-max">Das Soll „${esc(S.name || 'Soll')}“ vom ${esc(S.tag)} wird zurückgenommen${S.frueher ? ` – ebenso ${S.frueher === 1 ? 'das frühere Soll' : `die ${S.frueher} früheren`}` : ''}. Der Plan ist danach wieder ein Entwurf: ohne Soll-Band, ohne Soll-Abweichungen und Verzugspunkte am Balken. Die Stände bleiben als normale Versionen im Verlauf.</div>
+      <div class="form g-max"><label>Begründung (Pflicht, steht im Protokoll)</label><textarea id="soWeg" class="full" placeholder="z. B. versehentlich vor Baubeginn festgehalten"></textarea></div>`,
+    [{ label: 'Zurücknehmen', cls: 'primary', primary: true, fn: (bg) => {
+      const grund = bg.querySelector('#soWeg').value.trim();
+      if (!grund) { toast('Bitte begründen, warum das Soll zurückgenommen wird.', true); return false; }
+      (async () => {
+        const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ grund }) }), j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(j.error || r.statusText);
+        await laden(); toast('Soll zurückgenommen.');
+        if (window.rueckgaengig) rueckgaengig('Soll zurückgenommen', async () => { await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wieder: j.ids }) }); await laden(); }, { neu: laden });
+      })().catch((e) => toast('Fehler: ' + e.message, true));
+    } }, { label: 'Abbrechen' }]);
+  }
   async function erstesSoll(id) {   // SI-4: beim „Gilt ab jetzt“ fragen, wenn der Plan noch kein Soll hat
     if (!darf()) return;
     try { const r = await fetch(`api/projects/${encodeURIComponent(id)}/soll`); const x = r.ok ? await r.json() : {}; if (x && x.data) return; } catch { return; }
@@ -188,6 +205,7 @@
     aktiv: () => !!V,
     soll: () => S,
     festhalten: () => festhalten(),
+    zuruecknehmen,
     erstesSoll,
     laden,
     reiter: () => (V ? { id: 'vergleich', titel: 'Soll/Ist', mount: (el) => { listeEl = el; liste(); } } : null),
@@ -204,6 +222,7 @@
     if (e.target.closest('[data-vgende]')) { LS.set('sollAus', true); zeigen(); return; }
     if (e.target.closest('[data-sollan]')) { LS.set('sollAus', false); zeigen(); return; }
     if (e.target.closest('[data-sollneu]')) { festhalten(); return; }
+    if (e.target.closest('[data-sollweg]')) { zuruecknehmen(); return; }
     const z = e.target.closest('[data-vgi]'); if (z) { const i = +z.dataset.vgi; if (i < 0) return; const r = vis.indexOf(i); if (r >= 0) { selectRow(r); ensureVisible(r); } }
   });
 })();

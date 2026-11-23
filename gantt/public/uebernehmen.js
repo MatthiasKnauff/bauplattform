@@ -34,12 +34,12 @@
     const zuletzt = (x) => x.plaene.reduce((m, p) => ((p.updated || '') > m ? p.updated || '' : m), '');
     const zeile = (x) => `<button type="button" class="ub-z${x.k === akt ? ' on' : ''}" role="option" aria-selected="${x.k === akt}" data-ubp="${E(x.k)}"><b>${E(x.name)}</b><small>${x.plaene.length > 1 ? x.plaene.length + ' Versionen · ' : ''}zuletzt ${tag(zuletzt(x))}</small></button>`;
     function liste() {
-      const w = (S ? S.value : '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+      const w = S.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
       const T = PJ.filter((x) => w.every((t) => (x.name + ' ' + x.plaene.map((p) => p.name).join(' ')).toLowerCase().includes(t)));
       const gr = (titel, xs) => (xs.length ? `<div class="ub-s">${titel}</div>` + xs.map(zeile).join('') : '');
       const ar = T.filter((x) => x.arch && !x.eigen);
       L.innerHTML = gr('Dieses Projekt', T.filter((x) => x.eigen)) + gr(w.length ? 'Treffer' : 'Projekte', T.filter((x) => !x.eigen && !x.arch))
-        + (ar.length ? (w.length || archAuf ? gr('Archiv', ar) : `<button type="button" class="ub-s ub-arch" data-ubarch>${typeof bpKlapp === 'function' ? bpKlapp(false) : ''} Archiv (${ar.length})</button>`) : '')
+        + (ar.length ? (w.length || archAuf ? gr('Archiv', ar) : `<button type="button" class="ub-s ub-arch" data-ubarch>${bpKlapp(false)} Archiv (${ar.length})</button>`) : '')
         + (T.length ? '' : `<p class="hint">Kein Plan passt zu „${E(S.value.trim())}“.</p>`);
     }
     function versionen() {
@@ -54,8 +54,8 @@
       Q.dispatchEvent(new Event('change'));
     }
     liste();
-    if (S) S.addEventListener('input', liste);
-    if (S) S.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); const b = L.querySelector('[data-ubp]'); if (b) b.click(); } });
+    S.addEventListener('input', liste);
+    S.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); const b = L.querySelector('[data-ubp]'); if (b) b.click(); } });
     L.addEventListener('click', (e) => {
       if (e.target.closest('[data-ubarch]')) { archAuf = true; liste(); return; }
       const b = e.target.closest('[data-ubp]'); if (!b || b.dataset.ubp === akt) return;

@@ -122,7 +122,7 @@ def _usage(c):
 
 
 STANDARD_ART = {"firma": "firma", "firmen": "firma", "bauherr": "bauherr", "bauherr:in": "bauherr", "bauherr:innen": "bauherr", "bauherrin": "bauherr", "bauherren": "bauherr", "baustelle": "baustelle", "baustellen": "baustelle",
-                "plotdienst": "Plotdienst", "plotdienste": "Plotdienst", "plotservice": "Plotdienst",
+                "plotdienst": "plotdienst", "plotdienste": "plotdienst", "plotservice": "plotdienst",   # Plotdienst als feste Art (23.11.2026)
                 "behoerde": "behoerde", "behörde": "behoerde", "behörden": "behoerde", "amt": "behoerde"}   # Behörde als feste Art (BH-1, 22.11.2026)
 
 
@@ -135,6 +135,8 @@ def _kind(r, site):
         return "baustelle"
     if any(x.startswith("bauherr") for x in t):
         return "bauherr"
+    if any(x.startswith("plot") for x in t):   # Gewerk „Plotdienst“ zählt wie die Art (versand.plotdienste)
+        return "plotdienst"
     return "firma"
 
 

@@ -105,10 +105,10 @@ def schicken(c, u, projektname, an, betreff, text, anh, kopie):
 
 
 def plotdienste(c):
-    """Kontakte mit der Art „Plotdienst“ (Adressen → Art, auch „Plotservice“, „Plotdienste“) – im Versand immer zur Auswahl,
+    """Kontakte mit der Art „Plotdienst“ (Adressen → Art, auch „Plotservice“, „Plotdienste“) oder dem Gewerk „Plotdienst“ (23.11.2026) – im Versand immer zur Auswahl,
     für jedes Projekt, ohne Suchen. Nicht vorausgewählt."""
     return [{"id": r["id"], "name": r["name"], "email": (r["email"] or "").strip(), "person": r["contact_person"] or "", "gewerke": ["Plotdienst"], "plot": True}
-            for r in c.execute("SELECT id, name, email, contact_person FROM contacts WHERE lower(trim(art)) LIKE 'plot%' ORDER BY lower(name)")]
+            for r in c.execute("SELECT id, name, email, contact_person FROM contacts WHERE lower(trim(COALESCE(art, ''))) LIKE 'plot%' OR ',' || replace(lower(COALESCE(trade, '')), ' ', '') || ',' LIKE '%,plot%' ORDER BY lower(name)")]
 
 
 def beteiligte(c, pid):

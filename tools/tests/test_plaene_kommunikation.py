@@ -289,11 +289,19 @@ def test_plotdienst_immer_als_empfaenger(ctx):
     cid = ctx.admin.pj("/adressen/api/contacts", {"name": name, "email": "plot@example.org", "art": "Plotdienst"})["id"]
     try:
         k = finde(ctx.admin.gj("/adressen/api/contacts"), id=cid)
-        gleich(k["kind"], "Plotdienst", "Art in Adressen")
+        gleich(k["kind"], "plotdienst", "Art in Adressen (feste Art seit 23.11.2026)")
         for p in ctx.projekte[:2]:
             r = ctx.admin.get(f"/plaene/api/plaene?project_id={p['id']}", expect=(200, 502)).json
             pd = finde(r.get("plotdienste"), id=cid)
             pruefe(pd and pd["email"] == "plot@example.org" and pd["plot"], f"Plotdienst fehlt in Projekt {p['id']}: {r.get('plotdienste')}")
+    finally:
+        ctx.admin.delete(f"/adressen/api/contacts/{cid}", expect=None)
+    # auch über das Gewerk „Plotdienst“ (23.11.2026)
+    cid = ctx.admin.pj("/adressen/api/contacts", {"name": name + " G", "email": "plot2@example.org", "trade": "Plotdienst"})["id"]
+    try:
+        gleich(finde(ctx.admin.gj("/adressen/api/contacts"), id=cid)["kind"], "plotdienst", "Gewerk Plotdienst = Art Plotdienst")
+        r = ctx.admin.get(f"/plaene/api/plaene?project_id={ctx.projekte[0]['id']}", expect=(200, 502)).json
+        pruefe(finde(r.get("plotdienste"), id=cid), f"Plotdienst über das Gewerk fehlt: {r.get('plotdienste')}")
     finally:
         ctx.admin.delete(f"/adressen/api/contacts/{cid}", expect=None)
 

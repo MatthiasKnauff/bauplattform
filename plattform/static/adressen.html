@@ -151,7 +151,7 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
 <script src="bp/filter.js"></script>
 <script src="bp/kontakt.js"></script>
 <script>
-const KINDS0 = [['', 'Alle'], ['firma', 'Firmen'], ['bauherr', 'Bauherr:innen'], ['behoerde', 'Behörden'], ['baustelle', 'Baustellen']];
+const KINDS0 = [['', 'Alle'], ['firma', 'Firmen'], ['bauherr', 'Bauherr:innen'], ['behoerde', 'Behörden'], ['baustelle', 'Baustellen'], ['plotdienst', 'Plotdienste']];
 let KINDS = KINDS0;   // + eigene Arten aus den Kontakten (Feld „Art“), automatisch als Filterknopf
 const eigeneArten = () => [...new Set(ALL.map((c) => c.kind).filter((k) => k && !KINDN[k]))].sort((a, b) => a.localeCompare(b, 'de'));
 const artenNeu = () => { KINDS = [...KINDS0, ...eigeneArten().map((k) => [k, k])]; if (kind && !KINDS.some((x) => x[0] === kind)) kind = ''; };
@@ -290,7 +290,7 @@ const COLS = [
   ['street', 'Straße', 190], ['zip', 'PLZ', 70], ['city', 'Ort', 140], ['notes', 'Notizen', 240], ['used', 'Im Bautagebuch', 200, 'ro'],
   ['stichworte', 'Stichwörter', 160], ['projekte', 'Projekt', 200, 'ro'], ['tags', 'Tags', 140], ['weitere', 'Weitere Ansprechpartner', 220, 'ro'],
   ['wtel', 'Weitere Nummern', 180, 'ro'], ['wmail', 'Weitere E-Mails', 210, 'ro'], ['updated', 'Geändert', 110, 'ro']];   // hinten angehängt: die gemerkte Spaltenwahl (bp.sp.adressen) zählt nach Nummer
-const KINDN = { firma: 'Firma', bauherr: 'Bauherr:in', behoerde: 'Behörde', baustelle: 'Baustelle' };
+const KINDN = { firma: 'Firma', bauherr: 'Bauherr:in', behoerde: 'Behörde', baustelle: 'Baustelle', plotdienst: 'Plotdienst' };
 let TV;
 try { TV = JSON.parse(localStorage.getItem('adr.tabelle')) || {}; } catch { TV = {}; }
 const TVW = TV.w || {};

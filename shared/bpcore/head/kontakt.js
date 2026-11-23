@@ -38,7 +38,7 @@
   /* Art ganz oben, darunter stellt sich die Maske um (Mock „Behörden in den Adressen“ BH-0 … BH-4, 22.11.2026): Firma · Bauherr:in (Person, „ist eine Firma“)
      · Behörde (Amt / Abteilung statt Gewerk) · Baustelle · eigene Arten. Felder mit data-fuer stehen nur bei diesen Arten; die Person steht in EINER Zeile
      (Anrede · Titel · Vorname Name · Zusatz) – bei Bauherr:in als Person ist der Name die Person selbst. */
-  const ARTEN = [['firma', 'Firma'], ['bauherr', 'Bauherr:in'], ['behoerde', 'Behörde'], ['baustelle', 'Baustelle']];
+  const ARTEN = [['firma', 'Firma'], ['bauherr', 'Bauherr:in'], ['behoerde', 'Behörde'], ['baustelle', 'Baustelle'], ['plotdienst', 'Plotdienst']];   // Plotdienst fest (23.11.2026): Versand und Plotauftrag finden ihn
   const F = [['@art', 'Art', 'w'], ['name', 'Firma / Name', 'w'], ['@istfirma', '', 'w', '', '', 'bauherr'], ['trade', 'Gewerk / Rolle', 'w', 'chips', '', 'firma eigen'],
     ['@amt', 'Amt / Abteilung', 'w', '', '', 'behoerde'], ['@person', 'Ansprechpartner:in', 'w', '', '', 'firma behoerde bauherr eigen'], ['role', 'Funktion', '', '', '', 'firma behoerde eigen'],
     ['phone', 'Telefon', '', 'tel'], ['mobile', 'Mobil', '', 'tel'], ['email', 'E-Mail', '', 'email'], ['website', 'Internet', '', 'url']];
@@ -94,7 +94,7 @@
       ...wtTel(c).map(([b, n]) => `<a class="bph-btn" href="tel:${esc(tel(n))}">☎ ${esc(b || n)}</a>`), ...wtMails(c).slice(1).map((m) => `<a class="bph-btn" href="mailto:${esc(m)}" data-mailwahl="${esc(m)}" data-firma="${esc(c.name)}">✉ ${esc(m)}</a>`),
       route && `<a class="bph-btn" href="${esc(route)}" target="_blank" rel="noopener" title="Route in Google Maps planen">🧭 Route</a>`, (H.app === 'adressen' || appZiel('adressen')) && `<a class="bph-btn" href="${esc(vcf)}" title="Visitenkarte – ins Handy übernehmen">Ins Handy</a>`].filter(Boolean).join('');
     const FI = c.firma || {}, ARTW = ARTEN.map((x) => x[0]);
-    const artVon = (x) => { const a = String(x.art || '').toLowerCase(); return a === '' || a === 'firma' ? (ARTW.includes(x.kind) ? x.kind : 'firma') : ARTW.includes(a) ? a : a === 'behörde' ? 'behoerde' : x.art; };
+    const artVon = (x) => { const a = String(x.art || '').toLowerCase(); return a === '' || a === 'firma' ? (ARTW.includes(x.kind) ? x.kind : 'firma') : ARTW.includes(a) ? a : a === 'behörde' ? 'behoerde' : /^plot/.test(a) ? 'plotdienst' : x.art; };
     let ART = artVon(c);
     if (!FI.ap_titel && !FI.ap_zusatz && !FI.ap_anrede) {   // ältere Einträge: „Kira Potschka M.A.“ / „Herr Dr. Max Beispiel“ beim Öffnen zerlegen (BH-2)
       const bhp = ART === 'bauherr' && !c.contact_person && FI.ist_firma !== 'ja', [a, ti, n, z] = zerlegen(bhp ? c.name : c.contact_person);
@@ -131,7 +131,7 @@
       const nameF = q('[data-kmf="name"]'), nameL = nameF.closest('label'), cpF = q('[data-kmf="contact_person"]'), slot = q('[data-kmpslot]');
       const NAMEL = { firma: 'Firma / Name', behoerde: 'Behörde', baustelle: 'Bezeichnung', bauherr: 'Firma', eigen: 'Name' };
       const artSetzen = () => {
-        const k = ARTW.includes(ART) ? ART : 'eigen', istF = !!(q('[data-kmfi="ist_firma"]') || {}).checked, person = k === 'bauherr' && !istF, sicht = k === 'bauherr' && istF ? 'firma' : k;
+        const k = ARTW.includes(ART) ? ART : 'eigen', istF = !!(q('[data-kmfi="ist_firma"]') || {}).checked, person = k === 'bauherr' && !istF, sicht = (k === 'bauherr' && istF) || k === 'plotdienst' ? 'firma' : k;   // Plotdienst = Maske wie Firma
         root.className = root.className.replace(/\bart-\S+/g, '').trim() + ' art-' + k;
         root.querySelectorAll('[data-fuer]').forEach((el) => { const L = el.dataset.fuer.split(' '); el.hidden = !(L.includes(k) || L.includes(sicht)); });
         if (person) { if (nameF.parentElement !== slot) slot.prepend(nameF); cpF.hidden = true; nameL.hidden = true; nameF.placeholder = 'Vorname Name'; q('[data-kmplab]').textContent = 'Person'; }

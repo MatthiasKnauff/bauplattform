@@ -53,6 +53,12 @@ export async function kontaktPruefen(browser, repo) {
       await p.fill('[data-kmfi="amt"]', 'Bauordnungsamt'); await p.click('[data-kms]'); await p.waitForTimeout(200);
       z = await p.evaluate(() => window.D && { art: D.art, amt: D.firma.amt, zu: D.firma.ap_zusatz, cp: D.contact_person });
       pruef(z && z.art === 'behoerde' && z.amt === 'Bauordnungsamt' && z.zu === 'M.A.' && z.cp === 'Kira Potschka', `Behörde gespeichert: ${JSON.stringify(z)}`);
+      // Plotdienst als feste Art (23.11.2026): ältere „Plotservice“ werden erkannt, Maske wie Firma (Gewerk sichtbar)
+      await p.evaluate(() => { document.querySelectorAll('.bph-dlg-bg').forEach((x) => x.remove()); window.D = null;
+        bpKontakt({ id: 8, name: 'Plot & Druck GmbH', art: 'Plotservice' }, { voll: true, speichern: async (d) => { window.D = d; return d; } }); });
+      await p.waitForSelector('[data-kmart]');
+      z = await p.evaluate(() => ({ art: document.querySelector('[data-kmart]').value, gw: !document.querySelector('[data-chips="trade"]').closest('[data-fuer]').hidden }));
+      pruef(z.art === 'plotdienst' && z.gw, `Plotdienst als feste Art, Maske wie Firma: ${JSON.stringify(z)}`);
       await p.evaluate(() => { document.querySelectorAll('.bph-dlg-bg').forEach((x) => x.remove()); window.D = null;
         bpKontakt({ id: 7, name: 'Herr Dr. Otto Probe', art: 'bauherr' }, { voll: true, speichern: async (d) => { window.D = d; return d; } }); });
       await p.waitForSelector('[data-kmart]');

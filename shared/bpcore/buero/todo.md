@@ -275,6 +275,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Adressverzeichnis drucken im Druck-Layout (wie LV/Kosten) über die gemeinsame Druckseite – auch im Bautagebuch~~ (23.11.2026)
 - ~~Ausdrucke: Absender und Fußzeile in Honorar, Honorarrechnung, Bauantrag, Kosten, Wärmeschutz, Rügen aus `layout.buero_werte` (6 Kopien weg)~~ (23.11.2026)
 - ~~Sahne entfernt: Kosten-Übergang (Kern importierte die App Kosten), Nur-lesen-Sperre ohne Datenbank, Schrift/Einstellungen, Mail-Abmeldelink, Fehlerliste der Bug-Meldung, Logo beim Teilen, AVA-Einstellungen, Plan-Auswahl im Protokoll, Vor-Ort-Protokoll, Ordner-Suche, Erinnerungs-Protokoll~~ (23.11.2026)
+- ~~Plotdienst als feste Art in der Kontaktmaske, Gewerk „Plotdienst“ zählt im Versand mit~~ (23.11.2026)
 - ~~Adressen-Leiste: „1 von 9 gewählt“ statt „1 gewählt · alle 9 gefilterten wählen“ (las sich wie 9 gewählt)~~ (23.11.2026)
 - ~~head.js geteilt: 357 → 188 KB auf jeder Seite; Ansehen/PDF, Masken/Verlauf, Hilfe/🐞, Zolli laden erst bei Bedarf~~ (23.11.2026)
 - head.js weiter verkleinern: Darstellung/Stil-Menü, Einstellungsseiten, Symbole **ca. 1 h**

@@ -1,6 +1,6 @@
 /* Baudaten-Baum – gemeinsamer Baustein (/bp/baudatenbaum.js, GO 23.11.2026, Mock „Baudaten-Baum“ BB-1 … BB-7 alle A).
    EIN Baum für die App Baudaten und (Etappe 2) den Reiter „Baudaten“ im LV: Baumtabelle (bpBaum.zelle, Ausschnitt beim Rollen,
-   Tastatur), Leiste „Gruppieren:“ (bpGruppen), Haken je Zeile mit schwebender Leiste „n gewählt“, ★ oft geöffnete Leistungsbereiche.
+   Tastatur, Spaltenbreiten ziehen – bpSpaltBreite), Leiste „Gruppieren:“ (bpGruppen); EP einzeilig – von–bis nur rechts in den Details, Haken je Zeile mit schwebender Leiste „n gewählt“, ★ oft geöffnete Leistungsbereiche.
    Gruppen und ihre Zahlen rechnet der Server (GET <url>?ebenen=…&pfad=[…] – bpcore/baudaten.baum), Positionen kommen erst beim
    Aufklappen (je 300, „weitere …“) – nie ein ganzer Katalog im Browser. Beim Suchen gehen Gruppen mit Treffern von selbst auf.
 
@@ -11,7 +11,7 @@
      suche: () => bool,    gerade Suche/Filter aktiv → Gruppen mit Treffern aufklappen
      ebenen: { katalog: 'Katalog', lb: 'Leistungsbereich', … }   wählbare Ebenen · vorgabe: ['katalog', 'lb', 'gruppe']
      mark: (text) → HTML   Suchwörter hervorheben (sonst nur esc)
-     extra: (x) → HTML     letzte Zelle je Position (z. B. ＋/✓ Korb) · extraKopf: Kopf dieser Spalte
+     extra: (x) → HTML     Knopf hinter dem Preis je Position (z. B. ＋/✓ Korb) – keine eigene Spalte: die letzte Spalte nimmt beim Ziehen den Rest
      aktionen: [{ k, t }]  Knöpfe der schwebenden Leiste · aktion(k, ids, positionen)
      zeige(x)              Klick auf eine Position · doppel(x) Doppelklick · ziehen(e, ids, positionen) Ziehen beginnt
      leer                  Text, wenn nichts da ist
@@ -29,13 +29,12 @@ table.bdb-t{width:100%;table-layout:fixed;border-collapse:collapse;font-size:.9r
 table.bdb-t th{position:sticky;top:0;z-index:2;background:var(--card,#fff);text-align:left;font-weight:600;font-size:.78rem;color:var(--mute,#5d6b7a);padding:.3rem .4rem;border-bottom:1px solid var(--line,#d6dce3)}
 table.bdb-t td{padding:.28rem .4rem;border-bottom:1px solid var(--line2,#eef0f3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
 table.bdb-t td.r,table.bdb-t th.r{text-align:right;font-variant-numeric:tabular-nums}
-table.bdb-t td.hk{text-align:center}table.bdb-t td.hk input,table.bdb-t th.hk input{margin:0;width:1rem;height:1rem;accent-color:var(--y,#2f6fb3)}
+table.bdb-t td.hk{text-align:center}table.bdb-t .bdb-x{display:inline-block;margin-left:.45rem;vertical-align:middle}table.bdb-t td.hk input,table.bdb-t th.hk input{margin:0;width:1rem;height:1rem;accent-color:var(--y,#2f6fb3)}
 table.bdb-t tr.bdb-g td{background:var(--hov2,color-mix(in srgb,var(--line,#d6dce3) 25%,var(--card,#fff)));font-weight:600}
 table.bdb-t tr.bdb-g small{font-weight:400;color:var(--mute,#5d6b7a)}
 table.bdb-t tr.bdb-p{cursor:pointer}table.bdb-t tr.bdb-p:hover td{background:var(--hov,#f2f4f7)}
 table.bdb-t tr.akt td{background:color-mix(in srgb,var(--y,#2f6fb3) 14%,var(--card,#fff))}
 table.bdb-t tr.bdb-w td{background:color-mix(in srgb,var(--y,#2f6fb3) 8%,var(--card,#fff))}
-table.bdb-t td small.bdb-s{color:var(--mute,#5d6b7a);font-size:.76rem;display:block}
 table.bdb-t td.bdb-m{color:var(--mute,#5d6b7a);font-style:italic}
 table.bdb-t mark{background:color-mix(in srgb,var(--y,#2f6fb3) 30%,transparent);color:inherit;border-radius:2px;padding:0 1px}
 .bdb-mwl{position:sticky;bottom:0;z-index:3;display:flex;flex-wrap:wrap;gap:.4rem .7rem;align-items:center;padding:.4rem .6rem;margin:.3rem;border:1px solid color-mix(in srgb,var(--y,#2f6fb3) 45%,transparent);background:color-mix(in srgb,var(--y,#2f6fb3) 9%,var(--card,#fff));border-radius:calc(8px*var(--rk,1));box-shadow:0 -4px 12px rgba(0,0,0,.08)}
@@ -59,8 +58,8 @@ table.bdb-t mark{background:color-mix(in srgb,var(--y,#2f6fb3) 30%,transparent);
     const POS = new Map();
     const fav = () => LS.get('fav', {});
     el.classList.add('bdb');
-    el.innerHTML = '<div class="bdb-k"></div><div class="bdb-sc" style="flex:1;min-height:0;overflow:auto"><table class="bdb-t"><colgroup><col style="width:2rem"><col><col style="width:7rem"><col style="width:3.6rem"><col style="width:7.5rem">'
-      + (o.extra ? '<col style="width:2.8rem">' : '') + `</colgroup><thead><tr><th class="hk"></th><th>Bezeichnung</th><th>Code</th><th>EH</th><th class="r">EP</th>${o.extra ? `<th>${o.extraKopf || ''}</th>` : ''}</tr></thead><tbody></tbody></table></div><div class="bdb-u"></div>`;
+    el.innerHTML = '<div class="bdb-k"></div><div class="bdb-sc" style="flex:1;min-height:0;overflow:auto"><table class="bdb-t">'
+      + `<thead><tr><th class="hk" style="width:2rem"></th><th>Bezeichnung</th><th style="width:7rem">Code</th><th style="width:3.6rem">EH</th><th class="r" style="width:${o.extra ? '9rem' : '6.5rem'}">EP</th></tr></thead><tbody></tbody></table></div><div class="bdb-u"></div>`;
     const kopf = el.querySelector('.bdb-k'), sc = el.querySelector('.bdb-sc'), tb = el.querySelector('tbody'), unten = el.querySelector('.bdb-u');
     const merkeAuf = () => LS.set('auf', [...OFFEN].slice(-400));
 
@@ -128,17 +127,17 @@ table.bdb-t mark{background:color-mix(in srgb,var(--y,#2f6fb3) 30%,transparent);
       if (z.art === 'g') {
         const ids = geladen(z.pfad), an = ids.filter((i) => WAHL.has(i)).length;
         const hk = `<input type="checkbox" data-bdbgw="${esc(z.id)}"${an && an === ids.length && ids.length >= z.g.n ? ' checked' : ''} aria-label="alle in der Gruppe wählen">`;
-        return `<tr class="bdb-g" data-bdbr="${esc(z.id)}"><td class="hk">${hk}</td>${bpBaum.zelle({ tiefe: z.t, auf: z.auf, klapp: z.id, html: esc(NAME[z.e] ? NAME[z.e](z.g) : z.g.name || z.g.w) })}<td></td><td></td><td class="r"><small>${z.g.n.toLocaleString('de-DE')}</small></td>${o.extra ? '<td></td>' : ''}</tr>`;
+        return `<tr class="bdb-g" data-bdbr="${esc(z.id)}"><td class="hk">${hk}</td>${bpBaum.zelle({ tiefe: z.t, auf: z.auf, klapp: z.id, html: esc(NAME[z.e] ? NAME[z.e](z.g) : z.g.name || z.g.w) })}<td></td><td></td><td class="r"><small>${z.g.n.toLocaleString('de-DE')}</small></td></tr>`;
       }
       if (z.art === 'p') {
         const x = z.x, m = o.mark || esc, w = WAHL.has(x.id);
         return `<tr class="bdb-p${AKT === x.id ? ' akt' : ''}${w ? ' bdb-w' : ''}" data-bdbr="${esc(z.id)}" data-bdbp="${x.id}" draggable="true"><td class="hk"><input type="checkbox" data-bdbh="${x.id}"${w ? ' checked' : ''} aria-label="wählen"></td>`
           + bpBaum.zelle({ tiefe: z.t, html: `${x.favorit ? '<span style="color:var(--y)">★</span> ' : ''}${m(x.bez || x.kurz || '')}` })
-          + `<td><small>${esc(x.code || '')}</small></td><td>${esc(x.einheit || '')}</td><td class="r">${x.ep_mittel_akt == null ? '–' : zahl(x.ep_mittel_akt) + ' €'}${x.ep_von_akt != null ? `<small class="bdb-s">${zahl(x.ep_von_akt)} – ${zahl(x.ep_bis_akt)}</small>` : ''}</td>`
-          + (o.extra ? `<td>${o.extra(x)}</td>` : '') + '</tr>';
+          + `<td><small>${esc(x.code || '')}</small></td><td>${esc(x.einheit || '')}</td><td class="r">${x.ep_mittel_akt == null ? '–' : zahl(x.ep_mittel_akt) + ' €'}${o.extra ? `<span class="bdb-x">${o.extra(x)}</span>` : ''}</td>`
+          + '</tr>';
       }
-      if (z.art === 'w') return `<tr data-bdbr="${esc(z.id)}"><td></td><td colspan="${o.extra ? 5 : 4}" style="${bpBaum.einzug(z.t)}"><button type="button" class="btn sm" data-bdbmehr="${esc(K(z.pfad))}">＋ weitere ${Math.min(300, z.rest).toLocaleString('de-DE')} von ${z.rest.toLocaleString('de-DE')}</button></td></tr>`;
-      return `<tr data-bdbr="${esc(z.id)}"><td></td><td class="bdb-m" colspan="${o.extra ? 5 : 4}" style="${bpBaum.einzug(z.t)}">${esc(z.text)}</td></tr>`;
+      if (z.art === 'w') return `<tr data-bdbr="${esc(z.id)}"><td></td><td colspan="4" style="${bpBaum.einzug(z.t)}"><button type="button" class="btn sm" data-bdbmehr="${esc(K(z.pfad))}">＋ weitere ${Math.min(300, z.rest).toLocaleString('de-DE')} von ${z.rest.toLocaleString('de-DE')}</button></td></tr>`;
+      return `<tr data-bdbr="${esc(z.id)}"><td></td><td class="bdb-m" colspan="4" style="${bpBaum.einzug(z.t)}">${esc(z.text)}</td></tr>`;
     }
     function kopfZeichnen() {
       const F = fav(), L = Object.entries(F).sort((a, b) => b[1].n - a[1].n).slice(0, 6);
@@ -153,6 +152,7 @@ table.bdb-t mark{background:color-mix(in srgb,var(--y,#2f6fb3) 30%,transparent);
       R = zeilen();
       const key = 'bdb-' + el.id, h = (k) => zeile(R[k]);
       if (!bpBaum.fenster.tausche(key, R.length, h, { id: (k) => R[k].id })) tb.innerHTML = bpBaum.fenster.html(key, R.length, h, { id: (k) => R[k].id });
+      if (window.bpSpaltBreite) bpSpaltBreite.an(el.querySelector('table.bdb-t'), 'bdb.' + o.key);   // Spaltenbreiten ziehen wie im LV (gemerkt je Person)
       leisteZeichnen();
     }
     let erst = true;

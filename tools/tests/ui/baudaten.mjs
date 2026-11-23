@@ -87,6 +87,8 @@ export async function baudatenPruefen(browser, repo) {
     }
     await p.waitForSelector('#bdBaum tr.bdb-p'); const n = await p.evaluate(() => document.querySelectorAll('#bdBaum tr.bdb-p').length);
     pruef(n === 4, `Baum: nach dem Aufklappen der Gruppe ${n} statt 4 Positionen`);
+    const zh = await p.evaluate(() => { const r = document.querySelectorAll('#bdBaum tr.bdb-p'); return [r[0].getBoundingClientRect().height, document.querySelectorAll('#bdBaum th .sb-griff').length]; });
+    pruef(zh[0] < 40 && zh[1] >= 3, `Baum: Positionszeile ${Math.round(zh[0])} px hoch (von–bis gehört nur rechts in die Details) bzw. ${zh[1]} Griffe zum Spaltenziehen`);
     const y0 = await oben('#bdBaum tr.bdb-p');
     await p.click('#bdBaum tr.bdb-p [data-bdbh]'); await p.click('#bdBaum tr.bdb-p:nth-of-type(n) >> nth=1 >> [data-bdbh]'); await p.waitForTimeout(150);
     pruef(await p.evaluate(() => (document.querySelector('.bdb-mwl b') || {}).textContent) === '2 gewählt', 'Baum: die Leiste „2 gewählt“ fehlt');

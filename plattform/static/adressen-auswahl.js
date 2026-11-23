@@ -41,8 +41,8 @@ function awLeiste(V, n) {
   const el = awEl(), z = AW.S.size;
   if (!z) { el.hidden = true; return; }
   const weg = z - n, handy = adrSchmal();
-  el.innerHTML = `<b>${z} gewählt</b>${weg ? `<span class="mute">${weg} davon gerade nicht zu sehen · <button type="button" class="aw-l" data-aw="sicht">nur sichtbare</button></span>` : ''}
-    ${n < V.length ? `<button type="button" class="aw-l" data-aw="alle">alle ${V.length} gefilterten wählen</button>` : ''}<button type="button" class="aw-l" data-aw="ab">Auswahl aufheben</button>
+  el.innerHTML = `<b>${n} von ${V.length} gewählt</b>${weg ? `<span class="mute">dazu ${weg} gewählte, die der Filter gerade ausblendet · <button type="button" class="aw-l" data-aw="sicht">nur sichtbare</button></span>` : ''}
+    ${n < V.length ? `<button type="button" class="aw-l" data-aw="alle">alle wählen</button>` : ''}<button type="button" class="aw-l" data-aw="ab">Auswahl aufheben</button>
     <span class="aw-sp"></span><button type="button" class="btn sm" data-aw="mail">✉ Mail an alle</button><button type="button" class="btn sm" data-aw="projekt">＋ Projekt</button>
     ${handy ? '' : '<button type="button" class="btn sm" data-aw="aendern">Ändern ▾</button>'}<button type="button" class="btn sm" data-aw="mehr">mehr ▾</button>`;
   el.hidden = false;

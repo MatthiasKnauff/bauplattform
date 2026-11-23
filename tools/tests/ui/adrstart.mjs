@@ -143,7 +143,7 @@ export async function adrStartPruefen(browser, repo) {
       const y0 = await p.evaluate(() => document.querySelector('#tw tbody tr[data-id="1"]').getBoundingClientRect().top);
       await p.click(`#tw tbody tr[data-id="${reihe[0]}"] [data-adrck]`);
       await p.click(`#tw tbody tr[data-id="${reihe[2]}"] td.ro`, { modifiers: ['Shift'] });
-      let st = await p.evaluate(() => ({ S: [...AW.S].sort(), sel: document.querySelectorAll('#tw tbody tr.sel').length, leiste: !document.querySelector('#adrSel').hidden && /3 gewählt/.test(document.querySelector('#adrSel').textContent),
+      let st = await p.evaluate(() => ({ S: [...AW.S].sort(), sel: document.querySelectorAll('#tw tbody tr.sel').length, leiste: !document.querySelector('#adrSel').hidden && /3 von \d+ gewählt/.test(document.querySelector('#adrSel').textContent),
         kopf: document.querySelector('#tw [data-adrckall]').indeterminate, n: document.querySelector('#adrN').textContent, ckx: (() => { const c = document.querySelector('#tw tbody tr [data-adrck]').getBoundingClientRect(), t = document.querySelector('#tw tbody tr td.nm').getBoundingClientRect(); return Math.round(c.left - t.left); })(), y: document.querySelector('#tw tbody tr[data-id="1"]').getBoundingClientRect().top, rechts: (document.querySelector('.sr-r .adr-r h3') || {}).textContent || '' }));
       pruef(st.S.length === 3 && st.sel === 3 && st.leiste && st.kopf && st.y === y0 && st.n === '3 gewählt' && st.ckx < 15, `Haken + Umschalt = von … bis, Leiste schwebt, nichts springt: ${JSON.stringify(st)} (vorher y ${y0})`);
       await p.click(`#tw tbody tr[data-id="${reihe[1]}"] td.ro`, { modifiers: ['Control'] });
@@ -152,7 +152,7 @@ export async function adrStartPruefen(browser, repo) {
       pruef(await p.evaluate(() => AW.S.size === 4 && document.querySelector('#tw [data-adrckall]').checked), 'Haken im Kopf = alle gefilterten');
       await p.click('[data-adr="k:bauherr"]'); await p.waitForTimeout(200);
       st = await p.evaluate(() => ({ n: AW.S.size, t: document.querySelector('#adrSel').textContent.replace(/\s+/g, ' ') }));
-      pruef(st.n === 4 && /3 davon gerade nicht zu sehen/.test(st.t), `Auswahl bleibt beim Filtern (AW-4): ${JSON.stringify(st)}`);
+      pruef(st.n === 4 && /dazu 3 gewählte, die der Filter gerade ausblendet/.test(st.t), `Auswahl bleibt beim Filtern (AW-4): ${JSON.stringify(st)}`);
       await p.click('#adrSel [data-aw="sicht"]');
       pruef(await p.evaluate(() => [...AW.S].join()) === '3', '„nur sichtbare“');
       await p.click('[data-adr="k:bauherr"]'); await p.waitForTimeout(200);

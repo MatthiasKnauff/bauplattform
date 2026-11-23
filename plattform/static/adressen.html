@@ -44,10 +44,10 @@ html.bp-handy .ct .acts a{font-size:1rem;padding:.5rem .8rem}   /* Handyansicht:
 /* rechts: Details des gewählten Kontakts (Mock „Adressen rechts“, 22.11.2026) */
 /* Auswahl (Mock „Adressen auswählen“, 23.11.2026, adressen-auswahl.js) */
 .adr-ck{width:1rem;height:1rem;margin:0;flex:none;accent-color:var(--y);cursor:pointer}.ct .hd .adr-ck{margin-top:.2rem}
-.tt td.nm{position:relative}.tt td.nm .adr-ck{position:absolute;left:.45rem;top:50%;transform:translateY(-50%)}.tt td.nm input[data-fk]{padding-left:1.9rem}
+.tt td.nm{position:relative}.tt td.nm input.adr-ck{position:absolute;left:.45rem;top:50%;transform:translateY(-50%);width:1rem;height:1rem;padding:0;margin:0}   /* sonst gilt .tt td input (width:100%) – der Haken stand mitten in der Zelle */.tt td.nm input[data-fk]{padding-left:1.9rem}
 .tt thead tr.h th .adr-ck{margin-right:.45rem;vertical-align:-2px}
 .ct.sel{background:color-mix(in srgb,var(--y) 7%,var(--card))}.tt tbody tr.sel td{background:color-mix(in srgb,var(--y) 12%,var(--card))}
-.adr-alle{display:inline-flex;gap:.35rem;align-items:center;font-size:.85rem;color:var(--mute);cursor:pointer}#pane.wide .adr-alle{display:none}
+.adr-n{color:var(--y);font-size:.88rem;white-space:nowrap}.adr-alle{display:inline-flex;gap:.35rem;align-items:center;font-size:.85rem;color:var(--mute);cursor:pointer}#pane.wide .adr-alle{display:none}
 html.bp-handy:not(.adr-wahl) .adr-ck,html.bp-handy:not(.adr-wahl) .adr-alle{display:none}
 #adrSel{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--bp-unten,0px) + 1rem);z-index:60;display:flex;flex-wrap:nowrap;white-space:nowrap;gap:.35rem .6rem;align-items:center;max-width:calc(100vw - 2rem);background:var(--card);border:1px solid var(--y);border-radius:calc(12px*var(--rk,1));padding:.45rem .7rem;box-shadow:var(--sh0,0 6px 24px rgba(0,0,0,.25));font-size:.88rem}
 #adrSel[hidden]{display:none}#adrSel .aw-sp{flex:1}#adrSel .aw-l{border:0;background:none;color:var(--y);font:inherit;font-size:.85rem;cursor:pointer;padding:0;text-decoration:underline}
@@ -140,7 +140,7 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
   <section class="pane wrap bp-voll" id="pane">
   <!-- Befehlsleiste wie in allen Apps (befehle.js, 21.11.2026 – vorher eine eigene Knopfreihe, die am Handy über fünf Zeilen umbrach): Rückgängig · Neu · Ansicht · Liste · Datei · Verlauf -->
   <div class="bfl" id="bfl"></div>
-  <div class="kz"><label class="adr-alle" id="adrAlle" title="alle gefilterten wählen (Strg+A)"><input type="checkbox" class="adr-ck" data-adrckall> alle</label><span class="cnt" id="cnt"></span>
+  <div class="kz"><label class="adr-alle" id="adrAlle" title="alle gefilterten wählen (Strg+A)"><input type="checkbox" class="adr-ck" data-adrckall> alle</label><span class="cnt" id="cnt"></span><b class="adr-n" id="adrN" hidden></b>
     <div class="kb" id="kb" hidden><label for="ksort" class="mute">Sortieren</label><select id="ksort"></select><button class="btn sm" id="kdir" title="Reihenfolge umkehren"></button><button class="btn sm" id="kflt" aria-expanded="false"><i class="bp-kl" aria-hidden="true"></i>Filter je Feld</button></div></div>
   <div class="kf" id="kf" hidden></div>
   <div id="adrW"><div id="adrL"><div class="list" id="list"></div>

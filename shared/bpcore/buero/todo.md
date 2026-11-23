@@ -265,6 +265,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Behörden als Art, Person in einer Zeile (Anrede · Titel · Name · Zusatz), Bauherr:in als Person, Projektnummern am Kontakt (Name aus dem Projektordner), Suche findet Stichwörter~~ (23.11.2026)
 - ~~Adressen: Auswahl einzelner/mehrerer/aller gefilterten (Mock AW-1 … AW-5 A) – Haken, Strg/Umschalt, Leiste unten, Mail an alle, Projekt, Ändern, Zusammenführen, Excel/Drucken, Papierkorb~~ (23.11.2026)
 - ~~Tests nach den Kontakt-Feldern (Amt, Zusatz, ist_firma) nachgezogen~~ (23.11.2026)
+- ~~Adressen-Tabelle: Haken stand mitten in der Namenszelle (Stil der Eingabefelder), Zahl der Gewählten oben~~ (23.11.2026)
 - ~~Versand: Anhänge unter der Nachricht, „＋ Plan …“ und „＋ aus der Ablage …“ (Kern liest beim Senden)~~ (23.11.2026)
 - ~~Bauzeitenplan: mit der Maus gezogene Leistung am Ende des Vorgängers = EA verknüpft~~ (23.11.2026)
 - ~~Gebäudemodell Räume: keine erzwungene Durchsicht der Bauteile, Geschosse beim Einschalten auseinander; Bauzeitenplan „Plan scharf schalten“ oben im Versionsmenü~~ (23.11.2026)

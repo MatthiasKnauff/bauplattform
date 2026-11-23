@@ -144,8 +144,8 @@ export async function adrStartPruefen(browser, repo) {
       await p.click(`#tw tbody tr[data-id="${reihe[0]}"] [data-adrck]`);
       await p.click(`#tw tbody tr[data-id="${reihe[2]}"] td.ro`, { modifiers: ['Shift'] });
       let st = await p.evaluate(() => ({ S: [...AW.S].sort(), sel: document.querySelectorAll('#tw tbody tr.sel').length, leiste: !document.querySelector('#adrSel').hidden && /3 gewählt/.test(document.querySelector('#adrSel').textContent),
-        kopf: document.querySelector('#tw [data-adrckall]').indeterminate, y: document.querySelector('#tw tbody tr[data-id="1"]').getBoundingClientRect().top, rechts: (document.querySelector('.sr-r .adr-r h3') || {}).textContent || '' }));
-      pruef(st.S.length === 3 && st.sel === 3 && st.leiste && st.kopf && st.y === y0, `Haken + Umschalt = von … bis, Leiste schwebt, nichts springt: ${JSON.stringify(st)} (vorher y ${y0})`);
+        kopf: document.querySelector('#tw [data-adrckall]').indeterminate, n: document.querySelector('#adrN').textContent, ckx: (() => { const c = document.querySelector('#tw tbody tr [data-adrck]').getBoundingClientRect(), t = document.querySelector('#tw tbody tr td.nm').getBoundingClientRect(); return Math.round(c.left - t.left); })(), y: document.querySelector('#tw tbody tr[data-id="1"]').getBoundingClientRect().top, rechts: (document.querySelector('.sr-r .adr-r h3') || {}).textContent || '' }));
+      pruef(st.S.length === 3 && st.sel === 3 && st.leiste && st.kopf && st.y === y0 && st.n === '3 gewählt' && st.ckx < 15, `Haken + Umschalt = von … bis, Leiste schwebt, nichts springt: ${JSON.stringify(st)} (vorher y ${y0})`);
       await p.click(`#tw tbody tr[data-id="${reihe[1]}"] td.ro`, { modifiers: ['Control'] });
       pruef(await p.evaluate(() => AW.S.size) === 2, 'Strg+Klick nimmt heraus');
       await p.click('#tw [data-adrckall]');

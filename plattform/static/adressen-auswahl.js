@@ -19,6 +19,7 @@ function awZeigen() {
   const V = awSichtbar(), n = V.filter((i) => AW.S.has(i)).length;
   document.querySelectorAll('[data-adrckall]').forEach((x) => { x.checked = !!V.length && n === V.length; x.indeterminate = n > 0 && n < V.length; });
   document.documentElement.classList.toggle('adr-wahl', AW.S.size > 0);
+  const nz = document.getElementById('adrN'); if (nz) { nz.hidden = !AW.S.size; nz.textContent = `${AW.S.size} gewählt`; }   // Zahl der Gewählten oben neben der Zahl der Kontakte
   awLeiste(V, n);
 }
 function awUmschalten(id) { if (AW.S.has(id)) AW.S.delete(id); else AW.S.add(id); }

@@ -66,10 +66,6 @@ const ACTIONS = {
   zoomIn: () => setZoom(zoom + 1), zoomOut: () => setZoom(zoom - 1), fitProject,
   goToday: () => scrollToDay(todayN(), 0.3),
   expandAll: () => setCollapsedAll(false), collapseAll: () => setCollapsedAll(true),
-  newProject: () => promptDialog('Neues Projekt', 'Projektname', 'Neues Projekt', async (name) => {
-    await flushSave();
-    const p = await planApi.create({ name, start: snapWork(todayN()), tasks: [] }); await refreshProjectList(); await openProject(p.id);
-  }),
   renameProject: () => promptDialog('Version umbenennen', 'Name der Version (das Projekt steht oben in der Kopfleiste)', P.name, (name) => { act(() => { P.name = name; }); refreshProjectList(); }),
   deleteProject: () => archivDialog(),
   importJson: () => $('#fileInput').click(),
@@ -141,7 +137,7 @@ async function renderStart() {
     const eig = projects.filter((p) => p.bt_id === gp.id && !p.archived);
     if (eig.length) { await openProject(eig.sort((a, b) => (b.updated || '').localeCompare(a.updated || ''))[0].id); refreshProjectList(); return; }
     box.innerHTML = `<div class="sv"><div class="sv-h"><h2>Für ${esc(gp.name)} gibt es noch keinen Bauzeitenplan</h2>
-      <p>Neu anlegen – leer, mit dem Planungsassistenten oder aus dem Ablauf eines früheren Projekts. Er gehört gleich zu diesem Projekt; die erste Version heißt „Startversion“.</p>
+      <p>Neu anlegen – leer oder aus dem Ablauf eines früheren Projekts. Er gehört gleich zu diesem Projekt; die erste Version heißt „Startversion“.</p>
       <div class="sv-b"><button class="btn primary" data-act="fileNew">Bauzeitenplan anlegen …</button></div></div>
       ${eig.length ? `<div class="sv-list">${eig.map((p) => `<button class="sv-p" data-open="${p.id}"><b>${esc(p.name)}</b><small>${p.n || 0} Leistungen${p.start != null ? ' · Beginn ' + fmtD(p.start) : ''}</small></button>`).join('')}</div>` : ''}</div>`;
     return;
@@ -149,7 +145,7 @@ async function renderStart() {
   const rec = projects.slice().sort((a, b) => (b.updated || '').localeCompare(a.updated || '')).slice(0, 12);
   const when = (u) => { if (!u) return ''; const d = new Date(u); return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
   box.innerHTML = `<div class="sv"><div class="sv-h"><h2>Kein Projekt geöffnet</h2><p>Projekt aus der Liste wählen, ein neues anlegen oder mit dem Planungsassistenten starten.</p>
-    <div class="sv-b"><button class="btn primary" data-act="fileNew">Neues Projekt …</button><button class="btn" data-act="fileOpen">Öffnen …</button><button class="btn" data-act="toggleAssist">Planungsassistent</button></div></div>
+    <div class="sv-b"><button class="btn primary" data-act="fileNew">Neu …</button><button class="btn" data-act="fileOpen">Öffnen …</button><button class="btn" data-act="toggleAssist">Planungsassistent</button></div></div>
     <h3>Zuletzt bearbeitet</h3><div class="sv-list">${rec.map((p) => `<button class="sv-p" data-open="${p.id}"><b>${esc(p.name)}</b><small>${p.n || 0} Leistungen${p.start != null ? ' · Beginn ' + fmtD(p.start) : ''}</small><small>geändert ${when(p.updated)}</small></button>`).join('') || '<div class="hint">Noch keine Projekte.</div>'}</div></div>`;
 }
 $('#startView').addEventListener('click', async (e) => { const b = e.target.closest('[data-open]'); if (!b) return; await openProject(b.dataset.open); refreshProjectList(); });
@@ -162,7 +158,6 @@ function projMenu(btn) {
     ...rec.map((p) => ({ label: p.name, fn: async () => { await openProject(p.id); refreshProjectList(); } })),
     ...(rec.length ? ['-'] : []),
     { label: 'Anderen Plan öffnen …', key: 'Strg+O', fn: () => fileOpen() },
-    { label: 'Neuer Bauzeitenplan …', fn: () => fileNew() },
     '-',
     { label: 'Projekt schließen', key: 'Strg+W', dis: !P, fn: () => closeProject() },
   ];
@@ -218,38 +213,62 @@ async function fileSave() {
   clearTimeout(saveTimer); await saveNow();
   toast(fileHandles[P.id] ? `Gespeichert – auf dem Server und in „${fileHandles[P.id].name}“.` : 'Gespeichert.');
 }
+/* „Neu“ (24.11.2026): EIN Fenster aus der Befehlsleiste und aus dem Versionsmenü – leere Version, Version aus dem aktuellen Stand,
+   neu aus einem anderen Projekt (uebernehmen.js). Darunter nur die Angaben, die der gewählte Weg braucht. */
 function fileNew() {
-  modal('Neu', `<div class="nw-opts">
-      <button class="nw-opt" data-nw="empty"><b>Leeres Projekt</b><small>Leistungen selbst eintragen</small></button>
-      <button class="nw-opt" data-nw="assist"><b>Mit Planungsassistent</b><small>Gebäudetyp wählen, Leistungen vorschlagen lassen</small></button>
-      <button class="nw-opt" data-nw="kopie"><b>Aus anderem Bauzeitenplan</b><small>Ablauf eines früheren Projekts übernehmen, auf den neuen Anfang verschoben</small></button>
-    </div><div class="form g-oben"><label>Projektname</label><input id="nwName" class="full" value="" placeholder="Projektnummer oder Name – Vorschläge aus Bautagebuch und Server" data-bp-projekt autocomplete="off"><label>Projektanfang</label><input id="nwStart" type="date" class="full" value="${isoD(startOf('week', todayN() + 7))}"></div>`, [{ label: 'Abbrechen' }]);
-  const bg = [...document.querySelectorAll('.modal-bg')].pop();
-  // Projekt, aus dem man gekommen ist (gemeinsames Projekt der Apps): hat es noch keinen Plan, dessen Namen vorschlagen und verknüpfen
-  const gp = window.BPHead && BPHead.projekt;
+  const gp = window.BPHead && BPHead.projekt, bt = P && P._bt ? P._bt.id : gp && gp.id ? gp.id : null;
   const gnr = gp && gp.id ? (gp.name.match(/^[A-Za-z]\d{3}(?:\.\d+)?/) || [''])[0].toLowerCase() : '';
-  if (gp && gp.id && !projects.some((p) => p.bt_id === gp.id || (gnr && !p.bt_id && p.name.toLowerCase().startsWith(gnr)))) {   // Projekt steht oben: erste Version, ohne Namensabfrage
-    const nw = bg.querySelector('#nwName'); nw.value = 'Startversion'; nw.dataset.btId = gp.id;
-    const lb = nw.previousElementSibling; if (lb && lb.tagName === 'LABEL') lb.hidden = true; nw.hidden = true; }
-  bg.addEventListener('click', async (e) => {
-    const b = e.target.closest('[data-nw]'); if (!b) return;
-    const nw = bg.querySelector('#nwName'), name = nw.value.trim() || 'Neues Projekt', st = parseDate(bg.querySelector('#nwStart').value) ?? todayN();
-    const btId = nw.dataset.btId ? +nw.dataset.btId : null;   // Vorschlag „Projekt im Bautagebuch“ gewählt → gleich verknüpfen
+  const erste = !P && gp && gp.id && !projects.some((p) => p.bt_id === gp.id || (gnr && !p.bt_id && p.name.toLowerCase().startsWith(gnr)));   // erster Plan des Projekts oben
+  const OPT = [['leer', 'Neue leere Version', 'Leistungen selbst eintragen oder rechts mit dem Planungsassistenten'],
+    ['kopie', 'Neue Version aus aktuellem Stand', P ? `Kopie von „${esc(P.name)}“ mit allen Leistungen, Verknüpfungen, Firmen und Kalender` : 'Erst einen Plan öffnen'],
+    ['anders', 'Neu aus anderem Projekt', 'Abschnitte eines früheren Plans übernehmen, auf den neuen Anfang verschoben']];
+  let art = P ? 'kopie' : 'leer';
+  const bg = modal('Neu', `<div class="nw-opts">${OPT.map(([k, t, e]) => `<button type="button" class="nw-opt${k === art ? ' on' : ''}" data-nw="${k}"${k === 'kopie' && !P ? ' disabled' : ''}><b>${t}</b><small>${e}</small></button>`).join('')}</div>
+    <div class="form g-oben nw-f"><label data-nwf="name">${P || bt ? 'Name der Version' : 'Projekt'}</label><input id="nwName" class="full" data-nwf="name" value="${erste ? 'Startversion' : ''}" placeholder="${P || bt ? 'z. B. 1. Überarbeitung, nach den Sommerferien' : 'Projektnummer oder Name – Vorschläge aus Bautagebuch und Server'}"${P || bt ? '' : ' data-bp-projekt'} autocomplete="off">
+      <label data-nwf="start">Projektanfang</label><input id="nwStart" type="date" class="full" data-nwf="start" value="${isoD(P ? P.start : startOf('week', todayN() + 7))}">
+      ${bt && P ? '<label data-nwf="gilt"></label><label class="full g-cbz" data-nwf="gilt"><input type="checkbox" id="nwGilt" checked> gilt ab sofort (Bautagebuch, Erinnerungen, To-dos)</label>' : ''}</div>`,
+    [{ label: 'Abbrechen' }, { label: 'Anlegen', cls: 'primary', primary: true, fn: () => { anlegen(); return false; } }]);
+  bg.querySelector('.modal').classList.add('nw-modal');
+  const ok = bg.querySelector('.mf .primary'), nw = bg.querySelector('#nwName');
+  if (erste) nw.dataset.btId = gp.id;
+  const zeigen = () => {   // nur die Felder des gewählten Wegs
+    const F = { leer: ['name', 'start', 'gilt'], kopie: ['name', 'gilt'], anders: [] }[art];
+    bg.querySelectorAll('[data-nwf]').forEach((x) => { x.hidden = !F.includes(x.dataset.nwf); });
+    bg.querySelectorAll('[data-nw]').forEach((x) => x.classList.toggle('on', x.dataset.nw === art));
+    ok.textContent = art === 'anders' ? 'Weiter …' : 'Anlegen';
+  };
+  zeigen();
+  bg.querySelector('.nw-opts').addEventListener('click', (e) => { const b = e.target.closest('[data-nw]'); if (!b || b.disabled) return; art = b.dataset.nw; zeigen(); if (art !== 'anders') nw.focus(); });
+  bg.querySelector('.nw-opts').addEventListener('dblclick', (e) => { if (e.target.closest('[data-nw]:not([disabled])')) anlegen(); });
+  async function anlegen() {
+    const name = nw.value.trim(), st = parseDate(bg.querySelector('#nwStart').value) ?? todayN(), gilt = !!(bg.querySelector('#nwGilt') || {}).checked;
+    const btId = nw.dataset.btId ? +nw.dataset.btId : bt;   // Vorschlag „Projekt im Bautagebuch“ gewählt → gleich verknüpfen
+    if (art === 'anders') { bg.remove(); if (window.planAusAnderem) window.planAusAnderem('', P ? P.start : st, btId); return; }
+    if (!name) { toast('Bitte einen Namen eingeben.', true); nw.focus(); return; }
     bg.remove();
-    if (b.dataset.nw === 'kopie' && window.planAusAnderem) { window.planAusAnderem(nw.value.trim(), st, btId); return; }
-    if (!(await leaveProjectOk())) return;
-    // erster Plan des Projekts: Startdaten aus dem Gebäudemodell? (setzt die Linie „Termine“; mit Angaben des Assistenten → Grobplan)
-    const sd = btId && window.BPHead && BPHead.startdaten ? await BPHead.startdaten({ pid: btId, app: 'termine', titel: 'Neuer Bauzeitenplan', baubeginn: true }) : null;
-    if (btId && sd === null && window.BPHead && BPHead.startdaten) return;
-    const mitModell = sd && (sd.modus === 'uebernahme' || sd.modus === 'auto'), ass = mitModell && sd.modell && sd.modell.assistent && sd.modell.assistent.type ? sd.modell.assistent : null;
-    const p = await planApi.create({ name, start: snapWork(sd && sd.baubeginn ? parseDate(sd.baubeginn) : st), tasks: [], cal: P ? P.cal : null });
-    if (btId) await fetch(`api/projects/${p.id}/link`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: btId }) }).catch(() => {});
-    await openProject(p.id); await refreshProjectList();
-    if (btId) toast('Mit dem Projekt verknüpft.');
-    if (ass) { if (AssistCore.erzeugen(ass, sd.baubeginn, false)) toast('Grobplan aus dem Gebäudemodell erzeugt – er folgt jetzt dem Planungsassistenten.'); return; }
-    if (mitModell) { setAssistOpen(true); toast('Für einen Grobplan rechts im Planungsassistenten „Was wird gebaut?“ wählen – Fläche und Geschosse kommen aus dem Gebäudemodell.'); return; }
-    if (b.dataset.nw === 'assist') { setAssistOpen(true); toast('Rechts im Planungsassistenten die Angaben machen – im letzten Schritt „Plan aus den Angaben erzeugen“.'); }
-  });
+    try {
+      if (!(await leaveProjectOk())) return;
+      const altGilt = btId ? (projects.find((x) => x.gueltig && x.bt_id === btId) || {}).id : null;
+      if (art === 'kopie') {
+        const src = JSON.parse(JSON.stringify(P)); delete src._rev; delete src._by; delete src._bt;
+        const p = await planApi.create({ ...src, name, archived: false, _link: btId });
+        if (btId) await fetch(`api/projects/${encodeURIComponent(gilt || !altGilt ? p.id : altGilt)}/gueltig`, { method: 'PUT' });   // sonst gälte automatisch die neueste
+        await openProject(p.id); await refreshProjectList(); toast(`Version „${name}“ angelegt – du arbeitest jetzt darin.`);
+        return;
+      }
+      // leer – erster Plan des Projekts: Startdaten aus dem Gebäudemodell? (setzt die Linie „Termine“; mit Angaben des Assistenten → Grobplan)
+      const sd = btId && !P && window.BPHead && BPHead.startdaten ? await BPHead.startdaten({ pid: btId, app: 'termine', titel: 'Neuer Bauzeitenplan', baubeginn: true }) : null;
+      if (btId && !P && sd === null && window.BPHead && BPHead.startdaten) return;
+      const mitModell = sd && (sd.modus === 'uebernahme' || sd.modus === 'auto'), ass = mitModell && sd.modell && sd.modell.assistent && sd.modell.assistent.type ? sd.modell.assistent : null;
+      const p = await planApi.create({ name, start: snapWork(sd && sd.baubeginn ? parseDate(sd.baubeginn) : st), tasks: [], cal: P ? P.cal : null });
+      if (btId) await fetch(`api/projects/${p.id}/link`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: btId }) });
+      if (btId && altGilt && !gilt) await fetch(`api/projects/${encodeURIComponent(altGilt)}/gueltig`, { method: 'PUT' });
+      await openProject(p.id); await refreshProjectList();
+      if (ass) { if (AssistCore.erzeugen(ass, sd.baubeginn, false)) toast('Grobplan aus dem Gebäudemodell erzeugt – er folgt jetzt dem Planungsassistenten.'); return; }
+      if (mitModell) { setAssistOpen(true); toast('Für einen Grobplan rechts im Planungsassistenten „Was wird gebaut?“ wählen – Fläche und Geschosse kommen aus dem Gebäudemodell.'); return; }
+      toast(`„${name}“ angelegt – Leistungen eintragen oder rechts im Planungsassistenten die Angaben machen.`);
+    } catch (er) { toast('Anlegen fehlgeschlagen: ' + er.message, true); }
+  }
 }
 /* Archivieren statt Löschen (wie in den Baukosten): archivierte Pläne bleiben erhalten, stehen in den Listen unten */
 function archivDialog() {
@@ -329,7 +348,7 @@ async function openFromComputer() {
     toast(`„${f.name}“ geöffnet und verknüpft – „Speichern“ schreibt auch in diese Datei.`);
   } catch (err) { toast('Öffnen fehlgeschlagen: ' + err.message, true); }
 }
-function fileSaveAs() {   // „Speichern unter“ = wie eine Datei abspeichern: Formate oder Kopie unter neuem Namen
+function fileSaveAs() {   // „Speichern unter“ = als Datei abspeichern (neue Versionen nur über „Neu“)
   if (!P) return;
   const canPick = !!window.showSaveFilePicker;
   const bg = modal('Speichern unter', `<div class="ex-opts">
@@ -337,7 +356,6 @@ function fileSaveAs() {   // „Speichern unter“ = wie eine Datei abspeichern:
       <button class="nw-opt" data-ex="csv"><b>Excel / CSV (.csv)</b><small>Tabelle aller Leistungen mit Terminen, Gewerk, Unternehmer:in</small></button>
       <button class="nw-opt" data-ex="xml"><b>MS Project (.xml)</b><small>Zum Öffnen in Microsoft Project und kompatiblen Programmen</small></button>
       <button class="nw-opt" data-ex="pdf"><b>PDF</b><small>Bauzeitenplan mit Format- und Seitenwahl (wie Drucken)</small></button>
-      <button class="nw-opt" data-ex="kopie"><b>Kopie unter neuem Namen</b><small>Neuer Bauzeitenplan auf dem Server – danach arbeitest du in der Kopie weiter, das Original bleibt erhalten.</small></button>
     </div>`, [{ label: 'Abbrechen' }]);
   bg.addEventListener('click', (e) => {
     const b = e.target.closest('[data-ex]'); if (!b) return; bg.remove();
@@ -345,17 +363,6 @@ function fileSaveAs() {   // „Speichern unter“ = wie eine Datei abspeichern:
     if (k === 'csv') return exportCsv();
     if (k === 'xml') return exportXml();
     if (k === 'pdf') return printDialog();
-    if (k === 'kopie') {
-      modal('Kopie unter neuem Namen', `<div class="form"><label>Name</label><input id="saName" class="full" value="${esc(P.name)} (Kopie)"></div>`, [{ label: 'Speichern', cls: 'primary', primary: true, fn: (bg2) => {
-        const name = bg2.querySelector('#saName').value.trim(); if (!name) { toast('Bitte einen Namen eingeben.', true); return false; }
-        (async () => {
-          const p = await planApi.create({ ...projectFileData(), name });
-          dirty = false; clearTimeout(saveTimer); saveTimer = null;
-          await openProject(p.id); await refreshProjectList(); toast(`Gespeichert unter „${name}“ – du arbeitest jetzt in der Kopie.`);
-        })().catch((er) => toast('Speichern fehlgeschlagen: ' + er.message, true));
-      } }, { label: 'Abbrechen' }]);
-      return;
-    }
     (async () => {   // .gantt
       if (canPick) {
         let h; try { h = await window.showSaveFilePicker({ suggestedName: fileName('gantt'), types: GANTT_TYPES }); } catch { return; }
@@ -520,7 +527,7 @@ function vleiste() {
     liste: L.map((p) => ({ id: p.id, name: p.id === (P && P.id) ? P.name : p.name, datum: when(p.updated), wer: p.by || '', archiviert: p.archived })),
     onWahl: async (id) => { await flushSave(); if (await openProject(String(id)) !== false) refreshProjectList(); },
     onGueltig: bt ? versionGilt : null,
-    onNeu: neueVersion, extra: [{ text: '⎘ Aus anderem Plan übernehmen …', fn: () => ACTIONS.planUebernehmen() }], onUmbenennen: () => ACTIONS.renameProject(), onVerwalten: () => archivDialog() };
+    onNeu: () => fileNew(), neuText: '＋ Neu …', onUmbenennen: () => ACTIONS.renameProject(), onVerwalten: () => archivDialog() };
   // kompaktes Versionsmenü vorne in der Werkzeugleiste (wie in der AVA); Drucken/Exportieren rechts in der Reiterzeile
   const el = BPHead.versionsleiste({ vor: $('#tabs'), ...O }); el.style.display = 'none';
   let vb = $('#vmGrp');
@@ -537,23 +544,6 @@ async function versionGilt(id, schon) {
   catch (er) { toast('Nicht möglich: ' + er.message, true); }
 }
 window.ganttVleiste = vleiste;
-function neueVersion() {
-  if (!P) return;
-  modal('Neue Version', `<div class="hint g-vor g-max">Kopie von „${esc(P.name)}“ mit allen Leistungen, Verknüpfungen, Firmen und Kalender. Danach arbeitest du in der neuen Version weiter, die alte bleibt, wie sie ist.</div><div class="form g-max">
-    <label>Name der Version</label><input id="nvName" class="full" placeholder="z. B. 1. Überarbeitung, nach den Sommerferien">
-    ${P._bt ? '<label></label><label class="full g-cbz"><input type="checkbox" id="nvGilt" checked> gilt ab sofort (Bautagebuch, Erinnerungen, To-dos)</label>' : ''}</div>`, [{ label: 'Anlegen', cls: 'primary', primary: true, fn: (bg) => {
-    const name = bg.querySelector('#nvName').value.trim(); if (!name) { toast('Bitte einen Namen eingeben.', true); return false; }
-    const gilt = !!(bg.querySelector('#nvGilt') || {}).checked, altId = P.id, btId = P._bt ? P._bt.id : null;
-    (async () => {
-      await flushSave();
-      const src = JSON.parse(JSON.stringify(P)); delete src._rev; delete src._by; delete src._bt;
-      const p = await planApi.create({ ...src, name, archived: false, _link: P._bt ? P._bt.id : null });
-      if (btId) await fetch(`api/projects/${encodeURIComponent(gilt ? p.id : (projects.find((x) => x.gueltig && x.bt_id === btId) || { id: altId }).id)}/gueltig`, { method: 'PUT' }).catch(() => {});   // sonst gälte automatisch die neueste
-      await openProject(p.id); await refreshProjectList(); toast(`Version „${name}“ angelegt – du arbeitest jetzt darin.`);
-    })().catch((er) => toast('Anlegen fehlgeschlagen: ' + er.message, true));
-  } }, { label: 'Abbrechen' }]);
-  setTimeout(() => { const i = document.querySelector('#nvName'); if (i) i.focus(); }, 30);
-}
 async function refreshProjectList() {
   projects = await planApi.list();
   const opt = (p) => `<option value="${p.id}"${P && p.id === P.id ? ' selected' : ''}>${esc(p.id === P?.id ? P.name : p.name)}</option>`;

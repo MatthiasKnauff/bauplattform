@@ -1,8 +1,7 @@
 'use strict';
 /* =====================================================================
    Bauzeitenplan aus einem anderen Projekt übernehmen
-   - Datei → Neu → „Aus anderem Bauzeitenplan“: neuer Plan als Kopie eines anderen, verschoben auf den neuen Projektanfang
-   - Datei → „Aus anderem Plan übernehmen“: Abschnitte (Gruppen) eines anderen Plans an den geöffneten Plan anhängen
+   - „Neu“ → „Neu aus anderem Projekt“: neuer Plan aus den gewählten Abschnitten eines anderen, verschoben auf den neuen Projektanfang
    Termine (Einschränkungen „Anfang nicht früher als“) werden um den Unterschied der Projektanfänge verschoben,
    Verknüpfungen innerhalb der übernommenen Leistungen bleiben erhalten, Fortschritt wird auf Wunsch zurückgesetzt.
    ===================================================================== */
@@ -80,7 +79,6 @@
       if (opt.fortschritt) t.pct = 0;
       if (!opt.notizen) t.notes = '';
       if (!opt.firmen) t.res = '';   // Unternehmer erst einmal leer – die Firmen des neuen Projekts stehen noch nicht fest
-      if (opt.wurzel != null && t.cons == null && !t.preds.length && !(tasks[tasks.indexOf(t0) + 1] && (tasks[tasks.indexOf(t0) + 1].lvl || 0) > (t0.lvl || 0))) t.cons = opt.wurzel;
       return typeof fillTask === 'function' ? fillTask(t) : t;
     });
     return { tasks: out, nextUid };
@@ -107,126 +105,85 @@
   const unter = (T, i) => { const l0 = T[i].lvl || 0, r = []; for (let j = i + 1; j < T.length && (T[j].lvl || 0) > l0; j++) r.push(j); return r; };
   const mz = (n, a, b) => `${n} ${n === 1 ? a : b}`;
 
-  /* ---------- 1) neuer Plan aus einem anderen (UB-4: dasselbe Fenster, rechts Name und Projektanfang) ---------- */
-  window.planAusAnderem = function (name0, start0, btId) {
-    const anfang = start0 != null ? isoD(snapWork(start0)) : '';
-    const bg = fenster('Neuer Plan aus anderem Bauzeitenplan', null,
-      `<label class="ub-f"><span class="ub-lb">Name des neuen Plans</span><input id="ubName" value="${E(name0 || '')}" placeholder="Name des neuen Plans" data-bp-projekt autocomplete="off"></label>
-       <label class="ub-f"><span class="ub-lb">Projektanfang</span><input id="ubStart" type="date" value="${anfang}"></label>
-       <p class="hint" id="ubInfo">Links Projekt und Version als Vorlage wählen – alle Abschnitte werden übernommen.</p><div class="ub-vor" id="ubVor"></div>`,
-      firmenZeilen('der Vorlage') + `<div class="ub-sw">${schalter}</div>`, 'Plan anlegen', (bg) => {
-        const q = bg.querySelector('#ubQ') && bg.querySelector('#ubQ').value;
-        if (!q) { toast('Bitte links Projekt und Version als Vorlage wählen.', true); return false; }
-        const nw = bg.querySelector('#ubName'), name = nw.value.trim();
-        if (!name) { toast('Bitte einen Namen eingeben.', true); nw.focus(); return false; }
-        const st0 = parseDate(bg.querySelector('#ubStart').value);
-        if (st0 == null) { toast('Bitte den Projektanfang des neuen Projekts eintragen.', true); return false; }
-        const st = snapWork(st0), bt = nw.dataset.btId ? +nw.dataset.btId : btId || null, opt = opts(bg);
-        (async () => {
-          if (!(await leaveProjectOk())) return;
-          const src = await planApi.get(q);
-          const k = kopieren(src.tasks || [], st - src.start, opt, 1);
-          const p = await planApi.create({ name, start: st, tasks: k.tasks, nextUid: k.nextUid, cal: src.cal || null, assist: src.assist || null,
-            gwColors: src.gwColors || {}, trades: opt.firmen ? src.trades || {} : ohneFirmen(src.trades) });
-          if (bt) await fetch(`api/projects/${p.id}/link`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: bt }) });
-          await openProject(p.id); await refreshProjectList();
-          toast(`„${name}“ aus „${src.name}“ angelegt – ${k.tasks.length} Leistungen, Beginn ${fmtD(st)}${opt.firmen ? ', Firmen übernommen' : ', Unternehmer:in noch leer'}.`);
-        })().catch((e) => toast('Fehler: ' + e.message, true));
-      });
-    const q = bg.querySelector('#ubQ'), sum = bg.querySelector('#ubSum'); let SRC = null;
-    const fuss = () => { const d = parseDate(bg.querySelector('#ubStart').value);
-      sum.textContent = SRC ? `${mz((SRC.tasks || []).filter((t, i, a) => blatt(a, i)).length, 'Leistung', 'Leistungen')} aus „${SRC.name}“${d != null ? ' · Beginn ' + fmtD(snapWork(d)) : ''}` : ''; };
-    bg.querySelector('#ubStart').addEventListener('change', fuss);
-    if (q) q.addEventListener('change', async () => {
-      const info = bg.querySelector('#ubInfo'); SRC = null; fuss(); bg.querySelector('#ubVor').innerHTML = ''; if (!q.value) return;
-      const id = q.value, s = await planApi.get(id).catch((e) => { toast(e.message, true); return null; });
-      if (!s || q.value !== id) return;
-      SRC = s; fuss();
-      info.innerHTML = `<b>${E(s.name)}</b> begann am ${fmtD(s.start)} – alles wird auf den neuen Projektanfang verschoben, mit Dauern, Verknüpfungen, Gewerken und Kalender.`;
-      const T = s.tasks || [];   // was übernommen wird: die Abschnitte mit der Zahl ihrer Leistungen
-      bg.querySelector('#ubVor').innerHTML = T.map((t, i) => i).filter((i) => (T[i].lvl || 0) === 0)
-        .map((i) => `<div><span>${E(T[i].name)}</span><small>${blatt(T, i) ? (T[i].dur ? T[i].dur + ' AT' : 'Meilenstein') : mz(unter(T, i).filter((j) => blatt(T, j)).length, 'Leistung', 'Leistungen')}</small></div>`).join('');
-      const nm = bg.querySelector('#ubName'); if (!nm.value.trim()) nm.placeholder = 'z. B. ' + s.name.replace(/\s*\(Kopie\)$/, '') + ' – neues Projekt';
-    });
-  };
-
-  /* ---------- 2) Abschnitte oder einzelne Leistungen aus einem anderen Plan anhängen (UB-5) ---------- */
-  window.planTeileUebernehmen = function () {
-    if (!P) return;
-    let SRC = null, AUF = new Set(), WAHL = new Set();   // WAHL = gewählte Leistungen (Blätter) des anderen Plans
-    // UB-2: Beginn vorbelegt – nächster Arbeitstag nach dem Ende des Plans
-    const C = CAL || schedule(), ende = P.tasks.reduce((m, t, i) => (C.summ[i] ? m : Math.max(m, C.ef[i])), -Infinity);
-    const ab0 = isFinite(ende) ? fromW(ende) : snapWork(P.start);
-    const bg = fenster('Aus anderem Plan übernehmen', P.id, '<div id="ubTeile"><p class="hint">Links Projekt und Version wählen – hier erscheinen dessen Abschnitte.</p></div>',
-      `<label class="ub-f ub-beg"><span class="ub-lb">Beginn</span><input id="ubAb" type="date" value="${isoD(ab0)}"></label><span class="hint ub-abh">${isFinite(ende) ? 'nach dem Ende des Plans' : 'Projektanfang'}</span>`
-      + firmenZeilen('dem anderen Plan') + `<div class="ub-sw">${schalter}</div>`, 'Übernehmen', (bg) => {
-        if (!SRC) { toast('Bitte links Projekt und Version wählen.', true); return false; }
-        const T = SRC.tasks || [], teil = T.filter((t, i) => (blatt(T, i) ? WAHL.has(i) : unter(T, i).some((j) => WAHL.has(j))));
-        if (!teil.length) { toast('Bitte mindestens einen Abschnitt oder eine Leistung wählen.', true); return false; }
-        const d = parseDate(bg.querySelector('#ubAb').value);
-        if (d == null) { toast('Bitte eintragen, ab wann die übernommenen Leistungen beginnen.', true); return false; }
-        const ab = snapWork(d), opt = opts(bg, { wurzel: ab });
-        let n = 0;
-        const ok = act(() => {
-          const k = kopieren(teil, ab - SRC.start, opt, P.nextUid);
-          if (opt.firmen) { const tr = { ...(P.trades || {}) }; teil.forEach((t) => { if (t.gw && SRC.trades && SRC.trades[t.gw] && !(tr[t.gw] && tr[t.gw].firm)) tr[t.gw] = { ...(tr[t.gw] || {}), ...SRC.trades[t.gw] }; }); P.trades = tr; }
-          const minL = Math.min(...k.tasks.map((t) => t.lvl || 0));
-          k.tasks.forEach((t) => { t.lvl = (t.lvl || 0) - minL; });
-          P.tasks.push(...k.tasks); P.nextUid = k.nextUid; n = k.tasks.length;
-          if (SRC.gwColors) P.gwColors = { ...SRC.gwColors, ...(P.gwColors || {}) };
-          sel = new Set(k.tasks.map((t) => t.uid));
-        });
-        if (ok !== false) toast(`${n} Zeilen aus „${SRC.name}“ übernommen (ab ${fmtD(ab)}${opt.firmen ? ', mit Firmen' : ', Unternehmer:in leer'}) – unten im Plan markiert.`);
-      });
-    const box = bg.querySelector('#ubTeile'), sum = bg.querySelector('#ubSum'), q = bg.querySelector('#ubQ');
-    const fuss = () => {
-      const T = SRC ? SRC.tasks || [] : [], ab = parseDate(bg.querySelector('#ubAb').value);
-      const abschn = T.map((t, i) => i).filter((i) => (T[i].lvl || 0) === 0 && (blatt(T, i) ? WAHL.has(i) : unter(T, i).some((j) => WAHL.has(j)))).length;
-      sum.textContent = WAHL.size ? `${mz(WAHL.size, 'Leistung', 'Leistungen')} aus ${mz(abschn, 'Abschnitt', 'Abschnitten')}${ab != null ? ' · ab ' + fmtD(snapWork(ab)) : ''} · unten angehängt, ↶ nimmt alles heraus` : '';
-    };
-    // Baum: Abschnitte mit Haken (halb = einige), Dreieck zeigt die Leistungen darunter mit eigenem Haken
+  /* Abschnitte der Vorlage als Baum: Haken je Abschnitt (halb = einige), Dreieck zeigt die Leistungen darunter mit eigenem Haken.
+     Anfangs ist alles gewählt; gezeichnet wird nur beim Laden und Aufklappen, Haken werden an Ort und Stelle nachgeführt (nichts springt). */
+  function baum(box, nachher) {
+    let SRC = null, AUF = new Set(), WAHL = new Set();
+    const T = () => (SRC ? SRC.tasks || [] : []);
+    const B = (i) => (blatt(T(), i) ? [i] : unter(T(), i).filter((j) => blatt(T(), j)));
     function zeichne() {
-      const T = SRC.tasks || [];
+      const A = T();
       const zeile = (i) => {
-        const t = T[i], bl = blatt(T, i), B = bl ? [i] : unter(T, i).filter((j) => blatt(T, j));
-        const auf = AUF.has(i), lv = Math.min(t.lvl || 0, 6);
+        const t = A[i], bl = blatt(A, i), auf = AUF.has(i), lv = Math.min(t.lvl || 0, 6);
         let h = `<div class="ub-ab ub-l${lv}${bl ? '' : ' ub-gr'}"><span class="ub-kl">${bl ? '' : `<button type="button" class="ub-kb" data-ubauf="${i}" aria-label="${auf ? 'Zuklappen' : 'Aufklappen'}">${bpKlapp(auf)}</button>`}</span>`
           + `<label class="cb"><input type="checkbox" data-ubg="${i}"> <span>${bl ? E(t.name) : `<b>${E(t.name)}</b>`}</span></label>`
-          + `<small>${bl ? (t.dur ? t.dur + ' AT' : 'Meilenstein') + (t.gw ? ' · ' + E(t.gw) : '') : mz(B.length, 'Leistung', 'Leistungen')}</small></div>`;
-        if (!bl && auf) { const l0 = t.lvl || 0; unter(T, i).filter((j) => (T[j].lvl || 0) === l0 + 1).forEach((j) => { h += zeile(j); }); }
+          + `<small>${bl ? (t.dur ? t.dur + ' AT' : 'Meilenstein') + (t.gw ? ' · ' + E(t.gw) : '') : mz(B(i).length, 'Leistung', 'Leistungen')}</small></div>`;
+        if (!bl && auf) { const l0 = t.lvl || 0; unter(A, i).filter((j) => (A[j].lvl || 0) === l0 + 1).forEach((j) => { h += zeile(j); }); }
         return h;
       };
-      const top = T.map((t, i) => i).filter((i) => (T[i].lvl || 0) === 0);
+      const top = A.map((t, i) => i).filter((i) => (A[i].lvl || 0) === 0);
       box.innerHTML = top.length ? `<div class="ub-kopf">Abschnitte aus „${E(SRC.name)}“ <span class="hint">Haken = übernehmen · Dreieck zeigt die Leistungen</span></div>
         <div class="ub-baum">${top.map(zeile).join('')}</div><div class="ub-alle"><button type="button" class="btn sm" data-uball>alle</button> <button type="button" class="btn sm" data-ubnone>keine</button></div>`
         : '<p class="hint">Dieser Plan hat keine Leistungen.</p>';
       haken();
     }
-    function haken() {   // Haken an Ort und Stelle nachführen – der Baum wird dafür nicht neu gezeichnet (nichts springt)
-      const T = SRC.tasks || [];
-      box.querySelectorAll('[data-ubg]').forEach((x) => { const i = +x.dataset.ubg, B = blatt(T, i) ? [i] : unter(T, i).filter((j) => blatt(T, j)), n = B.filter((j) => WAHL.has(j)).length;
-        x.checked = !!n && n === B.length; x.indeterminate = !!n && n < B.length; });
-      fuss();
+    function haken() {
+      box.querySelectorAll('[data-ubg]').forEach((x) => { const L = B(+x.dataset.ubg), n = L.filter((j) => WAHL.has(j)).length;
+        x.checked = !!n && n === L.length; x.indeterminate = !!n && n < L.length; });
+      nachher();
     }
-    bg.querySelector('#ubAb').addEventListener('change', fuss);
     box.addEventListener('click', (e) => {
       const k = e.target.closest('[data-ubauf]'); if (k) { const i = +k.dataset.ubauf; if (AUF.has(i)) AUF.delete(i); else AUF.add(i); zeichne(); return; }
-      if (e.target.closest('[data-uball],[data-ubnone]')) { const T = SRC.tasks || []; WAHL = e.target.closest('[data-uball]') ? new Set(T.map((t, i) => i).filter((i) => blatt(T, i))) : new Set(); haken(); }
+      if (e.target.closest('[data-uball],[data-ubnone]')) { WAHL = e.target.closest('[data-uball]') ? new Set(T().map((t, i) => i).filter((i) => blatt(T(), i))) : new Set(); haken(); }
     });
-    box.addEventListener('change', (e) => {
-      const c = e.target.closest('[data-ubg]'); if (!c) return;
-      const T = SRC.tasks || [], i = +c.dataset.ubg, B = blatt(T, i) ? [i] : unter(T, i).filter((j) => blatt(T, j));
-      B.forEach((j) => { if (c.checked) WAHL.add(j); else WAHL.delete(j); });
-      haken();
-    });
+    box.addEventListener('change', (e) => { const c = e.target.closest('[data-ubg]'); if (!c) return; B(+c.dataset.ubg).forEach((j) => { if (c.checked) WAHL.add(j); else WAHL.delete(j); }); haken(); });
+    return {
+      laden(s) { SRC = s; AUF = new Set(); WAHL = new Set(); if (!s) { box.innerHTML = ''; nachher(); return; } WAHL = new Set(T().map((t, i) => i).filter((i) => blatt(T(), i))); zeichne(); },
+      quelle: () => SRC, n: () => WAHL.size,
+      abschnitte: () => T().map((t, i) => i).filter((i) => (T()[i].lvl || 0) === 0 && B(i).some((j) => WAHL.has(j))).length,
+      teil: () => T().filter((t, i) => B(i).some((j) => WAHL.has(j))),   // gewählte Leistungen samt ihrer Gruppen
+    };
+  }
+
+  /* ---------- neuer Plan aus einem anderen Projekt („Neu“ → „Neu aus anderem Projekt“; links woher, rechts Name, Anfang und Abschnitte) ---------- */
+  window.planAusAnderem = function (name0, start0, btId) {
+    const anfang = start0 != null ? isoD(snapWork(start0)) : '';
+    let BM = null;
+    const bg = fenster('Neu aus anderem Projekt', null,
+      `<label class="ub-f"><span class="ub-lb">Name des neuen Plans</span><input id="ubName" value="${E(name0 || '')}" placeholder="z. B. Startversion" ${btId ? '' : 'data-bp-projekt '}autocomplete="off"></label>
+       <label class="ub-f"><span class="ub-lb">Projektanfang</span><input id="ubStart" type="date" value="${anfang}"></label>
+       <div id="ubTeile"><p class="hint">Links Projekt und Version als Vorlage wählen – hier erscheinen deren Abschnitte.</p></div>`,
+      firmenZeilen('der Vorlage') + `<div class="ub-sw">${schalter}</div>`, 'Plan anlegen', (bg) => {
+        const SRC = BM.quelle();
+        if (!SRC) { toast('Bitte links Projekt und Version als Vorlage wählen.', true); return false; }
+        const teil = BM.teil(); if (!teil.length) { toast('Bitte mindestens einen Abschnitt oder eine Leistung wählen.', true); return false; }
+        const nw = bg.querySelector('#ubName'), name = nw.value.trim();
+        if (!name) { toast('Bitte einen Namen eingeben.', true); nw.focus(); return false; }
+        const st0 = parseDate(bg.querySelector('#ubStart').value);
+        if (st0 == null) { toast('Bitte den Projektanfang eintragen.', true); return false; }
+        const st = snapWork(st0), bt = nw.dataset.btId ? +nw.dataset.btId : btId || null, opt = opts(bg);
+        (async () => {
+          if (!(await leaveProjectOk())) return;
+          const k = kopieren(teil, st - SRC.start, opt, 1);
+          const p = await planApi.create({ name, start: st, tasks: k.tasks, nextUid: k.nextUid, cal: SRC.cal || null, assist: SRC.assist || null,
+            gwColors: SRC.gwColors || {}, trades: opt.firmen ? SRC.trades || {} : ohneFirmen(SRC.trades) });
+          if (bt) await fetch(`api/projects/${p.id}/link`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: bt }) });
+          await openProject(p.id); await refreshProjectList();
+          toast(`„${name}“ aus „${SRC.name}“ angelegt – ${k.tasks.length} Zeilen, Beginn ${fmtD(st)}${opt.firmen ? ', Firmen übernommen' : ', Unternehmer:in noch leer'}.`);
+        })().catch((e) => toast('Fehler: ' + e.message, true));
+      });
+    const q = bg.querySelector('#ubQ'), sum = bg.querySelector('#ubSum');
+    const fuss = () => { const d = parseDate(bg.querySelector('#ubStart').value), S = BM && BM.quelle();
+      sum.textContent = S ? `${mz(BM.n(), 'Leistung', 'Leistungen')} aus ${mz(BM.abschnitte(), 'Abschnitt', 'Abschnitten')} von „${S.name}“${d != null ? ' · Beginn ' + fmtD(snapWork(d)) : ''}` : ''; };
+    BM = baum(bg.querySelector('#ubTeile'), fuss);
+    bg.querySelector('#ubStart').addEventListener('change', fuss);
     if (q) q.addEventListener('change', async () => {
-      SRC = null; WAHL = new Set(); AUF = new Set(); fuss();
-      if (!q.value) { box.innerHTML = ''; return; }
+      const box = bg.querySelector('#ubTeile'); BM.laden(null); if (!q.value) return;
       const id = q.value; box.innerHTML = '<p class="hint">Lade …</p>';
       const s = await planApi.get(id).catch((e) => { box.innerHTML = `<p class="hint">${E(e.message)}</p>`; return null; });
       if (!s || q.value !== id) return;
-      SRC = s; zeichne();
+      BM.laden(s);
+      const nm = bg.querySelector('#ubName'); if (!nm.value.trim()) nm.placeholder = 'z. B. ' + String(s.name || '').replace(/\s*\(Kopie\)$/, '') + ' – neues Projekt';
     });
   };
-  if (typeof ACTIONS === 'object') ACTIONS.planUebernehmen = () => window.planTeileUebernehmen();
 })();

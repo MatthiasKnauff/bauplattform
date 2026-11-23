@@ -50,38 +50,51 @@ export async function ganttHeftPruefen(browser, repo) {
       const r = await p.evaluate(() => P.tasks.map((t) => ({ uid: t.uid, mu: t.mu, preds: t.preds })));
       const k = r.find((t) => t.mu === 1 && t.uid !== 1);
       pruef(r.length === 3 && k && k.preds.some((x) => x.uid === 1 && x.type === 'SS'), `Duplizieren mit Anfang → Anfang: Kopie ohne SS-Verknüpfung – ${JSON.stringify(r)}`); }
-    {   // Aus anderem Plan übernehmen (23.11.2026, „bessere projektauswahl“): keine nativen Listen – Suche, Projekte als Zeilen, Versionen als Knöpfe
+    {   // „Neu“ (24.11.2026): EIN Fenster aus Befehlsleiste und Versionsmenü – leer · aus aktuellem Stand · aus anderem Projekt
+      const n = await p.evaluate(async () => {
+        fileNew(); const bg = [...document.querySelectorAll('.modal-bg')].pop();
+        const r = { wege: [...bg.querySelectorAll('[data-nw]')].map((b) => b.dataset.nw).join(','), an: (bg.querySelector('.nw-opt.on') || {}).dataset?.nw };
+        bg.querySelector('[data-nw="kopie"]').click(); r.startWeg = bg.querySelector('#nwStart').hidden;
+        bg.querySelector('[data-nw="leer"]').click(); r.startDa = !bg.querySelector('#nwStart').hidden;
+        bg.querySelector('[data-nw="anders"]').click(); r.knopf = bg.querySelector('.mf .primary').textContent; r.nameWeg = bg.querySelector('#nwName').hidden;
+        bg.querySelector('.mx').click();
+        r.alt = typeof window.planTeileUebernehmen + '|' + typeof neueVersion + '|' + !!ACTIONS.planUebernehmen;
+        return r; });
+      pruef(n.wege === 'leer,kopie,anders' && n.an === 'kopie' && n.startWeg && n.startDa && n.knopf === 'Weiter …' && n.nameWeg && n.alt === 'undefined|undefined|false', `Fenster „Neu“: ${JSON.stringify(n)}`); }
+    {   // Neu aus anderem Projekt: keine nativen Listen – Suche, Projekte als Zeilen, Versionen als Knöpfe; lange Namen bleiben in der linken Spalte
       const u = await p.evaluate(async () => { const alt = projects;
         projects = [{ id: '7', name: 'A497 Haus Müller', bt_id: 5, bt: 'A497 Haus Müller', updated: '2026-10-01', created: '2026-01-01' },
           { id: '8', name: 'A497 Haus Müller (2)', bt_id: 5, bt: 'A497 Haus Müller', updated: '2026-11-02', created: '2026-05-01' },
           { id: '9', name: 'B12 Schule', bt_id: 6, bt: 'B12 Schule Ein-/Zweifamilienhaus · Anbau / Erweiterung + Aufstockung + Umbau', updated: '2026-09-01' }, { id: '10', name: 'C3 Alt', archived: true, updated: '2025-01-01' }];
-        planTeileUebernehmen();
+        planAusAnderem('', P.start, null);
         const r = { select: !!document.querySelector('#ubL') && !document.querySelector('select#ubP, select#ubQ'), zeilen: document.querySelectorAll('#ubL [data-ubp]').length, arch: !!document.querySelector('#ubL [data-ubarch]') };
+        const li = document.querySelector('.ub-li').getBoundingClientRect(); r.spalte = ['#ubL'].every((x) => document.querySelector(x).getBoundingClientRect().right <= li.right + 1);
         const S = document.querySelector('#ubS'); S.value = 'müller'; S.dispatchEvent(new Event('input')); r.treffer = document.querySelectorAll('#ubL [data-ubp]').length;
         document.querySelector('#ubL [data-ubp]').click(); await new Promise((ok) => setTimeout(ok, 300));
         r.vers = document.querySelectorAll('#ubV [data-ubq]').length; r.q = document.querySelector('#ubQ').value; r.on = (document.querySelector('#ubV .on') || {}).dataset?.ubq;
         r.teile = /keine Leistungen|Abschnitte/.test(document.querySelector('#ubTeile').textContent);
-        {   // 23.11.2026 „totales Chaos“: lange Namen bleiben in der linken Spalte (Liste und Versionen nicht breiter als die Spalte)
-          const li = document.querySelector('.ub-li').getBoundingClientRect(); r.spalte = ['#ubL', '#ubV'].every((s) => document.querySelector(s).getBoundingClientRect().right <= li.right + 1); }
+        r.spalte = r.spalte && document.querySelector('#ubV').getBoundingClientRect().right <= li.right + 1;
         document.querySelector('#ubV [data-ubq="7"]').click(); r.q2 = document.querySelector('#ubQ').value;
         [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Abbrechen' && b.offsetParent).click(); projects = alt; return r; });
-      pruef(u.select && u.zeilen === 2 && u.arch && u.treffer === 1 && u.vers === 2 && u.q === '8' && u.on === '8' && u.teile && u.spalte && u.q2 === '7', `Aus anderem Plan übernehmen – Projektauswahl: ${JSON.stringify(u)}`); }
-    {   // UB-1 … UB-5 (23.11.2026): Beginn vorbelegt, Abschnitte als Baum, einzelne Leistungen wählbar, Zusammenfassung im Fuß
-      const u = await p.evaluate(async () => { const alt = projects, ag = planApi.get, vorher = P.tasks.length;
+      pruef(u.select && u.zeilen === 2 && u.arch && u.treffer === 1 && u.vers === 2 && u.q === '8' && u.on === '8' && u.teile && u.spalte && u.q2 === '7', `Neu aus anderem Projekt – Projektauswahl: ${JSON.stringify(u)}`); }
+    {   // Abschnitte als Baum (anfangs alle gewählt), einzelne Leistungen wählbar, Zusammenfassung im Fuß, neuer Plan nur mit den gewählten
+      const u = await p.evaluate(async () => { const alt = projects, ag = planApi.get, ac = planApi.create, ao = openProject; let neu = null;
         projects = [{ id: '9', name: 'B12 Schule', bt_id: 6, bt: 'B12 Schule', updated: '2026-09-01' }];
         planApi.get = async () => ({ id: '9', name: 'B12 Schule', start: 20000, tasks: [{ uid: 1, name: 'Rohbau', lvl: 0, dur: 0 }, { uid: 2, name: 'Mauern', lvl: 1, dur: 5, preds: [] }, { uid: 3, name: 'Decke', lvl: 1, dur: 3, preds: [{ uid: 2, type: 'FS', lag: 0 }] }, { uid: 4, name: 'Dach', lvl: 0, dur: 0 }, { uid: 5, name: 'Dachstuhl', lvl: 1, dur: 4, preds: [] }] });
-        planTeileUebernehmen(); const r = { ab: document.querySelector('#ubAb').value, spalten: !!document.querySelector('.ub-sp .ub-li') && !!document.querySelector('.ub-sp .ub-re') };
+        planApi.create = async (d) => { neu = d; return { id: '99' }; }; openProject = async () => true;
+        planAusAnderem('', 20800, null); const r = { spalten: !!document.querySelector('.ub-sp .ub-li') && !!document.querySelector('.ub-sp .ub-re') };
         document.querySelector('#ubL [data-ubp]').click(); await new Promise((ok) => setTimeout(ok, 200));
-        r.abschn = document.querySelectorAll('.ub-baum > .ub-ab').length;
+        r.abschn = document.querySelectorAll('.ub-baum > .ub-ab').length; r.alle = /3 Leistungen aus 2 Abschnitten/.test(document.querySelector('#ubSum').textContent);
         document.querySelector('[data-ubauf="0"]').click(); r.auf = document.querySelectorAll('.ub-baum .ub-l1').length;
-        const c = document.querySelector('[data-ubg="2"]'); c.click();
+        document.querySelector('[data-ubg="2"]').click(); document.querySelector('[data-ubg="3"]').click();
         r.halb = document.querySelector('[data-ubg="0"]').indeterminate; r.sum = document.querySelector('#ubSum').textContent;
         r.breit = document.querySelector('.ub-modal .mb').scrollWidth <= document.querySelector('.ub-modal .mb').clientWidth + 1;
-        [...document.querySelectorAll('.mf button')].find((b) => b.textContent.trim() === 'Übernehmen').click();
-        r.neu = P.tasks.slice(vorher).map((t) => t.name + ':' + (t.preds || []).length).join(',');
-        doUndo(); r.zurueck = P.tasks.length === vorher; projects = alt; planApi.get = ag; return r; });
-      pruef(u.spalten && /^\d{4}-\d\d-\d\d$/.test(u.ab) && u.abschn === 2 && u.auf === 2 && u.halb && /1 Leistung aus 1 Abschnitt/.test(u.sum) && u.breit && u.neu === 'Rohbau:0,Decke:0' && u.zurueck,
-        `Aus anderem Plan übernehmen – Baum, Beginn, Fuß: ${JSON.stringify(u)}`); }
+        document.querySelector('#ubName').value = 'Neu';
+        [...document.querySelectorAll('.mf button')].find((b) => b.textContent.trim() === 'Plan anlegen').click(); await new Promise((ok) => setTimeout(ok, 300));
+        r.neu = neu ? neu.tasks.map((t) => t.name + ':' + (t.preds || []).length).join(',') : '';
+        projects = alt; planApi.get = ag; planApi.create = ac; openProject = ao; return r; });
+      pruef(u.spalten && u.abschn === 2 && u.alle && u.auf === 2 && u.halb && /^1 Leistung aus 1 Abschnitt/.test(u.sum) && u.breit && u.neu === 'Rohbau:0,Mauern:0',
+        `Neu aus anderem Projekt – Baum, Fuß, neuer Plan: ${JSON.stringify(u)}`); }
     {   // Duplizieren „eigene Verknüpfung“: die Kopie rückt als Block – Abstände in der Kopie wie im Original (Rückmeldung 17.11.2026)
       const r = await p.evaluate(() => { const alt = P.tasks;
         P.tasks = [1, 2, 3, 4].map((u) => ({ uid: u, name: 'L' + u, dur: [2, 4, 4, 2][u - 1], lvl: 0, preds: u > 1 ? [{ uid: u - 1, type: 'FS', lag: 0 }] : [] }));

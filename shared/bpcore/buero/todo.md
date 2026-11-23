@@ -8,6 +8,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Seite „Ablauf“ auch für Einheiten** (Kisten „Gebäude / Allgemein“, „Einheit 1“, „Einheit 2“ mit Takt-Pfeilen) – Fragen offen, Mock folgt **ca. 30 min**
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; 3D-Auswahl später) – B erledigt durch das Raumbuch (17.11.: Gruppen, abweichender Raum eigene Zeile) **ca. 1,5 h**
+- ~~Bauzeitenplan: „Neu“ aufgeräumt – ein Fenster (leer · aus aktuellem Stand · aus anderem Projekt) aus Befehlsleiste und Versionsmenü; alte Wege (Neue Version, Aus anderem Plan übernehmen, Kopie unter neuem Namen) entfernt (24.11.2026)~~
 - ~~Bauzeitenplan: Fenster „Neuer Plan aus anderem“ / „Aus anderem Plan übernehmen“ – lange Projektnamen sprengten die linke Spalte, Beschriftung abgeschnitten, Knöpfe im Fuß umgebrochen; rechts jetzt die Abschnitte der Vorlage (24.11.2026)~~
 - ~~Aufgaben & Post: Rückgängig oben links im Inhalt statt in der Kopfleiste (23.11.2026)~~
 - ~~Kosten: Tests auf die neue Gliederung umgestellt, Excel-Prüfung ohne openpyxl (23.11.2026)~~

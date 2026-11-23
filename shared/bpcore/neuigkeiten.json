@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-neu-ein-fenster",
+  "datum": "2026-11-24",
+  "app": "gantt",
+  "titel": "„Neu“ an einer Stelle",
+  "text": "Neu (Befehlsleiste oder Versionsmenü) öffnet immer dasselbe Fenster: neue leere Version, neue Version aus dem aktuellen Stand oder neu aus einem anderen Projekt – dort wählst du die Abschnitte, die übernommen werden.",
+  "ziel": "#vmGrp"
+ },
+ {
   "id": "gantt-soll-zurueck",
   "datum": "2026-11-23",
   "app": "gantt",

@@ -283,6 +283,16 @@ function quTeileWahl(liste) {
     new MutationObserver(() => { if (!bg.isConnected && !ok) fertig(null); }).observe(document.body, { childList: true });
   });
 }
+/* Nach dem Einfügen aus dem Baudaten-Korb: Korb leeren? – alles übernommen: leeren oder behalten; nur ein Teil: die übernommenen herausnehmen,
+   ganzen Korb leeren oder behalten. Ausgeführt über pdbKorb (ein Rückgängig, andere Fenster erfahren es). */
+async function korbNachEinfuegen(liste) {
+  const ids = [...new Set(liste.map((x) => /^b(\d+)$/.exec(x.src || x.id)).filter(Boolean).map((m) => +m[1]))]; if (!ids.length) return;
+  const alle = quItems().filter((y) => y.typ === 'pos').length, teil = ids.length < alle;
+  const a = await bpFrage(teil ? `${ids.length} von ${alle} Positionen aus dem Korb übernommen.\nSollen die übernommenen aus dem Korb genommen werden?` : 'Alle Positionen aus dem Korb übernommen.\nKorb leeren?',
+    teil ? { ok: 'Übernommene herausnehmen', drei: 'Ganzen Korb leeren', abbrechen: 'Korb behalten' } : { ok: 'Korb leeren', abbrechen: 'Korb behalten' });
+  if (!a) return;
+  await pdbKorb(a === 'drei' || !teil ? { leeren: true } : { weg: ids }, async () => { await quLaden(); quZeigen(); });
+}
 async function quEinfuegen(liste, nach) {
   if (!L || !liste.length) return;
   if (liste.some((x) => x.typ === 'titel') && liste.filter((x) => x.typ === 'pos').length > 1) { liste = await quTeileWahl(liste); if (!liste || !liste.length) return; }
@@ -302,6 +312,7 @@ async function quEinfuegen(liste, nach) {
   numerieren(); changed(true);
   { const n = neu.filter((y) => y.typ === 'pos').length; toast(`${n === 1 ? '1 Position' : n + ' Positionen'} übernommen – ↶ Rückgängig nimmt es zurück.`); }
   QU.sel = new Set(); quZeigen();
+  if (quKorb()) korbNachEinfuegen(liste);   // aus dem Baudaten-Korb: fragen, ob er geleert werden soll (23.11.2026)
   setTimeout(() => { const r = lvTr(at); if (r) { r.scrollIntoView({ block: 'nearest' }); r.classList.add('flash'); setTimeout(() => r.classList.remove('flash'), 1600); } }, 50);
 }
 $('#quBtn').onclick = async () => { if (quSichtbar()) { seiteUmschalten(); uLeisteNeu(); return; }   // noch ein Klick schaltet sie wieder aus (Bereich rechts zu)

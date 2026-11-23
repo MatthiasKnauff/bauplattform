@@ -1,5 +1,21 @@
 [
  {
+  "id": "korb-mehr-2311",
+  "datum": "2026-11-23",
+  "app": "baudaten",
+  "titel": "Korb: mehr auf einen Klick",
+  "text": "Ein Klick auf eine Position im Korb zeigt darunter Preisspanne, Kostengruppe und Langtext. Erst ein Doppelklick öffnet sie im Reiter „Position“.",
+  "ziel": ".kb-r"
+ },
+ {
+  "id": "korb-leeren-2311",
+  "datum": "2026-11-23",
+  "app": "ava",
+  "titel": "Korb nach dem Einfügen leeren",
+  "text": "Wenn du Positionen aus dem Baudaten-Korb ins LV übernimmst, fragt die Ausschreibung danach, ob der Korb geleert werden soll – oder, wenn nur ein Teil übernommen wurde, ob die übernommenen herausgenommen werden. Rückgängig geht wie immer.",
+  "ziel": "#quelle"
+ },
+ {
   "id": "baudaten-baum-2311",
   "datum": "2026-11-23",
   "app": "baudaten",

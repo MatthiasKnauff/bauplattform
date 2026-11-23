@@ -27,6 +27,8 @@ export async function baudatenPruefen(browser, repo) {
       if (pfad.length === 2) return { gruppen: [1, 2, 3].map((i) => ({ w: pfad[1] + '.' + i, name: 'Gruppe ' + i, n: 4 })) };
       return { positionen: [1, 2, 3, 4].map((i) => ({ id: +(pfad[2].replace('.', '')) * 10 + i, code: pfad[2] + '.' + i, kurz: 'Position ' + i, einheit: 'm²', ep_mittel_akt: 10 * i, ep_von_akt: 8 * i, ep_bis_akt: 12 * i })), gesamt: 4 };
     }
+    if (pf === 'api/baudaten/korb' && meth === 'GET') return [{ id: 3302, code: '330.2.2', kurz: 'Position 2', einheit: 'm²', ep_mittel_akt: 20, gruppe_name: 'Gruppe 2' }];
+    if (pf === 'api/position/3302') return { id: 3302, code: '330.2.2', kurz: 'Position 2', einheit: 'm²', kg: '331', genauigkeit: 'B', ep_von_akt: 16, ep_mittel_akt: 20, ep_bis_akt: 24, lang_voll: 'Langtext der Position 2', katalog: 'gk3', preise: [] };
     if (pf === 'api/baudaten/korb' && meth === 'POST') { KORB_POST.push(JSON.parse(body || '{}')); return { ids: KORB_POST.at(-1).dazu || [] }; }
     return /korb|liste|kontakte|neuigkeit|projekte|verlauf|fehler|gruppen|lvs|firmen/.test(pf) ? [] : {};
   };
@@ -98,6 +100,16 @@ export async function baudatenPruefen(browser, repo) {
     await p.reload(); await p.waitForSelector('.bdb-fav [data-bdbfav]', { timeout: 8000 }).catch(() => {});
     pruef(await p.evaluate(() => [...document.querySelectorAll('.bdb-fav [data-bdbfav]')].some((x) => x.textContent.trim() === '330')), 'Baum: ★ oft geöffnet zeigt den geöffneten Leistungsbereich 330 nicht');
   }, { width: 1900, height: 700 });
+  // Korb rechts: Klick zeigt mehr unter der Zeile (Reiter bleibt „Korb“), Doppelklick springt in den Reiter „Position“
+  await lauf('Korb mehr', { 'bp.sr.bd.r': '"korb"' }, async (b, p) => {
+    await p.waitForSelector('.kb-r [data-kbz="3302"]', { timeout: 8000 });
+    await p.click('.kb-r [data-kbz="3302"] .kb-t'); await p.waitForSelector('.kb-r .kb-m .kb-mp', { timeout: 5000 }).catch(() => {});
+    const m = await p.evaluate(() => { const x = document.querySelector('.kb-r .kb-m'); return { t: x ? x.textContent : '', korb: !!document.querySelector('.sr-r [data-srt="korb"].on, .sr-r [data-srt="korb"][aria-selected="true"]') }; });
+    pruef(/mittel/.test(m.t) && /Langtext der Position 2/.test(m.t) && /KG 331/.test(m.t), `Korb: Klick zeigt nicht mehr Angaben unter der Zeile („${m.t.slice(0, 80)}“)`);
+    pruef(m.korb, 'Korb: ein Klick wechselt schon den Reiter – das soll erst der Doppelklick');
+    await p.dblclick('.kb-r [data-kbz="3302"] .kb-t'); await p.waitForTimeout(300);
+    pruef(await p.evaluate(() => DET.isConnected && !!DET.closest('.sr-r') && /Position 2/.test(DET.textContent)), 'Korb: Doppelklick zeigt die Position nicht im Reiter „Position“');
+  });
   return fehler;
 }
 

@@ -19,6 +19,7 @@
 .info{font-size:.85rem;color:var(--mute);margin-left:auto}
 .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,520px);gap:1rem;align-items:start}
 .kb-ziel{outline:2px dashed var(--y);outline-offset:-4px;background:color-mix(in srgb,var(--y) 8%,transparent)}
+.kb-m{padding:.35rem .6rem .6rem;border-bottom:1px solid var(--line);font-size:.86rem;background:var(--card2,var(--hov))}.kb-mp{display:flex;gap:.4rem;margin:0 0 .35rem}.kb-mp span{flex:1;background:var(--inp);border-radius:calc(8px*var(--rk,1));padding:.25rem .4rem;text-align:center;font-variant-numeric:tabular-nums}.kb-mp span.m{outline:2px solid var(--y)}.kb-mp small{display:block;color:var(--mute);font-size:.7rem}.kb-ml{margin:.35rem 0;white-space:pre-wrap;line-height:1.4}.kb-z.auf{background:var(--hov)}
 .kb-z{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:.6rem;padding:.4rem .6rem;border-bottom:1px solid var(--line);align-items:center}.kb-z:last-child{border-bottom:0}.kb-t{min-width:0;overflow-wrap:anywhere}.kb-t small,.kb-p small{display:block;font-size:.76rem}.kb-p{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .kb{width:1.6rem;height:1.6rem;border-radius:50%;border:1px solid var(--line);background:none;color:var(--mute);cursor:pointer;font-size:.85rem;line-height:1;padding:0;align-self:start}
 .kb:hover{border-color:var(--y);color:var(--y)}.kb.on{background:var(--y);border-color:var(--y);color:#fff}
@@ -233,7 +234,7 @@ function bdRechts() {
   seite($('.grid'), 'bd', [{ id: 'pos', titel: 'Position', fenster: false, mount: (el) => { el.appendChild(DET); } },
     { id: 'korb', titel: 'Korb', fenster: false, mount: (el) => korbReiter(el) }], { start: 'pos', w: 0.6, minL: 420, min: 420 });
 }
-const korbZeile = (x, weg) => `<div class="kb-z" data-kbz="${x.id}"${weg === 'data-kbweg' ? ' draggable="true"' : ''} title="Klick: Details der Position${weg === 'data-kbweg' ? ' · auf die Liste ziehen: aus dem Korb' : ''}">
+const korbZeile = (x, weg) => `<div class="kb-z" data-kbz="${x.id}"${weg === 'data-kbweg' ? ' draggable="true"' : ''} title="Klick: mehr zur Position darunter · Doppelklick: Reiter „Position“${weg === 'data-kbweg' ? ' · auf die Liste ziehen: aus dem Korb' : ''}">
       <span class="kb-t">${esc(x.bez || x.kurz)}<small class="mute">${esc(x.code)}${x.gruppe_name || x.titel ? ' · ' + esc(x.gruppe_name || x.titel) : ''}</small></span>
       <span class="kb-p">${x.ep_mittel_akt == null ? '–' : eur(x.ep_mittel_akt)}<small class="mute">je ${esc(x.einheit)}</small></span>
       <button type="button" class="btn sm" ${weg}="${x.id}" title="Aus dem Korb nehmen" style="padding:.1rem .4rem">✕</button></div>`;
@@ -258,8 +259,21 @@ document.addEventListener('dragend', () => { if (BD_ZIEH && BD_ZIEH.el) BD_ZIEH.
 document.addEventListener('click', async (e) => {
   const w = e.target.closest && e.target.closest('[data-kbweg]'); if (w) { e.stopPropagation(); korbAendern({ weg: [+w.dataset.kbweg] }); return; }
   if (e.target.closest && e.target.closest('[data-kbleeren]')) { korbAendern({ leeren: true }); return; }
-  const z = e.target.closest && e.target.closest('.kb-r [data-kbz]'); if (z) { await zeigen(+z.dataset.kbz); seiteReiter('bd', 'pos'); }
+  const z = e.target.closest && e.target.closest('.kb-r [data-kbz]'); if (!z) return;
+  if (e.detail === 2) { await zeigen(+z.dataset.kbz); seiteReiter('bd', 'pos'); return; }   // Doppelklick: ins Positionsregister
+  korbMehr(z);   // Klick: mehr Angaben unter der Zeile (auf/zu) – nichts springt, der Reiter bleibt
 });
+const KBM = {};   // geladene Positionen für „mehr“ im Korb
+async function korbMehr(z) {
+  const id = +z.dataset.kbz, alt = z.nextElementSibling && z.nextElementSibling.classList.contains('kb-m') ? z.nextElementSibling : null;
+  if (alt) { alt.remove(); z.classList.remove('auf'); return; }
+  const m = document.createElement('div'); m.className = 'kb-m'; m.textContent = 'wird geladen …'; z.after(m); z.classList.add('auf');
+  let x = KBM[id]; if (!x) { try { x = KBM[id] = await api('api/position/' + id); } catch (er) { m.textContent = er.message; return; } }
+  const lang = String(x.lang_voll || x.lang || '').trim();
+  m.innerHTML = `<div class="kb-mp"><span><small>tief</small>${eur(x.ep_von_akt)}</span><span class="m"><small>mittel</small>${eur(x.ep_mittel_akt)}</span><span><small>hoch</small>${eur(x.ep_bis_akt)}</span></div>
+    <div class="mute">${esc(x.code)} · je ${esc(x.einheit)}${x.kg ? ` · KG ${esc(x.kg)}` : ''}${x.genauigkeit ? ` · Genauigkeit ${esc(x.genauigkeit)}` : ''}${x.n_preise ? ` · eigene Preise: ${x.n_preise}, Median ${eur(x.ep_eigen_median_akt)}` : ''}</div>
+    ${lang ? `<p class="kb-ml">${esc(lang.length > 420 ? lang.slice(0, 420) + ' …' : lang)}</p>` : ''}<span class="mute" style="font-size:.78rem">Doppelklick auf die Zeile: alles im Reiter „Position“</span>`;
+}
 async function korbDialog() {
   let P = [];
   try { P = await api('api/baudaten/korb'); } catch (er) { toast(er.message, true); return; }

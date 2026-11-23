@@ -44,6 +44,37 @@ def empfaenger(raw, hoechstens=20):
     return out, None
 
 
+def ablage_dazu(u, raw, anh):
+    """Anhänge aus der Ablage [{pid, pfad, name}] lesen und an anh hängen (Grenzen wie beim Hochladen). Fehlertext oder None."""
+    import mimetypes, urllib.parse
+    from . import rechte
+    from .ablage import bt_json
+    try:
+        L = json.loads(raw or "[]")
+    except ValueError:
+        return "Anhänge aus der Ablage nicht lesbar."
+    L = [x for x in L if isinstance(x, dict) and isinstance(x.get("pid"), int) and str(x.get("pfad") or "").strip()] if isinstance(L, list) else []
+    if len(anh) + len(L) > vorgang.MAX_ANZAHL:
+        return f"Höchstens {vorgang.MAX_ANZAHL} Dateien auf einmal."
+    summe = sum(len(d) for _, _, d in anh)
+    for x in L:
+        with db.tx() as c:
+            if not rechte.can_see(c, u, x["pid"]):
+                return "Projekt nicht gefunden."
+        try:
+            roh = bt_json("GET", "/api/plaene/datei?" + urllib.parse.urlencode({"project_id": x["pid"], "pfad": x["pfad"]}), roh=True)
+        except RuntimeError as e:
+            return f"„{x.get('name') or x['pfad']}“: {e}"
+        name = re.sub(r"[\\/:*?\"<>|\r\n]+", "_", str(x.get("name") or x["pfad"].rsplit("/", 1)[-1]))[:120]
+        if len(roh) > vorgang.MAX_DATEI:
+            return f"„{name}“ ist größer als 15 MB."
+        summe += len(roh)
+        if summe > vorgang.MAX_SUMME:
+            return "Zusammen mehr als 25 MB – bitte weniger oder kleinere Dateien."
+        anh.append((name, mimetypes.guess_type(name)[0] or "application/octet-stream", roh))
+    return None
+
+
 def anrede(c, x):
     """Persönliche Anrede für eine:n Empfänger:in: aus dem Kontakt (Ansprechperson mit dieser Adresse), sonst allgemein."""
     k = c.execute("SELECT * FROM contacts WHERE id=?", (x["contact_id"],)).fetchone() if x.get("contact_id") else None
@@ -136,6 +167,8 @@ def routen(bp, _uid):
         if not text:
             return jsonify(error="Bitte einen Text schreiben."), 400
         anh, err = vorgang.dateien_pruefen(request.files.getlist("dateien"))
+        if not err:
+            err = ablage_dazu(u, f.get("ablage"), anh)   # Pläne und Dateien aus der Ablage – erst jetzt gelesen, mit den Rechten der Person
         if err:
             return jsonify(error=err), 400
         wer = skizze.name_von(u)

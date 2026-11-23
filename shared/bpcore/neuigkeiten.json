@@ -1,5 +1,13 @@
 [
  {
+  "id": "versand-anhaenge-2311",
+  "datum": "2026-11-23",
+  "app": "alle",
+  "titel": "Mail: Anhänge unten, auch Pläne und Dateien aus der Ablage",
+  "text": "Im Versand-Fenster stehen die Anhänge jetzt unter der Nachricht. Neben „Datei vom Gerät“ kannst du einen Plan oder eine Datei aus der Ablage des Projekts anhängen – sie werden erst beim Senden geholt.",
+  "ziel": ".bpv"
+ },
+ {
   "id": "gantt-ziehen-ea-2311",
   "datum": "2026-11-23",
   "app": "gantt",

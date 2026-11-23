@@ -54,8 +54,14 @@ export async function versandPruefen(browser, repo) {
     await p.click('.bpv [data-v="vl"]'); await p.waitForSelector('.bpv [data-vlp]'); await p.click('.bpv [data-vlp]');
     const txt = await p.evaluate(() => [document.querySelector('.bpv [data-betreff]').value, document.querySelector('.bpv [data-text]').value]);
     pruef(txt[0] === 'Termin A481 Tierheim' && /Guten Tag Muster Rohbau GmbH,/.test(txt[1]) && /Matthias Test$/.test(txt[1]), 'Vorlage: Platzhalter nicht ersetzt – ' + JSON.stringify(txt));
+    // 23.11.2026: Anhänge unter der Nachricht, dazu Plan und Datei aus der Plattform (bp/dateiwahl.js) – der Kern liest sie beim Senden
+    await p.evaluate(() => { BPHead.dateiWahl = async (o) => (window.__dw = o, [{ quelle: 'plan', pfad: 'Pläne/EG.pdf', name: 'EG Grundriss.pdf', sub: 'Index b' }]); });
+    await p.click('.bpv [data-v="abl"][data-st="plaene"]'); await p.waitForTimeout(150);
+    const ab = await p.evaluate(() => { const T = [...document.querySelectorAll('.bpv .bpv-a > b')].map((x) => x.textContent); return { reihe: T.indexOf('Anhänge') > T.indexOf('Nachricht'), pid: window.__dw && window.__dw.project_id, liste: document.querySelector('.bpv [data-anh]').textContent, ablage: !!document.querySelector('.bpv [data-st="server"]') }; });
+    pruef(ab.reihe && ab.pid === 1 && /EG Grundriss\.pdf/.test(ab.liste) && ab.ablage, 'Anhänge unter der Nachricht mit „Plan …“ und „aus der Ablage …“ – ' + JSON.stringify(ab));
     await p.click('.bpv [data-v="ok"]'); await p.waitForFunction(() => !document.querySelector('.bpv'), null, { timeout: 10000 });
     const body = gesendet[0] || '';
+    pruef(/name="ablage"\r\n\r\n\[\{"pid":1,"pfad":"Pläne\/EG\.pdf","name":"EG Grundriss\.pdf"\}\]/.test(body), 'Senden: Pläne aus der Ablage gehen als „ablage“ an den Kern – ' + (body.match(/name="ablage"[^-]*/) || [''])[0]);
     pruef(gesendet.length === 1 && /name="art"\r\n\r\nbauvertrag/.test(body) && /name="pid"\r\n\r\n1/.test(body) && /name="einzeln"\r\n\r\n1/.test(body) && /filename="Bauvertrag Rohbau\.pdf"/.test(body) && /info@rohbau\.test/.test(body),
       'Senden: an /api/bp/versand gehören Art, Projekt, „einzeln“, Empfänger:in und das PDF als Anhang');
     // Vorschau für …

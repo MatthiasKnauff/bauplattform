@@ -21,6 +21,9 @@
      knopf(wie),                              Beschriftung des Hauptknopfs
      neu: 'plaene', mit                       optional: Leiste „＋ Neu“ oben (Art) und was mitgebracht wurde
      anhaenge: true                           weitere Dateien anhängen (vom Rechner wählen oder ins Fenster ziehen, höchstens 20 MB)
+                                              – steht unter der Nachricht (23.11.2026)
+     ablage: true, pid                        dazu „＋ Plan …“ und „＋ aus der Ablage …“ (bp/dateiwahl.js; ohne pid das aktuelle Projekt, sonst erst wählen) – W.ablage = [{pid, pfad, name}],
+                                              der Kern liest sie beim Senden (versand.ablage_dazu); unterlagenSenden setzt es von selbst
      dateien: [File],                         schon mitgebrachte Anhänge (z. B. aus der Leiste „＋ Neu“)
      vorlagenVerwalten: () => …               zeigt in der Vorlagenliste „Vorlagen verwalten …“
      senden: async (W, box) => …              W = { wie, an:[{name,email,contact_id}], kopie, betreff, text, signiert:[Blob|null], anhaenge:[{name, mime, daten (Base64)}] } – Fehler werfen = Dialog bleibt offen
@@ -53,7 +56,7 @@
 .bpv-d{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;border:1px solid var(--line,#ddd);border-radius:calc(10px*var(--rk,1));padding:.45rem .6rem;background:var(--hov,rgba(0,0,0,.03))}
 .bpv-d .i{font-size:1.15rem}.bpv-d .t{flex:1;min-width:0}.bpv-d small{display:block;color:var(--mute,#666);font-size:.8rem}
 .bpv-d button{border:0;background:none;color:var(--y,#d4357f);font:inherit;font-weight:600;font-size:.85rem;cursor:pointer;padding:0;white-space:nowrap}.bpv-ok{color:var(--ok,#1e8a4c);font-weight:600;font-size:.82rem}
-.bpv-anh{display:inline-block;margin-top:.35rem;color:var(--y,#d4357f);font-weight:600;font-size:.88rem;cursor:pointer}.bpv-anh small{color:var(--mute,#666);font-weight:400}
+.bpv-anh{display:inline-block;margin-top:.35rem;color:var(--y,#d4357f);font-weight:600;font-size:.88rem;cursor:pointer;border:0;background:none;font-family:inherit;padding:0}.bpv-anz{display:flex;flex-wrap:wrap;gap:.2rem 1rem;align-items:baseline}.bpv-anh small{color:var(--mute,#666);font-weight:400}
 .bpv-c{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}
 .bpv-c .bph-skw small{color:var(--mute,#666);font-size:.78rem}.bpv-c .bph-skw.aus{opacity:.5;cursor:not-allowed}
 .bpv-cc{border:1px solid var(--line,#ccc);background:var(--card,#fff);color:var(--mute,#666);border-radius:calc(999px*var(--rkp,1));font:inherit;font-size:.72rem;font-weight:700;padding:0 .45rem;margin-left:.2rem;cursor:pointer}.bpv-cc.on{background:var(--hov,#eee);color:var(--ink,#222)}
@@ -78,17 +81,17 @@
 
   function versand(o) {
     return new Promise((fertig) => {
-      const E = (o.empfaenger || []).map((x) => ({ ...x, on: !!(x.on && x.email) })), SIG = (o.was || []).map(() => null), ANH = [...(o.dateien || [])];   // dateien: schon mitgebrachte Anhänge (File)
+      const E = (o.empfaenger || []).map((x) => ({ ...x, on: !!(x.on && x.email) })), SIG = (o.was || []).map(() => null), ANH = [...(o.dateien || [])], ABL = [];   // ABL: Pläne und Dateien aus der Ablage – der Kern holt sie beim Senden selbst ({pid, pfad, name})   // dateien: schon mitgebrachte Anhänge (File)
       let wie = o.wie ? (o.wie.wert || o.wie.werte[0][0]) : '';
       const bg = document.createElement('div'); bg.className = 'bpv-bg';
       const pdfDa = (o.was || []).some((d) => d.pdf);
       bg.innerHTML = `<div class="bpv" data-dlg="versand" role="dialog" aria-label="${esc(o.titel)}"><div class="bpv-k"><h3>${esc(o.titel)}</h3><button type="button" class="bpv-x" data-v="x" aria-label="Schließen">✕</button></div>
         <div class="bpv-b">${o.neu && window.BPHead && BPHead.neuLeiste ? BPHead.neuLeiste(o.neu) + (BPHead.neuMitHtml ? BPHead.neuMitHtml(o.mit) : '') : ''}
           ${(o.was || []).length ? `<div class="bpv-a"><b>Was</b><div style="display:grid;gap:.35rem">${o.was.map((d, k) => `<div class="bpv-d"><span class="i">${d.icon || '📄'}</span><span class="t">${esc(d.name)}${d.sub ? `<small>${esc(d.sub)}</small>` : ''}</span>${d.pdf ? `<button type="button" data-v="pdf" data-k="${k}">${d.ohneUnterschrift ? '📄 ansehen' : '✍ ansehen & unterschreiben'}</button>` : ''}</div>`).join('')}${o.hinweis || ''}</div></div>` : ''}
-          ${o.anhaenge ? `<div class="bpv-a"><b>Anhänge</b><div><div style="display:grid;gap:.35rem" data-anh></div><label class="bpv-anh"><input type="file" multiple data-anhf hidden>＋ Datei anhängen … <small>(oder hierher ziehen)</small></label></div></div>` : ''}
           <div class="bpv-a" data-teil="an"><b>An wen</b><div><div class="bpv-c" data-chips></div>${o.zusatz === false ? '' : `<div class="bpv-neu"><input type="email" data-neu placeholder="＋ weitere E-Mail-Adresse oder Name aus den Adressen …" list="bpvL" inputmode="email" autocomplete="off"><datalist id="bpvL"></datalist></div>`}</div></div>
           ${o.wie ? `<div class="bpv-a"><b>Wie</b><div><div class="bph-seg" role="radiogroup">${o.wie.werte.map(([v, l]) => `<button type="button" role="radio" data-wie="${v}">${esc(l)}</button>`).join('')}</div><p class="bpv-h" data-wh></p></div></div>` : ''}
           ${o.betreff != null || o.text != null ? `<div class="bpv-a" data-teil="msg"><b>Nachricht</b><div class="bpv-f">${o.vorlagen ? '<div class="bpv-vl"><button type="button" data-v="vl" title="Text aus einer Vorlage einsetzen – {firma}, {projekt}, {frist}, {ich} werden ersetzt">📋 Vorlage ▾</button><button type="button" data-v="vls" title="Betreff und Text als Vorlage fürs ganze Büro speichern">als Vorlage speichern</button><div class="bpv-vll" data-vll hidden></div></div>' : ''}${o.betreff != null ? `<input data-betreff value="${esc(o.betreff)}" aria-label="Betreff">` : ''}${o.text != null ? `<textarea data-text aria-label="Text">${esc(o.text)}</textarea>` : ''}${o.textHilfe ? `<p class="bpv-h">${o.textHilfe}</p>` : ''}${o.vorschau ? '<div class="bpv-vsz"><span>Vorschau für</span><select data-vsf aria-label="Vorschau für Empfänger:in"></select><button type="button" data-v="vs">ansehen</button>' + (o.eigen ? '<button type="button" data-v="eg" title="Betreff und Text nur für diese Empfänger:in – alle anderen bekommen den Text oben">✎ eigener Text</button>' : '') + '</div><div class="bpv-vsb" data-vsb hidden></div><div class="bpv-eg" data-egb hidden></div>' : ''}</div></div>` : ''}
+          ${o.anhaenge ? `<div class="bpv-a"><b>Anhänge</b><div><div style="display:grid;gap:.35rem" data-anh></div><div class="bpv-anz"><label class="bpv-anh"><input type="file" multiple data-anhf hidden>＋ Datei vom Gerät … <small>(oder hierher ziehen)</small></label>${o.ablage && H && H.dateiWahl ? '<button type="button" class="bpv-anh" data-v="abl" data-st="plaene">＋ Plan …</button><button type="button" class="bpv-anh" data-v="abl" data-st="server">＋ aus der Ablage …</button>' : ''}</div></div></div>` : ''}
           ${o.optionen || o.kopie !== undefined ? `<div class="bpv-a"><b>Optionen</b><div class="bpv-o">${o.optionen || ''}${o.kopie !== undefined ? `<label data-kopie-w><input type="checkbox" data-kopie${o.kopie ? ' checked' : ''}> Kopie an mich</label>` : ''}</div></div>` : ''}
         </div>
         <div class="bpv-u"><span class="f" data-fuss></span><button type="button" data-v="x">Abbrechen</button>${pdfDa ? '<button type="button" data-v="pdf" data-k="0">📄 PDF<span class="nh"> ansehen</span></button>' : ''}<button type="button" class="pri" data-v="ok"></button></div></div>`;
@@ -114,7 +117,8 @@
       };
       const MB = (n) => (n / 1048576).toFixed(1).replace('.', ',') + ' MB';
       const anhZeigen = () => { const z = $('[data-anh]'); if (!z) return;
-        z.innerHTML = ANH.map((f, k) => `<div class="bpv-d"><span class="i">📎</span><span class="t">${esc(f.name)}<small>${MB(f.size)}</small></span><button type="button" data-anhweg="${k}">entfernen</button></div>`).join(''); };
+        z.innerHTML = ANH.map((f, k) => `<div class="bpv-d"><span class="i">📎</span><span class="t">${esc(f.name)}<small>${MB(f.size)}</small></span><button type="button" data-anhweg="${k}">entfernen</button></div>`).join('')
+          + ABL.map((f, k) => `<div class="bpv-d"><span class="i">${f.quelle === 'plan' ? '📐' : '📁'}</span><span class="t">${esc(f.name)}<small>${esc(f.sub || (f.groesse ? MB(f.groesse) : 'aus der Ablage'))}</small></span><button type="button" data-ablweg="${k}">entfernen</button></div>`).join(''); };
       const anhDazu = (files) => { for (const f of files) { if (ANH.reduce((s, x) => s + x.size, 0) + f.size > 20 * 1048576) { if (window.toast) toast('Zusammen höchstens 20 MB – viele Mailserver nehmen mehr nicht an.', true); break; } ANH.push(f); } anhZeigen(); };
       chips(); neu(); anhZeigen(); if (o.optionenBind) o.optionenBind(bg, neu);
       if (o.anhaenge) {
@@ -146,6 +150,14 @@
       bg.addEventListener('click', async (e) => {
         const w = e.target.closest('[data-wie]'); if (w) { wie = w.dataset.wie; neu(); return; }
         const aw = e.target.closest('[data-anhweg]'); if (aw) { ANH.splice(+aw.dataset.anhweg, 1); anhZeigen(); return; }
+        const bw = e.target.closest('[data-ablweg]'); if (bw) { ABL.splice(+bw.dataset.ablweg, 1); anhZeigen(); return; }
+        const ab = e.target.closest('[data-v="abl"]');
+        if (ab) {   // Plan oder Datei aus der Plattform (bp/dateiwahl.js) – Projekt der Unterlage, sonst das aktuelle, sonst erst wählen
+          const wahl = async (pid) => { const L = await H.dateiWahl({ project_id: pid, start: ab.dataset.st, titel: ab.dataset.st === 'plaene' ? 'Plan anhängen' : 'Datei aus der Ablage anhängen', schon: ABL.filter((x) => x.pid === pid).map((x) => x.pfad) });
+            (L || []).forEach((x) => { if (!ABL.some((y) => y.pid === pid && y.pfad === x.pfad)) ABL.push({ pid, quelle: x.quelle, pfad: x.pfad, name: x.name, sub: x.sub, groesse: x.groesse }); }); anhZeigen(); };
+          const pid = o.pid || (H.projektId && H.projektId());
+          if (pid) wahl(pid); else if (H.projektWahl) H.projektWahl({ onPick: (id) => wahl(+id) });
+          return; }
         const vp = e.target.closest('[data-vlp]');
         if (vp) { const v = (VL || []).find((x) => x.id === vp.dataset.vlp), be = $('[data-betreff]'), tx = $('[data-text]'); $('[data-vll]').hidden = true; if (!v || !tx) return;
           const alt = [be ? be.value : '', tx.value]; if (be && v.betreff) be.value = vlFuellen(v.betreff); tx.value = vlFuellen(v.text); tx.focus();
@@ -198,7 +210,7 @@
         if (an.length && an.every((x) => x.cc)) delete an[0].cc;   // mindestens eine:r steht unter „An“
         if (wie !== 'pdf' && wie !== 'mich' && !an.length) { if (window.toast) toast('Bitte mindestens eine:n Empfänger:in wählen.', true); return; }
         if (wie === 'mich' && o.wie && !o.wie.email) { if (window.toast) toast('Für dein Konto ist keine E-Mail-Adresse hinterlegt (Mein Konto).', true); return; }
-        const W = { wie, an, kopie: !!($('[data-kopie]') || {}).checked, betreff: ($('[data-betreff]') || {}).value, text: ($('[data-text]') || {}).value, signiert: SIG.slice(), anhaenge: [] };
+        const W = { wie, an, ablage: ABL.map(({ pid, pfad, name }) => ({ pid, pfad, name })), kopie: !!($('[data-kopie]') || {}).checked, betreff: ($('[data-betreff]') || {}).value, text: ($('[data-text]') || {}).value, signiert: SIG.slice(), anhaenge: [] };
         const alt = b.textContent; b.disabled = true; b.textContent = wie === 'pdf' ? 'wird erstellt …' : 'wird gesendet …';
         try { for (const f of ANH) W.anhaenge.push({ name: f.name, mime: f.type || 'application/octet-stream', daten: await b64(f) }); await o.senden(W, bg); zu(true); } catch (er) { b.disabled = false; b.textContent = alt; if (window.toast) toast(er.message || String(er), true); }
       });
@@ -214,13 +226,13 @@
     for (const x of E) { if (x.email || !x.name) continue;   // nur ein Name (z. B. Auftraggeber:in): Adresse aus den Adressen, wenn der Name genau passt
       try { const L = await fetch('api/bp/mailadressen?q=' + encodeURIComponent(x.name), { credentials: 'same-origin' }).then((r) => r.json()), n = x.name.toLowerCase(), k = (Array.isArray(L) ? L : []).find((y) => { const m = (y.name || '').toLowerCase(); return m === n || m.startsWith(n + ' – '); }); if (k) x.email = k.email; } catch { /* bleibt ohne Adresse */ } }
     const datei = (d) => d.datei || (String(d.name || 'Unterlage').replace(/[\\/:*?"<>|\r\n]+/g, '_').slice(0, 100) + '.pdf');
-    return versand({ titel: o.titel, was: o.was || [], hinweis: o.hinweis, empfaenger: E, zusatz: true, kopie: o.kopie !== undefined ? o.kopie : true, betreff: o.betreff || '', text: o.text || '', vorlagen: true, projekt: o.projekt, anhaenge: true,
+    return versand({ titel: o.titel, was: o.was || [], hinweis: o.hinweis, empfaenger: E, zusatz: true, kopie: o.kopie !== undefined ? o.kopie : true, betreff: o.betreff || '', text: o.text || '', vorlagen: true, projekt: o.projekt, anhaenge: true, ablage: true, pid: o.pid,
       neu: o.neu, mit: o.mit, dateien: o.dateien, textHilfe: o.textHilfe, vorlagenVerwalten: o.vorlagenVerwalten,
       optionen: `<label title="Jede:r bekommt eine eigene Mail – die Empfänger:innen sehen einander nicht"><input type="checkbox" data-einzeln${o.einzeln ? ' checked' : ''}> einzeln senden</label>`,
       fuss: () => ((o.was || []).length ? 'Geht als E-Mail mit Anhang raus' : 'Geht als E-Mail raus') + ' · steht danach in der Kommunikation',
       senden: async (W, box) => {
         const fd = new FormData(); fd.append('art', o.art || 'unterlagen'); if (o.pid) fd.append('pid', o.pid);
-        fd.append('an', JSON.stringify(W.an)); fd.append('betreff', W.betreff || ''); fd.append('text', W.text || ''); fd.append('kopie', W.kopie ? '1' : ''); fd.append('link', o.link || ''); fd.append('einzeln', box.querySelector('[data-einzeln]').checked ? '1' : '');
+        fd.append('an', JSON.stringify(W.an)); fd.append('betreff', W.betreff || ''); fd.append('text', W.text || ''); fd.append('kopie', W.kopie ? '1' : ''); fd.append('link', o.link || ''); fd.append('einzeln', box.querySelector('[data-einzeln]').checked ? '1' : ''); fd.append('ablage', JSON.stringify(W.ablage || []));
         for (const [k, d] of (o.was || []).entries()) {
           let blob = W.signiert[k];
           if (!blob && d.pdf) { const x = typeof d.pdf === 'function' ? await d.pdf() : d.pdf;

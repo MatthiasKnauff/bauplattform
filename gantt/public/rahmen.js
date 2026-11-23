@@ -63,13 +63,18 @@
         K('deleteSel', 'Löschen', 'del', 'Markierte Leistungen löschen (Entf)', { rot: true })] },
       { titel: 'Gliederung', knoepfe: [K('outdent', 'Höher', 'outdent'), K('indent', 'Tiefer', 'indent'), K('moveUp', 'Hoch', 'up'), K('moveDown', 'Runter', 'down')] },
       { titel: 'Planen', knoepfe: [K('linkSel', 'Verknüpfen', 'link'), K('unlinkSel', 'Lösen', 'unlink'), K('splitMode', 'Unterbrechen', 'scissors'), K('tidyLinks', 'Aufräumen', 'tidy'), K('toggleAutoLink', 'Auto', 'autolink', 'Automatisch verknüpfen: neue Leistungen hängen sich an die vorige')] },
-      { titel: 'Fortschritt', html: pzLeiste() },
+      { titel: 'Fortschritt', html: pzLeiste(), knoepfe: sollKnopf() },
       ...(window.ablaufHatTeile && ablaufHatTeile() ? [gruppieren()] : []),
       ...(hatDetail() ? [detail()] : []),
       { titel: 'Ansicht', knoepfe: [K('zoomIn', 'Größer', 'zoomin'), K('zoomOut', 'Kleiner', 'zoomout'), K('fitProject', 'Ganzer Plan', 'fit'), K('goToday', 'Heute', 'today'), K('scrollToTask', 'Zur Leistung', 'scrollto', 'Diagramm zur markierten Leistung rollen'),
         K('toggleCrit', 'Krit. Weg', 'crit', 'Kritischen Weg hervorheben – die Leistungen, die das Ende des Plans bestimmen'), { t: 'Darstellung', ic: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>', fn: () => darstellung(), tip: 'Balkenbeschriftung, Pfeile, Dauer von Gruppen, Alle ein-/ausblenden, Nachfrage beim Löschen' }] },
       ...rechts];
   }
+  /* Soll festhalten steht beim Fortschritt (23.11.2026) – nicht mehr im Versionsmenü; nur mit Recht „gantt.soll“ */
+  const sollKnopf = () => { if (!P || !window.GVGL || !(window.BP && BP.me && BP.me.soll)) return [];
+    const S = GVGL.soll();
+    return [{ t: S ? 'Soll neu' : 'Scharf schalten', ic: '<path d="M9 3h6l-1 6 3 3H7l3-3z"/><path d="M12 12v9"/>', fn: () => GVGL.festhalten(),
+      tip: S ? `Soll vom ${S.tag} gilt – den heutigen Plan als neues Soll festhalten (mit Begründung)` : 'Plan scharf schalten: den heutigen Plan als Soll festhalten – alles Weitere ist dann das Ist' }]; };
   // Fortschritt der markierten Leistung(en): Stufen 0 · 25 · 50 · 75 · 100 und kleiner Schieber darunter (Baustein bpProzent)
   function pzLeiste() {
     const ix = P && CAL ? selIdx().filter((i) => !CAL.summ[i]) : [], w = ix.length ? Math.round(CAL.pct[ix[0]]) : 0;

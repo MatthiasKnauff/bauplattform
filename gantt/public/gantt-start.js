@@ -520,7 +520,7 @@ function vleiste() {
     liste: L.map((p) => ({ id: p.id, name: p.id === (P && P.id) ? P.name : p.name, datum: when(p.updated), wer: p.by || '', archiviert: p.archived })),
     onWahl: async (id) => { await flushSave(); if (await openProject(String(id)) !== false) refreshProjectList(); },
     onGueltig: bt ? versionGilt : null,
-    onNeu: neueVersion, extra: [...(window.GVGL && window.BP && BP.me && BP.me.soll ? [{ text: GVGL.soll() ? '📌 Soll neu festhalten …' : '📌 Plan scharf schalten (Soll festhalten) …', fn: () => GVGL.festhalten() }] : []), { text: '⎘ Aus anderem Plan übernehmen …', fn: () => ACTIONS.planUebernehmen() }], onUmbenennen: () => ACTIONS.renameProject(), onVerwalten: () => archivDialog() };
+    onNeu: neueVersion, extra: [{ text: '⎘ Aus anderem Plan übernehmen …', fn: () => ACTIONS.planUebernehmen() }], onUmbenennen: () => ACTIONS.renameProject(), onVerwalten: () => archivDialog() };
   // kompaktes Versionsmenü vorne in der Werkzeugleiste (wie in der AVA); Drucken/Exportieren rechts in der Reiterzeile
   const el = BPHead.versionsleiste({ vor: $('#tabs'), ...O }); el.style.display = 'none';
   let vb = $('#vmGrp');

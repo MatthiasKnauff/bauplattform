@@ -242,8 +242,14 @@ export async function ganttHeftPruefen(browser, repo) {
       const v = await p.evaluate((T0) => { P.tasks = T0.map((t) => fillTask({ ...t, preds: t.preds.map((x) => ({ ...x })) })); const a = schedule().es[1];
         P.tasks[0].ueber = { at: 2, grund: 'wetter' }; P.tasks[0].pct = 100; CAL = schedule(); render(); return { vor: a, nach: CAL.es[1], ende: CAL.ef[0] - CAL.es[0] }; }, T0);
       pruef(v.nach === v.vor + 2 && v.ende === 4, `Überziehung schiebt den Nachfolger: ${JSON.stringify(v)}`);
+      const fk = () => p.evaluate(() => { const g = [...document.querySelectorAll('#leiste .bf-g')].find((x) => /Fortschritt/.test(x.textContent)); return g ? [...g.querySelectorAll('.bf-k')].map((b) => b.textContent.trim()).join('|') : null; });
+      await p.evaluate(() => { BP.me.soll = true; updateRibbon(); });
+      const vor = await fk();
+      pruef(/Scharf schalten/.test(vor || ''), `„Scharf schalten“ steht bei „Fortschritt“ (23.11.2026): ${vor}`);
       SOLL = { id: 's1', name: 'Bauvertrag', created: '2026-03-15T10:00:00Z', by: 'X', frueher: 0, data: { start: 20773, nextUid: 3, tasks: T0 } };
       await p.evaluate(() => GVGL.laden()); await p.waitForSelector('#vgBand:not(.vg-aus)', { timeout: 5000 });
+      const nach = await fk();
+      pruef(/Soll neu/.test(nach || '') && !/Scharf/.test(nach || ''), `mit Soll heißt der Knopf „Soll neu“: ${nach}`);
       const b = await p.evaluate(() => ({ t: document.querySelector('#vgBand').textContent, alt: document.querySelectorAll('#vgl .vg-soll').length, unter: (() => { const a = document.querySelector('#vgl .vg-soll'), b = document.querySelector('#chartBody .bar[data-i="0"] rect.b'); return a && b ? a.getBoundingClientRect().top >= b.getBoundingClientRect().bottom - 0.5 : false; })(), st: [...document.querySelectorAll('text.bst .st-sp, text.bst .st-fr')].map((x) => x.textContent), menue: document.body.textContent.includes('Vergleichen mit anderer Version') }));
       const hz = await p.evaluate(() => { const h = document.querySelector('.bf-heft').getBoundingClientRect(), v = document.querySelector('#vgBand').getBoundingClientRect(); return { h: h.top, band: v.bottom }; });
       pruef(hz.h >= hz.band - 1, `Heftzwecke liegt auf dem Soll-Band statt darunter am Arbeitsbereich (${JSON.stringify(hz)})`);

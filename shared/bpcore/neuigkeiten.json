@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-scharf-fortschritt",
+  "datum": "2026-11-23",
+  "app": "gantt",
+  "titel": "„Scharf schalten“ steht jetzt beim Fortschritt",
+  "text": "Das Soll hältst du in der Befehlsleiste in der Gruppe „Fortschritt“ fest („Scharf schalten“, später „Soll neu“) – nicht mehr im Versionsmenü.",
+  "ziel": "#leiste"
+ },
+ {
   "id": "gantt-firmenvorgabe-weg",
   "datum": "2026-11-23",
   "app": "gantt",

@@ -188,6 +188,12 @@ export async function adrStartPruefen(browser, repo) {
       pruef(r.gleich, 'Spaltenfilter: das Feld wird beim Tippen neu gebaut (Fokus/Vorschlagsliste gehen verloren)');
       pruef(r.vs[0] === 'Zimmerarbeiten', `Spaltenfilter: Vervollständigung ${JSON.stringify(r.vs)}`);
       pruef(r.ids.join() === '4,5', `Spaltenfilter „zim“: Zeilen ${r.ids}`);
+      // Enter ohne ↑/↓: der getippte Text gilt (Bildschirmfoto „Dach“, 23.11.2026) – kein Vorschlag vorgewählt, Treffer auch mitten im Wort
+      pruef(await p.evaluate(() => !document.querySelector('.bp-vs-z.an')), 'Spaltenfilter: ein Vorschlag ist vorgewählt');
+      await p.keyboard.press('Enter'); await p.waitForTimeout(200);
+      const e1 = await p.evaluate(() => ({ v: document.querySelector('#tw [data-flt="trade"]').value, pop: !!document.querySelector('.bp-vs'), ids: [...document.querySelectorAll('#tw tbody tr[data-id]')].map((t) => +t.dataset.id) }));
+      pruef(e1.v === 'zim' && !e1.pop && e1.ids.join() === '4,5', `Spaltenfilter: Enter nimmt den getippten Text – ${JSON.stringify(e1)}`);
+      await p.focus('#tw [data-flt="trade"]'); await p.keyboard.press('Backspace'); await p.keyboard.type('m'); await p.waitForTimeout(250);
       await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); await p.waitForTimeout(200);
       pruef(await p.evaluate(() => document.querySelector('#tw [data-flt="trade"]').value) === 'Zimmerarbeiten', 'Spaltenfilter: Vorschlag wird nicht übernommen');
       await ctx.close(); }

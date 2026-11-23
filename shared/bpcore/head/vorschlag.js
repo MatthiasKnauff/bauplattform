@@ -28,11 +28,14 @@
       KERN[n].then(() => { if (V.listen[n] && document.activeElement === inp) zeigen(inp, alle); }); return;
     }
     let li = V.listen[n]; if (typeof li === 'function') li = li(inp); li = li || [];
-    L = q ? li.filter((x) => x.w.toLowerCase().startsWith(q) || (x.t || '').toLowerCase().startsWith(q) || (V.norm[n] && V.norm[n](q) === x.w)) : li;
+    /* data-vs-frei (Such- und Filterfelder, 23.11.2026): der getippte Text gilt selbst – Treffer irgendwo im Wort, nichts vorgewählt,
+       Enter übernimmt keinen Vorschlag (sonst filterte „Dach“ nur nach „Dachdecker“); erst ↑/↓ wählt einen */
+    const frei = inp.hasAttribute('data-vs-frei');
+    L = q ? li.filter((x) => (frei ? x.w.toLowerCase().includes(q) : x.w.toLowerCase().startsWith(q)) || (x.t || '').toLowerCase().startsWith(q) || (V.norm[n] && V.norm[n](q) === x.w)) : li;
     if (q && L.length === 1 && L[0].w === inp.value.trim()) L = [];
     if (!L.length) { if (POP) POP.remove(); POP = null; return; }
     if (!POP) { POP = document.createElement('div'); POP.className = 'bp-vs'; POP.setAttribute('role', 'listbox'); document.body.appendChild(POP); }
-    IN = inp; SEL = q ? 0 : L.findIndex((x) => x.w === inp.value.trim());
+    IN = inp; SEL = q && !frei ? 0 : L.findIndex((x) => x.w === inp.value.trim());
     POP.innerHTML = L.map((x, i) => `<div class="bp-vs-z${i === SEL ? ' an' : ''}" data-vsi="${i}" role="option"><b>${esc(x.w)}</b>${x.t ? `<span>${esc(x.t)}</span>` : ''}${x.quelle && window.bpBegriff ? bpBegriff.knopf(x.quelle, x.w) : ''}</div>`).join('');
     if (li.some((x) => x.quelle) && !window.bpBegriff && !V._bl) { V._bl = 1; const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'begriffe.js' + v; sc.onload = () => { if (IN === inp) zeigen(inp, alle); }; document.head.appendChild(sc); }
     const r = inp.getBoundingClientRect(), h = POP.offsetHeight, w = POP.offsetWidth;
@@ -62,6 +65,7 @@
     if (!POP || e.target !== IN) return;
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); SEL = (SEL + (e.key === 'ArrowDown' ? 1 : -1) + L.length) % L.length; zeigen0(); }
     else if (e.key === 'Enter' && SEL >= 0) { e.preventDefault(); e.stopPropagation(); nehmen(SEL); }
+    else if (e.key === 'Enter') zu();   // nichts gewählt: der getippte Text gilt, die Liste geht zu
     else if (e.key === 'Escape') { e.stopPropagation(); zu(); }
   }, true);
   function zeigen0() { POP.querySelectorAll('.bp-vs-z').forEach((z, i) => z.classList.toggle('an', i === SEL)); const a = POP.querySelector('.an'); if (a) a.scrollIntoView({ block: 'nearest' }); }

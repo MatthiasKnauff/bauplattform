@@ -1,5 +1,13 @@
 [
  {
+  "id": "filter-enter-text",
+  "datum": "2026-11-23",
+  "app": "adressen",
+  "titel": "Filter: Enter nimmt den getippten Text",
+  "text": "In den Spaltenfiltern filtert „Dach“ + Enter jetzt nach allem mit „Dach“ – nicht mehr nur nach dem ersten Vorschlag. Einen Vorschlag übernimmst du mit ↑/↓ und Enter oder per Klick. Ebenso in der Leistungssuche der Planung und in der Suche im Bauzeitenplan.",
+  "ziel": "#tw [data-flt]"
+ },
+ {
   "id": "kosten-excel-bearbeiten",
   "datum": "2026-11-23",
   "app": "baukosten",

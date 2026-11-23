@@ -9,7 +9,7 @@
   const tabs = document.getElementById('tabs'); if (!tabs) return;
   const box = document.createElement('div'); box.className = 'gs-box';
   box.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
-    <input type="search" id="gsQ" data-vs="gsWort" placeholder="Im Plan suchen – Leistung, Gewerk, Firma" aria-label="Im Bauzeitenplan suchen" autocomplete="off">
+    <input type="search" id="gsQ" data-vs="gsWort" data-vs-frei placeholder="Im Plan suchen – Leistung, Gewerk, Firma" aria-label="Im Bauzeitenplan suchen" autocomplete="off">
     <span class="gs-n" id="gsN"></span><button type="button" data-gs="-1" title="Vorheriger Treffer (Umschalt+Enter)" aria-label="Vorheriger Treffer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><button type="button" data-gs="1" title="Nächster Treffer (Enter)" aria-label="Nächster Treffer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>`;
   (document.querySelector('#leiste .g-such') || tabs).appendChild(box);   // Befehlsleiste schon gezeichnet: gleich dorthin, sonst holt rahmen.js das Feld
   const q = box.querySelector('#gsQ'), nEl = box.querySelector('#gsN');

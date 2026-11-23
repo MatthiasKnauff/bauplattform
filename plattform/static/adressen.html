@@ -350,7 +350,7 @@ $('#tw').addEventListener('dblclick', (e) => {
 });
 /* ---------- Filter: gelten in Tabelle UND Karten; einzeln oder alle löschen ---------- */
 const fltField = (k, l) => `<span class="fx">${k === 'kind' ? `<select data-flt="kind" aria-label="Filter Art"><option value="">alle</option>${[...Object.entries(KINDN), ...eigeneArten().map((k) => [k, k])].map(([v, n]) => `<option value="${esc(v)}"${TV.flt.kind === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`
-  : `<input data-flt="${k}" data-vs="adrSp" data-vsk="${k}" value="${esc(TV.flt[k] || '')}" placeholder="Filter" aria-label="Filter ${esc(l)}" autocomplete="off">`}${TV.flt[k] ? `<button type="button" data-clr="f:${k}" title="Filter löschen" aria-label="Filter ${esc(l)} löschen">✕</button>` : ''}</span>`;
+  : `<input data-flt="${k}" data-vs="adrSp" data-vs-frei data-vsk="${k}" value="${esc(TV.flt[k] || '')}" placeholder="Filter" aria-label="Filter ${esc(l)}" autocomplete="off">`}${TV.flt[k] ? `<button type="button" data-clr="f:${k}" title="Filter löschen" aria-label="Filter ${esc(l)} löschen">✕</button>` : ''}</span>`;
 function activeFilters() {   // nur noch die Spaltenfilter der Tabelle – Suche und Filter stehen links (AF)
   const a = [];
   Object.entries(TV.flt).filter(([, v]) => v).forEach(([k, v]) => a.push(['f:' + k, COLS.find((c) => c[0] === k)[1], k === 'kind' ? KINDN[v] || v : v]));

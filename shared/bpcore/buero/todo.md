@@ -8,6 +8,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Seite „Ablauf“ auch für Einheiten** (Kisten „Gebäude / Allgemein“, „Einheit 1“, „Einheit 2“ mit Takt-Pfeilen) – Fragen offen, Mock folgt **ca. 30 min**
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; 3D-Auswahl später) – B erledigt durch das Raumbuch (17.11.: Gruppen, abweichender Raum eigene Zeile) **ca. 1,5 h**
+- ~~Filterfelder mit Vervollständigung: Enter nimmt den getippten Text, nicht den ersten Vorschlag (Adressen, Planung, Bauzeitenplan)~~ (23.11.2026)
 - ~~Kosten aus Excel bearbeiten: Beträge in der Zelle, ＋ Betrag je KG, Einzelbeträge mit KG/Bezeichnung/✕~~ (23.11.2026)
 - Kopierquelle im LV als Baudaten-Baum (Etappe 2, BB-4 … BB-6) – etwa 2–3 h
 - Außenanlagen im Leistungskatalog: nie ganz ausblenden, fehlende Leistungen, Gruppe Tierhaltung – etwa 30 min (wartet auf GO)

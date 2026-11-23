@@ -1,5 +1,13 @@
 [
  {
+  "id": "katnetz-breite-2311",
+  "datum": "2026-11-23",
+  "app": "gantt",
+  "titel": "Abhängigkeiten: Spalte links verbreitern",
+  "text": "Im Leistungskatalog unter „Abhängigkeiten“ lässt sich die Liste links am Rand breiter ziehen (Doppelklick = Standard). Die Nachfolger stehen wieder mit ihrem eigenen Namen da.",
+  "ziel": ".kn-l"
+ },
+ {
   "id": "handy-adr-projekt-2311",
   "datum": "2026-11-23",
   "app": "adressen",

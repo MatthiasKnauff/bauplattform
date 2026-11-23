@@ -20,7 +20,7 @@ function knVor(id) {   // Vorgänger mit Art und Abstand; eigene Leistungen „M
   return V.filter((v) => knIt(v.id));
 }
 function knNach(id) {
-  const N = knAlle().filter((i) => (i.a || []).some((a) => knId(a) === id)).map((i) => ({ id: i.id, ...(knVor(i.id).find((v) => v.id === id) || {}) }));
+  const N = knAlle().filter((i) => (i.a || []).some((a) => knId(a) === id)).map((i) => ({ ...(knVor(i.id).find((v) => v.id === id) || {}), id: i.id }));   // id zuletzt – die Angabe aus knVor trägt die id der Mitte (alle Nachfolger hießen wie die Mitte, 23.11.2026)
   const it = knIt(id); (it && it.b || []).forEach((b) => { if (knIt(b) && !N.some((n) => n.id === b)) N.push({ id: b, t: 'FS', lag: 0, b: true }); });
   return N;
 }

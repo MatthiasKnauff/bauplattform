@@ -142,6 +142,7 @@ function renderLib() {
   if (LIBMODUS === 'netz' && window.KatBuero && typeof katNetzHtml === 'function') {
     box.innerHTML = `<div class="fv"><div class="fv-head"><div><h3>Leistungskatalog</h3><span>eine Leistung in der Mitte – Vorgänger links, Nachfolger rechts</span></div>${modus}</div>${libLernHtml()}${katNetzHtml(LIBNETZ)}</div>`;
     LIBNETZ = null;   // nur einmal: danach führt die Ansicht selbst (Klick auf eine Kiste)
+    if (window.bpNav && bpNav.breite) bpNav.breite(box.querySelector('.kn-l'), { key: 'katnetz', min: 150, max: 480 });   // linke Spalte in der Breite ziehen (23.11.2026)
     nurLesen(); return;
   }
   h += `<div class="fv-head"><div><h3>Leistungskatalog</h3><span>${libPhases().length} Abschnitte · ${L.length} eigene Leistungen · gilt für alle neuen Planungen (Planungsassistent)</span></div>${modus}

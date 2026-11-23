@@ -39,8 +39,16 @@ export async function katalogNetzPruefen(browser, repo) {
     pruef(!(letzt('api/catbuero') || {}).estrich && await p.evaluate(() => CATALOG.items.find((i) => i.id === 'estrich').d === 2), '↺ zurück auf Werk');
     // B: Abhängigkeiten – Estrich in der Mitte, Vorgänger links, Nachfolger rechts
     await p.click('#libView tr.lv-std [data-lnetz="estrich"]'); await p.waitForSelector('.kn-mk');
-    const b = await p.evaluate(() => ({ m: document.querySelector('.kn-mk b').textContent, vor: [...document.querySelectorAll('[data-kndrop="vor"] .kn-k b')].map((x) => x.textContent), nach: document.querySelectorAll('[data-kndrop="nach"] .kn-k').length, probe: document.querySelector('.kn-probe').textContent }));
-    pruef(/Estrich/.test(b.m) && b.vor.some((x) => /Innenputz/.test(x)) && b.nach > 0 && /\d+ AT/.test(b.probe), `Ansicht Abhängigkeiten: ${JSON.stringify(b)}`);
+    const b = await p.evaluate(() => ({ m: document.querySelector('.kn-mk b').textContent, vor: [...document.querySelectorAll('[data-kndrop="vor"] .kn-k b')].map((x) => x.textContent), nach: document.querySelectorAll('[data-kndrop="nach"] .kn-k').length, nachN: [...document.querySelectorAll('[data-kndrop="nach"] .kn-k b')].map((x) => x.textContent), probe: document.querySelector('.kn-probe').textContent }));
+    pruef(/Estrich/.test(b.m) && b.vor.some((x) => /Innenputz/.test(x)) && b.nach > 0 && !b.nachN.some((x) => /Estrich einbringen/.test(x)) && /\d+ AT/.test(b.probe), `Ansicht Abhängigkeiten: ${JSON.stringify(b)}`);
+    {   // 23.11.2026: linke Spalte in der Breite ziehen – gemerkt auch nach dem Neuzeichnen
+      const g = await p.evaluate(() => { const r = document.querySelector('.kn .bp-nav-griff').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + 40, w0: document.querySelector('.kn-l').offsetWidth }; });
+      await p.mouse.move(g.x, g.y); await p.mouse.down(); await p.mouse.move(g.x + 80, g.y, { steps: 4 }); await p.mouse.up(); await warte(200);
+      await p.click('.kn-k[data-knk="putz"]'); await warte(300);
+      const w = await p.evaluate(() => ({ w: document.querySelector('.kn-l').offsetWidth, griffe: document.querySelectorAll('.kn .bp-nav-griff').length }));
+      pruef(w.w >= g.w0 + 60 && w.griffe === 1, `linke Spalte ziehen: ${JSON.stringify({ g, w })}`);
+      await p.evaluate(() => { KN.id = 'estrich'; renderLib(); }); await warte(300);
+    }
     await p.evaluate(() => knVerbinde('el_roh', 'estrich')); await warte(500);
     pruef(((letzt('api/catbuero') || {}).estrich || {}).a && letzt('api/catbuero').estrich.a.includes('el_roh'), `neuer Vorgänger als Abweichung: ${JSON.stringify(letzt('api/catbuero'))}`);
     const n0 = PUT.length; await p.evaluate(() => knVerbinde('estrich', 'putz')); await warte(400);

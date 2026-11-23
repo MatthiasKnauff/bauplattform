@@ -35,3 +35,11 @@ def test_verwaltung_waehlt_apps():
     gleich(R.app_stufe(_u("verwaltung", "app.zeiten.aus"), "zeiten"), "aus", "Zeiten aus trotz Verwaltung")
     gleich(R.app_stufe(_u("verwaltung", "app.ava.lesen"), "ava"), "lesen", "nur lesen trotz Verwaltung")
     gleich(R.app_stufe(_u("verwaltung", "app.admin.aus"), "admin"), "an", "Verwaltung bleibt ganz")
+
+
+def test_kachel_der_verwaltung():
+    """Verwaltung je Rolle nur als Kachel aus (23.11.2026) – die App bleibt erreichbar."""
+    pruefe(R.kachel_aus(_u("verwaltung", "app.admin.aus"), "admin"), "Kachel aus")
+    gleich(R.app_stufe(_u("verwaltung", "app.admin.aus"), "admin"), "an", "Verwaltung bleibt erreichbar")
+    pruefe(not R.kachel_aus(_u("verwaltung"), "admin") and not R.kachel_aus({"is_admin": 1}, "admin"), "sonst Kachel da (auch ohne gespeicherte Rechte)")
+    pruefe("app.admin.aus" in R.KEYS and "app.admin.lesen" not in R.KEYS, "nur „aus“ als Recht")

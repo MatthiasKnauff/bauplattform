@@ -73,20 +73,20 @@ def is_proxied(host):
 
 
 def config(user=None):
-    from . import sso
+    from . import rechte, sso
     allowed = set(sso.apps_of(user)) | {"portal"} if user is not None else None
     aus = sso.apps_aus()
     out = []
     for a in apps():
-        if a["key"] in aus:   # im Büro abgeschaltet: weder Kachel noch Verweis
+        if a["key"] in aus and a["key"] != "admin":   # im Büro abgeschaltet: weder Kachel noch Verweis
             continue
         a = dict(a)
+        if a["key"] == "admin" and ("admin" in aus or (user is not None and rechte.kachel_aus(user, "admin"))):
+            a["kachel"] = False   # Verwaltung: nur die Kachel weg (Startseite, Apps-Menü) – ⚙ Einstellungen findet sie weiter
         if user is not None:
             a["allowed"] = a["key"] in allowed or (bool(a.get("admin")) and bool(user["is_admin"]))   # Verwaltung, Honorar: nur Administratoren
             if a.get("recht"):   # App über ein Recht (Akquise): wer es hat – und die Verwaltung
-                from . import rechte
                 a["allowed"] = rechte.hat(user, a["recht"]) or rechte.hat(user, "verwaltung")
-            from . import rechte
             if a["allowed"] and rechte.app_stufe(user, a["key"]) == "lesen":
                 a["nur_lesen"] = True   # Apps je Rolle: Kopfzeile zeigt „nur lesen“ (bpcore/nurlesen.py sperrt auf dem Server)
             if not a["allowed"] and (S := rechte.seiten(user, a["key"])):

@@ -61,7 +61,7 @@ SEITEN = {
 }
 SEITE_GRUND = (("GET", r"/"), ("GET", r"/api/(?:me|platform)"), ("GET|POST|PUT|DELETE", r"/api/bp/.*"))   # Gerüst der Seite und der Kern (prüft selbst)
 KEYS = ([r[0] for r in RECHTE] + [f"b.{b[0]}.{s}" for b in BLOECKE for s in ("sehen", "aendern")] + [f"app.{a}.{s}" for a, _ in _APPS for s in APP_STUFEN]
-        + [f"seite.{k}{s}" for k in SEITEN for s in ("", ".lesen")])
+        + [f"seite.{k}{s}" for k in SEITEN for s in ("", ".lesen")] + ["app.admin.aus"])   # Verwaltung: nur die Kachel aus (kachel_aus)
 
 
 def _feld(u, k, d=None):
@@ -109,6 +109,12 @@ def app_stufe(user, app):
     if not user or _feld(user, "rechte") is None or (app == "admin" and hat(user, "verwaltung")):
         return "an"   # ohne gespeicherte Rechte (Gäste, Tests) gibt es keine Stufen – „hat“ ersetzt dort jedes Recht durch „Administrator“
     return "aus" if hat(user, f"app.{app}.aus") else "lesen" if hat(user, f"app.{app}.lesen") else "an"
+
+
+def kachel_aus(user, app):
+    """Kachel einer App weg, die App bleibt erreichbar – bisher nur die Verwaltung („app.admin.aus“ je Rolle/Person, 23.11.2026):
+    sie fehlt auf der Startseite und im Apps-Menü, ⚙ Einstellungen führt weiter hinein."""
+    return app == "admin" and bool(user) and _feld(user, "rechte") is not None and hat(user, "app.admin.aus")
 
 
 def seite_stufe(user, key):

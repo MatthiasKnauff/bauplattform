@@ -1,5 +1,13 @@
 [
  {
+  "id": "kachel-verwaltung-2311",
+  "datum": "2026-11-23",
+  "app": "admin",
+  "titel": "Kachel „Verwaltung“ ausblenden",
+  "text": "Unter Apps im Büro und je Rolle unter Rollen & Rechte lässt sich die Kachel der Verwaltung ausblenden. Über ⚙ Einstellungen kommt man weiter hinein.",
+  "ziel": ".ro-t"
+ },
+ {
   "id": "handyfuss-bt-2311",
   "datum": "2026-11-23",
   "app": "bautagebuch",

@@ -411,7 +411,7 @@
   }
   /* ▦ Apps: alle Apps als Kacheln – in jeder App gleich; die Verwaltung gibt es nur hier */
   function sortApps() {
-    const apps = ((H.conf || {}).apps || []).filter((a) => a.allowed && !a.teil);   // teil: Seite einer anderen App (Kommunikation → Aufgaben & Post)
+    const apps = ((H.conf || {}).apps || []).filter((a) => a.allowed && !a.teil && a.kachel !== false);   // teil: Seite einer anderen App (Kommunikation → Aufgaben & Post); kachel: false = nur die Kachel weg (Verwaltung – ⚙ führt hin)
     const rank = (a) => (a.key === 'portal' ? -1 : a.key === 'admin' ? 99 : 0);
     return apps.slice().sort((a, b) => rank(a) - rank(b));
   }

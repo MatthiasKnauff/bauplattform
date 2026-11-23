@@ -5,7 +5,7 @@
   "app": "adressen",
   "titel": "Plotdienst als Art",
   "text": "In der Kontaktmaske gibt es bei „Art“ jetzt „Plotdienst“. Solche Kontakte stehen beim Planversand und beim Plotauftrag immer zur Auswahl – auch Kontakte mit dem Gewerk „Plotdienst“. In den Adressen links gibt es dafür den Filter „Plotdienste“.",
-  "ziel": "#adrNav"
+  "ziel": "#adrL"
  },
  {
   "id": "versand-anhaenge-2311",

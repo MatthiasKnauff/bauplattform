@@ -4,7 +4,7 @@ Die alte Liste der Kollegen (DIN 276-1:2008-12, je Kostengruppe der 3. Ebene ein
 gelesen, nie gespeichert. Ergebnis: Zeilen je Einzelbetrag mit der Kostengruppe nach DIN 276:2018-12 (umgesetzt, „war …“), dazu die
 Befunde: Rechenfehler der Liste, Gefahr doppelter Summen, fragliche Zuordnung (mit Vorschlag), übliche Lücken, Werte aus fremden Dateien.
 
-    lesen(name, roh) → {datei, fassung, zeilen: [{id, kg, kg_alt, name, name_alt, betrag, nr, extern}], befunde: [...], summe}
+    lesen(name, roh) → {datei, fassung, zeilen: [{id, kg, kg_alt, name, name_alt, betrag, nr, extern}], befunde: [...], summe, liste, namen_alt}
     sauber(x)        → dasselbe, aus dem Browser zurück (beim Übernehmen) – nur bekannte Felder, Zahlen geprüft
 Gespeichert wird im Kostenstand unter data["excel"] (baukosten.clean_data), gerechnet wie Zeilen von Hand (calc).
 """
@@ -92,7 +92,7 @@ def lesen(name, roh):
     mx = max((r for r, _ in Z), default=0)
     # Spalte „netto“: Überschrift mit „netto“ in der Zeile mit „Nr.“ (in der Liste Spalte E); sonst die letzte Zahlenspalte
     sp_netto = next((c for (r, c), (v, _) in sorted(Z.items()) if isinstance(v, str) and "netto" in v.lower()), 5)
-    zeilen, befunde, kg_zeile, nr = [], [], {}, 0
+    zeilen, befunde, kg_zeile, nr, namen_alt = [], [], {}, 0, {}
     summen = []   # Bereiche der SUM-Formeln (Spalte, von, bis)
     for (r, c), (v, f) in Z.items():
         for m in re.finditer(r"SUM\(\$?([A-Z]+)\$?(\d+):\$?[A-Z]+\$?(\d+)\)", f or ""):
@@ -105,6 +105,8 @@ def lesen(name, roh):
         nm = str(Z.get((r, 2), ("", None))[0] or "").strip()
         v, f = Z.get((r, sp_netto), (None, None))
         kg_zeile[kg] = r
+        if nm:
+            namen_alt[kg] = nm[:200]   # Bezeichnung der Liste (DIN 276:2008) – für die Ausgabe nach 2008 (Honorar)
         bf = Z.get((r, sp_brutto), (None, None))[1]
         if kg[2] != "0" and kg[0] in "1234567" and not bf and not f and _zahl(v) is None:
             befunde.append({"art": "rechenfehler", "kg": kg, "text": f"{kg} {nm}: keine Formel – ein Betrag hier fehlt in der Summe der Liste"})
@@ -150,7 +152,7 @@ def lesen(name, roh):
             if k not in hat:
                 befunde.append({"art": "luecke", "kg": k, "text": f"{k} {t}: 0 € – beim Bauen meist nötig"})
     return {"datei": str(name or "")[:200], "fassung": "2008", "zeilen": zeilen, "befunde": befunde, "summe": summe,
-            "liste": sorted({UM.get(k, k) for k in kg_zeile})}   # Kostengruppen, die in der Liste stehen – was 2018 fehlt, heißt „ergänzt“
+            "liste": sorted({UM.get(k, k) for k in kg_zeile}), "namen_alt": namen_alt}   # Kostengruppen, die in der Liste stehen – was 2018 fehlt, heißt „ergänzt“
 
 
 def _eur(v):
@@ -181,5 +183,6 @@ def sauber(x):
     B = [{"art": b["art"], "kg": s(b.get("kg"), 3), "text": s(b.get("text"), 300), **({"nach": s(b["nach"], 3)} if b.get("nach") else {})}
          for b in (x.get("befunde") if isinstance(x.get("befunde"), list) else [])[:200] if isinstance(b, dict) and b.get("art") in ARTEN]
     L = sorted({k for k in (x.get("liste") if isinstance(x.get("liste"), list) else []) if re.fullmatch(r"[1-8]\d\d", str(k))})
+    NA = {k: s(v, 200) for k, v in (x.get("namen_alt") if isinstance(x.get("namen_alt"), dict) else {}).items() if re.fullmatch(r"[1-8]\d\d", str(k))}
     return {"datei": s(x.get("datei"), 200), "fassung": "2008", "am": s(x.get("am"), 20), "von": s(x.get("von"), 80), "gelesen": bool(x.get("gelesen")),
-            "zeilen": Z, "befunde": B, "liste": L}
+            "zeilen": Z, "befunde": B, "liste": L, "namen_alt": NA}

@@ -8,6 +8,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Seite „Ablauf“ auch für Einheiten** (Kisten „Gebäude / Allgemein“, „Einheit 1“, „Einheit 2“ mit Takt-Pfeilen) – Fragen offen, Mock folgt **ca. 30 min**
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; 3D-Auswahl später) – B erledigt durch das Raumbuch (17.11.: Gruppen, abweichender Raum eigene Zeile) **ca. 1,5 h**
+- ~~Kosten aus Excel Stufe 2: Ausdruck im gewohnten Aufbau (Zusammenstellung, Unterschrift, Anhang Änderungen, netto+brutto, leere KGs mit 0), Excel mit Formeln, Fassung DIN 276:2008 für das Honorar; KG 700 im Ausdruck nicht mehr doppelt (23.11.2026)~~
 - ~~Adressen, Duplikate: gleiche Mail-Domain zählt bei Anbietern für alle (arcor, gmx.net, vodafone, posteo …) nicht mehr – vorher landeten alle @arcor.de-Kontakte in einer Gruppe (23.11.2026)~~
 - ~~Adressen, Tabelle: beim Darüberfahren schienen die Spalten hinter der festen Knopfspalte durch (PLZ über „Details“) – Hintergrund jetzt deckend (23.11.2026)~~
 - ~~Bautagebuch, Details rechts: Textfeld mit Rand und höher (wächst mit), „Foto hinzufügen“ und „Erinnerung setzen“ als beschriftete Knöpfe links statt verstreuter Symbole (23.11.2026)~~
@@ -44,7 +45,6 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - Außenanlagen im Leistungskatalog: nie ganz ausblenden, fehlende Leistungen, Gruppe Tierhaltung – etwa 30 min (wartet auf GO)
 - ~~Bauzeitenplan Soll/Ist: entfallene Leistungen an derselben Stelle als EINE Linie („n entfallen: …“), Text ganz oben unter der Linie~~ (23.11.2026)
 - ~~Kosten: Excel-Kostenberechnung einlesen (Stufe 1 – .xls/.xlsx, DIN 276:2008 → 2018, Befunde, Seite DIN 276)~~ (23.11.2026)
-- Kosten aus Excel Stufe 2: Ausgabe als PDF und Excel im gewohnten Aufbau, Ausgabe nach DIN 276:2008 für das Honorar (HOAI § 4 Abs. 1 S. 3)
 - ~~LV: beim Hineinziehen klappt ein zugeklappter Gliederungspunkt nach kurzem Verweilen auf~~ (23.11.2026)
 - ~~**PDF-Ansicht neu**~~ erledigt 17.11. (entschieden 17.11.2026): Leiste mit Beschriftung (Senden · Ablegen · Drucken · Speichern · Markieren · Unterschreiben), Hauptknopf je App, „Ablegen“ beim Tagesbericht zeigt „liegt schon in …“, Seitenübersicht ab 3 Seiten; Bauherr:in nicht im Viewer, sondern in jeder App in der Gruppe „Teilen“ (Senden, Link, Bauherr:in) – beim Tagesbericht wählen, was davon rausgeht **ca. 2–3 h**
 - ✓ **Steuerbüro / DATEV-Übergabe** (entschieden 14.11.2026): DATEV ja; alles einstellbar mit Vorgaben – Upload über DATEV Unternehmen online oder Datei, Kontenrahmen SKR03/SKR04 mit Standard-Erlöskonten, Lohn LODAS oder Lohn und Gehalt; Personalnummer aus „Personal“. Buchungsstapel EXTF (Honorarrechnungen samt Nebenkosten, Beleg-PDF), Lohn-Bewegungsdaten je Monat (Stunden, Urlaub, krank), Stammdaten-Änderungen als Liste. **ca. 2 h**

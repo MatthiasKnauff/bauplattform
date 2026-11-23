@@ -574,5 +574,6 @@ def flow_api(i):
 
 
 import baukosten_druck  # noqa: E402,F401 – Druck: Bericht als PDF (Route /api/bk/<i>/bericht.pdf)
+import baukosten_ausgabe  # noqa: E402,F401 – Ausgabe im gewohnten Aufbau, Excel (Route /api/bk/<i>/kosten.xlsx)
 
 C.wait_schema()

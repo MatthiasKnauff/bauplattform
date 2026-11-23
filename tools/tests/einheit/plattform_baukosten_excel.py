@@ -69,3 +69,24 @@ def test_bearbeiten_behaelt_kennungen():
     x = E.sauber({"zeilen": [{"id": "xl:1", "kg": "331", "betrag": 5}, {"id": "xl:7", "kg": "334", "betrag": 2}, {"kg": "323", "betrag": 1},
                              {"id": "xl:7", "kg": "335", "betrag": 3}]})
     gleich([z["id"] for z in x["zeilen"]], ["xl:1", "xl:7", "xl:3", "xl:4"], "Kennungen")
+
+
+def test_ausgabe_gliederung():
+    """Stufe 2 (XL-2/5/6 A): Gliederung für Druck und Excel – 700 nicht doppelt, Fassung 2008 aus der Liste bzw. zurückgeführt, leere KGs mit 0."""
+    import baukosten_ausgabe as A
+    x = E.lesen("k.xls", _xls())
+    d = baukosten.clean_data({**baukosten.default_data(), "excel": E.sauber(x), "risiko": 0, "nk_fest": round(sum(z["betrag"] for z in x["zeilen"] if z["kg"][0] == "7"), 2)})
+    cal = baukosten.calc(d, [], "berechnung")
+    G = A.gliederung(cal, d, "2018", "weg")
+    gleich(round(sum(a["summe"] for a in G["g1"]), 2), cal["total"], "Summe der Hunderter = Gesamtsumme (700 nicht doppelt)")
+    pruefe(all(x["summe"] for a in G["g1"] for b in a["g2"] for x in b["g3"]), "weglassen: keine leeren Kostengruppen")
+    G0 = A.gliederung(cal, d, "2018", "null")
+    pruefe(any(not x["summe"] for a in G0["g1"] for b in a["g2"] for x in b["g3"]), "mit 0: leere Kostengruppen stehen da")
+    G8 = A.gliederung(cal, d, "2008", "weg")
+    k8 = {x["k"] for a in G8["g1"] for b in a["g2"] for x in b["g3"]}
+    pruefe({z["kg_alt"] for z in x["zeilen"] if z["kg_alt"]} <= k8 | {""}, f"2008: Kostengruppen der Liste ({k8})")
+    s = lambda G, h: next((a["summe"] for a in G["g1"] if a["k"] == h), 0)   # noqa: E731
+    gleich((s(G8, "300"), s(G8, "400")), (s(G, "300"), s(G, "400")), "300 und 400 in beiden Fassungen gleich")
+    gleich(A.kg08({"kg": "322", "kg_alt": ""}), ("324", True), "2018 → 2008 zurückgeführt (Bodenplatten)")
+    gleich(A.kg08({"kg": "352", "kg_alt": ""})[0], "359", "2018-Nummer mit anderer Bedeutung 2008 → sonstiges der Gruppe")
+    gleich(A.kg08({"kg": "331", "kg_alt": "331"}), ("331", False), "aus der Liste: bleibt")

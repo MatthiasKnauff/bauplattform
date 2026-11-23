@@ -1,5 +1,13 @@
 [
  {
+  "id": "kosten-excel-ausgabe",
+  "datum": "2026-11-23",
+  "app": "baukosten",
+  "titel": "Kosten: Ausgabe wie die Excel-Liste",
+  "text": "Drucken mit Zusammenstellung, Ort, Datum und Unterschrift sowie Anhang „Änderungen beim Einlesen“; im Druck-Layout netto und brutto nebeneinander, Fassung DIN 276:2018 oder 2008 (anrechenbare Kosten), leere Kostengruppen mit 0. Neu: „Excel ▾“ – dieselbe Gliederung als Excel mit Formeln.",
+  "ziel": "#bfl"
+ },
+ {
   "id": "handy-leiste-fuenf-2026-11-23",
   "datum": "2026-11-23",
   "app": "alle",

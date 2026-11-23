@@ -182,5 +182,22 @@ def test_aus_excel(ctx):
         s2 = c.req("PUT", f"{BK}/bk/{s['id']}", {"rev": s["rev"], "data": {**s["data"], "excel": X}}).json
         pruefe(s2["data"]["excel"]["gelesen"] and any(z["kg"] == "444" for z in s2["data"]["excel"]["zeilen"]), "Vorschlag übernommen, gelesen")
         gleich(s2["calc"]["total"], 34000.5, "Summe bleibt")
+        # Stufe 2: Ausgabe im gewohnten Aufbau – PDF mit Zusammenstellung und Anhang, beide Fassungen; Excel mit Formeln
+        import io
+        import json as _json
+        import urllib.parse
+        for fas in ("2018", "2008"):
+            pdf = c.get(f"{BK}/bk/{s['id']}/bericht.pdf?teile=din,zusammenstellung,aenderungen"
+                        f"&opt.kosten={urllib.parse.quote(_json.dumps({'tiefe': '3', 'betrag': 'beide', 'fassung': fas, 'leer': 'null'}))}")
+            pruefe(pdf.body[:5] == b"%PDF-" and len(pdf.body) > 2000, f"PDF {fas}: {pdf.status} {pdf.body[:80]}")
+            x = c.get(f"{BK}/bk/{s['id']}/kosten.xlsx?fassung={fas}")
+            import openpyxl
+            wb = openpyxl.load_workbook(io.BytesIO(x.body))
+            ws = wb["Kosten"]
+            pruefe(fas in str(ws["A1"].value), f"Excel {fas}: Titel {ws['A1'].value}")
+            werte = [ws.cell(r, 4).value for r in range(1, ws.max_row + 1)]
+            pruefe(any(isinstance(v, str) and v.startswith("=SUM(") for v in werte), f"Excel {fas}: Summen als Formeln")
+            pruefe("Änderungen" in wb.sheetnames, f"Excel {fas}: Blatt Änderungen")
+        c.get(f"{BK}/bk/999999999/kosten.xlsx", expect=404)
     finally:
         _weg(ctx, s["id"])

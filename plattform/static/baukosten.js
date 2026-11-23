@@ -159,14 +159,21 @@ function bauherr() {
     daten: { text: `${st}, Stand ${new Date().toLocaleDateString('de-DE')}.${G ? ` Genauigkeit etwa −${pz(G.minus)} / +${pz(G.plus)}.` : ''}`, zeilen: Z } });
 }
 function drucken() {   // gemeinsame Druckseite (bp/druck.js); Gliederung, netto/brutto, Runden, „vorläufig“ im Druck-Layout „Kostenermittlung (DIN 276)“
-  const st = (B.stufen.find((x) => x.key === B.stufe) || {}).name || 'Kosten';
+  const st = (B.stufen.find((x) => x.key === B.stufe) || {}).name || 'Kosten', xl = !!B.data.excel;   // Stand aus Excel: gewohnter Aufbau (Zusammenstellung, Anhang) vorgewählt
   bpDruck({ titel: `${st} drucken`, name: `${st} ${B.name}${B.project ? ' – ' + B.project.name : ''}`, merk: 'kosten', bereich: 'kosten', mail: window.bpMailStandard(),
-    teile: [['deckblatt', 'Deckblatt', true], ['zusammenfassung', 'Zusammenfassung (Stufe, Summe, Genauigkeit)', true], ['din', 'Kosten nach DIN 276', true],
-      ['bauteile', 'Bauteile (Menge × Preis, mit Einzelpreisen)', false], ['genauigkeit', 'Genauigkeit (Spannen, Offenes)', true],
-      ['mittelabfluss', 'Mittelabfluss mit Diagramm', true], ['grundlagen', 'Erläuterungen und Grundlagen', true]],
+    teile: [['deckblatt', 'Deckblatt', true], ['zusammenfassung', 'Zusammenfassung (Stufe, Summe, Genauigkeit)', !xl], ['din', 'Kosten nach DIN 276', true],
+      ['zusammenstellung', 'Zusammenstellung der Kosten mit Ort, Datum, Unterschrift', xl],
+      ['bauteile', 'Bauteile (Menge × Preis, mit Einzelpreisen)', false], ['genauigkeit', 'Genauigkeit (Spannen, Offenes)', !xl],
+      ['mittelabfluss', 'Mittelabfluss mit Diagramm', !xl], ['grundlagen', 'Erläuterungen und Grundlagen', !xl],
+      ...(xl ? [['aenderungen', 'Anhang: Änderungen beim Einlesen', true]] : [])],
     url: (T) => `api/bk/${B.id}/bericht.pdf?teile=${T.join(',')}` });
 }
 
+function excelAus(e) {   // Excel im gewohnten Aufbau (baukosten_ausgabe.py) – Fassung wählen
+  const k = e && e.target && e.target.closest('[data-bffn]'); if (!k) return;
+  pickMenu(k, { items: [{ title: 'DIN 276:2018-12', sub: 'wie die Plattform', value: '2018' }, { title: 'DIN 276-1:2008-12', sub: 'anrechenbare Kosten nach HOAI', value: '2008' }],
+    onPick: (v) => { location.assign(`api/bk/${B.id}/kosten.xlsx?fassung=${v}`); toast('Excel-Datei wird erstellt …'); } });
+}
 function leiste() {   // Befehlsleiste wie in allen Apps (befehle.js): Rückgängig · Neu · Modell · Ausgabe · rechts Ansicht
   if (!window.befehle) return;
   const pid = BPHead.projektId(), bh = window.BPHead && BPHead.bauherrAn && BPHead.bauherrAn();
@@ -175,7 +182,8 @@ function leiste() {   // Befehlsleiste wie in allen Apps (befehle.js): Rückgän
       : { t: 'Kostenermittlung', ic: ICL.version, fn: anlegen, aus: !pid, tip: 'Kostenermittlung für dieses Projekt anlegen' },
       { t: 'Aus Excel …', ic: ICL.xl, fn: () => bkExcel.einlesen(), aus: !pid, tip: 'Kostenberechnung aus einer Excel-Liste (.xls/.xlsx) als neuen Kostenstand einlesen – DIN 276:2008 wird auf 2018 umgesetzt' }] },
     { titel: 'Modell', knoepfe: [{ t: 'Bauteile übernehmen', ic: ICL.ueb, fn: uebernehmen, aus: !B || !!B.data.excel, tip: 'Bauteile und Mengen aus dem Projektmodell neu übernehmen' }] },
-    { titel: 'Ausgabe', knoepfe: [{ t: 'Drucken …', ic: ICL.druck, fn: drucken, aus: !B, tip: 'Bericht als PDF: Deckblatt, Zusammenfassung, DIN 276, Genauigkeit, Mittelabfluss … – ankreuzen, Vorschau, senden, ablegen' }] },
+    { titel: 'Ausgabe', knoepfe: [{ t: 'Drucken …', ic: ICL.druck, fn: drucken, aus: !B, tip: 'Bericht als PDF: Deckblatt, Zusammenfassung, DIN 276, Genauigkeit, Mittelabfluss … – ankreuzen, Vorschau, senden, ablegen; Fassung 2018/2008 im Druck-Layout' },
+      { t: 'Excel ▾', ic: ICL.xl, fn: excelAus, aus: !B, tip: 'Kostenermittlung als Excel im gewohnten Aufbau (Summen als Formeln) – DIN 276:2018 oder 2008 (anrechenbare Kosten HOAI)' }] },
     { titel: 'Teilen', knoepfe: [bh ? { t: 'Bauherr:in', ic: ICL.bh, fn: bauherr, aus: !B, tip: 'Kostenstand (DIN 276, 1. Ebene) für die Bauherr:innen freigeben – Bauherrenportal' } : null] },
     { titel: 'Ansicht', rechts: true, knoepfe: [{ t: 'Details', ic: ICL.details, fn: () => window.seiteUmschalten && seiteUmschalten(), aus: !B, tip: 'Bereich rechts (Bauteile, Planung, Fragen) zeigen oder an den Rand klappen' }] },
   ]);

@@ -123,7 +123,9 @@ BEREICHE.update({
 BEREICHE["kosten"] = {"name": "Kostenermittlung (DIN 276)", "gruppe": "Kosten", "art": "ava",   # 16.11.2026 – Druck der App Kosten (plattform/baukosten_druck.py)
                       "variablen": {**AVA, "lv": "Kostenermittlung: Stufe und Name (z. B. Kostenberechnung – Startversion)"},
                       "optionen": [_o("tiefe", "Gliederung nach DIN 276", "2", [["1", "1. Ebene (100er)"], ["2", "2. Ebene (10er)"], ["3", "3. Ebene"]]),
-                                   _o("betrag", "Beträge", "netto", [["netto", "netto zzgl. Umsatzsteuer"], ["brutto", "brutto inkl. Umsatzsteuer"]]),
+                                   _o("betrag", "Beträge", "netto", [["netto", "netto zzgl. Umsatzsteuer"], ["brutto", "brutto inkl. Umsatzsteuer"], ["beide", "netto und brutto (Spalten)"]]),
+                                   _o("fassung", "Fassung der DIN 276", "2018", [["2018", "DIN 276:2018-12"], ["2008", "DIN 276-1:2008-12 (anrechenbare Kosten HOAI)"]]),
+                                   _o("leer", "Leere Kostengruppen (3. Ebene)", "weg", [["weg", "weglassen"], ["null", "mit 0 zeigen (wie die Excel-Liste)"]]),
                                    _o("runden", "Runden auf", "0", [["0", "1 €"], ["100", "100 €"], ["1000", "1.000 €"]]),
                                    _o("vorlaeufig", "Vermerk „vorläufig“", False)]}
 BEREICHE["honorarvertrag"] = {"name": "Architektenvertrag", "gruppe": "Honorar", "art": "ava",   # 19.11.2026 – plattform/honorar_vertrag.py

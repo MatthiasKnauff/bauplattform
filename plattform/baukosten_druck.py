@@ -12,42 +12,16 @@ from datetime import date
 
 from flask import Response, g, jsonify, request
 
-from baukosten import DIN, STUFE_NAME, ZIEL_QUELLE, _j, _row, app, aus_modell, calc, clean_data, flow
+from baukosten import STUFE_NAME, ZIEL_QUELLE, _j, _row, app, aus_modell, calc, clean_data, flow
+from baukosten_ausgabe import ART, befunde, gliederung
 from bpcore import db, layout, modell
 import common as C
 
 TEILE = (("deckblatt", "Deckblatt", True), ("zusammenfassung", "Zusammenfassung (Stufe, Summe, Genauigkeit)", True), ("din", "Kosten nach DIN 276", True),
+         ("zusammenstellung", "Zusammenstellung der Kosten mit Ort, Datum, Unterschrift", False),
          ("bauteile", "Bauteile (Menge × Preis)", False), ("genauigkeit", "Genauigkeit (Spannen, Offenes)", True),
-         ("mittelabfluss", "Mittelabfluss mit Diagramm", True), ("grundlagen", "Erläuterungen und Grundlagen", True))
-
-
-def din_zeilen(zeilen, cal, tiefe):
-    """Kosten nach DIN 276 bis zur Tiefe (1 = 100er, 2 = 10er, 3 = dreistellig) → [(Ebene, KG, Bezeichnung, Betrag)]. Unvorhergesehenes
-    steht als eigene Zeile vor KG 700 (DIN 276: Kostenrisiko gesondert ausweisen)."""
-    blatt, namen = {}, {}
-    for z in zeilen:
-        k = re.sub(r"\D", "", z.get("kg") or "")[:3]
-        if len(k) == 3 and z.get("betrag"):
-            blatt[k] = blatt.get(k, 0.0) + z["betrag"]
-            namen.setdefault(k, []).append(z.get("name") or "")
-    if cal.get("nk"):
-        blatt["700"] = blatt.get("700", 0.0) + cal["nk"]
-    out = []
-    for g1 in sorted({k[0] + "00" for k in blatt}):
-        L1 = {k: v for k, v in blatt.items() if k[0] == g1[0]}
-        if g1 == "700" and cal.get("risiko"):
-            out.append((1, "", "Unvorhergesehenes (Kostenrisiko)", cal["risiko"]))
-        out.append((1, g1, DIN.get(g1, ""), sum(L1.values())))
-        if tiefe < 2 or set(L1) == {g1}:
-            continue
-        for g2 in sorted({k[:2] + "0" for k in L1}):
-            L2 = {k: v for k, v in L1.items() if k[:2] == g2[:2]}
-            out.append((2, g2, DIN.get(g2, ""), sum(L2.values())))
-            if tiefe >= 3 and set(L2) != {g2}:
-                out += [(3, k, DIN.get(k) or ", ".join(namen.get(k, []))[:160], v) for k, v in sorted(L2.items())]
-    if cal.get("risiko") and not any(k == "700" for _, k, _, _ in out):
-        out.append((1, "", "Unvorhergesehenes (Kostenrisiko)", cal["risiko"]))
-    return out
+         ("mittelabfluss", "Mittelabfluss mit Diagramm", True), ("grundlagen", "Erläuterungen und Grundlagen", True),
+         ("aenderungen", "Anhang: Änderungen beim Einlesen (Excel)", False))
 
 
 def _opt():
@@ -69,11 +43,13 @@ def bericht(c, r, teile, opt):
 
     d = clean_data(_j(r["data"], {}))
     Z, _, _, offen = aus_modell(c, r["project_id"])
-    cal = calc(d, offen, r["stufe"])
+    cal = calc(d, [] if d.get("excel") else offen, r["stufe"])   # Stand aus Excel: ohne Bauteile des Modells, nichts Offenes (wie baukosten._out)
     G = cal.get("genau")
     p = c.execute("SELECT name, client, street, zip, city FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r["project_id"] else None
     stufe = STUFE_NAME.get(r["stufe"], "Kostenermittlung")
-    brutto, mw = opt.get("betrag") == "brutto", d["mwst"]
+    brutto, beide, mw = opt.get("betrag") == "brutto", opt.get("betrag") == "beide", d["mwst"]
+    fassung = "2008" if opt.get("fassung") == "2008" else "2018"
+    din_txt = "DIN 276-1:2008-12" if fassung == "2008" else "DIN 276:2018-12"
     fac = 1 + mw / 100 if brutto else 1
     rnd = int(opt.get("runden") or 0)
     tiefe = int(opt.get("tiefe") or 2)
@@ -143,12 +119,50 @@ def bericht(c, r, teile, opt):
             story.append(Paragraph(X(f"Genauigkeit: etwa {eur(G['unten'])} bis {eur(G['oben'])} (−{zahl(G['minus'] or 0, 0)} % / +{zahl(G['plus'] or 0, 0)} %); "
                                      f"für die {stufe} üblich ±{G['ziel'][0]}–{G['ziel'][1]} %."), S["p"]))
         story.append(Spacer(1, 6 * mm))
-    if "din" in teile:
-        R = din_zeilen(cal["zeilen"], cal, tiefe)
-        rows = [["KG", "Bezeichnung", "Betrag"]] + [[k, Paragraph(X(n) if e == 1 else ("&nbsp;" * 3 * (e - 1)) + X(n), S["c"]), eur(v)] for e, k, n, v in R]
-        rows.append(["", Paragraph("<b>Summe</b> (" + X(basis) + ")", S["c"]), eur(cal["total"])])
-        story += [CondPageBreak(50 * mm), Paragraph(X(f"Kosten nach DIN 276 – {tiefe}. Ebene"), S["h2"]),
-                  tabelle(rows, [16 * mm, W - 56 * mm, 40 * mm], rechts=(2,), fett=[i + 1 for i, x in enumerate(R) if x[0] == 1] + [len(rows) - 1], band=(len(rows) - 1,)), Spacer(1, 6 * mm)]
+    Gl = gliederung(cal, d, fassung, opt.get("leer") or "weg")
+    nb = (lambda v: [eur(v, True), eur(v * (1 + mw / 100), True)]) if beide else None   # noqa: E731 – netto und brutto nebeneinander
+    nb2 = lambda v: [eur(v, True), eur(v * (1 + mw / 100), True)]   # noqa: E731
+    if "din" in teile:   # gewohnter Aufbau der Excel-Liste: Nr. · Kostengruppe · Teilbetrag · Gesamtbetrag, Summe je 100er-Gruppe (XL-6 A)
+        rows, fett, band = [["Nr.", "Kostengruppe", "netto" if beide else "Teilbetrag", "brutto" if beide else "Gesamtbetrag"]], [], []
+        P = lambda t, e=0, m="": Paragraph(("&nbsp;" * 3 * e) + X(t) + ("<super>1</super>" if m else ""), S["c"])   # noqa: E731
+        for a in Gl["g1"]:
+            rows.append([a["k"], P(a["name"]), "", ""]); fett.append(len(rows) - 1)
+            for b in a["g2"]:
+                if tiefe >= 2:
+                    if tiefe >= 3:
+                        rows.append([b["k"], P(b["name"], 1, b.get("mark")), *(nb(b["summe"]) if beide else ["", ""])]); fett.append(len(rows) - 1)
+                        for x in b["g3"]:
+                            rows.append([x["k"], P(x["name"], 2, x["mark"]), *(nb(x["summe"]) if beide else [eur(x["summe"]), ""])])
+                        if not beide:
+                            rows.append(["", P(f"Summe {b['k'] or b['name']}", 1), "", eur(b["summe"])])
+                    else:
+                        rows.append([b["k"], P(b["name"], 1, any(x["mark"] for x in b["g3"])), *(nb(b["summe"]) if beide else [eur(b["summe"]), ""])])
+            rows.append(["", Paragraph(f"<b>Summe {a['k']}</b>", S["c"]), *(nb(a["summe"]) if beide else ["", eur(a["summe"])])]); fett.append(len(rows) - 1); band.append(len(rows) - 1)
+        if Gl["risiko"]:
+            rows.append(["", P("Unvorhergesehenes (Kostenrisiko)"), *(nb(Gl["risiko"]) if beide else ["", eur(Gl["risiko"])])])
+        rows.append(["", Paragraph("<b>Summe</b>" + ("" if beide else " (" + X(basis) + ")"), S["c"]), *(nb(cal["total"]) if beide else ["", eur(cal["total"])])])
+        fett.append(len(rows) - 1); band.append(len(rows) - 1)
+        story += [CondPageBreak(50 * mm), Paragraph(X(f"Kosten nach {din_txt} – {tiefe}. Ebene"), S["h2"]),
+                  tabelle(rows, [16 * mm, W - 76 * mm, 30 * mm, 30 * mm], rechts=(2, 3), fett=fett, band=band)]
+        if Gl["fussnote"] and tiefe >= 2:
+            story.append(Paragraph(X("¹ Kostengruppe " + ("umgesetzt von DIN 276:2008 bzw. ergänzt" + (" – siehe Anhang „Änderungen beim Einlesen“" if "aenderungen" in teile and befunde(d) else "")
+                                                         if fassung == "2018" else "aus der DIN 276:2018 zurückgeführt – gab es in der DIN 276-1:2008-12 so nicht")), S["m"]))
+        story.append(Spacer(1, 6 * mm))
+    if "zusammenstellung" in teile:   # Zusammenstellung der Kosten, Ort, Datum, Unterschrift – wie am Ende der Excel-Liste
+        rows = [["Nr.", "Kostengruppe", "netto", "brutto"]] + [[a["k"], Paragraph(X(a["name"]), S["c"]), *nb2(a["summe"])] for a in Gl["g1"]]
+        if Gl["risiko"]:
+            rows.append(["", Paragraph("Unvorhergesehenes (Kostenrisiko)", S["c"]), *nb2(Gl["risiko"])])
+        rows += [["", Paragraph("<b>Summe netto</b>", S["c"]), eur(cal["total"], True), ""], ["", Paragraph(X(f"Umsatzsteuer {zahl(mw, 0)} %"), S["c"]), eur(cal["mwst"], True), ""],
+                 ["", Paragraph("<b>Summe brutto</b>", S["c"]), "", eur(cal["brutto"], True)]]
+        ort = (c.execute("SELECT value FROM settings WHERE key='co_city'").fetchone() or {"value": ""})["value"] or ""
+        wer = C.full_name(g.user) if getattr(g, "user", None) else ""
+        unt = Table([[Paragraph(X(f"{ort + ', ' if ort else ''}{date.today().strftime('%d.%m.%Y')}"), S["p"]), ""],
+                     ["", ""], [Paragraph(X(office or ""), S["m"]), Paragraph(X(wer), S["m"])]], colWidths=[W / 2, W / 2], rowHeights=[None, 14 * mm, None])
+        unt.setStyle(TableStyle([("LINEABOVE", (0, 2), (0, 2), 0.6, INK), ("LINEABOVE", (1, 2), (1, 2), 0.6, INK), ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                                 ("RIGHTPADDING", (0, 0), (0, -1), 12 * mm)]))
+        story += [CondPageBreak(90 * mm), KeepTogether([Paragraph(X(f"Zusammenstellung der Kosten – {din_txt}"), S["h2"]),
+                  tabelle(rows, [16 * mm, W - 76 * mm, 30 * mm, 30 * mm], rechts=(2, 3), fett=[len(rows) - 3, len(rows) - 1], band=(len(rows) - 1,)),
+                  Spacer(1, 10 * mm), Paragraph("Aufgestellt:", S["m"]), Spacer(1, 2 * mm), unt]), Spacer(1, 6 * mm)]
     if "bauteile" in teile:
         BZ = sorted([z for z in cal["zeilen"] if z.get("betrag")], key=lambda z: (z.get("kg") or "999", z.get("name") or ""))
         rows = [["KG", "Bauteil", "Menge", "EP", "Betrag"]] + [[z.get("kg") or "", Paragraph(X(z["name"] + (f" – {z['mat']}" if z.get("mat") else "")), S["c"]),
@@ -203,6 +217,14 @@ def bericht(c, r, teile, opt):
                       + f", Umsatzsteuer {zahl(mw, 0)} %"), ("Beträge", basis + (f", gerundet auf {rnd:,} €".replace(",", ".") if rnd else ""))):
             el.append(Paragraph(f"<b>{X(a)}:</b> {X(b)}", S["p"]))
         story += [CondPageBreak(50 * mm)] + el
+    BF = befunde(d)
+    if "aenderungen" in teile and BF:   # Anhang: was beim Einlesen umgesetzt, ergänzt oder aufgefallen ist (XL-5 A)
+        X_ = d.get("excel") or {}
+        rows = [["Art", "KG", "Hinweis"]] + [[Paragraph(X(ART.get(b["art"], b["art"] or "")), S["c"]), b["kg"] or "", Paragraph(X(b["text"] or ""), S["c"])] for b in BF]
+        story += [PageBreak(), Paragraph("Anhang: Änderungen beim Einlesen", S["h2"]),
+                  Paragraph(X(f"Aus „{X_.get('datei', '')}“, eingelesen am {_de(X_.get('am'))}{' von ' + X_['von'] if X_.get('von') else ''}. "
+                              "Die Liste rechnete nach DIN 276-1:2008-12; die Kostengruppen sind auf DIN 276:2018-12 umgesetzt."), S["p"]), Spacer(1, 3 * mm),
+                  tabelle(rows, [34 * mm, 12 * mm, W - 46 * mm])]
     buf = io.BytesIO()
     doc = BaseDocTemplate(buf, pagesize=layout.seite_pt(LAY), title=f"{stufe} {r['name']}", author=office or "Bauplattform")
     doc.addPageTemplates(tpl)

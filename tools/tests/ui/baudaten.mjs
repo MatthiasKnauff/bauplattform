@@ -24,6 +24,7 @@ export async function baudatenPruefen(browser, repo) {
       const pfad = JSON.parse(q.get('pfad') || '[]');
       if (!pfad.length) return { gruppen: [{ w: 'gk3', name: 'Positionsdatenbank', n: 999 }] };
       if (pfad.length === 1) return { gruppen: LBS.map((l) => ({ w: l.nr, name: l.name, n: l.n })) };
+      if (pfad.length === 2 && pfad[1] === '310') return { gruppen: [{ w: '310.1', name: 'Einzige Gruppe', n: 4 }] };   // nur eine Gruppe: keine eigene Zeile
       if (pfad.length === 2) return { gruppen: [1, 2, 3].map((i) => ({ w: pfad[1] + '.' + i, name: 'Gruppe ' + i, n: 4 })) };
       return { positionen: [1, 2, 3, 4].map((i) => ({ id: +(pfad[2].replace('.', '')) * 10 + i, code: pfad[2] + '.' + i, kurz: 'Position ' + i, einheit: 'm²', ep_mittel_akt: 10 * i, ep_von_akt: 8 * i, ep_bis_akt: 12 * i })), gesamt: 4 };
     }
@@ -88,6 +89,13 @@ export async function baudatenPruefen(browser, repo) {
       const y1 = await oben(zeile(k)); pruef(y1 != null && Math.abs(y1 - y0) < 2, `Baum: ${k} springt beim Aufklappen um ${Math.round((y1 || 0) - y0)} px`);
     }
     await p.waitForSelector('#bdBaum tr.bdb-p'); const n = await p.evaluate(() => document.querySelectorAll('#bdBaum tr.bdb-p').length);
+    // 23.11.2026: Spaltengrenzen sichtbar, lange Namen mit „…“ und Titel; eine einzige Gruppe unter einer Gruppe hat keine eigene Zeile
+    const nm = await p.evaluate(() => { const s = document.querySelector('#bdBaum tr.bdb-p .bdb-n'); return s && s.title && getComputedStyle(s).textOverflow === 'ellipsis'; });
+    pruef(nm, 'Baum: Name ohne „…“/Titel');
+    await p.click(zeile('["gk3","310"]') + ' [data-zu]'); await p.waitForTimeout(400);
+    const ein = await p.evaluate(() => ({ zeile: !!document.querySelector(`#bdBaum tr[data-bdbr='["gk3","310","310.1"]']`), pos: document.querySelectorAll('#bdBaum tr.bdb-p').length }));
+    pruef(!ein.zeile && ein.pos === 8, `Baum: einzige Gruppe als eigene Zeile bzw. Inhalt fehlt – ${JSON.stringify(ein)}`);
+    await p.click(zeile('["gk3","310"]') + ' [data-zu]'); await p.waitForTimeout(300);
     pruef(n === 4, `Baum: nach dem Aufklappen der Gruppe ${n} statt 4 Positionen`);
     const zh = await p.evaluate(() => { const r = document.querySelectorAll('#bdBaum tr.bdb-p'); return [r[0].getBoundingClientRect().height, document.querySelectorAll('#bdBaum th .sb-griff').length]; });
     pruef(zh[0] < 40 && zh[1] >= 3, `Baum: Positionszeile ${Math.round(zh[0])} px hoch (von–bis gehört nur rechts in die Details) bzw. ${zh[1]} Griffe zum Spaltenziehen`);

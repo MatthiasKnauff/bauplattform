@@ -1,5 +1,13 @@
 [
  {
+  "id": "baudaten-baum-flacher",
+  "datum": "2026-11-23",
+  "app": "baudaten",
+  "titel": "Baudaten: flacher und breiter",
+  "text": "Hat eine Gruppe nur eine Untergruppe (z. B. bei den Vorbemerkungen), entfällt diese Zwischenebene. Die Spaltengrenzen im Kopf sind sichtbar – dort die Breite ziehen, Doppelklick setzt zurück. Lange Namen enden mit „…“, der volle Name steht beim Darüberfahren.",
+  "ziel": "#bdBaum"
+ },
+ {
   "id": "filter-enter-text",
   "datum": "2026-11-23",
   "app": "adressen",

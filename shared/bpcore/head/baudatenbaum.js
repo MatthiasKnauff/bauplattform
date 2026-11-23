@@ -28,6 +28,8 @@
 table.bdb-t{width:100%;table-layout:fixed;border-collapse:collapse;font-size:.9rem}
 table.bdb-t th{position:sticky;top:0;z-index:2;background:var(--card,#fff);text-align:left;font-weight:600;font-size:.78rem;color:var(--mute,#5d6b7a);padding:.3rem .4rem;border-bottom:1px solid var(--line,#d6dce3)}
 table.bdb-t td{padding:.28rem .4rem;border-bottom:1px solid var(--line2,#eef0f3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+table.bdb-t td.baumz .bz{display:flex;align-items:center;gap:.15rem;min-width:0;overflow:hidden}table.bdb-t td.baumz .bdb-n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+table.bdb-t th{border-right:1px solid var(--line2,#eef0f3)}table.bdb-t th:last-child{border-right:0}   /* Spaltengrenzen sichtbar: dort zieht man die Breite (bpSpaltBreite) */
 table.bdb-t td.r,table.bdb-t th.r{text-align:right;font-variant-numeric:tabular-nums}
 table.bdb-t td.hk{text-align:center}table.bdb-t .bdb-x{display:inline-block;margin-left:.45rem;vertical-align:middle}table.bdb-t td.hk input,table.bdb-t th.hk input{margin:0;width:1rem;height:1rem;accent-color:var(--y,#2f6fb3)}
 table.bdb-t tr.bdb-g td{background:var(--hov2,color-mix(in srgb,var(--line,#d6dce3) 25%,var(--card,#fff)));font-weight:600}
@@ -103,6 +105,13 @@ table.bdb-t mark{background:color-mix(in srgb,var(--y,#2f6fb3) 30%,transparent);
         if (d.fehler) { out.push({ art: 'm', id: 'f' + K(pfad), t, text: d.fehler }); return; }
         if (d.gruppen) {
           if (!d.gruppen.length && !pfad.length) out.push({ art: 'm', id: 'leer', t, text: o.leer || 'Nichts gefunden.' });
+          /* nur eine Gruppe unter einer Gruppe (z. B. Vorbemerkungen: „VB1 Allgemeine …“ › „Allgemeine …“): keine eigene Zeile, gleich ihren Inhalt –
+             unnötige Verschachtelung fällt weg (23.11.2026); die oberste Ebene bleibt immer stehen */
+          if (pfad.length && d.gruppen.length === 1) {
+            const np = pfad.concat(d.gruppen[0].w), k = K(np);
+            if (!D[k]) hol(np).then(zeichne);
+            walk(np, t); return;
+          }
           for (const g of d.gruppen) {
             const np = pfad.concat(g.w), k = K(np), e = G[pfad.length];
             out.push({ art: 'g', id: k, t, pfad: np, e, g, auf: OFFEN.has(k) });
@@ -127,12 +136,12 @@ table.bdb-t mark{background:color-mix(in srgb,var(--y,#2f6fb3) 30%,transparent);
       if (z.art === 'g') {
         const ids = geladen(z.pfad), an = ids.filter((i) => WAHL.has(i)).length;
         const hk = `<input type="checkbox" data-bdbgw="${esc(z.id)}"${an && an === ids.length && ids.length >= z.g.n ? ' checked' : ''} aria-label="alle in der Gruppe wählen">`;
-        return `<tr class="bdb-g" data-bdbr="${esc(z.id)}"><td class="hk">${hk}</td>${bpBaum.zelle({ tiefe: z.t, auf: z.auf, klapp: z.id, html: esc(NAME[z.e] ? NAME[z.e](z.g) : z.g.name || z.g.w) })}<td></td><td></td><td class="r"><small>${z.g.n.toLocaleString('de-DE')}</small></td></tr>`;
+        return `<tr class="bdb-g" data-bdbr="${esc(z.id)}"><td class="hk">${hk}</td>${bpBaum.zelle({ tiefe: z.t, auf: z.auf, klapp: z.id, html: (() => { const t = NAME[z.e] ? NAME[z.e](z.g) : z.g.name || z.g.w; return `<span class="bdb-n" title="${esc(t)}">${esc(t)}</span>`; })() })}<td></td><td></td><td class="r"><small>${z.g.n.toLocaleString('de-DE')}</small></td></tr>`;
       }
       if (z.art === 'p') {
         const x = z.x, m = o.mark || esc, w = WAHL.has(x.id);
         return `<tr class="bdb-p${AKT === x.id ? ' akt' : ''}${w ? ' bdb-w' : ''}" data-bdbr="${esc(z.id)}" data-bdbp="${x.id}" draggable="true"><td class="hk"><input type="checkbox" data-bdbh="${x.id}"${w ? ' checked' : ''} aria-label="wählen"></td>`
-          + bpBaum.zelle({ tiefe: z.t, html: `${x.favorit ? '<span style="color:var(--y)">★</span> ' : ''}${m(x.bez || x.kurz || '')}` })
+          + bpBaum.zelle({ tiefe: z.t, html: `${x.favorit ? '<span style="color:var(--y)">★</span> ' : ''}<span class="bdb-n" title="${esc(x.bez || x.kurz || '')}">${m(x.bez || x.kurz || '')}</span>` })
           + `<td><small>${esc(x.code || '')}</small></td><td>${esc(x.einheit || '')}</td><td class="r">${x.ep_mittel_akt == null ? '–' : zahl(x.ep_mittel_akt) + ' €'}${o.extra ? `<span class="bdb-x">${o.extra(x)}</span>` : ''}</td>`
           + '</tr>';
       }

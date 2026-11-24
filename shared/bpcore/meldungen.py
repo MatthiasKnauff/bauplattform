@@ -296,6 +296,69 @@ def zurueck(c, u, z, alle=False):
     return aendern(c, u, z["id"], z["was"], alle)
 
 
+# ---------------------------------------------------------------- Neu beginnen (24.11.2026, auf Zuruf)
+# Alles, was die Plattform von sich aus melden würde, auf einmal weg – damit nach dem Wiedereinschalten des Mailversands nichts Altes
+# hinausgeht: eigene Erinnerungen und solche aus Mails gelöscht, die aus dem Bauzeitenplan erledigt (sonst entstünden sie neu), an Einträgen
+# im Bautagebuch die Erinnerung aus (die Frist am Mangel bleibt), an Aufgaben die Glocke weg, gesendete Kalendereinladungen vergessen
+# (KEINE Absage – die ginge als Mail hinaus; in Outlook selbst löschen), „Neu für dich“ der Abwesenheiten weg.
+# Der alte Stand liegt nur auf dem Server (bp_store „meldungen:neu:<Zeit>“) – ein Rückgängig für alles.
+NEU_KEY = "meldungen:neu:"
+
+
+def _neu_zeilen(c):
+    return {"erinnerung": [dict(r) for r in c.execute("SELECT * FROM erinnerungen WHERE quelle<>'plan'").fetchall()],
+            "plan": [dict(r) for r in c.execute("SELECT id, status FROM erinnerungen WHERE quelle='plan' AND status IN ('offen','aus')").fetchall()],
+            "bautagebuch": [dict(r) for r in c.execute("SELECT id, reminded FROM items WHERE due<>'' AND done=0 AND reminded<>'aus'").fetchall()],
+            "aufgabe": [dict(r) for r in c.execute("SELECT id, erinnerung FROM todo WHERE erinnerung<>''").fetchall()],
+            "kalender": [dict(r) for r in c.execute("SELECT key, data, updated, updated_by FROM bp_store WHERE key LIKE 'ical:%'").fetchall()],
+            "neu_fuer_dich": [dict(r) for r in c.execute("SELECT * FROM zeit_abw_meldung").fetchall()]}
+
+
+def neu_beginnen(c, u, vorschau=False):
+    """Alle Benachrichtigungen des Büros löschen bzw. ausschalten. vorschau → nur die Zahlen. Sonst → {zahlen, key} (key = Rückgängig)."""
+    if not darf_alle(u):
+        raise PermissionError("Nur mit dem Recht „Benachrichtigungen aller“.")
+    Z = _neu_zeilen(c)
+    n = {k: len(v) for k, v in Z.items()}
+    if vorschau:
+        return {"zahlen": n}
+    from datetime import datetime
+    jetzt = datetime.now().isoformat(timespec="seconds")
+    c.execute("DELETE FROM erinnerungen WHERE quelle<>'plan'")
+    c.execute("UPDATE erinnerungen SET status='erledigt', geaendert=? WHERE quelle='plan' AND status IN ('offen','aus')", (jetzt,))
+    c.execute("UPDATE items SET reminded='aus' WHERE due<>'' AND done=0 AND reminded<>'aus'")
+    c.execute("UPDATE todo SET erinnerung='' WHERE erinnerung<>''")
+    c.execute("DELETE FROM bp_store WHERE key LIKE 'ical:%'")
+    c.execute("DELETE FROM zeit_abw_meldung")
+    key = NEU_KEY + jetzt
+    c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data",
+              (key, json.dumps(Z, ensure_ascii=False, default=str), jetzt, u["name"]))
+    return {"zahlen": n, "key": key}
+
+
+def neu_zurueck(c, u, key):
+    """Den Stand vor neu_beginnen() wiederherstellen."""
+    if not darf_alle(u):
+        raise PermissionError("Nur mit dem Recht „Benachrichtigungen aller“.")
+    if not str(key).startswith(NEU_KEY):
+        raise ValueError("Unbekannter Stand.")
+    r = c.execute("SELECT data FROM bp_store WHERE key=?", (key,)).fetchone()
+    if not r:
+        raise ValueError("Den alten Stand gibt es nicht mehr.")
+    Z = _j(r["data"], {})
+    for tab, L in (("erinnerungen", Z.get("erinnerung") or []), ("zeit_abw_meldung", Z.get("neu_fuer_dich") or [])):
+        for x in L:
+            if not c.execute(f"SELECT 1 FROM {tab} WHERE id=?", (x["id"],)).fetchone():
+                c.execute(f"INSERT INTO {tab}({', '.join(x)}) VALUES({', '.join('?' * len(x))})", tuple(x.values()))
+    c.executemany("UPDATE erinnerungen SET status=? WHERE id=?", [(x["status"], x["id"]) for x in Z.get("plan") or []])
+    c.executemany("UPDATE items SET reminded=? WHERE id=?", [(x["reminded"], x["id"]) for x in Z.get("bautagebuch") or []])
+    c.executemany("UPDATE todo SET erinnerung=? WHERE id=?", [(x["erinnerung"], x["id"]) for x in Z.get("aufgabe") or []])
+    c.executemany("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO NOTHING",
+                  [(x["key"], x["data"], x["updated"], x["updated_by"]) for x in Z.get("kalender") or []])
+    c.execute("DELETE FROM bp_store WHERE key=?", (key,))
+    return {}
+
+
 # ---------------------------------------------------------------- Routen
 def routen(bp, user):
     from flask import jsonify, request
@@ -330,7 +393,13 @@ def routen(bp, user):
         alle = bool(b.get("alle"))
         try:
             with db.tx() as c:
-                if b.get("zurueck"):
+                if b.get("neu_beginnen"):   # alles auf einmal weg (24.11.2026)
+                    r = neu_beginnen(c, u, bool(b.get("vorschau")))
+                    if b.get("vorschau"):
+                        return jsonify(ok=True, **r)
+                elif b.get("neu_zurueck"):
+                    r = neu_zurueck(c, u, b["neu_zurueck"])
+                elif b.get("zurueck"):
                     r = zurueck(c, u, b["zurueck"], alle)
                 elif b.get("rollen_fuer"):
                     if not darf_alle(u):
@@ -351,7 +420,7 @@ def routen(bp, user):
                 with db.tx() as c:
                     c.execute("INSERT INTO audit_log(ts, user_name, cat, action, detail) VALUES(?,?,?,?,?)",
                               (datetime.now().isoformat(timespec="seconds").replace("T", " "), u["name"], "inhalt", "Benachrichtigungen",
-                               f"{b.get('was') or ('Rollen' if b.get('rollen_fuer') else 'Rückgängig')}: {', '.join(map(str, b.get('ids') or [b.get('id') or b.get('rollen_fuer') or '']))}"[:200]))
+                               f"{b.get('was') or ('Rollen' if b.get('rollen_fuer') else 'alle gelöscht' if b.get('neu_beginnen') else 'Rückgängig')}: {', '.join(map(str, b.get('ids') or [b.get('id') or b.get('rollen_fuer') or '']))}"[:200]))
             except Exception:   # noqa: BLE001 – das Protokoll darf die Änderung nicht verhindern
                 pass
             return jsonify(ok=True, **r)

@@ -1,5 +1,13 @@
 [
  {
+  "id": "meldungen-alles-loeschen",
+  "datum": "2026-11-24",
+  "app": "admin",
+  "titel": "Alle Benachrichtigungen auf einmal löschen",
+  "text": "Verwaltung → Benachrichtigungen → „Für alle“: „🗑 Alles löschen …“ nimmt alle Erinnerungen, Kalendereinladungen und Hinweise des Büros weg – mit Zahlen vorher und Rückgängig. Es geht keine Mail hinaus; Termine, die schon in Outlook stehen, bitte dort selbst löschen.",
+  "ziel": "[data-mlneu]"
+ },
+ {
   "id": "adr-suche-oben",
   "datum": "2026-11-24",
   "app": "adressen",

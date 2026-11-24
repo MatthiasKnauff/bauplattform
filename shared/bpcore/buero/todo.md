@@ -8,6 +8,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Seite „Ablauf“ auch für Einheiten** (Kisten „Gebäude / Allgemein“, „Einheit 1“, „Einheit 2“ mit Takt-Pfeilen) – Fragen offen, Mock folgt **ca. 30 min**
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; 3D-Auswahl später) – B erledigt durch das Raumbuch (17.11.: Gruppen, abweichender Raum eigene Zeile) **ca. 1,5 h**
+- ~~Benachrichtigungen: „Alles löschen …“ fürs ganze Büro (neu beginnen, ohne Mails, mit Rückgängig)~~ (24.11.2026)
 - ~~Adressen: Suchfeld oben in der Befehlsleiste, Filterkästen bleiben links (24.11.2026)~~
 - ~~Post & Vorgänge, Etappe 2: „Alles offen“ statt der Seiten Übersicht, To-dos, Mängel, Termine, Erinnerungen; rechts der Vorgang, darunter „Zuletzt verschickt“ (24.11.2026)~~
 - ~~Leistungskatalog „Abhängigkeiten“: Liste links mit allen Abschnitten, nichts springt beim Klick, schmale Fenster nicht mehr gequetscht~~ (24.11.2026)

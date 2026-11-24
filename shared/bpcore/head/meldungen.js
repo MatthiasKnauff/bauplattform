@@ -75,7 +75,7 @@ table.bp-ml tr.gr td{font-weight:600;background:var(--bg2,rgba(0,0,0,.03))}table
         const Z = L[k].filter(passt);
         return Z.length ? `<tr class="gr"><td colspan="7">${ART[k][0]} ${ART[k][1]}</td></tr>${Z.map(zeile).join('')}` : '';
       }).join('');
-      return `<div class="bp-ml-kopf">${chips}${filt}<input type="search" class="bp-ml-such" data-mlsuch placeholder="suchen …" value="${esc(S.such)}"></div>
+      return `<div class="bp-ml-kopf">${chips}${filt}<input type="search" class="bp-ml-such" data-mlsuch placeholder="suchen …" value="${esc(S.such)}">${S.modus === 'alle' ? '<button type="button" class="bph-btn" data-mlneu title="Alle Erinnerungen, Kalendereinladungen und Hinweise des Büros löschen – neu beginnen">🗑 Alles löschen …</button>' : ''}</div>
         <div class="bp-ml-tw"><table class="bp-ml"><thead><tr><th></th><th>Was</th><th>Projekt</th><th>Für</th><th>Wann</th><th>woher</th><th></th></tr></thead><tbody>${rumpf || '<tr><td colspan="7" class="bp-mu">Nichts gefunden.</td></tr>'}</tbody></table></div>
         <div class="bp-ml-fuss"><span class="bp-mu">${S.sel.size} markiert:</span><button type="button" class="bph-btn" data-mlalle="aus"${S.sel.size ? '' : ' disabled'}>ausschalten</button><button type="button" class="bph-btn" data-mlalle="an"${S.sel.size ? '' : ' disabled'}>einschalten</button><button type="button" class="bph-btn" data-mlalle="loeschen"${S.sel.size ? '' : ' disabled'}>löschen</button></div>
         <p class="bp-mu">Ausschalten: bleibt stehen, löst aber nichts mehr aus (keine Mail, nicht in „Zu tun“). Löschen: eigene Erinnerungen in den Papierkorb, Kalendereinladungen werden in Outlook abgesagt, aus dem Bauzeitenplan wird nur ausgeschaltet. ↺ = wieder wie die Vorgabe der Rolle.</p>`;
@@ -114,6 +114,7 @@ table.bp-ml tr.gr td{font-weight:600;background:var(--bg2,rgba(0,0,0,.03))}table
       if (t.closest('[data-mlstd]') && x) return aendern([id], 'standard');
       if (t.closest('[data-mldel]') && x) return aendern([id], 'loeschen');
       if (t.closest('[data-mlalle]')) return aendern([...S.sel], t.closest('[data-mlalle]').dataset.mlalle);
+      if (t.closest('[data-mlneu]')) return neuBeginnen();
       if (t.closest('[data-mlrstd]')) return rollenSetzen(t.closest('[data-mlregel]').dataset.mlregel, null);
     });
     host.addEventListener('change', async (e) => {
@@ -127,6 +128,19 @@ table.bp-ml tr.gr td{font-weight:600;background:var(--bg2,rgba(0,0,0,.03))}table
       }
     });
     host.addEventListener('input', (e) => { if (!e.target.matches('[data-mlsuch]')) return; S.such = e.target.value; const p = e.target.selectionStart; zeichnen(); const f = host.querySelector('[data-mlsuch]'); f.focus(); f.setSelectionRange(p, p); });
+    /* Alles auf einmal weg (24.11.2026): Zahlen vorher, ein Rückgängig für alles – Kern meldungen.neu_beginnen */
+    async function neuBeginnen() {
+      let v; try { v = (await api('api/bp/meldungen', 'POST', { neu_beginnen: true, vorschau: true })).zahlen; } catch (e) { toast(e.message, true); return; }
+      const T = [[v.erinnerung, 'eigene Erinnerungen und Erinnerungen aus Mails (gelöscht)'], [v.plan, 'Vorab-Erinnerungen aus dem Bauzeitenplan (erledigt)'],
+        [v.bautagebuch, 'Erinnerungen an Einträgen im Bautagebuch (aus – die Frist bleibt am Eintrag)'], [v.aufgabe, 'Erinnerungen an Aufgaben (Glocke weg)'],
+        [v.kalender, 'gesendete Kalendereinladungen (vergessen – ohne Absage-Mail; in Outlook bitte selbst löschen)'], [v.neu_fuer_dich, '„Neu für dich“ zu Abwesenheiten (gelöscht)']].filter(([n]) => n);
+      if (!T.length) { toast('Es gibt keine Benachrichtigungen mehr.'); return; }
+      if (!(await bpFrage(`Für das ganze Büro löschen?\n\n${T.map(([n, t]) => `• ${n} ${t}`).join('\n')}\n\nEs geht keine Mail hinaus. Neue Erinnerungen entstehen ab jetzt wie gewohnt.`, { ok: 'Alles löschen', gefahr: true }))) return;
+      let r; try { r = await api('api/bp/meldungen', 'POST', { neu_beginnen: true }); } catch (e) { toast(e.message, true); return; }
+      S.sel.clear(); await laden();
+      rueckgaengig('Alle Benachrichtigungen gelöscht', async () => { await api('api/bp/meldungen', 'POST', { neu_zurueck: r.key }); await laden(); }, 10000,
+        async () => { r = await api('api/bp/meldungen', 'POST', { neu_beginnen: true }); await laden(); });
+    }
     async function rollenSetzen(key, liste) {
       let r; try { r = await api('api/bp/meldungen', 'POST', { rollen_fuer: key, rollen: liste }); } catch (e) { toast(e.message, true); return; }
       await laden();

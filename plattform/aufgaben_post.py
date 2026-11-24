@@ -103,22 +103,27 @@ def liste():
                    arten=[{"key": k, "name": ARTEN.get(k, k), "n": arten.get(k, 0)} for k in dict.fromkeys(list(ARTEN) + list(arten)) if arten.get(k)])
 
 
-EINGABE = "application/x-bp-eingabe"   # Eingaben einer Rüge an der Sendung (kom_datei) – keine Datei zum Ansehen
+RUEGE = "ruege:"   # bp_store „ruege:<Sendung>“ = Eingaben der Rüge und wo das PDF im Projektordner liegt (keine Datei in der Datenbank)
 
 
-def rueckablage(c, bid, key, art, pdf, dateiname, b):
-    """Das verschickte PDF und die Eingaben an die Sendung im Verlauf hängen (24.11.2026): von dort lässt sich die Rüge wieder
-    ansehen und als neuer Entwurf öffnen. Dateien gehen in den Speicher des Kerns (dateien.werte), nicht als ganzes Dokument in die Datenbank."""
-    jetzt, wer = datetime.now().isoformat(timespec="seconds"), C.full_name(g.user)
-    eingabe = json.dumps({"url": "api/" + key, "titel": art,
-                          "body": {k: v for k, v in b.items() if k not in ("schritt", "versand", "email", "kopie")}}, ensure_ascii=False).encode()
-    for name, mime, roh in ((dateiname, "application/pdf", pdf), ("eingabe.json", EINGABE, eingabe)):
-        c.execute("INSERT INTO kom_datei(benachrichtigung_id, name, mime, groesse, data, datei_ref, erstellt, erstellt_name) VALUES(?,?,?,?,?,?,?,?)",
-                  (bid, name, mime, len(roh), *dateien.werte(c, roh), jetzt, wer))
+def rueckablage(bid, pid, key, art, pdf, dateiname, b):
+    """Nach dem Versand einer Rüge (24.11.2026, außerhalb einer Transaktion – die Ablage geht über das Bautagebuch): das PDF in den
+    Projektordner (Abnahmen + Mängel bzw. Aufträge + Verträge), an der Sendung nur die Eingaben und der Pfad. Ohne Ablage (Testserver)
+    entsteht das PDF beim Ansehen neu aus den Eingaben."""
+    import base64
+    pfad = ""
+    if pid:
+        pfad, _fehl = C.projektordner_ablegen({"project_id": pid, "art": "abnahme" if key == "maengelruege" else "vertrag", "name": dateiname,
+                                                "datei": base64.b64encode(pdf).decode()})
+    x = {"url": "api/" + key, "titel": art, "pid": pid, "pfad": pfad or "", "name": dateiname,
+         "body": {k: v for k, v in b.items() if k not in ("schritt", "versand", "email", "kopie")}}
+    with db.tx() as c:
+        c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data",
+                  (RUEGE + str(bid), json.dumps(x, ensure_ascii=False), db.now(), C.full_name(g.user)))
 
 
 def _dateien_dazu(c, rows):
-    """Dateien je Sendung (kom_datei.benachrichtigung_id) – z. B. das verschickte PDF einer Rüge; „eingabe“ = die Rüge lässt sich wieder öffnen."""
+    """Je Sendung: Dateien (kom_datei.benachrichtigung_id) und ob es eine Rüge mit Eingaben ist („eingabe“ – PDF ansehen, neu bearbeiten)."""
     if not rows:
         return
     by = {x["id"]: x for x in rows}
@@ -126,24 +131,42 @@ def _dateien_dazu(c, rows):
         x["dateien"], x["eingabe"] = [], False
     for d in c.execute(f"SELECT id, benachrichtigung_id, name, mime FROM kom_datei WHERE benachrichtigung_id IN ({','.join('?' * len(by))}) ORDER BY id",
                        tuple(by)).fetchall():
-        x = by[d["benachrichtigung_id"]]
-        if d["mime"] == EINGABE:
-            x["eingabe"] = True
-        else:
-            x["dateien"].append({"id": d["id"], "name": d["name"], "mime": d["mime"]})
+        by[d["benachrichtigung_id"]]["dateien"].append({"id": d["id"], "name": d["name"], "mime": d["mime"]})
+    for r in c.execute(f"SELECT key FROM bp_store WHERE key IN ({','.join('?' * len(by))})", tuple(RUEGE + str(i) for i in by)).fetchall():
+        by[int(r["key"][len(RUEGE):])]["eingabe"] = True
+
+
+def _ruege(c, bid):
+    x = c.execute("SELECT project_id FROM benachrichtigungen WHERE id=?", (bid,)).fetchone()
+    if not x or not vorgang.sieht(c, g.user, x["project_id"]):
+        return None
+    r = c.execute("SELECT data FROM bp_store WHERE key=?", (RUEGE + str(bid),)).fetchone()
+    return json.loads(r["data"]) if r else None
 
 
 @app.get("/api/kom/<int:bid>/eingabe")
 def eingabe(bid):
-    """Eingaben einer verschickten Rüge – zum Öffnen als neuer Entwurf (gleicher Brief, neu bearbeiten und senden)."""
+    """Eingaben einer verschickten Rüge – zum Öffnen als neuer Entwurf und zum Ansehen ohne Ablage (url + body, schritt „drucken“)."""
     with db.tx() as c:
-        x = c.execute("SELECT project_id FROM benachrichtigungen WHERE id=?", (bid,)).fetchone()
-        if not x or not vorgang.sieht(c, g.user, x["project_id"]):
-            return jsonify(error="Nicht gefunden"), 404
-        d = c.execute("SELECT data, datei_ref FROM kom_datei WHERE benachrichtigung_id=? AND mime=? ORDER BY id DESC LIMIT 1", (bid, EINGABE)).fetchone()
-        if not d:
-            return jsonify(error="Zu dieser Sendung sind keine Eingaben gespeichert."), 404
-        return jsonify(json.loads(dateien.inhalt(c, d)))
+        x = _ruege(c, bid)
+    if not x:
+        return jsonify(error="Zu dieser Sendung sind keine Eingaben gespeichert."), 404
+    return jsonify({k: x[k] for k in ("url", "titel", "body", "name")} | {"pfad": bool(x.get("pfad"))})
+
+
+@app.get("/api/kom/<int:bid>/pdf")
+def ruege_pdf(bid):
+    """Das verschickte PDF aus dem Projektordner. Liegt es nicht dort (Testserver), 404 mit „neu“ – die Seite druckt es aus den Eingaben."""
+    with db.tx() as c:
+        x = _ruege(c, bid)
+    if not x or not x.get("pfad"):
+        return jsonify(error="Das PDF liegt nicht im Projektordner.", neu=bool(x)), 404
+    try:
+        roh = C.bt_api("GET", "/api/plaene/datei?" + urllib.parse.urlencode({"project_id": x["pid"], "pfad": x["pfad"]}), roh=True)
+    except RuntimeError as e:
+        return jsonify(error=f"Projektordner nicht erreichbar: {e}", neu=True), 404
+    return Response(roh, mimetype="application/pdf", headers={"Cache-Control": "no-store",
+                    "Content-Disposition": "inline; filename*=UTF-8''" + urllib.parse.quote(x.get("name") or "Rüge.pdf")})
 
 
 @app.delete("/api/kom/<int:bid>")

@@ -107,7 +107,7 @@ function zeichnen() {
       <span class="s">${esc([K || !F.alle ? '' : x.projekt, x.weg_name, x.von ? 'von ' + x.von : '', x.email && x.email !== wer ? x.email : ''].filter(Boolean).join(' · '))}${x.status === 'fehler' ? ' · <b style="color:var(--red)">nicht zugestellt</b>' : ''}</span></summary>
       <div class="d">${x.ansprech || x.gewerk ? `<div class="mute">${esc([x.ansprech, x.gewerk].filter(Boolean).join(' · '))}</div>` : ''}${x.inhalt ? `<pre>${esc(x.inhalt)}</pre>` : ''}${x.fehler ? `<div class="mute">Fehler: ${esc(x.fehler)}</div>` : ''}
         <div class="mute">${esc(new Date(x.ts).toLocaleString('de-DE'))}${x.projekt ? ' · ' + esc(x.projekt) : ''}</div>
-        ${(x.dateien || []).length || x.eingabe ? `<div class="pv-dat">${(x.dateien || []).map((d) => `<button type="button" class="btn sm" data-pvdat="${d.id}" data-n="${esc(d.name)}" data-m="${esc(d.mime)}">📄 ${esc(d.name)}</button>`).join('')}${x.eingabe ? `<button type="button" class="btn sm" data-pvneu="${x.id}" title="Denselben Brief als neuen Entwurf öffnen – ändern und erneut senden">✎ Erneut bearbeiten …</button>` : ''}</div>` : ''}
+        ${(x.dateien || []).length || x.eingabe ? `<div class="pv-dat">${(x.dateien || []).map((d) => `<button type="button" class="btn sm" data-pvdat="${d.id}" data-n="${esc(d.name)}" data-m="${esc(d.mime)}">📄 ${esc(d.name)}</button>`).join('')}${x.eingabe ? `<button type="button" class="btn sm" data-pvpdf="${x.id}" title="Das verschickte Schreiben ansehen">📄 PDF</button><button type="button" class="btn sm" data-pvneu="${x.id}" title="Denselben Brief als neuen Entwurf öffnen – ändern und erneut senden">✎ Erneut bearbeiten …</button>` : ''}</div>` : ''}
         ${quelle(x) ? `<a href="${esc(quelle(x))}" data-qp="${x.project_id || ''}">↗ ${x.art === 'planversand' || x.art === 'plotauftrag' ? 'Planversandliste' : x.art.endsWith('ruege') ? 'Mängel' : String(x.link || '').startsWith('ava:') ? 'In der Ausschreibung' : 'Quelle'} öffnen</a>` : ''}
         ${x.contact_id && !K ? ` · <a href="#" data-kc="${x.contact_id}">alles mit ${esc(x.kontakt)}</a>` : ''}
         ${ME().is_admin || x.von === ME().full ? ` · <a href="#" class="kweg" data-kweg="${x.id}" title="Aus dem Protokoll löschen (z. B. Testversand) – liegt danach im Papierkorb, steht im Protokoll">Löschen</a>` : ''}</div></details>`;
@@ -233,6 +233,17 @@ function verfassen(modus, mit) {   // mit: Übergabe aus der Leiste „＋ Neu�
   zeichne();
   if (innerWidth > 760) setTimeout(() => { const f = bg.querySelector('#kvText'); if (f) f.focus(); }, 50);   // am Handy nicht gleich die Tastatur öffnen
 }
+async function pdfAnsehen(bid) {   // verschickte Rüge: aus dem Projektordner, sonst (Testserver) aus den Eingaben neu gedruckt – nichts liegt als Datei in der Datenbank
+  try {
+    const x = await api(`api/kom/${bid}/eingabe`), name = x.name || 'Rüge.pdf';
+    let r = x.pfad ? await fetch(`api/kom/${bid}/pdf`, { credentials: 'same-origin' }) : null;
+    if (!r || !r.ok) {
+      r = await fetch(x.url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...x.body, schritt: 'drucken' }) });
+      if (!r.ok) throw new Error('PDF ließ sich nicht erzeugen (' + r.status + ')');
+    }
+    BPHead.ansehen([{ url: URL.createObjectURL(await r.blob()), name, typ: 'pdf' }]);
+  } catch (e) { toast(e.message, true); }
+}
 /* Vorgänge im Protokoll (nur die festgehaltenen – verschickte stehen schon als Sendung darin) */
 function vgEintrag(v) {
   const d = (v.zeit || '').replace('T', ' '), F = v.dateien || [];
@@ -279,6 +290,7 @@ document.addEventListener('click', async (e) => {
   }
   const qp = t.closest('[data-qp]'); if (qp && qp.dataset.qp) { e.preventDefault(); try { await BPHead.projektSetzen(+qp.dataset.qp); } catch { /* egal */ } location.href = qp.href; return; }
   const dt = t.closest('[data-pvdat]'); if (dt) { const u = 'api/datei/' + dt.dataset.pvdat, pdf = dt.dataset.m === 'application/pdf'; if (window.BPHead && BPHead.ansehen && (pdf || /^image\//.test(dt.dataset.m))) BPHead.ansehen([{ url: u, name: dt.dataset.n, typ: pdf ? 'pdf' : 'bild' }]); else window.open(u, '_blank'); return; }
+  const pp = t.closest('[data-pvpdf]'); if (pp) { pdfAnsehen(+pp.dataset.pvpdf); return; }
   const nb = t.closest('[data-pvneu]'); if (nb) { if (window.briefAusSendung) briefAusSendung(+nb.dataset.pvneu); return; }   // aufgaben.html: Rüge als neuer Entwurf
   if (t.closest('[data-pvk]')) { kontaktWahl(t.closest('[data-pvk]')); return; }
   if (t.closest('[data-pvcsv]')) { location.href = 'api/kom.csv?' + params({ n: 1 }); return; }

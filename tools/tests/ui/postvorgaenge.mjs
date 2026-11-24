@@ -5,7 +5,7 @@
 // Etappe 2 (PV-4 B): (6) „Alles offen“ ist EINE Liste – ein Mangel steht darin, Klick zeigt rechts den Vorgang (Frist, Firma, Rüge);
 // darunter „Zuletzt verschickt“; alte Adresse #maengel landet in „Alles offen“ mit der Auswahl „Mängel“.
 // (7) Die Navigation bleibt beim Wechsel der Ansicht stehen (Suchfelder stehen im Inhalt, nicht in der Navigation); „Büro“ öffnet ohne Fehler.
-// (8) Verschickte Rüge im Verlauf: das PDF lässt sich ansehen und „Erneut bearbeiten …“ holt die Eingaben (api/kom/<id>/eingabe).
+// (8) Verschickte Rüge im Verlauf: das PDF (Projektordner bzw. neu gedruckt, nie aus der Datenbank) lässt sich ansehen und „Erneut bearbeiten …“ holt die Eingaben (api/kom/<id>/eingabe).
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await postPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/postvorgaenge.mjs
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
@@ -17,7 +17,7 @@ export async function postPruefen(browser, repo) {
   const fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
   const KOM = { gesamt: 2, eintraege: [
     { id: 11, ts: '2026-11-20T11:30:00', art: 'planversand', art_name: 'Planversand', weg: 'mail', weg_name: 'E-Mail', contact_id: 5, kontakt: 'Rohbau Kaya', email: 'kaya@rohbau.test', name: 'Rohbau Kaya', project_id: 1, projekt: 'A497 Maybachstraße', betreff: '3 Pläne', inhalt: 'A497-101 c', von: 'Test', status: 'gesendet', fehler: '', link: 'plaene:#plaene' },
-    { id: 12, ts: '2026-11-20T15:02:00', art: 'maengelruege', art_name: 'Mängelrüge', weg: 'mail', weg_name: 'E-Mail', contact_id: 5, kontakt: 'Rohbau Kaya', email: 'kaya@rohbau.test', name: 'Rohbau Kaya', project_id: 1, projekt: 'A497 Maybachstraße', betreff: 'Abdichtung Bad', inhalt: '1. Dichtschlämme', von: 'Test', status: 'gesendet', fehler: '', link: 'aufgaben:#maengel', dateien: [{ id: 31, name: 'Mängelrüge Rohbau Kaya.pdf', mime: 'application/pdf' }], eingabe: true }],
+    { id: 12, ts: '2026-11-20T15:02:00', art: 'maengelruege', art_name: 'Mängelrüge', weg: 'mail', weg_name: 'E-Mail', contact_id: 5, kontakt: 'Rohbau Kaya', email: 'kaya@rohbau.test', name: 'Rohbau Kaya', project_id: 1, projekt: 'A497 Maybachstraße', betreff: 'Abdichtung Bad', inhalt: '1. Dichtschlämme', von: 'Test', status: 'gesendet', fehler: '', link: 'aufgaben:#maengel', dateien: [], eingabe: true }],
     kontakte: [{ contact_id: 5, email: '', name: 'Rohbau Kaya', ansprech: '', gewerk: 'Rohbau', n: 2, letzte: '2026-11-20T15:02:00' }], projekte: [],
     arten: [{ key: 'planversand', name: 'Planversand', n: 1 }, { key: 'maengelruege', name: 'Mängelrüge', n: 1 }] };
 
@@ -71,7 +71,7 @@ export async function postPruefen(browser, repo) {
     pruef(await p.evaluate(() => !!document.querySelector('.pv .pv-such input[type=search]')), 'Verlauf: Suchfeld oben im Verlauf fehlt');
     // (8) Rüge im Verlauf: PDF und „Erneut bearbeiten …“
     await p.evaluate(() => { document.querySelectorAll('.pv #pvList details.e').forEach((d) => { d.open = true; }); });
-    pruef(await p.evaluate(() => !!document.querySelector('.pv [data-pvdat="31"]') && !!document.querySelector('.pv [data-pvneu="12"]')), 'Verlauf: verschickte Mängelrüge ohne PDF bzw. ohne „Erneut bearbeiten …“');
+    pruef(await p.evaluate(() => !!document.querySelector('.pv [data-pvpdf="12"]') && !!document.querySelector('.pv [data-pvneu="12"]')), 'Verlauf: verschickte Mängelrüge ohne PDF bzw. ohne „Erneut bearbeiten …“');
     await p.click('.pv [data-pvneu="12"]'); await p.waitForTimeout(400);
     pruef(abfragen.some((x) => x.startsWith('api/kom/12/eingabe')), '„Erneut bearbeiten …“ holt die Eingaben der Rüge nicht');
     // (7) Büro

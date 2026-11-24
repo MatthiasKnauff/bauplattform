@@ -4,7 +4,7 @@
   "datum": "2026-11-24",
   "app": "aufgaben",
   "titel": "Verschickte Rügen wieder öffnen",
-  "text": "Im Verlauf steht bei jeder neu verschickten Mängel- oder Terminrüge das PDF zum Ansehen und „✎ Erneut bearbeiten …“ – derselbe Brief als neuer Entwurf. Die Suchfelder stehen jetzt oben in der Liste statt in der Navigation, so bleibt das Menü links beim Wechsel stehen.",
+  "text": "Im Verlauf steht bei jeder neu verschickten Mängel- oder Terminrüge „📄 PDF“ und „✎ Erneut bearbeiten …“ – derselbe Brief als neuer Entwurf. Das PDF liegt im Projektordner (Abnahmen + Mängel bzw. Aufträge + Verträge). Die Suchfelder stehen jetzt oben in der Liste statt in der Navigation, so bleibt das Menü links beim Wechsel stehen.",
   "ziel": "#navL"
  },
  {

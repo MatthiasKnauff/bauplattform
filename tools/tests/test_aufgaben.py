@@ -179,9 +179,12 @@ def test_maengelruege_vorlage_entwurf_ausdruck(ctx):
         pruefe(not d.headers.get("X-Mail"), "Ausdruck darf keine Mail verschicken")
         a.post("/maengel/api/maengelruege", {**body, "schritt": "senden", "versand": "pdf"}).ist_pdf()   # nur PDF: steht im Verlauf, nichts geht hinaus
         k = next(x for x in a.gj(f"/maengel/api/kom?pid={b['pid']}")["eintraege"] if x["art"] == "maengelruege")
-        pruefe(k["eingabe"] and [d["mime"] for d in k["dateien"]] == ["application/pdf"], f"Verlauf: Rüge ohne PDF bzw. Eingaben – {k}")
-        a.get(f"/maengel/api/datei/{k['dateien'][0]['id']}").ist_pdf()
+        pruefe(k["eingabe"] and not k["dateien"], f"Verlauf: Rüge ohne Eingaben bzw. mit Datei in der Datenbank – {k}")   # PDF liegt im Projektordner, nie in der Datenbank
         ein = a.gj(f"/maengel/api/kom/{k['id']}/eingabe")
+        if ein["pfad"]:
+            a.get(f"/maengel/api/kom/{k['id']}/pdf").ist_pdf()
+        else:   # Testserver ohne Ablage: das PDF entsteht beim Ansehen aus den Eingaben neu
+            a.post("/maengel/" + ein["url"], {**ein["body"], "schritt": "drucken"}).ist_pdf()
         gleich((ein["url"], ein["titel"], ein["body"]["ids"], "versand" in ein["body"]), ("api/maengelruege", "Mängelrüge", [m1, m2], False), "Eingaben der verschickten Rüge")
         a.post("/maengel/api/maengelruege", {**body, "ids": [auf]}, expect=400)   # Aufgaben sind keine Mängel
         a.post("/maengel/api/maengelruege", {**body, "ids": []}, expect=400)

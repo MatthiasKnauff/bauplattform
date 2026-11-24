@@ -569,9 +569,10 @@ def _versenden(b, art, E, projekt, pid, frist, anzahl, pdf, dateiname, inhalt=""
                                              betreff=f"{art}" + (f" – Frist bis {_de(frist)}" if frist else ""), inhalt=inhalt, von=C.full_name(g.user),
                                              weg={"mich": "weiterleiten", "firma": "mail"}[v] if v != "pdf" else "pdf", status=status, fehler=fehler,
                                              link="aufgaben:#" + ("maengel" if key == "maengelruege" else "termine"))
-            if ids:
-                aufgaben_post.rueckablage(c, ids[0], key, art, pdf, dateiname, b)   # PDF und Eingaben an die Sendung (Verlauf)
-            return benachrichtigung.unbekannt(c, [an]) if v == "firma" and status == "gesendet" else []
+            neu = benachrichtigung.unbekannt(c, [an]) if v == "firma" and status == "gesendet" else []
+        if ids and status == "gesendet":   # PDF in den Projektordner, Eingaben an die Sendung (Verlauf) – nach der Transaktion
+            aufgaben_post.rueckablage(ids[0], pid, key, art, pdf, dateiname, b)
+        return neu
 
     if v == "pdf":
         log()

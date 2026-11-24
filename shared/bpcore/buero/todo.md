@@ -8,6 +8,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Seite „Ablauf“ auch für Einheiten** (Kisten „Gebäude / Allgemein“, „Einheit 1“, „Einheit 2“ mit Takt-Pfeilen) – Fragen offen, Mock folgt **ca. 30 min**
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; 3D-Auswahl später) – B erledigt durch das Raumbuch (17.11.: Gruppen, abweichender Raum eigene Zeile) **ca. 1,5 h**
+- ~~Verschickte Rüge: PDF in den Projektordner statt in die Datenbank, an der Sendung nur Eingaben und Pfad~~ (24.11.2026)
 - ~~Post & Vorgänge: Menü links springt nicht mehr (Suchfelder in den Ansichten), verschickte Rügen mit PDF und „Erneut bearbeiten …“ im Verlauf, Büro-Filter wieder da~~ (24.11.2026)
 - ~~Benachrichtigungen: „Alles löschen …“ fürs ganze Büro (neu beginnen, ohne Mails, mit Rückgängig)~~ (24.11.2026)
 - ~~Adressen: Suchfeld oben in der Befehlsleiste, Filterkästen bleiben links (24.11.2026)~~

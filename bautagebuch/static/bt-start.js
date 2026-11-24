@@ -244,8 +244,8 @@ document.addEventListener('click', async e => {
   else if (a === 'tab') { $('#menu').classList.add('hidden'); tab = b.dataset.t; if ($('#btq')) { $('#btq').value = ''; sr.q = ''; } renderDetail(); }
   else if (a === 'menu') $('#menu').classList.toggle('hidden');
   else if (a === 'reload') { $('#menu').classList.add('hidden'); contacts = await api('api/contacts'); await loadProjects(); if (pid) await openProject(pid, true); else renderDetail(); }
-  else if (a === 'projPicker') { if (window.BPHead && BPHead.projektWahl) BPHead.projektWahl({ aktuell: pid, onPick: (id) => pickProject(id) }); else openSheet('proj'); }
-  else if (a === 'repPicker') openSheet('rep');
+  else if (a === 'projPicker') BPHead.projektWahl({ aktuell: pid, onPick: (id) => pickProject(id) });
+  else if (a === 'repPicker') openSheet();
   else if (a === 'pickReport') { closeSheet(); rid = gewaehlt = id; wxEdit = headEdit = false; tab = 'bericht'; calOff = 0; renderDetail(); }
   else if (a === 'calM') { calOff += +b.dataset.d; const sd = document.querySelector('.btside'); if (sd) sd.outerHTML = sideHtml(curReport()); }
   else if (a === 'gehZu') { const el = document.getElementById('sec-' + b.dataset.k); if (el) el.scrollIntoView({ block: 'start' }); }
@@ -267,21 +267,14 @@ document.addEventListener('click', async e => {
     const r = curReport(), v = r.site_manager ? r.site_manager.replace(/[,\s]+$/, '') + ', ' + b.dataset.name : b.dataset.name;
     r.site_manager = v; await api('api/reports/' + r.id, 'PUT', {site_manager: v}); renderDetail();
   }
-  else if (a === 'createFromFolder') {
-    const r = await api('api/projects', 'POST', {name: b.dataset.name}); await loadProjects(); await pickProject(r.id);
-    toast(r.auto_address ? 'Projekt angelegt. Adresse und PLZ wurden aus dem Projektnamen ermittelt – bitte prüfen.' : 'Projekt angelegt. Die Adresse kannst du im Reiter „Projekt“ eintragen.');
-    try { await BPHead.projektOrdner(r.id, b.dataset.name); } catch (e) { toast('Projektordner: ' + e.message, true); }   // nur lose Dateien im Ordner: einsortieren?
-  }
   else if (a === 'newProject') newProject();
-  else if (a === 'nearest') { closeSheet(); await autoPick(false); if (!$('#sheet').classList.contains('hidden')) renderSheet(); }
+  else if (a === 'nearest') { closeSheet(); await autoPick(false); }
   else if (a === 'delProject') delProject();
   else if (a === 'srScope') { sr.scope = b.dataset.k; renderSearch($('#detail')); doSearch(); }
   else if (a === 'goHit') goHit(b);
   else if (a === 'verToggle') { verOpen = !verOpen; if (verOpen) await loadVer(); else fillVer(); }
   else if (a === 'verView') { if (verView === id) { verView = verSnap = null; } else { verView = id; verSnap = null; fillVer(); verSnap = (await api('api/versions/' + id)).data; } fillVer(); }
   else if (a === 'restoreVer') { const r = await api(`api/versions/${id}/restore`, 'POST'); if (r.error) toast(r.error); else { verView = verSnap = null; toast('Bericht auf die gewählte Version zurückgesetzt (der vorherige Stand steht im Verlauf).'); await openProject(pid, true); } }
-  else if (a === 'toggleArch') { sheetArch = !sheetArch; renderSheet(); }
-  else if (a === 'toggleForeign') { sheetForeign = !sheetForeign; renderSheet(); }
   else if (a === 'pcSave') {
     const r = await api('api/projects/' + pid + '/contact', 'POST', {accept: true, name: $('#pcName')?.value || ''});
     if (r.error) return toast(r.error);
@@ -509,7 +502,7 @@ document.addEventListener('change', e => {
   if (e.target.matches && e.target.matches('.fs-p input[type=range]')) { e.target.dataset.p = e.target.value; fsSetzen(e.target); return; } if (e.target.id === 'ctr') { cTrade = e.target.value; fillContactList(); } if (e.target.id === 'cpr') { cProj = e.target.value; cProjSet = true; fillContactList(); } });
 document.addEventListener('input', e => {
   if (e.target.classList.contains('ed')) grow(e.target);
-  else if (e.target.id === 'sq') { sheetQ = e.target.value; renderSheet(); if (sheetMode === 'proj') sheetSuggest(); }
+  else if (e.target.id === 'sq') { sheetQ = e.target.value; renderSheet(); }
   else if (e.target.id === 'cq') { cq = e.target.value; fillContactList(); }
 });
 document.addEventListener('keydown', e => {

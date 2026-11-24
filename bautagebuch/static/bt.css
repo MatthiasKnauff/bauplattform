@@ -34,7 +34,6 @@ svg{display:block}
 .chk input{width:auto}
 label.chk{display:flex;flex-direction:row;align-items:flex-start;gap:.6rem;text-align:left}
 label.chk input{flex:none;margin:.15rem 0 0}
-.sugh{padding:.7rem .9rem .3rem;color:var(--mute);font-size:.8rem}
 .who{padding:.4rem .8rem;color:#aaa;font-size:.85rem}
 
 .cform h4{grid-column:1/-1;margin:.8rem 0 0;font-size:1.05rem}
@@ -85,7 +84,7 @@ label.chk input{flex:none;margin:.15rem 0 0}
 @media(max-width:640px){.hgrid>h3{grid-column:1/-1}}
 .cform>*{min-width:0}.sugc .pi{overflow:hidden}.sugc{border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));overflow:hidden}.sugc .pi:last-child{border-bottom:0}
 .rnb{margin:0 0 1rem;padding:.8rem 1rem;border:1px solid var(--y);border-radius:calc(10px*var(--rk,1));font-size:.9rem;display:grid;gap:.6rem}.rnb .acts{display:flex;gap:.5rem;flex-wrap:wrap}.rnb .acts button{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.45rem .8rem;color:var(--y);font-weight:700}.rnb .acts .pri{background:var(--y);color:var(--on);border-color:var(--y)}
-.pi.arch{color:var(--mute);justify-content:flex-start;align-items:center;font-size:.9rem}.pi.old b{color:var(--mute)}
+
 .pi.on{color:var(--ink);box-shadow:inset 3px 0 var(--y);background:var(--hov)}
 .pi .l{min-width:0;display:flex;flex-direction:column}.pi-del{flex:none;align-self:center;display:grid;place-items:center;width:32px;height:32px;border-radius:calc(8px*var(--rk,1));color:var(--mute);opacity:.55}.pi:hover .pi-del,.pi.on .pi-del{opacity:1}.pi-del:hover{color:#d33;background:rgba(220,50,50,.1)}
 .pi .l b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

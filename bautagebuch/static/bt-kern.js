@@ -37,7 +37,7 @@ const favicon = () => document.querySelectorAll('link[rel=icon],link[rel=apple-t
 let settings = {}, logoV = 1, saving = new Set(), here = null, cq = '', cTrade = '', cProj = '', cProjSet = false, sheetQ = '';
 const track = pr => { saving.add(pr); pr.finally(() => saving.delete(pr)); return pr; };
 let armedKey = null, armedTimer = null;
-let itemPhotoFor = null, meta = {sections: []}, contacts = [], cid = null, projects = [], pid = null, reports = [], rid = null, tab = 'bericht', wxEdit = false, headEdit = false, adding = null, allImgs = false, dueEditId = null, leaderUsers = [];
+let itemPhotoFor = null, meta = {sections: []}, contacts = [], cid = null, projects = [], pid = null, reports = [], rid = null, tab = 'bericht', wxEdit = false, headEdit = false, adding = null, allImgs = false, dueEditId = null;
 const addr = p => [p.street, [p.zip, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
 const curProject = () => projects.find(x => x.id === pid);
 const curReport = () => reports.find(x => x.id === rid);

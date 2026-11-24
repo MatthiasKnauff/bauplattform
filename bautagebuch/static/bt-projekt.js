@@ -23,7 +23,7 @@ function chrome() {
 let PLATFORM = {};
 const showApp = async () => {
   $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
-  const daten = Promise.all(['api/meta', 'api/contacts', 'api/settings', 'api/people', 'api/leaders'].map((u) => api(u)));   // gleich mit losschicken – nicht erst nach der Kopfleiste
+  const daten = Promise.all(['api/meta', 'api/contacts', 'api/settings', 'api/people'].map((u) => api(u)));   // gleich mit losschicken – nicht erst nach der Kopfleiste
   daten.catch(() => {});   // Fehler fängt das await unten
   try { PLATFORM = await api('api/platform'); } catch { PLATFORM = {}; }
   if (window.BPHead) {   // gemeinsame Kopfleiste; ⚙ → „Bautagebuch“ zeigt die Einstellungen der App im Einstellungsfenster
@@ -36,7 +36,7 @@ const showApp = async () => {
     } }, { key: 'ablage', label: 'Ablage der Berichte und Fotos', render: (h) => BPHead.ablageEinst(h, 'bautagebuch', { unten: btAlteStaende }) }]);   // bis 17.11.2026 in der Verwaltung → Ablage & Server
     try { await BPHead.ready; } catch { /* ohne Kopfleiste weiter */ }
   }
-  try { [meta, contacts, settings, people, leaderUsers] = await daten; await loadProjects(); } catch { return; }   // gleichzeitig statt nacheinander
+  try { [meta, contacts, settings, people] = await daten; await loadProjects(); } catch { return; }   // gleichzeitig statt nacheinander
   const hp = /^#projekt=(\d+)(?:&bericht=(\d+))?/.exec(location.hash), hEdit = /bearbeiten=1/.test(location.hash), hNeu = location.hash === '#neues-projekt';   // Link aus Verwaltung / Mängelliste: dieses Projekt (und diesen Bericht) öffnen
   const hs = location.hash === '#einstellungen';    // Link aus der Verwaltung → Einstellungen
   const hSchritt = location.hash === '#schritt', hMangel = location.hash === '#mangel';   // Startseite (einfache Ansicht): Bericht Schritt für Schritt / Mangel melden
@@ -88,53 +88,19 @@ async function backfillAddresses() {   // einmal pro Projekt ohne Adresse: aus d
 async function pickProject(id) { closeSheet(); tab = 'bericht'; await openProject(id); }
 
 /* ---------- Projektauswahl ---------- */
-let sheetMode = 'proj', sheetArch = false, sheetForeign = false, renameOffer = null, renameSeen = {};
-function openSheet(mode = 'proj') {
-  sheetMode = mode; sheetQ = ''; sheetSug = []; $('#sq').value = '';
-  $('#sq').placeholder = mode === 'rep' ? 'Bericht suchen (Nummer oder Datum)' : 'Projekt suchen (Name oder Adresse)';
-  $('#sheet .panel').setAttribute('aria-label', mode === 'rep' ? 'Tagesbericht wählen' : 'Projekt wählen');
-  $('#pfp').classList.toggle('hidden', mode === 'rep'); $('#pfr').classList.toggle('hidden', mode !== 'rep');
+let renameOffer = null, renameSeen = {};
+/* Auswahlfenster nur noch für die Tagesberichte – Projekte wählt man wie in allen Apps über BPHead.projektWahl (24.11.2026) */
+function openSheet() {
+  sheetQ = ''; $('#sq').value = '';
   $('#sheet').classList.remove('hidden'); renderSheet(); $('#sq').focus();
 }
 function closeSheet() { $('#sheet').classList.add('hidden'); }
-let sheetSug = [], sheetSugT = 0;
-function sheetSuggest() {   // Ordner vom Server, die noch kein Projekt sind (Tippen im Auswahlfenster)
-  clearTimeout(sheetSugT); const q = sheetQ.trim();
-  if (!q) { sheetSug = []; return renderSheet(); }
-  sheetSugT = setTimeout(async () => {
-    try { const r = await api('api/store/folders?q=' + encodeURIComponent(q)); if (q === sheetQ.trim() && Array.isArray(r)) { sheetSug = r; renderSheet(); } } catch {}
-  }, 250);
-}
 function renderSheet() {
-  if (sheetMode === 'rep') {
-    const q = sheetQ.toLowerCase().trim(), cur = curReport();
-    const list = [...reports].sort((a, b) => (b.date + String(b.number).padStart(6, '0')).localeCompare(a.date + String(a.number).padStart(6, '0')))
-      .filter(x => !q || `nr. ${x.number} ${x.number} ${fmt(x.date)} ${x.date} ${x.site_manager || ''}`.toLowerCase().includes(q));
-    $('#pl').innerHTML = list.length ? list.map(x => `<button class="pi ${cur && x.id === cur.id ? 'on' : ''}" data-act="pickReport" data-id="${x.id}"><span class="l"><b>Nr. ${x.number} – ${fmt(x.date)}</b>${[x.time && x.time + ' Uhr', x.weather, x.site_manager].filter(Boolean).length ? `<small>${esc([x.time && x.time + ' Uhr', x.weather, x.site_manager].filter(Boolean).join(' · '))}</small>` : ''}</span><span class="pi-del" role="button" tabindex="0" data-act="delReportId" data-id="${x.id}" title="Bericht Nr. ${x.number} löschen (mit Rückgängig)">${ic('trash', 18)}</span></button>`).join('')
-      : `<div class="empty">${reports.length ? 'Keine Treffer.' : 'Noch kein Tagesbericht.'}</div>`;
-    return;
-  }
-  const q = sheetQ.toLowerCase(), d = p => here && hasPos(p) ? dist(here.lat, here.lon, p.lat, p.lon) : null;
-  const match = p => passt([p.name, p.street, p.zip, p.city, p.client].join(' '), q);
-  const foreignP = p => me.is_admin && (p.leaders || []).length > 0 && !(p.leaders || []).includes(me.id);   // nur Administratoren sehen Projekte anderer Bauleiter
-  const mine = projects.filter(p => !foreignP(p)), foreign = projects.filter(foreignP);
-  const list = mine.filter(p => !p.archived && match(p));
-  const arch = mine.filter(p => p.archived && match(p)), archAll = mine.filter(p => p.archived).length;
-  const fMatch = foreign.filter(match), showF = sheetForeign || (q.trim() && fMatch.length);
-  if (here) list.sort((a, b) => (d(a) ?? 1e12) - (d(b) ?? 1e12) || b.id - a.id);
-  $('#pl').innerHTML = list.length ? list.map(p => `<button class="pi ${p.id === pid ? 'on' : ''}" data-act="pickProject" data-id="${p.id}"><span class="l"><b>${esc(p.name)}</b>${addr(p) ? `<small>${esc(addr(p))}</small>` : ''}</span>${d(p) != null ? `<span class="dist">${fmtDist(d(p))}</span>` : ''}</button>`).join('')
-    : (sheetSug.length || arch.length ? '' : `<div class="empty">${projects.length ? 'Keine Treffer.' : 'Noch keine Projekte.'}</div>`);
-  const showA = sheetArch || (q.trim() && arch.length);   // Archiv: per Knopf oder automatisch, wenn die Suche dort etwas findet
-  if (archAll) $('#pl').innerHTML += `<button class="pi arch" data-act="toggleArch">${ic('archive', 16, 2.4)} Archiv (${archAll}) ${showA && !q.trim() ? '– ausblenden' : (showA ? '' : '– anzeigen')}</button>`;
-  if (showA) $('#pl').innerHTML += arch.map(p => `<button class="pi old ${p.id === pid ? 'on' : ''}" data-act="pickProject" data-id="${p.id}"><span class="l"><b>${esc(p.name)}</b>${addr(p) ? `<small>${esc(addr(p))}</small>` : ''}</span><span class="dist">archiviert</span></button>`).join('');
-  if (foreign.length) {
-    const lname = p => (p.leaders || []).map(i => (leaderUsers.find(u => u.id === i) || {}).name).filter(Boolean).join(', ');
-    $('#pl').innerHTML = `<div class="sugh">Eigene Projekte</div>` + $('#pl').innerHTML;
-    $('#pl').innerHTML += `<button class="pi arch" data-act="toggleForeign">${ic('users', 16, 2.4)} Fremde Projekte (${foreign.length}) ${showF && !q.trim() ? '– ausblenden' : (showF ? '' : '– anzeigen')}</button>`;
-    if (showF) $('#pl').innerHTML += fMatch.map(p => `<button class="pi old ${p.id === pid ? 'on' : ''}" data-act="pickProject" data-id="${p.id}"><span class="l"><b>${esc(p.name)}</b><small>${esc([lname(p) && 'Bauleiter: ' + lname(p), p.archived && 'archiviert'].filter(Boolean).join(' · ') || addr(p))}</small></span></button>`).join('');
-  }
-  if (sheetQ.trim() && sheetSug.length) $('#pl').innerHTML += `<div class="sugh">Ordner auf dem Server – antippen legt das Projekt an</div>` +
-    sheetSug.map(n => `<button class="pi" data-act="createFromFolder" data-name="${esc(n)}"><span class="l"><b>${ic('plus', 16, 3)} ${esc(n)}</b></span></button>`).join('');
+  const q = sheetQ.toLowerCase().trim(), cur = curReport();
+  const list = [...reports].sort((a, b) => (b.date + String(b.number).padStart(6, '0')).localeCompare(a.date + String(a.number).padStart(6, '0')))
+    .filter(x => !q || `nr. ${x.number} ${x.number} ${fmt(x.date)} ${x.date} ${x.site_manager || ''}`.toLowerCase().includes(q));
+  $('#pl').innerHTML = list.length ? list.map(x => `<button class="pi ${cur && x.id === cur.id ? 'on' : ''}" data-act="pickReport" data-id="${x.id}"><span class="l"><b>Nr. ${x.number} – ${fmt(x.date)}</b>${[x.time && x.time + ' Uhr', x.weather, x.site_manager].filter(Boolean).length ? `<small>${esc([x.time && x.time + ' Uhr', x.weather, x.site_manager].filter(Boolean).join(' · '))}</small>` : ''}</span><span class="pi-del" role="button" tabindex="0" data-act="delReportId" data-id="${x.id}" title="Bericht Nr. ${x.number} löschen (mit Rückgängig)">${ic('trash', 18)}</span></button>`).join('')
+    : `<div class="empty">${reports.length ? 'Keine Treffer.' : 'Noch kein Tagesbericht.'}</div>`;
 }
 function projBearbeiten() {   // gemeinsame Projektmaske (Kopfleiste)
   if (pid) BPHead.projektBearbeiten(pid, { onSaved: btGespeichert, onDelete: async () => { delProject(); } });

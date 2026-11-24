@@ -1,5 +1,13 @@
 [
  {
+  "id": "adr-suche-oben",
+  "datum": "2026-11-24",
+  "app": "adressen",
+  "titel": "Suchfeld oben in der Leiste",
+  "text": "Das Suchfeld der Adressen steht jetzt oben in der Befehlsleiste. Links bleiben die gewählten Filter (Gewerk, Projekt …).",
+  "ziel": ".adr-such"
+ },
+ {
   "id": "post-alles-offen",
   "datum": "2026-11-24",
   "app": "aufgaben",

@@ -1,5 +1,13 @@
 [
  {
+  "id": "post-alles-offen",
+  "datum": "2026-11-24",
+  "app": "aufgaben",
+  "titel": "Alles offen auf einen Blick",
+  "text": "Aufgaben, Hinweise, Mängel, Termine und Erinnerungen stehen jetzt in einer Liste „Alles offen“ – nach Fälligkeit geordnet, oben die Auswahl (Mängel, Termine …). Ein Klick auf einen Mangel, Termin oder eine Erinnerung zeigt rechts den Vorgang mit Frist, Firma und Rüge. Darunter steht, was zuletzt verschickt wurde.",
+  "ziel": "#aoW"
+ },
+ {
   "id": "katnetz-alle-abschnitte",
   "datum": "2026-11-24",
   "app": "gantt",

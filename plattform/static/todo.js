@@ -69,11 +69,12 @@ function tdWer(x) {
 const tdInApp = () => /aufgaben|maengel/.test(location.pathname) && !!document.querySelector('#todo');
 function tdZeile(x) {
   const h = tdHeute(), rot = x.f && x.f < h;
-  const unter = [x.auto ? `<span class="rg" title="automatisch erkannt">⚙ ${esc(x.regel_name)}</span>` : '', x.projekt, x.text, !x.auto ? tdWer(x) : '', !x.auto && (x.dateien || []).length ? '📎 ' + x.dateien.length : '',
+  const regel = x.auto && x.regel !== 'ao';   // ao: Mängel, Termine, Erinnerungen in „Alles offen“ (post-offen.js) – ihr Schild steht vorn, kein ⚙
+  const unter = [regel ? `<span class="rg" title="automatisch erkannt">⚙ ${esc(x.regel_name)}</span>` : '', x.projekt, x.text, !x.auto ? tdWer(x) : '', !x.auto && (x.dateien || []).length ? '📎 ' + x.dateien.length : '',
     x.spaeter ? 'zurückgestellt bis ' + tdDatum(x.spaeter) : '', x.status === 'erledigt' ? `erledigt ${x.erledigt_name ? 'von ' + x.erledigt_name : ''}` : ''].filter(Boolean);
   return `<div class="tr${x.status === 'erledigt' ? ' fertig' : ''}" data-tk="${esc(x.key)}">
     ${x.ohneHaken ? '<span class="ck ck-leer" aria-hidden="true"></span>' : `<input type="checkbox" class="ck" data-td="fertig"${x.status === 'erledigt' ? ' checked' : ''} title="${x.auto ? 'Erledigt – ausblenden (kommt nicht wieder)' : 'Erledigt'}" aria-label="erledigt">`}
-    <span class="tt" data-td="${x.regel === 'erinnerungen' ? 'erin' : x.auto ? 'oeffnen' : 'bearbeiten'}" title="${x.regel === 'erinnerungen' ? 'Erinnerung hier öffnen' : x.auto ? 'Zur Stelle in der App' : 'Bearbeiten'}"><b>${x.prio ? '<span class="pr">❗</span>' : ''}${esc(x.titel)}</b><span class="x">${unter.map((u, i) => i === 0 && x.auto ? u : esc(u)).join(' · ')}</span></span>
+    <span class="tt" data-td="${x.regel === 'erinnerungen' ? 'erin' : x.auto ? 'oeffnen' : 'bearbeiten'}" title="${x.regel === 'erinnerungen' ? 'Erinnerung hier öffnen' : x.auto ? 'Zur Stelle in der App' : 'Bearbeiten'}"><b>${x.prio ? '<span class="pr">❗</span>' : ''}${esc(x.titel)}</b><span class="x">${unter.map((u, i) => i === 0 && regel ? u : esc(u)).join(' · ')}</span></span>
     <span><span class="tz${rot ? ' rot' : ''}">${esc(tdDatum(x.f))}</span><span class="ta">${x.auto ? `${x.ohneHaken ? '' : x.spaeter ? '<button data-td="jetzt" title="Wieder anzeigen">↺</button>' : '<button data-td="spaeter" title="Zurückstellen">⏱ später</button>'}${x.link ? '<button data-td="oeffnen" title="Öffnen">↗</button>' : ''}` : `${tdNotizTeilen(x.notiz).links.slice(0, 1).map((u) => `<a class="td-mail" href="${esc(u)}" target="${/outlook\.|\/owa\//i.test(u) ? 'bp-outlook' : '_blank'}" rel="noopener" title="${/outlook\.|\/owa\//i.test(u) ? 'Mail in Outlook öffnen' : esc(u)}">${/outlook\.|\/owa\//i.test(u) ? '✉' : '🔗'}</a>`).join('')}<button data-td="spaeterm" title="Fälligkeit verschieben">⏱</button>${x.link || !tdInApp() ? `<button data-td="oeffnen" title="${x.link ? 'Öffnen, wo es herkommt' : 'In „Aufgaben & Mängel“ öffnen'}">↗</button>` : ''}`}</span></span>
     ${TDOFFEN === x.key ? (x.regel === 'erinnerungen' ? tdErEditor(x) : tdEditor(x)) : ''}</div>`;
 }
@@ -164,12 +165,6 @@ function tdZeigen() {
   box.innerHTML = html;
 }
 const tdFinde = (key) => [...(TD.auto || []), ...(TD.manuell || []), ...((window.TDZU && TDZU.extra) || [])].find((x) => x.key === key);
-/* Automatische Hinweise nach Regel gruppiert (für die Übersicht in Aufgaben & Mängel) */
-function tdAutoGruppen() {
-  const G = new Map();
-  (TD && TD.auto || []).forEach((x) => { const g = G.get(x.regel) || { key: x.regel, name: x.regel_name || x.regel, offen: [], spaeter: [] }; (x.spaeter ? g.spaeter : g.offen).push({ ...x, f: x.faellig || '' }); G.set(x.regel, g); });
-  return [...G.values()];
-}
 function tdSpaeterMenue(btn, fn) {
   document.querySelectorAll('.sp').forEach((x) => x.remove());
   const r = btn.getBoundingClientRect(), m = document.createElement('div'); m.className = 'sp';
@@ -441,7 +436,6 @@ const BLK_IC = { todos: ['✓', '#2b4a7a'], maengel: ['!', '#e07b3a'], erinnerun
 const UE = { key: 'ue', order: [], weg: [], alle: false, mehr: new Set(), anz: {}, lade: null };   // anz: je Block gewählte Zahl der Einträge (0 = alle), gemerkt
 const ueLS = { get(k, d) { try { const v = localStorage.getItem('ue.' + UE.key + '.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('ue.' + UE.key + '.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 function ueInit(key, lade) { UE.key = key; UE.order = ueLS.get('order', []); UE.weg = ueLS.get('weg', []); UE.alle = ueLS.get('alle', false); UE.anz = ueLS.get('anz', {}); UE.lade = lade; }
-const ueSort = (B) => { const pos = (k) => { const i = UE.order.indexOf(k); return i < 0 ? 1e3 : i; }; return B.slice().sort((a, b) => pos(a.k) - pos(b.k)); };
 function ueBlockHtml(b) {
   const [ic, farbe] = BLK_IC[b.k] || b.ic || ['•', '#777'], items = b.items || [], wahl = UE.anz[b.k], max = UE.mehr.has(b.k) || wahl === 0 ? 1e9 : (wahl || b.max || 5), rest = items.length - Math.min(items.length, max);
   const nm = b.link ? `<a class="ue-hl" href="${esc(b.link)}" title="${esc(b.linkText ? b.linkText.replace(/\s*›$/, '') : 'Öffnen')}">${esc(b.name)}</a>` : b.ziel ? `<button type="button" class="ue-hl" data-uetab="${esc(b.ziel)}">${esc(b.name)}</button>` : esc(b.name);   // Überschrift führt in den Hauptbereich
@@ -451,13 +445,6 @@ function ueBlockHtml(b) {
     ${b.ziel ? `<button type="button" class="ue-mehr" data-uetab="${esc(b.ziel)}">${esc(b.zielText || 'zum Reiter ›')}</button>` : ''}${b.link ? `<a class="ue-mehr" href="${esc(b.link)}">${esc(b.linkText || 'alle ›')}</a>` : ''}${b.mehr ? `<span class="mute ue-leer">${esc(b.mehr)}</span>` : ''}</section>`;
 }
 /* host: Element · B: Blöcke [{k, name, n, rot, items[], html, breit, ziel, link, max, leer}] · opts: top (Leiste mit Schalter/⚙), alle (Schalter „erledigte anzeigen“), vor (HTML vor dem Raster), cols */
-function ueRender(host, B, opts = {}) {
-  UE._B = B;
-  const sicht = ueSort(B).filter((b) => !UE.weg.includes(b.k));
-  host.innerHTML = (opts.vor || '') + (opts.top ? `<div class="ue-top">${opts.alle ? `<label class="chk" title="Auch Erledigtes, Abgelaufenes und Zurückgestelltes in den Blöcken zeigen"><input type="checkbox" data-uealle${UE.alle ? ' checked' : ''}> erledigte / abgelaufene anzeigen</label>` : ''}<span class="mute" style="font-size:.85rem">Blöcke am ⋮⋮ verschieben, mit ✕ ausblenden, über ＋ wieder holen</span></div>` : '')
-    + `<div class="ue-grid${opts.cols === 2 ? ' zwei' : ''}">${sicht.map(ueBlockHtml).join('')}${opts.plus === false ? '' : `<button type="button" class="ue-add" data-ueadd>＋ Widget hinzufügen${UE.weg.filter((k) => B.some((x) => x.k === k)).length ? ` <small>(${UE.weg.filter((k) => B.some((x) => x.k === k)).length} ausgeblendet)</small>` : ''}</button>`}</div>${opts.fehler ? `<div class="fehler">${opts.fehler.map(esc).join('<br>')}</div>` : ''}`;
-}
-document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-uealle]')) { UE.alle = e.target.checked; ueLS.set('alle', UE.alle); UE.lade && UE.lade(); } });
 document.addEventListener('click', (e) => {
   const az = e.target.closest && e.target.closest('[data-ueanz]'); if (az) { const [k, n] = az.dataset.ueanz.split(':'); UE.anz = { ...UE.anz, [k]: +n }; ueLS.set('anz', UE.anz); UE.mehr.delete(k); UE.lade && UE.lade(); return; }
   const m = e.target.closest && e.target.closest('[data-uemehr]'); if (m) { if (UE.mehr.has(m.dataset.uemehr)) UE.mehr.delete(m.dataset.uemehr); else UE.mehr.add(m.dataset.uemehr); UE.lade && UE.lade(); return; }

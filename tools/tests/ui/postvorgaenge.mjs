@@ -1,7 +1,9 @@
 // Post & Vorgänge (24.11.2026, Mock „Post & Vorgänge“ PV-1 … PV-10, Etappe 1): Aufgaben und Kommunikation sind EINE Seite.
-// Geprüft mit nachgebildetem Server: (1) Navigation mit „Offen“ und „Verlauf“; ein Klick auf eine Art im Verlauf wechselt ohne Neuladen
-// (die Seite bleibt dieselbe) und zeigt die Sendungen; (2) zurück zu „Übersicht“ ebenso ohne Neuladen; (3) alte Adressen #art=… und
+// Geprüft mit nachgebildetem Server: (1) Navigation mit „Alles offen“ und „Verlauf“; ein Klick auf eine Art im Verlauf wechselt ohne Neuladen
+// (die Seite bleibt dieselbe) und zeigt die Sendungen; (2) zurück zu „Alles offen“ ebenso ohne Neuladen; (3) alte Adressen #art=… und
 // #kontakt=… landen im Verlauf; (4) „＋ Neu“ bietet Nachricht, Vorgang, Abnahme und Datei an; (5) Titel „Post & Vorgänge“.
+// Etappe 2 (PV-4 B): (6) „Alles offen“ ist EINE Liste – ein Mangel steht darin, Klick zeigt rechts den Vorgang (Frist, Firma, Rüge);
+// darunter „Zuletzt verschickt“; alte Adresse #maengel landet in „Alles offen“ mit der Auswahl „Mängel“.
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await postPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/postvorgaenge.mjs
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
@@ -17,6 +19,7 @@ export async function postPruefen(browser, repo) {
     kontakte: [{ contact_id: 5, email: '', name: 'Rohbau Kaya', ansprech: '', gewerk: 'Rohbau', n: 2, letzte: '2026-11-20T15:02:00' }], projekte: [],
     arten: [{ key: 'planversand', name: 'Planversand', n: 1 }, { key: 'maengelruege', name: 'Mängelrüge', n: 1 }] };
 
+  const MAE = [{ id: 7, pid: 1, rid: 3, projekt: 'A497 Maybachstraße', text: 'Abdichtung Bad fehlt', art: 'maengel', art_n: 'Mangel', status: 'ueberfaellig', done: false, frist: '2026-11-20', firma: 'Rohbau Kaya', datum: '2026-11-10', fotos: 0 }];
   async function seite(hash) {
     const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } }), p = await ctx.newPage(), abfragen = [];
     p.on('pageerror', (e) => fehler.push(`#${hash}: JavaScript-Fehler: ` + String(e.message || e).split('\n')[0]));
@@ -30,7 +33,7 @@ export async function postPruefen(browser, repo) {
       const a = pf === 'api/me' ? { ok: true, id: 1, name: 'admin', vorname: 'Test', full: 'Test', is_admin: true, look: {} }
         : pf === 'api/platform' || pf === 'api/bp/kopf' ? { apps: [{ key: 'aufgaben', name: 'Post & Vorgänge', url: '/', allowed: true }], user: { name: 'admin' } }
         : pf === 'api/kom' ? KOM : pf === 'api/kom/kontakte' ? [{ id: 5, name: 'Rohbau Kaya', ansprech: '', email: 'kaya@rohbau.test', gewerk: 'Rohbau', n: 2 }]
-        : pf === 'api/antworten' ? { antworten: [] } : pf === 'api/erinnerungen' ? { items: [], mail: true }
+        : pf === 'api/maengel' ? MAE : pf === 'api/antworten' ? { antworten: [] } : pf === 'api/erinnerungen' ? { items: [], mail: true }
         : /maengel$|termine$|vorgaenge|projekte|briefe|benutzer|liste|neuigkeit/.test(pf) ? [] : pf === 'api/verzug' ? { vorgaenge: [] } : {};
       return r.fulfill({ contentType: 'application/json', body: JSON.stringify(a) });
     });
@@ -40,19 +43,26 @@ export async function postPruefen(browser, repo) {
   }
 
   try {   // (1) (2) (5)
-    const { p, ctx } = await seite('uebersicht');
+    const { p, ctx } = await seite('offen');
     pruef(await p.title() === 'Post & Vorgänge', 'Titel soll „Post & Vorgänge“ heißen');
     const gr = await p.evaluate(() => [...document.querySelectorAll('#navL [data-ap]')].map((x) => x.dataset.ap));
-    pruef(gr.includes('o:maengel') && gr.includes('v:') && gr.includes('v:planversand'), 'Navigation: „Offen“ und „Verlauf“ gehören in dieselbe Seite – ' + gr.join(' '));
+    pruef(gr.includes('o:offen') && !gr.includes('o:maengel') && gr.includes('v:') && gr.includes('v:planversand'), 'Navigation: „Alles offen“ (statt Mängel, Termine …) und „Verlauf“ gehören in dieselbe Seite – ' + gr.join(' '));
+    // (6) Alles offen: der Mangel steht in der Liste, Klick → Vorgang rechts
+    await p.waitForSelector('#aoW #todo [data-tk="m:7"] .tt', { timeout: 10000 });
+    pruef(await p.evaluate(() => /Mangel/.test(document.querySelector('#todo [data-tk="m:7"] .zt-a').textContent)), 'Alles offen: Mangel ohne Schild „Mangel“');
+    await p.click('#todo [data-tk="m:7"] .tt');
+    await p.waitForSelector('#aoW [data-m="7"] [data-f="frist"]', { timeout: 5000 });
+    pruef(await p.evaluate(() => !!document.querySelector('#aoW [data-m="7"] [data-ruege]') && location.hash === '#offen'), 'Vorgang rechts: Mangel mit Frist und Mängelrüge erwartet');
+    await p.waitForSelector('#aoW .ao-ver .ao-vz', { timeout: 5000 });
     await p.evaluate(() => { window.__gleich = 1; });
     await p.click('#navL [data-ap="v:planversand"]');
     await p.waitForSelector('.pv #pvList .e', { timeout: 10000 });
     pruef(await p.evaluate(() => window.__gleich === 1), 'Wechsel in den Verlauf lädt die Seite neu');
     pruef(await p.evaluate(() => location.hash === '#post' && document.querySelectorAll('.pv #pvList details.e').length === 2), 'Verlauf: zwei Sendungen und #post in der Adresse erwartet');
     pruef(await p.evaluate(() => getComputedStyle(document.getElementById('scope')).visibility === 'hidden'), 'Im Verlauf gehört „Meine/Alle Projekte“ der Aufgaben nicht oben hin');
-    await p.click('#navL [data-ap="o:uebersicht"]');
-    await p.waitForFunction(() => !document.querySelector('.pv') && location.hash === '#uebersicht', null, { timeout: 10000 });
-    pruef(await p.evaluate(() => window.__gleich === 1 && !PV.an()), 'Zurück zur Übersicht lädt neu oder der Verlauf bleibt stehen');
+    await p.click('#navL [data-ap="o:offen"]');
+    await p.waitForFunction(() => !document.querySelector('.pv') && location.hash === '#offen' && document.querySelector('#aoW #todo'), null, { timeout: 10000 });
+    pruef(await p.evaluate(() => window.__gleich === 1 && !PV.an()), 'Zurück zu „Alles offen“ lädt neu oder der Verlauf bleibt stehen');
     // (4)
     await p.click('#neuBtn'); await p.waitForSelector('.nw [data-m="nachricht"]', { timeout: 5000 });
     pruef(await p.evaluate(() => ['nachricht', 'vorgang', 'abnahme', 'datei'].every((k) => document.querySelector(`.nw [data-m="${k}"]`))), '„＋ Neu“: Nachricht, Vorgang, Abnahme und Datei fehlen');
@@ -69,6 +79,10 @@ export async function postPruefen(browser, repo) {
     pruef(await k.p.evaluate(() => /Rohbau Kaya/.test(document.querySelector('.pv .kb').textContent)), '#kontakt=… soll den Kontakt im Verlauf zeigen');
     pruef(k.abfragen.some((x) => /^api\/kom\?cid=5/.test(x)), '#kontakt=…: Sendungen des Kontakts werden nicht abgefragt');
     await k.ctx.close();
+    const m = await seite('maengel');
+    await m.p.waitForSelector('#aoW #todo [data-tk="m:7"]', { timeout: 10000 });
+    pruef(await m.p.evaluate(() => location.hash === '#offen' && document.querySelector('#todo [data-ztf="mangel"].on')), '#maengel soll in „Alles offen“ mit der Auswahl „Mängel“ landen');
+    await m.ctx.close();
   } catch (e) { fehler.push('Post & Vorgänge (alte Adressen): Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   return fehler;
 }

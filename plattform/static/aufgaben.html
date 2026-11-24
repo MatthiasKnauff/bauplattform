@@ -142,54 +142,28 @@ html[data-modus="einfach"] .top{order:-1}
 <script src="bp/aufpost.js"></script>
 <script src="bp/filter.js"></script>
 <script src="static/todo.js"></script>
+<script src="static/zutun.js"></script>
+<script src="static/post-offen.js"></script>
 <script src="static/bp-todo.js"></script>
 <script src="static/kom-abnahme.js"></script>
 <script src="static/post-verlauf.js"></script>
 <script>
 const LS = bpLS('auf.');
 const HASH = new URLSearchParams((location.hash || '').slice(1).split('&').slice(1).join('&'));   // z. B. #termine&ruege=12|firma oder &gid=…&uid=…
-let tab = (location.hash || '').slice(1).split('&')[0] || LS.get('tab', 'uebersicht'), scope = LS.get('scope', 'mine');
-TDNURMANUELL = true;   // unter „To-dos“ nur selbst angelegte Aufgaben; die automatischen Hinweise stehen in der Übersicht je Rubrik
+let tab = (location.hash || '').slice(1).split('&')[0] || LS.get('tab', 'offen'), scope = LS.get('scope', 'mine');
+const TAB0 = tab;   // wie die Seite aufgerufen wurde (alte Adressen #maengel, #termine … landen in „Alles offen“)
 let VZ = null;
 let M = null, E = null, T = null, CONF = null, ME = null, OPEN = null;
-/* Mängel: Suchfeld mit Filtern links (bp/filter.js) – Status, Art, Projekt, Firma; gemerkt im Browser */
-const MF = bpFilter({ key: 'auf.maengel', items: () => M || [], aendern: () => { if (tab === 'maengel') renderM(); },
-  text: (m) => [m.text, m.firma, m.projekt, m.art_n].join(' '),
-  arten: [{ key: 'status', name: 'Status', farbe: 'var(--mute)', werte: (m) => (m.done ? ['erledigt'] : m.status === 'ueberfaellig' ? ['offen', 'überfällig'] : ['offen']) },
-    { key: 'art', name: 'Art', farbe: 'var(--c-o)', werte: (m) => [m.art_n] },
-    { key: 'projekt', name: 'Projekt', farbe: 'var(--c-t)', werte: (m) => [m.projekt] },
-    { key: 'firma', name: 'Firma', farbe: 'var(--c-g)', werte: (m) => [m.firma || 'ohne Firma'] }],
-  start: [{ art: 'status', werte: ['offen'] }, { art: 'art', werte: ['Mangel'] }] });
-/* Termine und Erinnerungen: dasselbe Suchfeld mit Filtern (F3, 13.11.2026) */
-const vzAls = (x) => ({ ...x, status: 'verzug' });   // Vorgänge im Verzug laufen durch denselben Filter
-const TF = bpFilter({ key: 'auf.termine', items: () => [...(T || []), ...((VZ && VZ.vorgaenge) || []).map(vzAls)], aendern: () => { if (tab === 'termine') renderT(); },
-  text: (x) => [x.firma, x.gw, x.projekt, x.plan, x.vorgang, (x.leistungen || []).join(' ')].join(' '),
-  arten: [{ key: 'status', name: 'Status', farbe: 'var(--mute)', werte: (x) => [x.status === 'verzug' ? 'im Verzug' : x.status === 'fehlt' ? 'nicht da' : 'nicht bestätigt'] },
-    { key: 'projekt', name: 'Projekt', farbe: 'var(--c-t)', werte: (x) => [x.projekt] },
-    { key: 'firma', name: 'Firma', farbe: 'var(--c-g)', werte: (x) => [x.firma] },
-    { key: 'gewerk', name: 'Gewerk', farbe: 'var(--c-o)', werte: (x) => [x.gw || 'ohne Gewerk'] }] });
-const EF = bpFilter({ key: 'auf.erinnerungen', items: () => (E && E.items) || [], aendern: () => { if (tab === 'erinnerungen') renderE(); },
-  text: (x) => [x.titel, x.text, x.firma, x.projekt, x.gw].join(' '),
-  arten: [{ key: 'fuer', name: 'Für', farbe: 'var(--y)', werte: (x) => ((x.an_ids || []).includes(window.BPHead && BPHead.me ? BPHead.me.id : -1) ? ['für mich'] : []) },
-    { key: 'lage', name: 'Fällig', farbe: 'var(--mute)', werte: (x) => [{ ueberfaellig: 'überfällig', abgelaufen: 'abgelaufen', heute: 'heute', bald: 'nächste 7 Tage', spaeter: 'später', erledigt: 'erledigt' }[x.lage] || x.lage] },
-    { key: 'herkunft', name: 'Herkunft', farbe: 'var(--c-o)', werte: (x) => [(SRC[x.quelle] || ['', x.quelle])[1] || x.quelle] },
-    { key: 'projekt', name: 'Projekt', farbe: 'var(--c-t)', werte: (x) => [x.projekt || 'ohne Projekt'] },
-    { key: 'firma', name: 'Firma', farbe: 'var(--c-g)', werte: (x) => [x.firma || 'ohne Firma'] }] });
-/* To-dos (auch der Block in der Übersicht) und die ToDo-Liste der Bauplattform: dasselbe Suchfeld – es steht in jedem Bereich an derselben Stelle,
-   damit die Navigation beim Wechseln nicht springt (Wunsch 14.11.2026) */
-const tdLage = (x) => { const h = tdHeute(); return !x.f ? 'ohne Datum' : x.f < h ? 'überfällig' : x.f === h ? 'heute' : x.f <= tdPlus(7) ? 'nächste 7 Tage' : 'später'; };
-const TDF = bpFilter({ key: 'auf.todos', items: () => (TD ? tdAlle().offen : []), aendern: () => { if (tab === 'todos' || tab === 'uebersicht') { if (TD) tdZeigen(); renderTabs(); } },
-  text: (x) => [x.titel, x.notiz, x.projekt, x.erstellt_name, (x.personen_namen || []).join(' ')].join(' '),
-  arten: [{ key: 'lage', name: 'Fällig', farbe: 'var(--mute)', werte: (x) => [tdLage(x)] },
-    { key: 'projekt', name: 'Projekt', farbe: 'var(--c-t)', werte: (x) => [x.projekt || 'ohne Projekt'] },
-    { key: 'wichtig', name: 'Wichtig', farbe: 'var(--red)', werte: (x) => (x.prio ? ['❗ wichtig'] : []) },
-    { key: 'von', name: 'Von', farbe: 'var(--c-o)', werte: (x) => [x.erstellt_name || 'automatisch'] }] });
-window.TDFILTER = (x) => TDF.pruefe(x);   // todo.js filtert die offenen To-dos damit
-const BPF = bpFilter({ key: 'auf.bauplattform', items: () => (typeof BPT !== 'undefined' && BPT ? BPT.abschnitte.flatMap((a) => a.punkte.map((p) => ({ ...p, abschnitt: a.titel }))) : []),
-  aendern: () => { if (tab === 'bauplattform') bptRender($('#view')); }, text: (p) => [p.text, (p.unter || []).map((u) => u.text).join(' ')].join(' '),
-  arten: [{ key: 'abschnitt', name: 'Abschnitt', farbe: 'var(--c-t)', werte: (p) => [p.abschnitt] }] });
+/* „Alles offen“ (Etappe 2, PV-4 B, 24.11.2026): EINE Liste – eigene Aufgaben, Hinweise, Mängel, Termine, Erinnerungen (zutun.js wie die Startseite,
+   Mängel/Termine/Erinnerungen als Einträge aus post-offen.js); Suchfeld mit Filtern links (bp/filter.js) */
+const AF = bpFilter({ key: 'auf.offen', items: () => (typeof TD !== 'undefined' && TD ? TDZU.alle(true) : []), aendern: () => { if (tab === 'offen') AO.neu(); },
+  text: (x) => [x.titel, x.text, x.projekt, x.firma].join(' '),
+  arten: [{ key: 'projekt', name: 'Projekt', farbe: 'var(--c-t)', werte: (x) => [x.projekt || 'ohne Projekt'] },
+    { key: 'firma', name: 'Firma', farbe: 'var(--c-g)', werte: (x) => (x.firma ? [x.firma] : []) },
+    { key: 'wichtig', name: 'Wichtig', farbe: 'var(--red)', werte: (x) => (x.prio ? ['❗ wichtig'] : []) }] });
+window.ZTFILTER = (x) => AF.pruefe(x);
 window.BPTFILTER = (p) => BPF.pruefe({ ...p, abschnitt: p.abschnitt || '' });
-const fProjekt = () => { const n = MF.wert('projekt'), m = n && M && M.find((x) => x.projekt === n); return m ? String(m.pid) : ''; };   // das eine gefilterte Projekt (für Vorgaben)
+const fProjekt = () => { const n = AF.wert('projekt'), m = n && M && M.find((x) => x.projekt === n); return m ? String(m.pid) : ''; };   // das eine gefilterte Projekt (für Vorgaben)
 const de = (d) => (d && d.length >= 10 ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : '');
 const WD = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 const deW = (d) => (d ? WD[new Date(d + 'T12:00').getDay()] + ' ' + de(d) : '');
@@ -203,51 +177,29 @@ function undoable(label, fn) {   // Rückgängig-Verlauf der Plattform (bp.js): 
   rueckgaengig(label, async () => { await fn(); toast('Rückgängig gemacht.'); await reload(); }, 20000);
 }
 
-/* ---------- Direkt zu einem Eintrag (Link aus der E-Mail) ---------- */
-function zeige(art, id) {
-  if (art === 'mangel' && M) {
-    const m = M.find((x) => String(x.id) === id);
-    if (!m) { toast('Dieser Eintrag ist nicht (mehr) vorhanden.', true); return; }
-    MF.leeren(); MF.setzen('art', m.art_n); render();
-  } else if (E) { render(); }
-  const el = document.querySelector(art === 'mangel' ? `[data-m="${id}"]` : `[data-e="r${id}"]`);
-  if (!el) { toast('Dieser Eintrag ist nicht (mehr) vorhanden.', true); return; }
-  el.scrollIntoView({ block: 'center' }); el.classList.add('hl'); setTimeout(() => el.classList.remove('hl'), 4000);
-}
 window.bpAeltereStaende = () => () => BPHead.verlaufAlle({ teil: 'mangel', titel: 'Ältere Stände der Mängel und Aufgaben' });   // Rückgängig ▾ → „Ältere Stände …“
 window.bpNachVerlauf = () => reload();   // nach „Wiederherstellen“ die Liste neu laden
 /* ---------- Laden ---------- */
 async function reload(first) {
   try {
     if (tab === 'post') { if (PV.an()) await PV.laden(); else render(); return; }   // Verlauf (post-verlauf.js)
-    if (tab === 'todos') { await tdRef(); await tdLaden(); renderTabs(); return; }
     if (tab === 'bauplattform') { if (!BPT) await bptLaden(); render(); return; }
-    if (tab === 'uebersicht') {   // sofort zeichnen, jeder Block füllt sich, sobald seine Daten da sind (nicht auf alles warten)
-      render(); await tdRef();
-      const nach = () => { if (tab === 'uebersicht') render(); };
-      await Promise.all([
-        tdLaden().then(nach),
-        api('api/maengel?scope=' + scope).then((m) => { M = m; nach(); }).catch(() => {}),
-        api('api/termine?scope=' + scope).then((t) => { T = t; nach(); }).catch(() => {}),
-        api('api/verzug?scope=' + scope).then((vz) => { VZ = vz; nach(); }).catch(() => {}),
-        api('api/erinnerungen?scope=' + scope + (first ? '&abgleich=1' : '')).then((e) => { E = e; nach(); }).catch(() => {})]);
-      return;
-    }
-    if (tab === 'maengel') M = await api('api/maengel?scope=' + scope);
-    else if (tab === 'termine') [T, VZ] = await Promise.all([api('api/termine?scope=' + scope), api('api/verzug?scope=' + scope).catch(() => null)]);
-    else E = await api('api/erinnerungen?scope=' + scope + (first ? '&abgleich=1' : ''));
-  } catch (e) { $('#view').innerHTML = `<p class="err">${esc(e.message)}</p>`; return; }
-  render();
+    render(); AO.verlauf();   // „Alles offen“: sofort zeichnen, jede Quelle füllt nach, sobald ihre Daten da sind; darunter der Verlauf
+    const nach = () => { if (tab === 'offen') AO.neu(); renderTabs(); };
+    await Promise.all([
+      tdRef().then(tdLaden).then(nach),
+      api('api/maengel?scope=' + scope).then((m) => { M = m; nach(); }),
+      api('api/termine?scope=' + scope).then((t) => { T = t; nach(); }).catch(() => {}),
+      api('api/verzug?scope=' + scope).then((vz) => { VZ = vz; nach(); }).catch(() => {}),
+      api('api/erinnerungen?scope=' + scope + (first ? '&abgleich=1' : '')).then((e) => { E = e; nach(); })]);
+  } catch (e) { toast(e.message, true); }
 }
 function renderTabs() {
-  const nM = M ? M.filter((m) => m.status === 'ueberfaellig').length : 0, nE = E ? E.items.filter((x) => ['ueberfaellig', 'abgelaufen', 'heute'].includes(x.lage)).length : 0;
-  const nT = (T ? T.filter((x) => x.status === 'offen').length : 0) + (VZ ? new Set(VZ.vorgaenge.map((x) => x.pid + '|' + x.key)).size : 0);
-  const nTd = TD ? tdAlle().offen.filter((x) => x.f && x.f <= tdHeute()).length : 0;
-  $('#scope').style.visibility = tab === 'todos' || tab === 'bauplattform' || tab === 'post' ? 'hidden' : '';   // gelten nur für Übersicht, Mängel, Termine, Erinnerungen – „＋ Neu“ bleibt überall
-  const nUe = (TD ? (TD.auto || []).filter((x) => !x.spaeter).length : 0) + nTd;
+  $('#scope').style.visibility = tab === 'offen' ? '' : 'hidden';   // „Meine/Alle Projekte“ gilt für Mängel, Termine, Erinnerungen – „＋ Neu“ bleibt überall
+  const z = typeof TD !== 'undefined' && TD ? TDZU.zaehler() : { n: 0, n2: 0 };
   const pv = PV.nav();   // Verlauf: Arten, Mit wem, Suchfeld
   bpAufPost($('#navL'), { aktiv: tab === 'post' ? pv.aktiv : 'o:' + tab, arten: pv.arten, mitwem: tab === 'post' ? pv.mitwem : [], buero: !!(ME && ME.is_admin), bueroZahl: bptOffen(),
-    filter: tab === 'post' ? pv.filter : { maengel: MF, termine: TF, erinnerungen: EF, todos: TDF, uebersicht: TDF, bauplattform: BPF }[tab] || TDF, offen: { uebersicht: nUe, todos: nTd, maengel: nM, termine: nT, erinnerungen: nE }, offenTip: { todos: `fällig (heute oder früher) – offen insgesamt: ${TD ? tdAlle().offen.length : 0}`, uebersicht: 'Hinweise der Plattform und fällige To-dos', erinnerungen: 'heute fällig oder abgelaufen', maengel: 'Frist abgelaufen' },
+    filter: tab === 'post' ? pv.filter : tab === 'bauplattform' ? BPF : AF, offen: { offen: z.n }, offenTip: { offen: `fällig (heute oder früher) – offen insgesamt: ${z.n2}` },
     wahl: (id) => {
       if (id.startsWith('o:')) { zuTab(id.slice(2)); return; }
       if (tab !== 'post') zuTab('post');
@@ -256,106 +208,40 @@ function renderTabs() {
   $('#scope').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.scope === scope));
 }
 window.apNav = () => renderTabs();   // der Verlauf zeichnet die Navigation nach dem Laden neu
-function zuTab(t) { tab = t; LS.set('tab', tab); history.replaceState(null, '', '#' + tab); render(); if (t !== 'post') reload(tab === 'erinnerungen' && !E); }
+function zuTab(t) { tab = t; LS.set('tab', tab); history.replaceState(null, '', '#' + tab); render(); if (t !== 'post') reload(); }
 function render() {
   if (tab !== 'post' && PV.an()) PV.weg();
   renderTabs();
   if (tab === 'post') { if (!PV.an()) PV.zeigen($('#view')); return; }   // Verlauf: Sendungen, Antworten, Vorgänge (post-verlauf.js)
   if (tab === 'bauplattform') { bptRender($('#view')); return; }   // Büro → ToDo-Liste der Bauplattform (bp-todo.js)
-  if (tab === 'todos') { window.TDMAX = undefined; if (!$('#todo')) $('#view').innerHTML = '<section class="todo voll" id="todo"></section>'; tdZeigen(); return; }
-  if (tab === 'uebersicht') { renderUe(); return; }
-  if (tab === 'maengel') renderM(); else if (tab === 'termine') renderT(); else renderE(); }
-
-/* ---------- Übersicht: ein Schreibtisch aus Blöcken (je Rubrik einer), verschiebbar wie das Nextcloud-Dashboard, Reihenfolge/Ausblenden je Benutzer gemerkt ---------- */
-ueInit('aufgaben', () => render());
-function ueBloecke() {
-  const h = tdHeute(), B = [];
-  const auto = tdAutoGruppen();
-  B.push({ k: 'todos', name: 'Meine To-dos', breit: true, html: TD ? '<div id="todo"></div>' : '<p class="mute ue-leer">Lade …</p>', n: TD ? tdAlle().offen.length : 0 });
-  const zeile = (x) => tdZeile(x);
-  auto.forEach((g) => {
-    const items = [...g.offen.sort((a, b) => (b.prio || 0) - (a.prio || 0) || (a.f || '9').localeCompare(b.f || '9')), ...(UE.alle ? g.spaeter : [])];
-    B.push({ k: g.key, name: g.name, n: g.offen.length, items: items.map(zeile), rot: g.offen.some((x) => x.f && x.f < h), mehr: g.spaeter.length ? `${g.spaeter.length} zurückgestellt` : '' });
-  });
-  if (M) {   // Mängel: offene mit Frist zuerst, erledigte nur mit „alle anzeigen“
-    const L = M.filter((m) => UE.alle || !m.done).sort((a, b) => (a.done - b.done) || (a.frist || '9').localeCompare(b.frist || '9'));
-    B.push({ k: 'mfrist', name: 'Mängel & Weisungen', n: M.filter((m) => !m.done).length, rot: M.some((m) => m.status === 'ueberfaellig'), ziel: 'maengel',
-      items: L.map((m) => `<div class="ue-r${m.done ? ' aus' : ''}" data-ue="maengel:${m.id}"><span class="ue-t">${esc(m.text || '')}<small>${esc([m.projekt, m.firma].filter(Boolean).join(' · '))}</small></span><span class="ue-d${m.status === 'ueberfaellig' ? ' rot' : ''}">${m.done ? 'erledigt' : m.frist ? tdDatum(m.frist) : ''}</span></div>`) });
-  }
-  if (T || VZ) {
-    const off = (T || []).filter((x) => x.status === 'offen'), vz = VZ ? Object.values(VZ.vorgaenge.reduce((a, x) => { (a[x.pid + '|' + x.key] ||= []).push(x); return a; }, {})) : [];
-    const items = [...vz.map((rows) => `<div class="ue-r" data-ue="termine:"><span class="ue-t">${esc(rows[0].firma)}<small>${esc([rows[0].projekt, rows[0].gw].filter(Boolean).join(' · '))} · ${rows.length} Vorgang${rows.length === 1 ? '' : 'änge'} im Verzug</small></span><span class="ue-d rot">Terminrüge ›</span></div>`),
-      ...off.slice(0, 50).map((x) => `<div class="ue-r" data-ue="termine:${esc(x.id)}"><span class="ue-t">${esc(x.firma)}<small>${esc([x.projekt, (x.leistungen || []).join(', ')].filter(Boolean).join(' · '))}</small></span><span class="ue-d">${esc(deW(x.datum))}</span></div>`),
-      ...(UE.alle ? (T || []).filter((x) => x.status !== 'offen').map((x) => `<div class="ue-r aus" data-ue="termine:${esc(x.id)}"><span class="ue-t">${esc(x.firma)}<small>${esc(x.projekt || '')}</small></span><span class="ue-d">„nicht da“ bestätigt</span></div>`) : [])];
-    B.push({ k: 'termine', name: 'Termine & Verzug', n: off.length + vz.length, rot: vz.length > 0, ziel: 'termine', items });
-  }
-  if (E) {
-    const R = { ueberfaellig: 0, abgelaufen: 1, heute: 2, bald: 3, spaeter: 4 }, L = E.items.filter((x) => UE.alle || !['abgelaufen', 'erledigt'].includes(x.lage)).slice().sort((a, b) => (R[a.lage] ?? 9) - (R[b.lage] ?? 9) || String(a.datum || a.termin).localeCompare(String(b.datum || b.termin)));   // datum: Tag der Sache, nicht der Vorab-Erinnerung
-    B.push({ k: 'erin', name: 'Erinnerungen', n: E.items.filter((x) => ['ueberfaellig', 'heute', 'bald'].includes(x.lage)).length, rot: E.items.some((x) => x.lage === 'ueberfaellig'), ziel: 'erinnerungen',
-      items: L.map((x) => `<div class="ue-r${x.lage === 'abgelaufen' ? ' aus' : ''}" data-ue="erinnerungen:${esc(x.id)}"><span class="ue-t">${esc(x.titel || '')}<small>${esc([x.projekt, x.firma].filter(Boolean).join(' · '))}</small></span><span class="ue-d${x.lage === 'ueberfaellig' ? ' rot' : ''}">${esc(deW(x.datum || x.termin))}${x.uhrzeit && !x.vorab ? ' ' + esc(x.uhrzeit) : ''}</span></div>`) });
-  }
-  // Reihenfolge: gemerkte zuerst, neue hinten; ausgeblendete weg
-  const pos = (k) => { const i = UE.order.indexOf(k); return i < 0 ? 1e3 : i; };
-  return B.sort((a, b) => pos(a.k) - pos(b.k));
+  AO.zeigen($('#view'));   // „Alles offen“ (post-offen.js) – steht die Liste schon, wird nur ihr Inhalt nachgeführt
 }
-function renderUe() {
-  const B = ueBloecke();
-  ueRender($('#view'), B, { top: true, alle: true, fehler: TD && (TD.fehler || []).length ? TD.fehler : null });
-  window.TDMAX = UE.mehr.has('todos') ? 1e9 : 8;
-  if (TD) tdZeigen();   // füllt den Block „Meine To-dos“
-}
-document.addEventListener('click', (e) => {
-  const t = e.target.closest && e.target.closest('[data-uetab]'); if (t) { tab = t.dataset.uetab; LS.set('tab', tab); history.replaceState(null, '', '#' + tab); render(); return; }
-  const r = e.target.closest && e.target.closest('[data-ue]'); if (r) { const [zt, id] = r.dataset.ue.split(':'); tab = zt; LS.set('tab', tab); history.replaceState(null, '', '#' + tab); if (zt === 'maengel') MF.weg('status'); render();
-    setTimeout(() => { const el = id && document.querySelector(zt === 'maengel' ? `[data-m="${id}"]` : zt === 'termine' ? `[data-tid="${id}"]` : `[data-e="${id}"]`); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('hl'); setTimeout(() => el.classList.remove('hl'), 4000); } }, 50); }
-});
 
-/* ---------- Termine: Verzug laut Arbeitsfortschritt (Bautagebuch → Bauzeitenplan) ---------- */
-function vzHtml() {
-  if (!VZ) return '';
-  const pidSel = +fProjekt() || (window.BPHead && BPHead.projektId && BPHead.projektId()) || null;
-  const swOpt = (v, std) => [['', `Standard (${VZ.standard} AT)`], ...[2, 3, 5, 7, 10, 15, 20].map((n) => [n, n + ' AT'])].filter(([k]) => std || k !== '').map(([k, l]) => `<option value="${k}"${String(v ?? '') === String(k) ? ' selected' : ''}>${l}</option>`).join('');
-  let h = `<div class="vzh"><h3>Im Verzug laut Arbeitsfortschritt</h3><span class="mute" style="font-size:.86rem">Terminrüge vorschlagen ab
-    <select data-vzsw="" aria-label="Standard">${swOpt(VZ.standard, false)}</select>${pidSel ? ` · dieses Projekt <select data-vzsw="${pidSel}" aria-label="Schwelle für dieses Projekt">${swOpt((VZ.eigene || {})[pidSel], true)}</select>` : ''}</span></div>`;
-  const G = {}; VZ.vorgaenge.filter((x) => TF.pruefe(vzAls(x))).forEach((x) => { (G[x.pid + '|' + x.key] ||= []).push(x); });
-  if (!VZ.vorgaenge.length) return h + '<div class="empty" style="margin-bottom:1rem">Keine Firma liegt über der Schwelle. Den Fortschritt melden die Bauleiter:innen im Tagesbericht (Abschnitt Anwesende).</div>';
-  for (const [k, rows] of Object.entries(G)) {
-    const x0 = rows[0];
-    h += `<section class="tgrp"><div style="display:flex;align-items:flex-start;gap:.6rem;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b>${esc(x0.firma)}</b>${x0.gw ? ` <span class="mute">· ${esc(x0.gw)}</span>` : ''}<div class="mute" style="font-size:.85rem">${esc(x0.projekt)} · Plan „${esc(x0.plan)}“ · Schwelle ${x0.schwelle} AT</div></div>
+/* ---------- Karten rechts im „Vorgang“ (post-offen.js): Termin, Verzug, Mangel, Erinnerung – dieselbe Bedienung wie früher auf den eigenen Seiten ---------- */
+function vzKarte(rows) {   // Firma im Verzug laut Arbeitsfortschritt (Bautagebuch → Bauzeitenplan)
+  const x0 = rows[0], k = x0.pid + '|' + x0.key;
+  const swOpt = (v, std) => [['', `Standard (${VZ.standard} AT)`], ...[2, 3, 5, 7, 10, 15, 20].map((n) => [n, n + ' AT'])].filter(([q]) => std || q !== '').map(([q, l]) => `<option value="${q}"${String(v ?? '') === String(q) ? ' selected' : ''}>${l}</option>`).join('');
+  return `<section class="tgrp"><div style="display:flex;align-items:flex-start;gap:.6rem;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b>${esc(x0.firma)}</b>${x0.gw ? ` <span class="mute">· ${esc(x0.gw)}</span>` : ''}<div class="mute" style="font-size:.85rem">${esc(x0.projekt)} · Plan „${esc(x0.plan)}“ · Schwelle ${x0.schwelle} AT</div></div>
       <button class="btn sm pri" data-truege="${esc(k)}" title="Aufforderung zur Abhilfe nach VOB/B § 5 Abs. 3">✉ Terminrüge</button></div>
       ${rows.map((x) => `<div class="vzrow"><div><b>${esc(x.vorgang)}</b> <span class="mute" style="font-size:.85rem">· ${esc(de(x.s))}–${esc(de(x.f))} · ${x.ist} % statt ${x.soll} %${x.gemeldet ? ' · gemeldet ' + esc(de(x.gemeldet)) + (x.ampel === 'hinterher' ? ' „hinterher“' : '') : ' · noch nie gemeldet'}</span>
         <div class="vb" title="Ist ${x.ist} % · Soll ${x.soll} %"><i style="width:${x.ist}%"></i><s style="left:${x.soll}%"></s></div></div>
-        <span class="vt">≈ ${String(x.verzug).replace('.', ',')} AT</span></div>`).join('')}</section>`;
-  }
-  return h + '<h3 style="font-size:1rem;margin:1.2rem 0 .4rem">Nicht anwesend laut Bautagebuch</h3>';
+        <span class="vt">≈ ${String(x.verzug).replace('.', ',')} AT</span></div>`).join('')}</section>
+    <p class="mute" style="font-size:.86rem">Terminrüge vorschlagen ab <select data-vzsw="" aria-label="Standard">${swOpt(VZ.standard, false)}</select> · dieses Projekt <select data-vzsw="${x0.pid}" aria-label="Schwelle für dieses Projekt">${swOpt((VZ.eigene || {})[x0.pid], true)}</select></p>`;
 }
 document.addEventListener('change', async (e) => {
   const s = e.target.closest('[data-vzsw]'); if (!s) return;
-  try { await api('api/verzug/schwelle', 'PUT', { pid: s.dataset.vzsw ? +s.dataset.vzsw : null, tage: s.value ? +s.value : null }); toast('Schwelle gespeichert.'); VZ = await api('api/verzug?scope=' + scope); renderT(); renderTabs(); }
+  try { await api('api/verzug/schwelle', 'PUT', { pid: s.dataset.vzsw ? +s.dataset.vzsw : null, tage: s.value ? +s.value : null }); toast('Schwelle gespeichert.'); VZ = await api('api/verzug?scope=' + scope); AO.neu(); renderTabs(); }
   catch (er) { toast(er.message, true); }
 });
-
-/* ---------- Termine: Firmen laut Bauzeitenplan nicht anwesend ---------- */
-function renderT() {
-  if (!T) { $('#view').innerHTML = '<p class="mute">Lade …</p>'; return; }
-  const groups = {}; T.filter((x) => TF.pruefe(x)).forEach((x) => { (groups[x.pid + '|' + x.key] ||= []).push(x); });
-  const nO = T.filter((x) => x.status === 'offen').length, nF = T.length - nO;
-  let h = `<div class="kpi"><button type="button" class="on" tabindex="-1">Nicht bestätigt<b>${nO}</b></button><button type="button" tabindex="-1">„Nicht da“ bestätigt<b>${nF}</b></button></div>
-    <p class="note">Berichtstage der letzten 120 Tage, an denen eine Firma laut Bauzeitenplan auf der Baustelle sein sollte, im Bautagebuch aber nicht als anwesend eingetragen ist.
-    „Nicht bestätigt“ heißt: Die Bauleiter:in hat den Vorschlag im Bericht weder als anwesend noch als „nicht da“ markiert. Daraus lässt sich je Firma eine Terminrüge (VOB/B § 5) erzeugen.</p>`;
-  h = vzHtml() + h;
-  if (!T.length) h += '<div class="empty">Keine Abweichungen – alle laut Plan erwarteten Firmen waren da oder wurden bestätigt.</div>';
-  else if (!Object.keys(groups).length) h += '<div class="empty">Nichts passt zum Suchfeld links.</div>';
-  for (const [k, rows] of Object.entries(groups)) {
-    const x0 = rows[0];
-    h += `<section class="tgrp"><div style="display:flex;align-items:flex-start;gap:.6rem;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b>${esc(x0.firma)}</b>${x0.gw ? ` <span class="mute">· ${esc(x0.gw)}</span>` : ''}<div class="mute" style="font-size:.85rem">${esc(x0.projekt)} · Plan „${esc(x0.plan)}“</div></div>
+function terminKarte(rows) {   // Firma laut Bauzeitenplan erwartet, im Bautagebuch nicht als anwesend eingetragen
+  const x0 = rows[0], k = x0.pid + '|' + x0.key;
+  return `<section class="tgrp"><div style="display:flex;align-items:flex-start;gap:.6rem;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b>${esc(x0.firma)}</b>${x0.gw ? ` <span class="mute">· ${esc(x0.gw)}</span>` : ''}<div class="mute" style="font-size:.85rem">${esc(x0.projekt)} · Plan „${esc(x0.plan)}“</div></div>
       <button class="btn sm" data-truege="${esc(k)}" title="Aufforderung zur Abhilfe nach VOB/B § 5 Abs. 3 als ausfüllbares PDF">✉ Terminrüge</button></div>
       ${rows.map((x) => `<div class="trow" data-tid="${esc(x.id)}"><span class="tdat">${esc(deW(x.datum))}</span><span class="tl">${esc(x.leistungen.join(', '))}</span>
         <span class="st ${x.status === 'fehlt' ? 'ueberfaellig' : 'heute'}">${x.status === 'fehlt' ? 'nicht da' + (x.von ? ' · ' + esc(x.von) : '') : 'nicht bestätigt'}</span>
         <span class="tact">${x.status === 'offen' ? `<button class="btn sm" data-tset="fehlt">nicht da</button>` : ''}<button class="btn sm" data-tset="da" title="Firma war doch da">war da</button><button class="btn sm" data-tset="nein" title="Laut Plan erwartet, aber nicht nötig (z. B. Termin verschoben)">nicht nötig</button>
-        ${appLink('bautagebuch', `#projekt=${x.pid}&bericht=${x.rid}`) ? `<a class="btn sm" href="${appLink('bautagebuch', `#projekt=${x.pid}&bericht=${x.rid}`)}">Bericht →</a>` : ''}</span></div>`).join('')}</section>`;
-  }
-  $('#view').innerHTML = h;
+        ${appLink('bautagebuch', `#projekt=${x.pid}&bericht=${x.rid}`) ? `<a class="btn sm" href="${appLink('bautagebuch', `#projekt=${x.pid}&bericht=${x.rid}`)}">Bericht →</a>` : ''}</span></div>`).join('')}</section>
+    <p class="mute" style="font-size:.84rem">Berichtstage der letzten 120 Tage, an denen die Firma laut Bauzeitenplan auf der Baustelle sein sollte, im Bautagebuch aber nicht als anwesend eingetragen ist. Daraus lässt sich eine Terminrüge (VOB/B § 5) erzeugen.</p>`;
 }
 async function tSet(id, status) {
   const x = T.find((y) => y.id === id); if (!x) return;
@@ -399,26 +285,16 @@ async function truegeDialog(k, nur) {
 }
 
 /* ---------- Mängel ---------- */
-function mFiltered() {
-  return M.filter(MF.pruefe);
-}
-function renderM() {
-  if (!M) { $('#view').innerHTML = '<p class="mute">Lade …</p>'; return; }
-  const list = mFiltered();
-  const firms = [...new Set(M.map((m) => m.firma).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
-  const by = new Map(); list.forEach((m) => { if (!by.has(m.pid)) by.set(m.pid, []); by.get(m.pid).push(m); });
-  const thumb = (m) => m.bild ? `<a class="th" href="api/bild/0/${encodeURIComponent(m.bild)}" data-ansehen="bild" data-name="${esc((m.text || '').slice(0, 60))}" style="background-image:url('api/bild/240/${encodeURIComponent(m.bild)}')" title="Foto öffnen${m.fotos > 1 ? ` (${m.fotos} Fotos)` : ''}" aria-label="Foto"></a>` : '<span class="th">kein Foto</span>';
-  const row = (m) => `<div class="mr ${m.done ? 'done' : m.status}" data-m="${m.id}">
+function mangelKarte(m) {
+  const firms = [...new Set((M || []).map((y) => y.firma).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
+  const thumb = m.bild ? `<a class="th" href="api/bild/0/${encodeURIComponent(m.bild)}" data-ansehen="bild" data-name="${esc((m.text || '').slice(0, 60))}" style="background-image:url('api/bild/240/${encodeURIComponent(m.bild)}')" title="Foto öffnen${m.fotos > 1 ? ` (${m.fotos} Fotos)` : ''}" aria-label="Foto"></a>` : '<span class="th">kein Foto</span>';
+  return `<div class="ml"><div class="mr ${m.done ? 'done' : m.status}" data-m="${m.id}">
       <input type="checkbox" class="ck" data-done ${m.done ? 'checked' : ''} title="${m.done ? 'wieder öffnen' : 'als erledigt abhaken'}" aria-label="erledigt">
-      ${thumb(m)}
-      <div class="tx"><p>${esc(m.text)}</p><small><span class="st ${m.status}">${m.done ? 'erledigt' : m.status === 'ueberfaellig' ? 'überfällig' : 'offen'}</span> · ${esc(m.art_n)} festgestellt ${de(m.datum)}${m.fotos ? ` · ${m.fotos} Foto${m.fotos > 1 ? 's' : ''}` : ''} · ${appLink('bautagebuch', '') ? `<a href="${esc(appLink('bautagebuch', `#projekt=${m.pid}&bericht=${m.rid}`))}">Bericht öffnen →</a>` : ''}</small></div>
+      ${thumb}
+      <div class="tx"><p>${esc(m.text)}</p><small><span class="st ${m.status}">${m.done ? 'erledigt' : m.status === 'ueberfaellig' ? 'überfällig' : 'offen'}</span> · ${esc(m.art_n)} festgestellt ${de(m.datum)}${m.fotos ? ` · ${m.fotos} Foto${m.fotos > 1 ? 's' : ''}` : ''} · ${esc(m.projekt || '')}${appLink('bautagebuch', '') ? ` · <a href="${esc(appLink('bautagebuch', `#projekt=${m.pid}&bericht=${m.rid}`))}">Bericht öffnen →</a>` : ''}</small></div>
       <div class="ed"><label><span>Firma</span><input data-f="firma" value="${esc(m.firma)}" list="firmList" placeholder="wer behebt?"></label>
         <label><span>Frist</span><input type="date" data-f="frist" value="${esc(m.frist)}"></label>
-        <div style="display:flex;gap:.3rem;justify-content:flex-end;flex-wrap:wrap">${[[7, '+1 Woche'], [14, '+2 Wo.']].map(([d, l]) => `<button class="btn sm" data-plus="${d}">${l}</button>`).join('')}<button class="btn sm" data-bph-verlauf="mangel:${m.id}" title="Verlauf dieses Eintrags – frühere Stände ansehen und wiederherstellen">🕘</button>${m.frist && !m.done ? '<button class="btn sm" data-kal title="Frist als Termin in meinen Kalender (Einladung per E-Mail)">📅</button>' : ''}${m.done || m.art !== 'maengel' ? '' : '<button class="btn sm" data-ruege title="Mängelrüge an die Firma als ausfüllbares PDF">✉ Mängelrüge</button>'}</div></div></div>`;
-  $('#view').innerHTML = `<div class="flt"><span class="mute">${list.length} von ${M.length} Einträgen</span><span class="fill"></span>
-      <button class="btn sm" id="mpdf" title="Die angezeigte Liste als PDF – z. B. für eine Firma">🖨 Drucken / PDF</button></div>
-    ${scope === 'mine' && !M.length ? '<div class="note">In „Meine Projekte“ stehen Projekte, bei denen du im Bautagebuch als zuständig eingetragen bist. Oben auf „Alle Projekte“ umschalten, um alles zu sehen.</div>' : ''}
-    ${list.length ? [...by.entries()].map(([pid, ms]) => `<div class="grp">${esc(ms[0].projekt)} <small>${ms.length} ${ms.length === 1 ? 'Eintrag' : 'Einträge'}</small></div><div class="ml">${ms.map(row).join('')}</div>`).join('') : '<div class="empty">Keine Einträge für diese Auswahl.</div>'}
+        <div style="display:flex;gap:.3rem;justify-content:flex-end;flex-wrap:wrap">${[[7, '+1 Woche'], [14, '+2 Wo.']].map(([d, l]) => `<button class="btn sm" data-plus="${d}">${l}</button>`).join('')}${m.frist && !m.done ? '<button class="btn sm" data-kal title="Frist als Termin in meinen Kalender (Einladung per E-Mail)">📅</button>' : ''}${m.done || m.art !== 'maengel' ? '' : '<button class="btn sm" data-ruege title="Mängelrüge an die Firma als ausfüllbares PDF">✉ Mängelrüge</button>'}</div></div></div></div>
     <datalist id="firmList">${firms.map((f) => `<option value="${esc(f)}">`).join('')}</datalist>`;
 }
 async function mSave(id, body, undoBody, label) {
@@ -427,60 +303,27 @@ async function mSave(id, body, undoBody, label) {
   Object.assign(m, body.done !== undefined ? { done: !!body.done } : {}, body.frist !== undefined ? { frist: body.frist } : {}, body.firma !== undefined ? { firma: body.firma } : {});
   const today = iso(new Date()); m.status = m.done ? 'erledigt' : m.frist && m.frist < today ? 'ueberfaellig' : 'offen';
   if (undoBody) undoable(label, () => api('api/maengel/' + id, 'PUT', undoBody));
-  render();
+  AO.neu(); renderTabs();
 }
 
-/* ---------- Erinnerungen ---------- */
 /* Von wem, für wen – bei jeder Erinnerung sichtbar */
 const erWer = (x) => { const v = x.von && !/^(system|automatisch)$/i.test(x.von) ? x.von : ({ plan: 'Bauzeitenplan', bautagebuch: 'Bautagebuch' }[x.quelle] || '');
   return `<span class="wer">${v ? `von <b>${esc(v)}</b>` : ''}${v && x.an.length ? ' → ' : ''}${x.an.length ? `für <b>${esc(x.an.join(', '))}</b>` : ''}</span>`; };
 const SRC = { bautagebuch: ['📒', 'Bautagebuch'], plan: ['📅', 'Bauzeitenplan'], eigen: ['✎', 'von Hand angelegt'] };
 const EAUF = new Set();   // aufgeklappte Erinnerungen
-function renderE() {
-  if (!E) { $('#view').innerHTML = '<p class="mute">Lade …</p>'; return; }
-  const G = [['ueberfaellig', 'Überfällig – noch nicht verschickt'], ['abgelaufen', 'Abgelaufen – neu terminieren oder erledigen'], ['heute', 'Heute'], ['bald', 'Nächste 7 Tage'], ['spaeter', 'Später']];
-  const row = (x) => {
-    const [ic, sn] = SRC[x.quelle] || ['•', ''], link = x.quelle === 'plan' && x.gantt_id ? appLink('gantt', '#plan=' + encodeURIComponent(x.gantt_id)) : x.quelle === 'bautagebuch' && x.rid ? appLink('bautagebuch', `#projekt=${x.pid}&bericht=${x.rid}`) : '';
-    const sent = x.gesendet === 'fehler' ? '⚠ Mail nicht zustellbar – E-Mail-Adresse prüfen' : x.gesendet === 'termin' ? '📅 als Termin verschickt' : x.gesendet ? `Mail am ${de(x.gesendet)} verschickt` : '';
-    const auf = EAUF.has(x.id) || OPEN === x.id, eigen = x.quelle === 'eigen';
-    const ziel = link || x.mail || '';
-    return `<div class="er ${x.lage}${auf ? ' auf' : ''}" data-e="${x.id}" title="${auf ? 'Klick klappt zu' : 'Klick klappt auf'}${ziel ? ' · Doppelklick öffnet ' + (link ? (x.quelle === 'plan' ? 'den Bauzeitenplan' : 'den Bericht') : 'die Mail') : ''}"><span class="ic" title="${sn}">${ic}</span>
-      <div class="tx"><b>${esc(x.titel)}</b>${auf
-        ? (eigen ? `<div class="e-ed"><label>Text<input data-ef="titel" value="${esc(x.titel)}"></label><label>Notiz<textarea data-ef="text" rows="3">${esc(x.text || '')}</textarea></label></div>` : (x.text && (x.quelle !== 'bautagebuch' || x.text.split('\n').length > 1) ? `<p>${esc(x.text)}</p>` : ''))
-          + `<small>${esc([sn, x.projekt, x.firma, sent, x.manuell ? 'von Hand verschoben' : ''].filter(Boolean).join(' · '))}${erWer(x)}${ziel ? ` · <a href="${esc(ziel)}"${x.mail && !link ? ' target="bp-outlook"' : ''}>${link ? (x.quelle === 'plan' ? 'Bauzeitenplan öffnen →' : 'Bericht öffnen →') : 'Mail öffnen →'}</a>` : ''}</small>`
-        : `<small>${esc([x.projekt, x.firma].filter(Boolean).join(' · '))}${erWer(x)}</small>`}${x.vorab && x.status !== 'erledigt' ? `<small class="e-vorab" title="Die Vorab-Erinnerung gehört zu diesem Termin – sie ist kein eigener Eintrag und läuft nicht selbst ab">🔔 ${x.gesendet === 'termin' ? 'als Termin verschickt' : x.gesendet === 'fehler' ? 'Mail nicht zustellbar' : x.gesendet ? 'erinnert am ' + de(x.gesendet) : 'Erinnerung am ' + deW(x.vorab) + (x.uhrzeit ? ', ' + esc(x.uhrzeit) : '')}</small>` : ''}</div>
-      <div class="ac"><span class="dt">${deW(x.datum || x.termin)}${x.uhrzeit && !x.vorab ? ' · ' + esc(x.uhrzeit) : ''}</span><span class="st ${x.lage}">${{ ueberfaellig: 'überfällig', abgelaufen: 'abgelaufen', heute: 'heute', bald: 'bald', spaeter: 'geplant', erledigt: 'erledigt' }[x.lage]}</span>
-      </div>${auf ? `<div class="bt">${x.status === 'erledigt' ? '<button class="btn sm" data-ea="reopen">wieder öffnen</button>' : `${eigen ? '<button class="btn sm pri" data-ea="esave">Speichern</button>' : ''}<button class="btn sm" data-ea="kal" title="Als Termin in meinen Kalender (Einladung per E-Mail)">📅</button><button class="btn sm" data-ea="resch"${x.quelle === 'plan' ? ' title="Tag der Vorab-Erinnerung ändern – der Termin selbst kommt aus dem Bauzeitenplan"' : ''}>${x.quelle === 'plan' ? '🔔 Erinnerung ändern' : 'Neu terminieren'}</button><button class="btn sm" data-ea="done">✓ Erledigt</button>`}${eigen ? '<button class="btn sm danger" data-ea="del" title="Löschen">✕</button>' : ''}</div>` : ''}
-      ${OPEN === x.id ? `<div class="resch">${x.vorab || x.quelle === 'plan' ? 'Erinnern am' : 'Neuer Termin'}: ${[[1, 'morgen'], [3, '+3 Tage'], [7, '+1 Woche'], [0, 'nächster Montag']].map(([d, l]) => `<button class="btn sm" data-rq="${d}">${l}</button>`).join('')}
-        <input type="date" id="rDate" value="${esc(x.termin < iso(new Date()) ? plus(1) : x.termin)}"><input type="time" id="rTime" value="${esc(x.uhrzeit || '08:00')}"><button class="btn sm pri" data-ea="save">Speichern</button><button class="btn sm" data-ea="cancel">Abbrechen</button></div>` : ''}</div>`;
-  };
-  // Gruppieren und sortieren (gemerkt je Gerät)
-  const EV = LS.get('eview', { grp: 'lage', sort: 'termin' }), dir = EV.sort === 'termin_ab' ? -1 : 1;   // „Zeigen“ ist jetzt das Suchfeld links (EF)
-  const tag = (x) => x.datum || x.termin;   // der Tag der Sache (Einsatz laut Plan) – nicht der Tag der Vorab-Erinnerung
-  const key = (x) => ({ termin: tag(x) + (x.uhrzeit || ''), termin_ab: tag(x) + (x.uhrzeit || ''), firma: (x.firma || '~') + tag(x), projekt: (x.projekt || '~') + tag(x), titel: x.titel + tag(x) }[EV.sort] || tag(x)).toLowerCase();
-  const items = E.items.filter((x) => EF.pruefe(x)).slice().sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0) * dir);
-  const open = items.filter((x) => x.status !== 'erledigt'), done = items.filter((x) => x.status === 'erledigt');
-  const gname = (x) => (EV.grp === 'projekt' ? x.projekt || 'ohne Projekt' : EV.grp === 'firma' ? x.firma || 'ohne Firma' : EV.grp === 'gewerk' ? x.gw || 'ohne Gewerk' : EV.grp === 'quelle' ? (SRC[x.quelle] || ['', x.quelle])[1] || x.quelle : '');
-  const groups = () => {
-    if (EV.grp === 'lage') return G.map(([k, l]) => [l, open.filter((x) => x.lage === k)]).filter(([, xs]) => xs.length);
-    if (EV.grp === 'keine') return [['', open]];
-    const m = new Map(); open.forEach((x) => { const n = gname(x); if (!m.has(n)) m.set(n, []); m.get(n).push(x); });
-    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0], 'de'));
-  };
-  const sel = (k, o) => `<select data-ev="${k}">${o.map(([v, l]) => `<option value="${v}"${EV[k] === v ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
-  const bar = `<div class="flt"><label class="mute" style="display:flex;gap:.4rem;align-items:center">Gruppieren ${sel('grp', [['lage', 'nach Fälligkeit'], ['projekt', 'nach Projekt'], ['firma', 'nach Firma'], ['gewerk', 'nach Gewerk'], ['quelle', 'nach Herkunft'], ['keine', 'nicht gruppieren']])}</label>
-    <label class="mute" style="display:flex;gap:.4rem;align-items:center">Sortieren ${sel('sort', [['termin', 'Termin aufsteigend'], ['termin_ab', 'Termin absteigend'], ['firma', 'Firma'], ['projekt', 'Projekt'], ['titel', 'Text']])}</label>
-    </div>`;
-  $('#view').innerHTML = (E.mail ? '' : `<div class="note">Der Mailserver ist noch nicht eingerichtet – Erinnerungen werden hier angezeigt, aber nicht per E-Mail verschickt. ${appLink('admin', '') ? `<a href="${esc(appLink('admin', '#einstellungen-mail'))}">Verwaltung → Einstellungen → Mailserver</a>` : ''}</div>`)
-    + bar
-    + (open.length ? (() => {   // Gruppen als verschiebbare Blöcke (wie die Übersicht)
-        const IC = { ueberfaellig: ['!', '#c8372a'], abgelaufen: ['⌛', '#777'], heute: ['⏰', '#e07b3a'], bald: ['📅', '#3a7bd5'], spaeter: ['📅', '#50808e'] };
-        const B = groups().map(([l, xs]) => { const lage = EV.grp === 'lage' ? (G.find(([, n]) => n === l) || [''])[0] : ''; return { k: 'e:' + (lage || l.toLowerCase().replace(/[^a-z0-9äöü]+/g, '-')), name: l || 'Erinnerungen', n: xs.length, rot: lage === 'ueberfaellig' || xs.some((x) => x.lage === 'ueberfaellig'), ic: IC[lage] || ['⏰', '#c8372a'], items: xs.map((x) => `<div class="ml">${row(x)}</div>`), max: 1e9 }; });
-        UE._B = B;
-        return `<div class="ue-grid zwei">${ueSort(B).map(ueBlockHtml).join('')}</div>`; })()
-      : '<div class="empty">Keine offenen Erinnerungen. Erinnerungen entstehen aus Erledigungsdaten im Bautagebuch, aus den Bauzeitenplänen (wenn eine Firma zur Baustelle muss) oder mit „+ Erinnerung“.</div>')
-    + (done.length ? `<details class="done-l" style="margin-top:1rem"><summary>Erledigt (${done.length})</summary><div class="ml">${done.map(row).join('')}</div></details>` : '')
-    + `<p class="mute" style="font-size:.82rem;margin-top:1.4rem">📒 aus dem Bautagebuch (Erledigungsdatum, Mail am Fälligkeitstag) · 📅 aus den Bauzeitenplänen: Firma kommt zum ersten Mal oder wieder auf die Baustelle – Erinnerung ${CFG ? CFG.vorlauf : 7} Tage vorher · ✎ eigene. Abgelaufene lassen sich neu terminieren.</p>`;
+function erinKarte(x) {   // eine Erinnerung im „Vorgang“: aufgeklappt mit Text, Neu terminieren, Erledigt
+  EAUF.add(x.id);
+  const [ic, sn] = SRC[x.quelle] || ['•', ''], link = x.quelle === 'plan' && x.gantt_id ? appLink('gantt', '#plan=' + encodeURIComponent(x.gantt_id)) : x.quelle === 'bautagebuch' && x.rid ? appLink('bautagebuch', `#projekt=${x.pid}&bericht=${x.rid}`) : '';
+  const sent = x.gesendet === 'fehler' ? '⚠ Mail nicht zustellbar – E-Mail-Adresse prüfen' : x.gesendet === 'termin' ? '📅 als Termin verschickt' : x.gesendet ? `Mail am ${de(x.gesendet)} verschickt` : '';
+  const eigen = x.quelle === 'eigen', ziel = link || x.mail || '';
+  return `<div class="ml"><div class="er ${x.lage} auf" data-e="${x.id}"><span class="ic" title="${sn}">${ic}</span>
+    <div class="tx"><b>${esc(x.titel)}</b>${eigen ? `<div class="e-ed"><label>Text<input data-ef="titel" value="${esc(x.titel)}"></label><label>Notiz<textarea data-ef="text" rows="3">${esc(x.text || '')}</textarea></label></div>` : (x.text ? `<p>${esc(x.text)}</p>` : '')}
+      <small>${esc([sn, x.projekt, x.firma, sent, x.manuell ? 'von Hand verschoben' : ''].filter(Boolean).join(' · '))}${erWer(x)}${ziel ? ` · <a href="${esc(ziel)}"${x.mail && !link ? ' target="bp-outlook"' : ''}>${link ? (x.quelle === 'plan' ? 'Bauzeitenplan öffnen →' : 'Bericht öffnen →') : 'Mail öffnen →'}</a>` : ''}</small>
+      ${x.vorab && x.status !== 'erledigt' ? `<small class="e-vorab" title="Die Vorab-Erinnerung gehört zu diesem Termin – sie ist kein eigener Eintrag und läuft nicht selbst ab">🔔 ${x.gesendet === 'termin' ? 'als Termin verschickt' : x.gesendet === 'fehler' ? 'Mail nicht zustellbar' : x.gesendet ? 'erinnert am ' + de(x.gesendet) : 'Erinnerung am ' + deW(x.vorab) + (x.uhrzeit ? ', ' + esc(x.uhrzeit) : '')}</small>` : ''}</div>
+    <div class="ac"><span class="dt">${deW(x.datum || x.termin)}${x.uhrzeit && !x.vorab ? ' · ' + esc(x.uhrzeit) : ''}</span><span class="st ${x.lage}">${{ ueberfaellig: 'überfällig', abgelaufen: 'abgelaufen', heute: 'heute', bald: 'bald', spaeter: 'geplant', erledigt: 'erledigt' }[x.lage]}</span></div>
+    <div class="bt">${x.status === 'erledigt' ? '<button class="btn sm" data-ea="reopen">wieder öffnen</button>' : `${eigen ? '<button class="btn sm pri" data-ea="esave">Speichern</button>' : ''}<button class="btn sm" data-ea="kal" title="Als Termin in meinen Kalender (Einladung per E-Mail)">📅</button><button class="btn sm" data-ea="resch"${x.quelle === 'plan' ? ' title="Tag der Vorab-Erinnerung ändern – der Termin selbst kommt aus dem Bauzeitenplan"' : ''}>${x.quelle === 'plan' ? '🔔 Erinnerung ändern' : 'Neu terminieren'}</button><button class="btn sm" data-ea="done">✓ Erledigt</button>`}${eigen ? '<button class="btn sm danger" data-ea="del" title="Löschen">✕</button>' : ''}</div>
+    ${OPEN === x.id ? `<div class="resch">${x.vorab || x.quelle === 'plan' ? 'Erinnern am' : 'Neuer Termin'}: ${[[1, 'morgen'], [3, '+3 Tage'], [7, '+1 Woche'], [0, 'nächster Montag']].map(([d, l]) => `<button class="btn sm" data-rq="${d}">${l}</button>`).join('')}
+      <input type="date" id="rDate" value="${esc(x.termin < iso(new Date()) ? plus(1) : x.termin)}"><input type="time" id="rTime" value="${esc(x.uhrzeit || '08:00')}"><button class="btn sm pri" data-ea="save">Speichern</button><button class="btn sm" data-ea="cancel">Abbrechen</button></div>` : ''}</div></div>`;
 }
 async function kalender(id) {   // Einladung an mich – „Annehmen“ trägt den Termin in Outlook & Co. ein
   try { const r = await api('api/kalender', 'POST', { id }); toast(`Termin an ${r.an} geschickt – in der E-Mail „Annehmen“ wählen.`); } catch (e) { toast(e.message, true); }
@@ -497,7 +340,7 @@ document.addEventListener('click', async (e) => {
   const sc = e.target.closest('[data-scope]'); if (sc) { scope = sc.dataset.scope; LS.set('scope', scope); M = null; E = null; T = null; render(); reload(); return; }
   const ts = e.target.closest('[data-tset]'); if (ts) { tSet(ts.closest('[data-tid]').dataset.tid, ts.dataset.tset); return; }
   const tr = e.target.closest('[data-truege]'); if (tr) { truegeDialog(tr.dataset.truege); return; }
-  if (e.target.id === 'mpdf') { const ids = mFiltered().map((m) => m.id); if (!ids.length) return toast('Keine Einträge in der Liste.', true); const ti = ['Mängelliste', MF.wert('firma'), MF.wert('projekt')].filter(Boolean).join(' – '); window.open(`api/maengel.pdf?ids=${ids.join(',')}&titel=${encodeURIComponent(ti)}`, '_blank'); return; }
+  if (e.target.id === 'mpdf') { const ids = AO.mangelIds(); if (!ids.length) return toast('Keine Mängel in der Liste.', true); const ti = ['Mängelliste', AF.wert('firma'), AF.wert('projekt')].filter(Boolean).join(' – '); window.open(`api/maengel.pdf?ids=${ids.join(',')}&titel=${encodeURIComponent(ti)}`, '_blank'); return; }
   const mr = e.target.closest('[data-m]');
   if (mr) {
     const id = +mr.dataset.m, m = M.find((x) => x.id === id);
@@ -507,17 +350,14 @@ document.addEventListener('click', async (e) => {
     return;
   }
   const er = e.target.closest('[data-e]'), ea = e.target.closest('[data-ea]'), rq = e.target.closest('[data-rq]');
-  if (er && !ea && !rq && e.detail < 2 && !e.target.closest('a,input,textarea,select,button,.resch')) {   // Klick auf die Zeile: auf-/zuklappen
-    const id = er.dataset.e; if (EAUF.has(id)) { EAUF.delete(id); if (OPEN === id) OPEN = null; } else EAUF.add(id); renderE(); return;
-  }
   if (er && rq) { $('#rDate').value = +rq.dataset.rq ? plus(+rq.dataset.rq) : nextMon(); return; }
   if (er && ea) {
     const id = er.dataset.e, x = E.items.find((y) => y.id === id), a = ea.dataset.ea;
     if (a === 'kal') { kalender(id); return; }
     if (a === 'esave') { const t = er.querySelector('[data-ef="titel"]').value.trim(), tx = er.querySelector('[data-ef="text"]').value; if (!t) return toast('Bitte einen Text eingeben.', true);
       await eSave(id, { titel: t, text: tx }, { titel: x.titel, text: x.text }, 'Erinnerung geändert'); EAUF.delete(id); return; }
-    if (a === 'resch') { OPEN = id; renderE(); $('#rDate').focus(); return; }
-    if (a === 'cancel') { OPEN = null; renderE(); return; }
+    if (a === 'resch') { OPEN = id; AO.neu(); $('#rDate').focus(); return; }
+    if (a === 'cancel') { OPEN = null; AO.neu(); return; }
     if (a === 'save') { const d = $('#rDate').value, tm = $('#rTime').value; if (!d) return toast('Bitte ein Datum wählen.', true); await eSave(id, { termin: d, uhrzeit: tm }, { termin: x.termin, uhrzeit: x.uhrzeit }, 'Neuer Termin'); toast(`Neu terminiert auf ${deW(d)} ${tm}.`); return; }
     if (a === 'done') { await eSave(id, { status: 'erledigt' }, { status: 'offen' }, 'Erledigt'); if (x.quelle === 'bautagebuch') toast('Im Bautagebuch als erledigt abgehakt.'); return; }
     if (a === 'reopen') { await eSave(id, { status: 'offen' }, { status: 'erledigt' }, 'Wieder öffnen'); return; }
@@ -528,10 +368,9 @@ document.addEventListener('dblclick', (e) => {   // Doppelklick auf eine Erinner
   const er = e.target.closest && e.target.closest('.er[data-e]'); if (!er || e.target.closest('a,input,textarea,select,button')) return;
   const a = er.querySelector('.tx small a[href]');
   if (a) { if (a.target) window.open(a.href, a.target); else location.href = a.href; return; }
-  EAUF.add(er.dataset.e); renderE(); const f = document.querySelector(`.er[data-e="${CSS.escape(er.dataset.e)}"] [data-ef="titel"]`); if (f) f.focus();
+  const f = er.querySelector('[data-ef="titel"]'); if (f) f.focus();
 });
 document.addEventListener('change', (e) => {
-  if (e.target.dataset.ev) { const EV = LS.get('eview', { grp: 'lage', sort: 'termin', q: 'alle' }); EV[e.target.dataset.ev] = e.target.value; LS.set('eview', EV); renderE(); return; }
   const el = e.target;
   const mr = el.closest('[data-m]'); if (!mr) return;
   const id = +mr.dataset.m, m = M.find((x) => x.id === id);
@@ -844,7 +683,7 @@ function neuWahl() {
     if (m === 'x') { close(); return; }
     close();
     if (m === 'erinnerung') neueErinnerung();
-    else if (m === 'aufgabe') { tab = 'todos'; LS.set('tab', tab); location.hash = 'todos'; reload().then(() => { const i = $('#tdNeu'); if (i) i.focus(); }); }
+    else if (m === 'aufgabe') { if (tab !== 'offen') zuTab('offen'); setTimeout(() => { const i = $('#tdNeu'); if (i) i.focus(); }, 50); }
     else if (m === 'm4' || m === 'm13') ruegeNeu(m === 'm4' ? 'vob4' : 'vob13');
     else if (m === 'termin') terminNeu();
     else if (PV.neuArten[m]) PV.neuArten[m]({});
@@ -935,7 +774,7 @@ async function neueErinnerung() {
     if (m === 'ok') {
       const b = { titel: bg.querySelector('#nT').value, text: bg.querySelector('#nX').value, termin: bg.querySelector('#nD').value, uhrzeit: bg.querySelector('#nZ').value,
         pid: +bg.querySelector('#nP').value || null, an: [...bg.querySelectorAll('[data-u]:checked')].map((x) => +x.dataset.u) };
-      try { const rr = await api('api/erinnerungen', 'POST', b); close(); toast('Erinnerung gespeichert.' + (rr.hinweis ? ' ' + rr.hinweis : '')); tab = 'erinnerungen'; history.replaceState(null, '', '#erinnerungen'); await reload(); } catch (e) { toast(e.message, true); }
+      try { const rr = await api('api/erinnerungen', 'POST', b); close(); toast('Erinnerung gespeichert.' + (rr.hinweis ? ' ' + rr.hinweis : '')); if (tab !== 'offen') zuTab('offen'); else await reload(); } catch (e) { toast(e.message, true); }
     }
   });
 }
@@ -965,23 +804,23 @@ async function setDialog(host) {
   BPHead.appEinstellungen([{ key: 'todo', label: 'To-dos', render: (h) => tdEinstellungen(h) }, { key: 'erinnerungen', label: 'Erinnerungen', render: (h) => setDialog(h) }]);   // Druck-Layouts: nur in der Verwaltung
   try { CFG = await api('api/einstellungen'); } catch { /* egal */ }
   const deep = /^(mangel|erinnerung)-(\d+)$/.exec(tab);   // Link aus einer E-Mail: direkt zum Eintrag
-  if (deep) { tab = deep[1] === 'mangel' ? 'maengel' : 'erinnerungen'; scope = 'all'; history.replaceState(null, '', '#' + tab); }
-  if (PV.ausHash()) { tab = 'post'; history.replaceState(null, '', '#post'); }   // Verlauf: #art=…, #v=…, #kontakt=…, #post (früher die App Kommunikation)
-  const tdDeep = /^todos&t=(\d+)$/.exec(tab);   // von der Startseite: eine eigene Aufgabe gleich zum Bearbeiten öffnen
-  if (tdDeep) { tab = 'todos'; history.replaceState(null, '', '#todos'); }
-  if (!['uebersicht', 'todos', 'maengel', 'termine', 'erinnerungen', 'post', ...(ME && ME.is_admin ? ['bauplattform'] : [])].includes(tab)) tab = 'uebersicht';
-  const gp = !deep && BPHead.projektId();   // Projekt aus der zuletzt benutzten App: Mängel dieses Projekts (Filter „Alle Projekte“ hebt das auf)
-  renderTabs(); ladeBriefe(); if (tab === 'todos') render(); await reload(tab === 'erinnerungen' || tab === 'uebersicht');
-  if (tdDeep && TD) { const x = (TD.manuell || []).find((y) => String(y.id) === tdDeep[1]); if (x) { TDOFFEN = x.key; tdZeigen(); const el = $('#todo .te'); if (el) el.scrollIntoView({ block: 'center' }); } }
-  if (tab !== 'todos' && tab !== 'uebersicht') tdRef().then(tdLaden).then(renderTabs).catch(() => {});
-  if (gp && M) { const m = M.find((x) => x.pid === gp); if (m) MF.setzen('projekt', m.projekt); else MF.weg('projekt'); }   // Projekt aus der zuletzt benutzten App als Filter
-  if (deep) zeige(deep[1], deep[2]);
+  if (deep) scope = 'all';
+  if (PV.ausHash()) tab = 'post';   // Verlauf: #art=…, #v=…, #kontakt=…, #post (früher die App Kommunikation)
+  const tdDeep = new URLSearchParams((location.hash || '').slice(1)).get('t');   // von der Startseite: eine eigene Aufgabe gleich zum Bearbeiten öffnen (#todos&t=…)
+  /* alte Adressen (#uebersicht, #todos, #maengel, #termine, #erinnerungen) landen in „Alles offen“ – mit der passenden Auswahl oben in der Liste */
+  const START = { todos: 'aufgabe', maengel: 'mangel', termine: 'termin', erinnerungen: 'erinnerung', uebersicht: 'alle' }[tab] || (deep ? 'alle' : '');
+  if (!['post', ...(ME && ME.is_admin ? ['bauplattform'] : [])].includes(tab)) tab = 'offen';
+  history.replaceState(null, '', '#' + tab);
+  if (START) { TDZU.filter = START; try { localStorage.setItem(TDZU.ls, START); } catch { /* egal */ } }
+  renderTabs(); ladeBriefe(); await reload(true);
+  if (tdDeep && TD) { const x = (TD.manuell || []).find((y) => String(y.id) === tdDeep); if (x) { TDOFFEN = x.key; tdZeigen(); const el = $('#todo .te'); if (el) el.scrollIntoView({ block: 'center' }); } }
+  if (deep) AO.waehle((deep[1] === 'mangel' ? 'm:' : 'e:r') + deep[2], true);
   if (HASH.get('rsuche')) {   // aus dem Suchfeld der Kopfleiste (bp/suche.js): Vorschlag liegt in der Sitzung
-    history.replaceState(null, '', '#maengel'); let rs = null; try { rs = JSON.parse(sessionStorage.getItem('bpRuegeSuche') || 'null'); sessionStorage.removeItem('bpRuegeSuche'); } catch { /* egal */ }
+    history.replaceState(null, '', '#' + tab); let rs = null; try { rs = JSON.parse(sessionStorage.getItem('bpRuegeSuche') || 'null'); sessionStorage.removeItem('bpRuegeSuche'); } catch { /* egal */ }
     if (rs) ruegeAusSuche(rs);
   }
   if (HASH.get('mruege')) {   // aus „Adressen“ → E-Mail → Mängelrüge an diese Firma
-    const [mp, ...mf] = HASH.get('mruege').split('|'); history.replaceState(null, '', '#maengel');
+    const [mp, ...mf] = HASH.get('mruege').split('|'); history.replaceState(null, '', '#' + tab);
     ruegeDialog(null, { pid: +mp, firma: mf.join('|') });
   }
   if (window.BPHead) Object.assign(BPHead.neuArten, { m4: (d) => ruegeNeu('vob4', d), m13: (d) => ruegeNeu('vob13', d), termin: (d) => terminNeu(d) }, PV.neuArten);   // „＋ Neu“: Rügen, Nachricht, Vorgang, Abnahme, Datei öffnet diese App selbst
@@ -989,8 +828,8 @@ async function setDialog(host) {
     const n = HASH.get('neu'), mit = (window.BPHead && BPHead.neuUebergabe && BPHead.neuUebergabe()) || {}; history.replaceState(null, '', '#' + tab);
     if (n === 'm4' || n === 'm13') ruegeNeu(n === 'm4' ? 'vob4' : 'vob13', mit); else if (n === 'termin') terminNeu(mit); else if (PV.neuArten[n]) setTimeout(() => PV.neuArten[n](mit), 300);
   }
-  if (tab === 'termine' && (HASH.get('ruege') || HASH.get('gid'))) {   // aus To-do oder Bauzeitenplan: Terminrüge gleich öffnen
-    history.replaceState(null, '', '#termine');
+  if (TAB0 === 'termine' && (HASH.get('ruege') || HASH.get('gid'))) {   // aus To-do oder Bauzeitenplan: Terminrüge gleich öffnen
+    history.replaceState(null, '', '#' + tab);
     if (HASH.get('ruege')) truegeDialog(HASH.get('ruege'));
     else {
       try {
@@ -1000,15 +839,14 @@ async function setDialog(host) {
       } catch (er) { toast(er.message, true); }
     }
   }
-  if (tab !== 'erinnerungen') api('api/erinnerungen?scope=' + scope + '&abgleich=1').then((r) => { E = r; renderTabs(); }).catch(() => {});
-  if (tab !== 'maengel') api('api/maengel?scope=' + scope).then((r) => { M = r; renderTabs(); }).catch(() => {});
-  if (tab !== 'termine') api('api/termine?scope=' + scope).then((r) => { T = r; renderTabs(); }).catch(() => {});
+  if (tab !== 'offen') tdRef().then(tdLaden).then(renderTabs).catch(() => {});   // Zahl an „Alles offen“
   BPHead.live(['items', 'todo', 'erinnerungen', 'kom_vorgang', 'planversand'], async () => { await reload(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
   if (BPHead.beiProjektWahl) BPHead.beiProjektWahl(() => { if (tab === 'post') PV.projektNeu(); });
   addEventListener('hashchange', () => {   // Link innerhalb der Seite (z. B. „↗ Mängel öffnen“ im Verlauf, #v=… einer Abnahme)
     const t = (location.hash || '').slice(1).split('&')[0];
     if (PV.ausHash()) { if (tab !== 'post') zuTab('post'); else PV.laden(); history.replaceState(null, '', '#post'); return; }
-    if (['uebersicht', 'todos', 'maengel', 'termine', 'erinnerungen'].includes(t) && t !== tab) zuTab(t);
+    const f = { offen: '', uebersicht: 'alle', todos: 'aufgabe', maengel: 'mangel', termine: 'termin', erinnerungen: 'erinnerung' }[t];
+    if (f != null) { if (f) TDZU.filter = f; if (tab !== 'offen') zuTab('offen'); else { history.replaceState(null, '', '#offen'); AO.neu(); } }
   });
 })().catch((e) => toast(e.message, true));
 </script>

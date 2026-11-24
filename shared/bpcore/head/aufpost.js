@@ -1,8 +1,8 @@
 /* Navigation von „Post & Vorgänge“ (App aufgaben) – Offen, Verlauf nach Art, Mit wem; eine Seite, kein Wechsel der Adresse.
    Bis 24.11.2026 gemeinsam für zwei Apps (Aufgaben und Kommunikation); seitdem ist der Verlauf Teil derselben Seite.
    bpAufPost(el, o)
-     o.aktiv    id des gewählten Punkts: 'o:<tab>' (Offen), 'v:' bzw. 'v:<art>' (Verlauf), 'w:<k>' (Mit wem)
-     o.offen    { uebersicht, todos, maengel, termine, erinnerungen } – Zahlen
+     o.aktiv    id des gewählten Punkts: 'o:offen' (Alles offen), 'v:' bzw. 'v:<art>' (Verlauf), 'w:<k>' (Mit wem)
+     o.offen    { offen } – Zahl (fällig); seit Etappe 2 (24.11.2026, PV-4 B) gibt es keine eigenen Seiten Mängel, Termine, Erinnerungen, To-dos mehr
      o.offenTip { … } – was die Zahl zählt (Tooltip), z. B. „fällig – offen insgesamt: 26“
      o.arten    [{ key, name, n }] – Arten im Verlauf mit Zahl (null: noch nicht geladen → Arten ohne Zahl)
      o.mitwem   [{ name, n, tip }] – Kontakte im Verlauf
@@ -11,10 +11,9 @@
      o.filter   bpFilter(…) bzw. { einhaengen(el) } – Suchfeld oben in der Navigation (optional) */
 (() => {
   if (window.bpAufPost) return;
-  const IC = { uebersicht: '<path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/>', todos: '<path d="M4 6h2M4 12h2M4 18h2M9 6h11M9 12h11M9 18h11"/>',
-    maengel: '<path d="M12 3l10 18H2zM12 10v5M12 18v.5"/>', termine: '<path d="M4 5h16v15H4zM4 9h16M8 3v4M16 3v4"/>', erinnerungen: '<circle cx="12" cy="13" r="7"/><path d="M12 9v4l2 2M5 4l3 2M19 4l-3 2"/>',
+  const IC = { offen: '<path d="M4 6h2M4 12h2M4 18h2M9 6h11M9 12h11M9 18h11"/>',
     post: '<path d="M3 6h18v12H3z"/><path d="M3 7l9 6 9-6"/>', person: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>' };
-  const OFFEN = [['uebersicht', 'Übersicht'], ['todos', 'To-dos'], ['maengel', 'Mängel & Weisungen'], ['termine', 'Termine & Verzug'], ['erinnerungen', 'Erinnerungen']];
+  const OFFEN = [['offen', 'Alles offen']];
   const ARTEN = [['planversand', 'Planversand'], ['maengelruege', 'Mängelrüge'], ['terminruege', 'Terminrüge'], ['nachricht', 'Nachricht'], ['vorgang', 'Vorgang']];   // solange der Verlauf noch nicht geladen ist
   window.bpAufPost = function (el, o) {
     const G = [{ titel: 'Offen', punkte: OFFEN.map(([k, t]) => ({ id: 'o:' + k, text: t, icon: IC[k], farbe: 'var(--af-aufgaben)', zahl: o.offen && o.offen[k] ? String(o.offen[k]) : '', zahlTip: (o.offenTip && o.offenTip[k]) || '' })) }];

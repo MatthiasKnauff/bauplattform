@@ -8,6 +8,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Seite „Ablauf“ auch für Einheiten** (Kisten „Gebäude / Allgemein“, „Einheit 1“, „Einheit 2“ mit Takt-Pfeilen) – Fragen offen, Mock folgt **ca. 30 min**
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; 3D-Auswahl später) – B erledigt durch das Raumbuch (17.11.: Gruppen, abweichender Raum eigene Zeile) **ca. 1,5 h**
+- ~~Post & Vorgänge, Etappe 2: „Alles offen“ statt der Seiten Übersicht, To-dos, Mängel, Termine, Erinnerungen; rechts der Vorgang, darunter „Zuletzt verschickt“ (24.11.2026)~~
 - ~~Leistungskatalog „Abhängigkeiten“: Liste links mit allen Abschnitten, nichts springt beim Klick, schmale Fenster nicht mehr gequetscht~~ (24.11.2026)
 - ~~Post & Vorgänge, Etappe 1: Aufgaben & Post und Kommunikation als eine App, eine Seite, ohne Neuladen; Container „kommunikation“ entfällt, alte Adressen leiten weiter (24.11.2026)~~
 - ~~Bautagebuch: eigenes Projekt-Auswahlfenster entfernt – Projekte (auch „aus Ordner anlegen“) wie in allen Apps über die gemeinsame Projektauswahl (24.11.2026)~~
@@ -77,7 +78,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
-- Post & Vorgänge (GO 24.11.2026, Mock PV-1 … PV-10): Etappe 1 eine App ✓ · 2 „Alles offen“ statt der einzelnen Seiten Mängel/Termine/Erinnerungen/To-dos (PV-4 B), Verlauf darunter, rechts der Vorgang – ca. 90 min · 3 Rügen ↔ Mängel ↔ Bautagebuch ↔ PDF – ca. 60 min · 4 Planversand als Vorgang, Spalte „Verschickt“ in der Planliste – ca. 75 min · 5 Skizzen als Vorgang – ca. 60 min · 6 Eingang im Verlauf – ca. 60 min
+- Post & Vorgänge (GO 24.11.2026, Mock PV-1 … PV-10): Etappe 1 eine App ✓ · 2 „Alles offen“ ✓ · 3 Rügen ↔ Mängel ↔ Bautagebuch ↔ PDF – ca. 60 min · 4 Planversand als Vorgang, Spalte „Verschickt“ in der Planliste – ca. 75 min · 5 Skizzen als Vorgang – ca. 60 min · 6 Eingang im Verlauf – ca. 60 min
 - Gebäudemodell neu (GO 22.11.2026): Etappe 1 Typen im Kern ✓ · 2 Typen in der Oberfläche ✓ · 3 Kurzwahl ✓ · 4 Arbeitsstand + Versionen ✓ · 5 ohne Arbeitsmaske ✓ (offen: L/U-Treppen im 3D, „offen bis unters Dach“ in den Mengen, Deckenloch im 3D – ca. 1 h) · 6 Positionen hinaus **ca. 1,5 h** · 7 Aufräumen **ca. 2 h**
 - Aufräumen: Sahne, Fehler an der Wurzel, toter Code (tools/tot)
 - U-Wert-Färbung wählbar: GModG · BEG-Einzelmaßnahmen · Effizienzhaus (Recherche + Mock)

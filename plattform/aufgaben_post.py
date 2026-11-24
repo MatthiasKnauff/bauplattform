@@ -155,7 +155,7 @@ def eingabe(bid):
 
 
 @app.get("/api/kom/<int:bid>/pdf")
-def ruege_pdf(bid):
+def kom_ruege_pdf(bid):
     """Das verschickte PDF aus dem Projektordner. Liegt es nicht dort (Testserver), 404 mit „neu“ – die Seite druckt es aus den Eingaben."""
     with db.tx() as c:
         x = _ruege(c, bid)

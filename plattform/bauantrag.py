@@ -514,13 +514,14 @@ def formular_loeschen(fid):
 @app.get("/api/formulare/<int:fid>/datei")
 def formular_datei(fid):
     with db.tx() as c:
-        r = c.execute("SELECT nr, titel, url, daten FROM bauantrag_formular WHERE id=?", (fid,)).fetchone()
+        r = c.execute("SELECT nr, titel, url, daten, datei_ref FROM bauantrag_formular WHERE id=?", (fid,)).fetchone()
+        r = BF.mit_daten(c, r) if r else None
     if not r:
         return jsonify(error="Formular nicht gefunden."), 404
     if r["daten"] is None:
         return redirect(r["url"])
     fn = f"Anlage {r['nr'].replace('/', '-')} {r['titel']}"[:120].strip() + ".pdf"
-    return Response(bytes(r["daten"]), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib.parse.quote(fn)}"})
+    return Response(r["daten"], mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib.parse.quote(fn)}"})
 
 
 import bauantrag_paket   # noqa: E402,F401 – Antragspaket: Vordrucke wählen, eigene Unterlagen, Platzieren (Routen /api/…/paket, /unterlagen, /platzierung)

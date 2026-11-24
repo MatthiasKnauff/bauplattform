@@ -1,7 +1,7 @@
 """Rechentests Bauantrag: Anlagen der NRW-Seite erkennen (zwei Links je Anlage, Titel, Nummer), Fassung aus der Adresse, nur sichere Adressen."""
 from lib import gleich, mini_pdf, pruefe
 
-from bpcore import bauantrag_formulare as BF
+from bpcore import bauantrag_formulare as BF, dateien
 
 SEITE = """<div id="attachments">
 <a href="/system/files/2026-08/smbl_23210_20000308_a_anlage1.1.pdf">(Anlage I/1 Baugenehmigungsverfahren § 65 BauO NRW 2018)</a>
@@ -102,8 +102,12 @@ def test_portal_umgebaut_nichts_entfallen():
             st = [r["status"] for r in c.execute("SELECT status FROM bauantrag_formular WHERE land=?", (land,)).fetchall()]
             gleich(st.count("entfallen"), 0, "nichts entfallen")
             pruefe(any(l == land for l, _ in BF.kaputt(c)), "als „Portal nicht lesbar“ gemerkt")
-            fid = BF.hochladen(c, land, "I/9", "Eigenes", mini_pdf("test"), "test")
-            pruefe(c.execute("SELECT daten FROM bauantrag_formular WHERE id=?", (fid,)).fetchone()["daten"] is not None, "selbst hochgeladen")
+            roh = mini_pdf("test")
+            fid = BF.hochladen(c, land, "I/9", "Eigenes", roh, "test")
+            r = c.execute("SELECT daten, datei_ref FROM bauantrag_formular WHERE id=?", (fid,)).fetchone()
+            pruefe(BF.mit_daten(c, r)["daten"] == roh, "selbst hochgeladen – lesbar, gleich wo es liegt")
+            if dateien.an(c):   # Dateispeicher an: der Vordruck liegt nicht als Datei in der Datenbank
+                pruefe(r["daten"] is None and r["datei_ref"], "Vordruck im Dateispeicher, nicht in der Datenbank")
     finally:
         with db.tx() as c:
             c.execute("DELETE FROM bauantrag_formular WHERE land=?", (land,))

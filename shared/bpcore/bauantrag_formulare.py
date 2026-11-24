@@ -17,6 +17,8 @@ import urllib.parse
 import urllib.request
 from datetime import datetime
 
+from . import dateien
+
 LAENDER = {"BW": "Baden-Württemberg", "BY": "Bayern", "BE": "Berlin", "BB": "Brandenburg", "HB": "Bremen", "HH": "Hamburg", "HE": "Hessen",
            "MV": "Mecklenburg-Vorpommern", "NI": "Niedersachsen", "NW": "Nordrhein-Westfalen", "RP": "Rheinland-Pfalz", "SL": "Saarland",
            "SN": "Sachsen", "ST": "Sachsen-Anhalt", "SH": "Schleswig-Holstein", "TH": "Thüringen"}
@@ -152,9 +154,10 @@ def pruefen(c_fn, land="NW", wer="dienste"):
             except Exception as e:   # noqa: BLE001 – einzelnes PDF nicht ladbar: Eintrag trotzdem führen
                 erg["fehler"] = (erg["fehler"] + f" {a['nr'] or a['titel']}: {e}")[:300]
         with c_fn() as c:
+            roh, ref = dateien.werte(c, daten) if daten else (None, None)   # Vordruck in den Dateispeicher des Kerns
             if not x:
-                c.execute("""INSERT INTO bauantrag_formular(land, schluessel, nr, titel, url, sha256, groesse, daten, fassung, status)
-                             VALUES(?,?,?,?,?,?,?,?,?,?)""", (land, a["schluessel"], a["nr"], a["titel"][:300], a["url"], sha, groesse, daten, fassung, "aktuell" if erst else "neu"))
+                c.execute("""INSERT INTO bauantrag_formular(land, schluessel, nr, titel, url, sha256, groesse, daten, datei_ref, fassung, status)
+                             VALUES(?,?,?,?,?,?,?,?,?,?,?)""", (land, a["schluessel"], a["nr"], a["titel"][:300], a["url"], sha, groesse, roh, ref, fassung, "aktuell" if erst else "neu"))
                 if not erst:
                     erg["neu"].append(a)
             else:
@@ -163,8 +166,10 @@ def pruefen(c_fn, land="NW", wer="dienste"):
                 if anders:
                     erg["geaendert"].append(a)
                 c.execute("""UPDATE bauantrag_formular SET nr=?, titel=?, url=?, sha256=COALESCE(NULLIF(?, ''), sha256), groesse=CASE WHEN ? > 0 THEN ? ELSE groesse END,
-                             daten=COALESCE(?, daten), fassung=CASE WHEN ? THEN ? ELSE fassung END, status=?, geaendert=CASE WHEN ? THEN ? ELSE geaendert END WHERE id=?""",
-                          (a["nr"], a["titel"][:300], a["url"], sha, groesse, groesse, daten, bool(anders), fassung, st, bool(anders), _jetzt(), x["id"]))
+                             daten=CASE WHEN ? THEN ? ELSE daten END, datei_ref=CASE WHEN ? THEN ? ELSE datei_ref END,
+                             fassung=CASE WHEN ? THEN ? ELSE fassung END, status=?, geaendert=CASE WHEN ? THEN ? ELSE geaendert END WHERE id=?""",
+                          (a["nr"], a["titel"][:300], a["url"], sha, groesse, groesse, bool(daten), roh, bool(daten), ref,
+                           bool(anders), fassung, st, bool(anders), _jetzt(), x["id"]))
     if A:
         neu_keys = {a["schluessel"] for a in A}
         with c_fn() as c:
@@ -183,7 +188,7 @@ def pruefen(c_fn, land="NW", wer="dienste"):
 
 def liste(c, land):
     F = [{**dict(r), "hat_datei": bool(r["hat"])} for r in c.execute(
-        """SELECT id, nr, titel, url, groesse, fassung, status, gefunden, geaendert, daten IS NOT NULL AS hat FROM bauantrag_formular
+        """SELECT id, nr, titel, url, groesse, fassung, status, gefunden, geaendert, (daten IS NOT NULL OR datei_ref IS NOT NULL) AS hat FROM bauantrag_formular
            WHERE land=? ORDER BY status='entfallen', CASE WHEN nr ~ '^II' THEN 2 WHEN nr ~ '^I' THEN 1 ELSE 3 END, nr, titel""", (land,)).fetchall()]
     for f in F:
         f.pop("hat", None)
@@ -224,9 +229,10 @@ def hochladen(c, land, nr, titel, daten, wer, fid=None, dateiname=""):
     nr = re.sub(r"\s+", "", str(nr or "")).replace("-", "/")[:20] or nr_raten(titel, dateiname)
     sha = hashlib.sha256(daten).hexdigest()
     fassung = "hochgeladen " + datetime.now().strftime("%d.%m.%Y")
+    roh, ref = dateien.werte(c, daten)
     if fid:
-        c.execute("UPDATE bauantrag_formular SET daten=?, sha256=?, groesse=?, fassung=?, status='aktuell', url='', geaendert=?, titel=COALESCE(NULLIF(?, ''), titel), "
-                  "nr=COALESCE(NULLIF(?, ''), nr) WHERE id=? AND land=?", (daten, sha, len(daten), fassung, _jetzt(), str(titel or "")[:300], nr, fid, land))
+        c.execute("UPDATE bauantrag_formular SET daten=?, datei_ref=?, sha256=?, groesse=?, fassung=?, status='aktuell', url='', geaendert=?, titel=COALESCE(NULLIF(?, ''), titel), "
+                  "nr=COALESCE(NULLIF(?, ''), nr) WHERE id=? AND land=?", (roh, ref, sha, len(daten), fassung, _jetzt(), str(titel or "")[:300], nr, fid, land))
         if nr and not c.execute("SELECT 1 FROM bauantrag_formular WHERE land=? AND schluessel=? AND id<>?", (land, nr, fid)).fetchone():
             c.execute("UPDATE bauantrag_formular SET schluessel=? WHERE id=?", (nr, fid))   # später vom Portal: derselbe Eintrag
         return fid
@@ -234,8 +240,8 @@ def hochladen(c, land, nr, titel, daten, wer, fid=None, dateiname=""):
     r = c.execute("SELECT id FROM bauantrag_formular WHERE land=? AND schluessel=?", (land, key)).fetchone()
     if r:
         return hochladen(c, land, nr, titel, daten, wer, r["id"])
-    return c.execute("""INSERT INTO bauantrag_formular(land, schluessel, nr, titel, url, sha256, groesse, daten, fassung, status)
-                        VALUES(?,?,?,?,'',?,?,?,?,'aktuell') RETURNING id""", (land, key, nr, str(titel or "Formular")[:300], sha, len(daten), daten, fassung)).fetchone()["id"]
+    return c.execute("""INSERT INTO bauantrag_formular(land, schluessel, nr, titel, url, sha256, groesse, daten, datei_ref, fassung, status)
+                        VALUES(?,?,?,?,'',?,?,?,?,?,'aktuell') RETURNING id""", (land, key, nr, str(titel or "Formular")[:300], sha, len(daten), roh, ref, fassung)).fetchone()["id"]
 
 
 def kaputt(c):
@@ -285,20 +291,30 @@ def fold(s):
     return re.sub(r"[^a-z0-9]+", " ", s).strip()
 
 
+HAT = "(daten IS NOT NULL OR datei_ref IS NOT NULL)"   # Vordruck vorhanden – in der Datenbank (ältere) oder im Dateispeicher
+
+
+def mit_daten(c, r):
+    """Zeile eines Vordrucks als dict, „daten“ = Inhalt der PDF, gleich, wo sie liegt (dateien.inhalt)."""
+    d = dict(r)
+    d["daten"] = dateien.inhalt(c, r, "daten") or None
+    return d
+
+
 def formular_fuer(c, verfahren, werte, land="NW"):
     """Welche Anlage gilt: Freistellung → I/3; Sonderbau → I/1 (Baugenehmigungsverfahren); sonst I/2 (vereinfachtes Verfahren,
     auch für den Vorbescheid). → Zeile mit daten oder None."""
     nr = "I/3" if verfahren == "freistellung" else "I/1" if (werte.get("sonderbau") == "ja" or "Sonderbau" in (werte.get("verfahrensart") or "")) else "I/2"
-    r = c.execute("SELECT id, nr, titel, daten, fassung, sha256 FROM bauantrag_formular WHERE land=? AND nr=? AND status<>'entfallen' AND daten IS NOT NULL "
+    r = c.execute(f"SELECT id, nr, titel, daten, datei_ref, fassung, sha256 FROM bauantrag_formular WHERE land=? AND nr=? AND status<>'entfallen' AND {HAT} "
                   "ORDER BY geaendert DESC NULLS LAST, id DESC", (land, nr)).fetchone()
     if not r:   # hochgeladen ohne Anlage-Nummer: aus Titel/Dateiname erkennen
-        for x in c.execute("SELECT id, nr, titel, url, daten, fassung, sha256 FROM bauantrag_formular WHERE land=? AND nr='' AND status<>'entfallen' AND daten IS NOT NULL",
+        for x in c.execute(f"SELECT id, nr, titel, url, daten, datei_ref, fassung, sha256 FROM bauantrag_formular WHERE land=? AND nr='' AND status<>'entfallen' AND {HAT}",
                            (land,)).fetchall():
             if nr_raten(x["titel"], x["url"]) == nr:
                 c.execute("UPDATE bauantrag_formular SET nr=? WHERE id=?", (nr, x["id"]))
                 r = x
                 break
-    return (dict(r) if r else None), nr
+    return (mit_daten(c, r) if r else None), nr
 
 
 def felder(daten):

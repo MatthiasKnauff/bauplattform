@@ -209,7 +209,8 @@ def _quelle(c, a, key):
     if not re.fullmatch(r"[fu]\d{1,9}", key or ""):
         return None, None
     if key[0] == "f":
-        r = c.execute("SELECT daten, sha256 FROM bauantrag_formular WHERE id=?", (int(key[1:]),)).fetchone()
+        r = c.execute("SELECT daten, datei_ref, sha256 FROM bauantrag_formular WHERE id=?", (int(key[1:]),)).fetchone()
+        r = BF.mit_daten(c, r) if r else None
     else:
         r = c.execute("SELECT daten, pfad, sha256 FROM bauantrag_unterlage WHERE id=? AND antrag_id=?", (int(key[1:]), a["id"])).fetchone()
         if not r:
@@ -218,7 +219,7 @@ def _quelle(c, a, key):
         return (d, r["sha256"] or BP.sha(d)) if d else (None, None)
     if not r or r["daten"] is None:
         return None, None
-    return bytes(r["daten"]), r["sha256"] or BP.sha(r["daten"])
+    return r["daten"], r["sha256"] or BP.sha(r["daten"])
 
 
 def _pdf_antwort(data, name, dl=False):

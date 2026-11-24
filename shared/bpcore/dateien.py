@@ -44,7 +44,8 @@ TABELLEN = (("ava_beleg", "id", "data"), ("skizze", "id", "datei"), ("pm_plansta
             # Etappe 2 (22.11.2026, Migration 0109): Anhänge, Dokumente, Fotos
             ("kom_datei", "id", "data"), ("todo_datei", "id", "data"), ("ava_lvdok", "id", "data"), ("ava_nt_datei", "id", "data"),
             ("ava_buergschaft", "id", "data"), ("ava_bild", "id", "data"), ("ava_vergabedok", "id", "pdf"), ("honorar_vertrag", "id", "pdf"),
-            ("honorar_fremd_re", "id", "datei"), ("bh_datei", "schluessel || '#' || nr", "inhalt"))   # Schlüssel aus zwei Spalten: als ein Ausdruck
+            ("honorar_fremd_re", "id", "datei"), ("bh_datei", "schluessel || '#' || nr", "inhalt"),
+            ("bauantrag_formular", "id", "daten"))   # Schlüssel aus zwei Spalten: als ein Ausdruck; Etappe 3 (24.11.2026, Migration 0112): Vordrucke des Bauantrags
 HALTEN = 90      # Tage, die eine Datei ohne Verweis noch liegen bleibt
 MELDEN = 600     # Sekunden zwischen zwei Meldungen eines App-Prozesses
 FRISCH = 1800    # Meldungen, die jünger sind, zählen für den Schalter

@@ -97,8 +97,8 @@ def stuecke(c, a, W, land="NW"):
     """Alle möglichen Stücke eines Antrags mit Wahl und Reihenfolge. → (liste, gewählte Schlüssel in Reihenfolge)"""
     P = json.loads(a["daten"] or "{}").get("_paket") or {}
     haupt, nr = BF.formular_fuer(c, a["verfahren"], W, land)
-    F = [dict(r) for r in c.execute("SELECT id, nr, titel, fassung, sha256, daten FROM bauantrag_formular WHERE land=? AND status<>'entfallen' "
-                                    "AND daten IS NOT NULL ORDER BY nr='' , nr, titel", (land,)).fetchall()]
+    F = [BF.mit_daten(c, r) for r in c.execute("SELECT id, nr, titel, fassung, sha256, daten, datei_ref FROM bauantrag_formular WHERE land=? AND status<>'entfallen' "
+                                               f"AND {BF.HAT} ORDER BY nr='' , nr, titel", (land,)).fetchall()]
     U = [dict(r) for r in c.execute("SELECT id, name, art, sha256, pfad, (daten IS NOT NULL) AS in_db FROM bauantrag_unterlage WHERE antrag_id=? ORDER BY id", (a["id"],)).fetchall()]
     PL = _plaetze(c, {x["sha256"] for x in F + U if x["sha256"]})
     out = []
@@ -312,7 +312,8 @@ def stueck_pdf(c, key, W, eigene=None):
     """Ein Stück ausgefüllt: Formularfelder + Platzierungen. eigene: {sha256: {Feldname: Wert}} – im PDF eingetragene Werte von Feldern,
     die keinem Antragsfeld entsprechen. → (PDF, Titel, {felder, gefuellt, platziert}) oder None."""
     if key.startswith("f"):
-        r = c.execute("SELECT nr, titel, daten, sha256 FROM bauantrag_formular WHERE id=?", (int(key[1:]),)).fetchone()
+        r = c.execute("SELECT nr, titel, daten, datei_ref, sha256 FROM bauantrag_formular WHERE id=?", (int(key[1:]),)).fetchone()
+        r = BF.mit_daten(c, r) if r else None
         titel = f"Anlage {r['nr']} {r['titel']}".strip() if r and r["nr"] else (r["titel"] if r else "")
     else:
         r = c.execute("SELECT u.name AS titel, u.daten, u.pfad, u.sha256, u.art, b.project_id FROM bauantrag_unterlage u JOIN bauantrag b ON b.id=u.antrag_id "
@@ -320,7 +321,7 @@ def stueck_pdf(c, key, W, eigene=None):
         titel = r["titel"] if r else ""
     if not r:
         return None
-    d = unterlage_daten(dict(r), r["project_id"]) if key.startswith("u") else (bytes(r["daten"]) if r["daten"] is not None else None)
+    d = unterlage_daten(dict(r), r["project_id"]) if key.startswith("u") else r["daten"]
     if d is None:
         return None
     if key.startswith("u") and r["art"] == "beilegen":

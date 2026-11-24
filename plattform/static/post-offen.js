@@ -73,8 +73,9 @@ window.AO = (() => {
     TDZU.feiner = { maengel: 'mangel', erinnerungen: 'erinnerung', terminruege: 'termin' };   // Hinweise der Regeln in dieselben Knöpfe wie die Einträge hier
     if (!document.getElementById('aoW')) {
       try { TDZU.filter = localStorage.getItem(TDZU.ls) || 'alle'; } catch { TDZU.filter = 'alle'; }
-      view.innerHTML = `<div id="aoW" class="ao"><div class="ao-l"><div class="ao-kopf"><h2>Alles offen</h2><span class="fill"></span><button class="btn sm" id="mpdf" hidden title="Die offenen Mängel der Liste als PDF – z. B. für eine Firma">🖨 Mängelliste</button></div>
+      view.innerHTML = `<div id="aoW" class="ao"><div class="ao-l"><div class="ao-kopf"><h2>Alles offen</h2><span class="fill"></span><button class="btn sm" id="mpdf" hidden title="Die offenen Mängel der Liste als PDF – z. B. für eine Firma">🖨 Mängelliste</button></div><div class="ao-flt"></div>
         <section class="todo zt" id="todo"></section><div class="ao-ver"></div></div></div>`;
+      AF.einhaengen($('#aoW .ao-flt'));   // Suchfeld mit Filtern oben in der Liste – nicht in der Navigation (springt sonst beim Wechsel der Ansicht)
       seite($('#aoW'), 'ao', [{ id: 'vorgang', titel: 'Vorgang', mount: vorgang }], { planung: false, w: 0.58 });
       verlaufLaden();
     }

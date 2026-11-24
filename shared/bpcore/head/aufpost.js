@@ -8,7 +8,7 @@
      o.mitwem   [{ name, n, tip }] – Kontakte im Verlauf
      o.buero    true: Gruppe „Büro“ mit „Bauplattform“ (ToDo-Liste mit Antworten, nur Verwaltung) · o.bueroZahl: wartende Punkte
      o.wahl     (id) => …  Klick auf einen Punkt
-     o.filter   bpFilter(…) bzw. { einhaengen(el) } – Suchfeld oben in der Navigation (optional) */
+   Kein Suchfeld in der Navigation (24.11.2026): jede Ansicht hat ihr eigenes oben im Inhalt – so bleibt die Navigation beim Wechsel stehen. */
 (() => {
   if (window.bpAufPost) return;
   const IC = { offen: '<path d="M4 6h2M4 12h2M4 18h2M9 6h11M9 12h11M9 18h11"/>',
@@ -22,12 +22,7 @@
       .concat(A.map(([k, t, n]) => ({ id: 'v:' + k, text: t, icon: IC.post, zahl: n == null ? '' : String(n) }))) });
     if (o.buero) G.push({ titel: 'Büro', punkte: [{ id: 'o:bauplattform', text: 'Bauplattform', icon: '<path d="M4 20V9l8-5 8 5v11"/><path d="M9 20v-6h6v6"/>', zahl: o.bueroZahl ? String(o.bueroZahl) : '', zahlTip: 'Punkte, die auf deine Antwort warten' }] });
     if (o.mitwem && o.mitwem.length) G.push({ titel: 'Mit wem', punkte: o.mitwem.map((x, k) => ({ id: 'w:' + k, text: x.name, icon: IC.person, zahl: String(x.n), zahlTip: x.tip || '' })) });
-    bpNav(el, { kopf: { titel: 'Post & Vorgänge', klein: '' }, lage: true, attr: 'ap', aktiv: o.aktiv, gruppen: G,
-      davor: o.filter ? '<div class="ap-flt"></div>' : '', nachher: (x) => {   // Suchfeld mit Filtern (bp/filter.js) oben in der Navigation – nur das der gezeigten Ansicht (der Platz bleibt beim Neuzeichnen stehen)
-        const pl = x.querySelector('.ap-flt'); if (!o.filter || !pl) return;
-        o.filter.einhaengen(pl); [...pl.children].forEach((c) => { if (c !== o.filter.el) c.remove(); });
-      },
-      wahl: (id) => o.wahl(id) });
+    bpNav(el, { kopf: { titel: 'Post & Vorgänge', klein: '' }, lage: true, attr: 'ap', aktiv: o.aktiv, gruppen: G, wahl: (id) => o.wahl(id) });
     bpNav.breite(el, { key: 'aufpost' });
   };
 })();

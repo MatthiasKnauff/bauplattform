@@ -78,6 +78,7 @@ def liste():
     n = min(2000, request.args.get("n", type=int) or 500)
     with db.tx() as c:
         rows = [_eintrag(x) for x in c.execute(f"{SQL} WHERE {w} ORDER BY b.ts DESC, b.id DESC LIMIT ?", (*p, n)).fetchall()]
+        _dateien_dazu(c, rows)
         gesamt = c.execute(f"SELECT COUNT(*) AS n FROM benachrichtigungen b LEFT JOIN contacts k ON k.id=b.contact_id WHERE {w}", p).fetchone()["n"]
         # Übersichten ohne den Kontakt- bzw. Projektfilter selbst (damit man wechseln kann)
         a2 = request.args.to_dict()
@@ -100,6 +101,49 @@ def liste():
                               "gewerk": x["gewerk"], "n": x["n"], "letzte": x["letzte"]} for x in kontakte],
                    projekte=[{"project_id": x["project_id"], "name": x["name"] or "ohne Projekt", "n": x["n"], "letzte": x["letzte"]} for x in projekte],
                    arten=[{"key": k, "name": ARTEN.get(k, k), "n": arten.get(k, 0)} for k in dict.fromkeys(list(ARTEN) + list(arten)) if arten.get(k)])
+
+
+EINGABE = "application/x-bp-eingabe"   # Eingaben einer Rüge an der Sendung (kom_datei) – keine Datei zum Ansehen
+
+
+def rueckablage(c, bid, key, art, pdf, dateiname, b):
+    """Das verschickte PDF und die Eingaben an die Sendung im Verlauf hängen (24.11.2026): von dort lässt sich die Rüge wieder
+    ansehen und als neuer Entwurf öffnen. Dateien gehen in den Speicher des Kerns (dateien.werte), nicht als ganzes Dokument in die Datenbank."""
+    jetzt, wer = datetime.now().isoformat(timespec="seconds"), C.full_name(g.user)
+    eingabe = json.dumps({"url": "api/" + key, "titel": art,
+                          "body": {k: v for k, v in b.items() if k not in ("schritt", "versand", "email", "kopie")}}, ensure_ascii=False).encode()
+    for name, mime, roh in ((dateiname, "application/pdf", pdf), ("eingabe.json", EINGABE, eingabe)):
+        c.execute("INSERT INTO kom_datei(benachrichtigung_id, name, mime, groesse, data, datei_ref, erstellt, erstellt_name) VALUES(?,?,?,?,?,?,?,?)",
+                  (bid, name, mime, len(roh), *dateien.werte(c, roh), jetzt, wer))
+
+
+def _dateien_dazu(c, rows):
+    """Dateien je Sendung (kom_datei.benachrichtigung_id) – z. B. das verschickte PDF einer Rüge; „eingabe“ = die Rüge lässt sich wieder öffnen."""
+    if not rows:
+        return
+    by = {x["id"]: x for x in rows}
+    for x in rows:
+        x["dateien"], x["eingabe"] = [], False
+    for d in c.execute(f"SELECT id, benachrichtigung_id, name, mime FROM kom_datei WHERE benachrichtigung_id IN ({','.join('?' * len(by))}) ORDER BY id",
+                       tuple(by)).fetchall():
+        x = by[d["benachrichtigung_id"]]
+        if d["mime"] == EINGABE:
+            x["eingabe"] = True
+        else:
+            x["dateien"].append({"id": d["id"], "name": d["name"], "mime": d["mime"]})
+
+
+@app.get("/api/kom/<int:bid>/eingabe")
+def eingabe(bid):
+    """Eingaben einer verschickten Rüge – zum Öffnen als neuer Entwurf (gleicher Brief, neu bearbeiten und senden)."""
+    with db.tx() as c:
+        x = c.execute("SELECT project_id FROM benachrichtigungen WHERE id=?", (bid,)).fetchone()
+        if not x or not vorgang.sieht(c, g.user, x["project_id"]):
+            return jsonify(error="Nicht gefunden"), 404
+        d = c.execute("SELECT data, datei_ref FROM kom_datei WHERE benachrichtigung_id=? AND mime=? ORDER BY id DESC LIMIT 1", (bid, EINGABE)).fetchone()
+        if not d:
+            return jsonify(error="Zu dieser Sendung sind keine Eingaben gespeichert."), 404
+        return jsonify(json.loads(dateien.inhalt(c, d)))
 
 
 @app.delete("/api/kom/<int:bid>")

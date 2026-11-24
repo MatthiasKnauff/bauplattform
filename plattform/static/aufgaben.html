@@ -162,6 +162,9 @@ const AF = bpFilter({ key: 'auf.offen', items: () => (typeof TD !== 'undefined' 
     { key: 'firma', name: 'Firma', farbe: 'var(--c-g)', werte: (x) => (x.firma ? [x.firma] : []) },
     { key: 'wichtig', name: 'Wichtig', farbe: 'var(--red)', werte: (x) => (x.prio ? ['❗ wichtig'] : []) }] });
 window.ZTFILTER = (x) => AF.pruefe(x);
+const BPF = bpFilter({ key: 'auf.bauplattform', items: () => (typeof BPT !== 'undefined' && BPT ? BPT.abschnitte.flatMap((a) => a.punkte.map((p) => ({ ...p, abschnitt: a.titel }))) : []),
+  aendern: () => { if (tab === 'bauplattform') bptRender($('#view')); }, text: (p) => p.text + ' ' + (p.unter || []).map((u) => u.text).join(' '),
+  arten: [{ key: 'abschnitt', name: 'Abschnitt', farbe: 'var(--c-v)', werte: (p) => [p.abschnitt] }] });
 window.BPTFILTER = (p) => BPF.pruefe({ ...p, abschnitt: p.abschnitt || '' });
 const fProjekt = () => { const n = AF.wert('projekt'), m = n && M && M.find((x) => x.projekt === n); return m ? String(m.pid) : ''; };   // das eine gefilterte Projekt (für Vorgaben)
 const de = (d) => (d && d.length >= 10 ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : '');
@@ -199,7 +202,7 @@ function renderTabs() {
   const z = typeof TD !== 'undefined' && TD ? TDZU.zaehler() : { n: 0, n2: 0 };
   const pv = PV.nav();   // Verlauf: Arten, Mit wem, Suchfeld
   bpAufPost($('#navL'), { aktiv: tab === 'post' ? pv.aktiv : 'o:' + tab, arten: pv.arten, mitwem: tab === 'post' ? pv.mitwem : [], buero: !!(ME && ME.is_admin), bueroZahl: bptOffen(),
-    filter: tab === 'post' ? pv.filter : tab === 'bauplattform' ? BPF : AF, offen: { offen: z.n }, offenTip: { offen: `fällig (heute oder früher) – offen insgesamt: ${z.n2}` },
+    offen: { offen: z.n }, offenTip: { offen: `fällig (heute oder früher) – offen insgesamt: ${z.n2}` },
     wahl: (id) => {
       if (id.startsWith('o:')) { zuTab(id.slice(2)); return; }
       if (tab !== 'post') zuTab('post');
@@ -520,6 +523,11 @@ function signmeDialog(url, body, titel, bid) {   // sign-me (D-Trust): herunterl
   drop.addEventListener('dragleave', () => drop.classList.remove('on'));
   drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('on'); nehmen(e.dataTransfer.files[0]); });
 }
+
+/* Verschickte Rüge aus dem Verlauf wieder öffnen (24.11.2026): dieselben Eingaben als neuer Entwurf im Brief-Editor – die verschickte Fassung bleibt */
+window.briefAusSendung = async (bid) => {
+  try { const x = await api(`api/kom/${bid}/eingabe`); if (!KONTO) await konto(); await briefStart(x.url, x.body, x.titel, () => {}); } catch (e) { toast(e.message, true); }
+};
 
 /* ---------- Entwürfe (Rügen, die noch nicht versendet sind) ---------- */
 let BRIEFE = [];

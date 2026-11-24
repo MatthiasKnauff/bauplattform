@@ -85,3 +85,4 @@
 .ao-vg .ml{margin:0}
 /* im Vorgang rechts ist der Platz schmal: Mangel als Spalte (Haken + Foto oben, Text, dann Firma/Frist/Knöpfe) */
 .ao-vg .mr{grid-template-columns:auto 64px 1fr}.ao-vg .mr .ed{grid-column:1/-1;min-width:0}
+.ao-flt,.bpt-flt{max-width:640px;margin:0 0 .6rem}

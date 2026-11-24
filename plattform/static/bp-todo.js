@@ -27,7 +27,8 @@ function bptRender(el) {
   const teile = ab.map((a) => {
     const P = (BPT_ANS === 'erledigt' ? a.punkte.slice(0, 80) : a.punkte.filter((p) => !p.erledigt || BPT_ANS === 'alle')).map((p) => bptZeile({ ...p, abschnitt: a.titel }, a.warten)).join('');
     return P ? `<div class="grp">${esc(a.titel)}</div><div class="bpt-l">${P}</div>` : ''; }).join('');
-  el.innerHTML = `<div class="bpt-k"><span class="seg">${[['warten', `Wartet auf mich (${bptOffen()})`], ['alle', 'Alle offenen'], ['erledigt', 'Erledigt']].map(([k, t]) => `<button type="button" class="${BPT_ANS === k ? 'on' : ''}" data-bptan="${k}">${t}</button>`).join('')}</span>
+  if (!el.querySelector(':scope > .bpt-inh')) { el.innerHTML = '<div class="bpt-flt"></div><div class="bpt-inh"></div>'; BPF.einhaengen(el.querySelector('.bpt-flt')); }   // Suchfeld bleibt stehen, nur der Inhalt wird neu gezeichnet
+  el.querySelector(':scope > .bpt-inh').innerHTML = `<div class="bpt-k"><span class="seg">${[['warten', `Wartet auf mich (${bptOffen()})`], ['alle', 'Alle offenen'], ['erledigt', 'Erledigt']].map(([k, t]) => `<button type="button" class="${BPT_ANS === k ? 'on' : ''}" data-bptan="${k}">${t}</button>`).join('')}</span>
     <button type="button" class="btn sm" data-bptkopie${neu ? '' : ' disabled'} title="Neue Antworten als Text in die Zwischenablage – im Chat mit Claude einfügen">📋 Antworten für Claude kopieren${neu ? ` (${neu})` : ''}</button></div>
     <p class="note">Die Liste kommt aus dem Repo und ist nach jedem Build aktuell. Antworten bleiben in der Datenbank des Büros – Claude sieht sie nicht von selbst: „Antworten für Claude kopieren“ und im Chat einfügen.</p>
     ${teile || '<div class="empty">Nichts gefunden.</div>'}`;

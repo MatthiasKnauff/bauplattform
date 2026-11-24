@@ -65,9 +65,8 @@ document.addEventListener('click', async (e) => {
   ENTW.clear(); await laden();
   if (pk.length) rueckgaengig(`${pk.length} Entw${pk.length === 1 ? 'urf' : 'ürfe'} gelöscht`, async () => { for (const p of pk) await api(`api/bp/papierkorb/${p}/zurueck`, 'POST').catch(() => {}); await laden(); });
 });
-const QIN = document.createElement('input'); let QFOK = false;   // Suchfeld oben in der Navigation; die Navigation wird neu gezeichnet, das Feld bleibt dasselbe
+const QIN = document.createElement('input');   // Suchfeld oben im Verlauf – dasselbe Feld bei jedem Aufbau (Fokus, Text bleiben)
 Object.assign(QIN, { type: 'search', placeholder: 'Suchen – Betreff, Firma, Plan …', autocomplete: 'off' }); QIN.setAttribute('aria-label', 'Verlauf durchsuchen');
-QIN.addEventListener('focus', () => { QFOK = true; }); QIN.addEventListener('blur', () => setTimeout(() => { QFOK = document.activeElement === QIN; }, 0));
 function zeichnen() {
   if (!HOST || !D) return;
   const p = projekt();
@@ -108,6 +107,7 @@ function zeichnen() {
       <span class="s">${esc([K || !F.alle ? '' : x.projekt, x.weg_name, x.von ? 'von ' + x.von : '', x.email && x.email !== wer ? x.email : ''].filter(Boolean).join(' · '))}${x.status === 'fehler' ? ' · <b style="color:var(--red)">nicht zugestellt</b>' : ''}</span></summary>
       <div class="d">${x.ansprech || x.gewerk ? `<div class="mute">${esc([x.ansprech, x.gewerk].filter(Boolean).join(' · '))}</div>` : ''}${x.inhalt ? `<pre>${esc(x.inhalt)}</pre>` : ''}${x.fehler ? `<div class="mute">Fehler: ${esc(x.fehler)}</div>` : ''}
         <div class="mute">${esc(new Date(x.ts).toLocaleString('de-DE'))}${x.projekt ? ' · ' + esc(x.projekt) : ''}</div>
+        ${(x.dateien || []).length || x.eingabe ? `<div class="pv-dat">${(x.dateien || []).map((d) => `<button type="button" class="btn sm" data-pvdat="${d.id}" data-n="${esc(d.name)}" data-m="${esc(d.mime)}">📄 ${esc(d.name)}</button>`).join('')}${x.eingabe ? `<button type="button" class="btn sm" data-pvneu="${x.id}" title="Denselben Brief als neuen Entwurf öffnen – ändern und erneut senden">✎ Erneut bearbeiten …</button>` : ''}</div>` : ''}
         ${quelle(x) ? `<a href="${esc(quelle(x))}" data-qp="${x.project_id || ''}">↗ ${x.art === 'planversand' || x.art === 'plotauftrag' ? 'Planversandliste' : x.art.endsWith('ruege') ? 'Mängel' : String(x.link || '').startsWith('ava:') ? 'In der Ausschreibung' : 'Quelle'} öffnen</a>` : ''}
         ${x.contact_id && !K ? ` · <a href="#" data-kc="${x.contact_id}">alles mit ${esc(x.kontakt)}</a>` : ''}
         ${ME().is_admin || x.von === ME().full ? ` · <a href="#" class="kweg" data-kweg="${x.id}" title="Aus dem Protokoll löschen (z. B. Testversand) – liegt danach im Papierkorb, steht im Protokoll">Löschen</a>` : ''}</div></details>`;
@@ -278,6 +278,8 @@ document.addEventListener('click', async (e) => {
     return;
   }
   const qp = t.closest('[data-qp]'); if (qp && qp.dataset.qp) { e.preventDefault(); try { await BPHead.projektSetzen(+qp.dataset.qp); } catch { /* egal */ } location.href = qp.href; return; }
+  const dt = t.closest('[data-pvdat]'); if (dt) { const u = 'api/datei/' + dt.dataset.pvdat, pdf = dt.dataset.m === 'application/pdf'; if (window.BPHead && BPHead.ansehen && (pdf || /^image\//.test(dt.dataset.m))) BPHead.ansehen([{ url: u, name: dt.dataset.n, typ: pdf ? 'pdf' : 'bild' }]); else window.open(u, '_blank'); return; }
+  const nb = t.closest('[data-pvneu]'); if (nb) { if (window.briefAusSendung) briefAusSendung(+nb.dataset.pvneu); return; }   // aufgaben.html: Rüge als neuer Entwurf
   if (t.closest('[data-pvk]')) { kontaktWahl(t.closest('[data-pvk]')); return; }
   if (t.closest('[data-pvcsv]')) { location.href = 'api/kom.csv?' + params({ n: 1 }); return; }
   if (t.closest('[data-pvdr]')) { HOST.querySelectorAll('#pvList details').forEach((d) => { d.open = true; }); setTimeout(() => print(), 50); }
@@ -286,6 +288,7 @@ document.addEventListener('change', (e) => { if (e.target.id === 'pvIch') { F.ic
 
 
 const GERUEST = `<div class="pv"><div class="top">
+    <span class="pv-such"></span>
     <div class="seg" id="pvScope" role="group" aria-label="Umfang"></div>
     <button class="btn sm" data-pvk title="Einen Kontakt wählen und alles sehen, was ihm geschickt wurde">👤 Kontakt …</button>
     <button class="btn sm" data-pvcsv title="Die gezeigten Sendungen als Excel-Tabelle (CSV) speichern">⤓ Speichern unter …</button>
@@ -295,12 +298,11 @@ const GERUEST = `<div class="pv"><div class="top">
   <div id="pvKbox"></div>
   <div class="grid" data-bph-trenn-ab="821" data-bph-trenn="kom" data-bph-trenn-min="200" data-bph-trenn-max="0.5"><aside class="side" id="pvSide" aria-label="Übersicht"></aside><section id="pvList" aria-live="polite"><div class="leer">Lade …</div></section></div></div>`;
 
-function zeigen(el) { HOST = el; el.innerHTML = GERUEST; laden(); }
+function zeigen(el) { HOST = el; el.innerHTML = GERUEST; el.querySelector('.pv-such').appendChild(QIN); laden(); }   // Suchfeld oben im Verlauf (nicht in der Navigation)
 function weg() { HOST = null; tok++; }
 function nav() {
   return { aktiv: K ? '' : 'v:' + (F.arten.size === 1 ? [...F.arten][0] : ''), arten: (D && D.arten) || null,
     mitwem: K || !D ? [] : (D.kontakte || []).map((x) => ({ name: x.name, n: x.n, tip: [x.gewerk, x.ansprech].filter(Boolean).join(' · ') })),
-    filter: { el: QIN, einhaengen: (pl) => { if (pl && QIN.parentElement !== pl) { const pos = QIN.selectionStart; pl.appendChild(QIN); if (QFOK) { QIN.focus(); try { QIN.setSelectionRange(pos, pos); } catch { /* egal */ } } } } },   // Suchfeld oben links wie bei den übrigen Ansichten
     wahl: (id) => { if (id.startsWith('w:')) { kontakt(D.kontakte[+id.slice(2)]); return; } K = null; KP = null; F.arten = new Set(id.slice(2) ? [id.slice(2)] : []); LS.set('arten', [...F.arten]); laden(); } };
 }
 /* Adresse: #art=planversand (leer = alles), #v=<Vorgang> (Abnahme öffnet sich), #kontakt=<id>, #post – gehört zum Verlauf */

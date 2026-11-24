@@ -565,10 +565,12 @@ def _versenden(b, art, E, projekt, pid, frist, anzahl, pdf, dateiname, inhalt=""
             if not mail_firma and cid:
                 r = c.execute("SELECT email FROM contacts WHERE id=?", (cid,)).fetchone()
                 mail_firma = (r["email"] or "") if r else ""
-            benachrichtigung.protokoll(c, key, [{"contact_id": cid, "email": mail_firma, "name": E.get("name") or ""}], project_id=pid, projekt=projekt,
-                                       betreff=f"{art}" + (f" – Frist bis {_de(frist)}" if frist else ""), inhalt=inhalt, von=C.full_name(g.user),
-                                       weg={"mich": "weiterleiten", "firma": "mail"}[v] if v != "pdf" else "pdf", status=status, fehler=fehler,
-                                       link="aufgaben:#" + ("maengel" if key == "maengelruege" else "termine"))
+            ids = benachrichtigung.protokoll(c, key, [{"contact_id": cid, "email": mail_firma, "name": E.get("name") or ""}], project_id=pid, projekt=projekt,
+                                             betreff=f"{art}" + (f" – Frist bis {_de(frist)}" if frist else ""), inhalt=inhalt, von=C.full_name(g.user),
+                                             weg={"mich": "weiterleiten", "firma": "mail"}[v] if v != "pdf" else "pdf", status=status, fehler=fehler,
+                                             link="aufgaben:#" + ("maengel" if key == "maengelruege" else "termine"))
+            if ids:
+                aufgaben_post.rueckablage(c, ids[0], key, art, pdf, dateiname, b)   # PDF und Eingaben an die Sendung (Verlauf)
             return benachrichtigung.unbekannt(c, [an]) if v == "firma" and status == "gesendet" else []
 
     if v == "pdf":

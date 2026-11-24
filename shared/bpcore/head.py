@@ -391,7 +391,7 @@ def blueprint(get_user=None):
             return r.make_conditional(request)
         if name in APP_DATEIEN:   # App-Beschreibung und Symbol: Bauportal als App installieren
             return _app_datei(name)
-        if name not in ("head.js", "head.css", "undo.js", "seite.js", "eigenschaften.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "gruppen.js", "spaltbreite.js", "druck.js", "wahl.js", "datum.js", "neu.js", "hilfeseite.js", "eingang.js", "unterschrift.js", "versand.js", "antrag.js", "aufpost.js", "filter.js", "ablegen.js", "neuleiste.js", "live.js", "wiki.js", "wikisym.js", "dateiwahl.js", "suche.js", "stempellage.js", "kontakt.js", "teilen.js", "plankatalog.js", "plankern.js", "bauart.js", "freigeben.js", "assistent.js", "gebaeudekasten.js", "karte.js", "bauteile.js", "anweisung.js", "ansicht3d.js", "startdaten.js", "fragen.js", "ablageeinst.js", "winapp.js", "meinordner.js", "projektwahl.js", "zurueck.js", "markwahl.js", "begriffe.js", "abwesenheit.js", "raumbuch.js", "zeitplan.js", "leiste.js", "meldungen.js", "kischieber.js", "wsphysik.js", "wsregeln.js", "uwert.js", "handy.js", "ansehen.js", "masken.js", "hilfe.js", "zolli.js", "baudatenbaum.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
+        if name not in ("head.js", "head.css", "undo.js", "seite.js", "eigenschaften.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "gruppen.js", "spaltbreite.js", "druck.js", "wahl.js", "datum.js", "neu.js", "hilfeseite.js", "eingang.js", "unterschrift.js", "versand.js", "antrag.js", "aufpost.js", "filter.js", "ablegen.js", "neuleiste.js", "live.js", "wiki.js", "wikisym.js", "dateiwahl.js", "suche.js", "stempellage.js", "kontakt.js", "teilen.js", "plankatalog.js", "plankern.js", "bauart.js", "freigeben.js", "assistent.js", "gebaeudekasten.js", "karte.js", "bauteile.js", "anweisung.js", "ansicht3d.js", "startdaten.js", "fragen.js", "ablageeinst.js", "winapp.js", "meinordner.js", "projektwahl.js", "zurueck.js", "markwahl.js", "begriffe.js", "abwesenheit.js", "raumbuch.js", "zeitplan.js", "leiste.js", "meldungen.js", "kischieber.js", "wsphysik.js", "wsregeln.js", "uwert.js", "handy.js", "ansehen.js", "masken.js", "hilfe.js", "zolli.js", "baudatenbaum.js", "projektordner.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
             return "Nicht gefunden", 404
         r = send_from_directory(ASSETS, name, max_age=0)
         r.headers["Cache-Control"] = "no-cache"
@@ -720,7 +720,7 @@ def blueprint(get_user=None):
 
     # ---- was noch am Dateiserver des Bautagebuchs hängt (Ordnersuche, Wetter/Ort zu Koordinaten, Baustelle als Kontakt): Durchgriff
     import re as _re
-    _BT_ERLAUBT = [("GET", r"geo"), ("GET", r"store/folders"), ("POST", r"projects/\d+/contact"), ("GET", r"ablage/projektordner")]
+    _BT_ERLAUBT = [("GET", r"geo"), ("GET", r"store/folders"), ("POST", r"projects/\d+/contact"), ("GET", r"ablage/projektordner"), ("GET", r"projektordner"), ("POST", r"projektordner")]
 
     @bp.route("/api/bp/bt/<path:pfad>", methods=["GET", "POST", "PUT"])
     def bt_proxy(pfad):

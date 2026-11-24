@@ -36,6 +36,7 @@ import { gastPdfPruefen } from './gastpdf.mjs';
 import { leistePruefen } from './leiste.mjs';
 import { zaehlerPruefen } from './zaehler.mjs';
 import { btDetailsPruefen } from './btdetails.mjs';
+import { projektordnerPruefen } from './projektordner.mjs';
 import { kiwahlPruefen } from './kiwahl.mjs';
 import { ruegesuchePruefen } from './ruegesuche.mjs';
 import { ganttGrossPruefen } from './ganttgross.mjs';
@@ -495,6 +496,10 @@ if (dran()) { let f = [];
 if (dran()) { let f = [];
   try { f = await btDetailsPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Bautagebuch Details:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Bautagebuch Details'); } else { ok++; console.log('  ok      Bautagebuch Details'); } }
+// Projektordner beim Anlegen eines Projekts: erst fragen, Dateien nach Vorschlag einsortieren – siehe projektordner.mjs
+if (dran()) { let f = [];
+  try { f = await projektordnerPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Projektordner:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Projektordner'); } else { ok++; console.log('  ok      Projektordner'); } }
 await b.close();
 if (fehler.length) console.log('\n' + fehler.join('\n'));
 if (!TN) console.log(`\nSpalten-Menü an ${spaltenGeprueft} Tabellen geprüft.`);

@@ -270,6 +270,7 @@ document.addEventListener('click', async e => {
   else if (a === 'createFromFolder') {
     const r = await api('api/projects', 'POST', {name: b.dataset.name}); await loadProjects(); await pickProject(r.id);
     toast(r.auto_address ? 'Projekt angelegt. Adresse und PLZ wurden aus dem Projektnamen ermittelt – bitte prüfen.' : 'Projekt angelegt. Die Adresse kannst du im Reiter „Projekt“ eintragen.');
+    try { await BPHead.projektOrdner(r.id, b.dataset.name); } catch (e) { toast('Projektordner: ' + e.message, true); }   // nur lose Dateien im Ordner: einsortieren?
   }
   else if (a === 'newProject') newProject();
   else if (a === 'nearest') { closeSheet(); await autoPick(false); if (!$('#sheet').classList.contains('hidden')) renderSheet(); }

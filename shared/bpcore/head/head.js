@@ -33,6 +33,7 @@
   spaeter('hilfe', ['bugMelden', 'hilfe', 'hilfeLive']);
   spaeter('versand', ['versand', 'unterlagenSenden']);   // versand.js – gemeinsamer Versanddialog
   spaeter('freigeben', ['bauherrFreigeben', 'bauherrPdf', 'bauherrProjekt']);   // freigeben.js – ans Bauherrenportal
+  spaeter('projektordner', ['projektOrdner']);   // projektordner.js – Projektordner nach der Vorlage anlegen (nach „Anlegen“ eines Projekts)
   spaeter('live', ['liveNotiz']);
   H._liveQ = []; H.live = (...a) => { H._liveQ.push(a); H.baustein('live'); };   // live.js lädt mit der ersten Anmeldung und übernimmt die gemerkten
   H.ablage = { ablegen: (...a) => H.baustein('ablegen').then(() => H.ablage.ablegen(...a)) };   // ablegen.js ersetzt ablegen; Seiten setzen hier hier/nachher/aus
@@ -1508,6 +1509,7 @@
       try {
         const r = neu ? await J('projects', 'POST', body) : await J('projects/' + P.id, 'PUT', body);
         const nid = neu ? r.id : P.id; close(); if (H.projekt && H.projekt.id === nid) H.projekt = null;   // Kopfleiste neu laden (Name/Adresse geändert)
+        if (neu) { try { await H.projektOrdner(nid, d.name); } catch (er) { if (window.toast) toast('Projektordner: ' + er.message, true); } }   // Ordner auf dem Dateiserver – erst nach Rückfrage
         const t = r.auto_address ? 'Adresse aus dem Projektnamen ermittelt – bitte prüfen.' : r.geocoded === false ? 'Adresse nicht gefunden – bitte prüfen.' : neu ? 'Projekt angelegt.' : 'Gespeichert.';
         if (!neu && extra && 'archived' in extra && typeof window.rueckgaengig === 'function') {   // Archivieren: mit Rückgängig
           const alt = d.archived ? 1 : 0;

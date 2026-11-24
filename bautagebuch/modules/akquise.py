@@ -19,7 +19,8 @@ import re
 from flask import Blueprint, Response, g, jsonify, request
 
 from core import audit, db, ordnerschema as osch, remote, settings, sync
-from bpcore import ablage as bpablage, akquise as AQ, rechte
+from bpcore import akquise as AQ, rechte
+from modules import ordner as om
 
 bp = Blueprint("akquise", __name__)
 MAX = 80 * 1024 * 1024
@@ -162,13 +163,6 @@ def verschieben():
     return jsonify(ok=True)
 
 
-def _vorlage(t, conf, code):
-    """Schritte zum Anlegen eines leeren Projektordners nach der Projektvorlage (Kürzel der Vorlage → code)."""
-    from modules import ordner as om
-    _, m_teile, m_baum = om.muster(t, conf)
-    return osch.reihenfolge(osch.vergleichen(m_baum, {}, code)), m_teile, osch.muster_kuerzel(m_baum)
-
-
 def _lph0(ordner, code):
     hit = next((o for o in ordner if LPH0.search(o.rsplit("/", 1)[-1])), None)
     return hit or f"{code} 0. Leistungsphasen 0"   # wie die Vorlage des Büros („A000 1. Leistungsphasen 1-4“)
@@ -182,7 +176,7 @@ def vorlage():
         t, conf = _ziel()
         basis = sorted(t.dirs(()))
         try:
-            schritte, _, _ = _vorlage(t, conf, code or "A000")
+            schritte, _ = om.vorlage(t, conf, code or "A000")
             ordner = ["/".join(s["pfad"]) for s in schritte if s["art"] == "anlegen"]
             hinweis = ""
         except ValueError as e:   # keine Vorlage: dann nur Leistungsphase 0
@@ -191,18 +185,8 @@ def vorlage():
         teile = _pfad(request.args.get("pfad"))
         if t.exists("/".join(teile)):
             dateien, _ = _baum(t, teile)
-        with db.tx() as c:
-            cf = bpablage.plan_conf(c)
         l0 = _lph0(ordner, code or "A000")
-        for f in dateien:
-            text = ""
-            if f["name"].lower().endswith(".pdf") and f["groesse"] < 4 * 1024 * 1024:
-                try:
-                    text = bpablage.pdf_anfang(t.read("/".join(teile + f["rel"].split("/")), 4 * 1024 * 1024))
-                except Exception:   # noqa: BLE001 – ohne Text: nur nach dem Namen
-                    text = ""
-            v, _ = bpablage.vorschlaege(f["name"], text, [], ordner, cf) if ordner else ([], "")
-            f["ziel"], f["grund"] = (v[0]["pfad"], v[0]["grund"]) if v else (l0, "nicht zuzuordnen – Leistungsphase 0")
+        om.einsortieren(t, teile, dateien, ordner, l0, "nicht zuzuordnen – Leistungsphase 0")
     except Exception as e:   # noqa: BLE001
         return _fehler(e)
     return jsonify(ordner=ordner or [l0], dateien=dateien, basis=basis, lph0=l0, hinweis=hinweis, testserver=remote.NUR_LESEN)
@@ -224,20 +208,12 @@ def umwandeln():
         t.mkdir("/".join(ziel))
         fehler = []
         try:
-            schritte, m_teile, _ = _vorlage(t, conf, code)
+            schritte, m_teile = om.vorlage(t, conf, code)
         except ValueError as e:
             schritte, m_teile = [], []
             fehler.append(str(e))
-        ordner = []
-        for s in schritte:
-            try:
-                if s["art"] == "anlegen":
-                    t.mkdir("/".join(ziel + s["pfad"]))
-                    ordner.append("/".join(s["pfad"]))
-                elif s["art"] == "kopieren" and s.get("quelle") and not t.exists("/".join(ziel + s["pfad"])):
-                    t.put_bytes(t.read("/".join(m_teile + s["quelle"])), "/".join(ziel + s["pfad"]))
-            except Exception as e:   # noqa: BLE001 – Schritt überspringen
-                fehler.append(f"{'/'.join(s['pfad'])}: {e}"[:200])
+        ordner, f2 = om.vorlage_anlegen(t, ziel, schritte, m_teile)
+        fehler += f2
         l0 = _lph0(ordner, code)
         zuo = {str(x.get("rel") or ""): str(x.get("ziel") or "") for x in (b.get("zuordnung") or []) if isinstance(x, dict)}
         n = 0

@@ -11,6 +11,7 @@ Die Logik (Vergleich, Reihenfolge) steht in core/ordnerschema.py. Testserver: di
 from flask import Blueprint, g, jsonify, request
 
 from core import audit, db, ordnerschema as osch, remote, settings, sync
+from bpcore import ablage as bpablage
 
 bp = Blueprint("ordner", __name__)
 MAX = 4000   # höchstens so viele Einträge je Ordnerbaum (Schutz vor riesigen Projektordnern)
@@ -78,6 +79,45 @@ def muster(t, conf, projekt=None):
             raise ValueError("Keine Projektvorlage auf dem Dateiserver gefunden (Ordner „… Projektvorlage …“ im Basisordner der Ablage).")
         teile = [kand[0]]
     return {"art": "vorlage", "name": teile[-1], "pfad": "/".join(teile)}, teile, _quellen(lesen(t, teile))
+
+
+def vorlage(t, conf, code):
+    """Schritte zum Anlegen eines leeren Projektordners nach der Projektvorlage (Kürzel der Vorlage → code).
+    → (Schritte, Pfadteile der Vorlage). ValueError, wenn es keine Vorlage gibt. Benutzt von Akquise und Projektordner."""
+    _, m_teile, m_baum = muster(t, conf)
+    return osch.reihenfolge(osch.vergleichen(m_baum, {}, code)), m_teile
+
+
+def vorlage_anlegen(t, ziel, schritte, m_teile):
+    """Ordner der Vorlage unter ziel anlegen und ihre Dateien hineinkopieren (nur was fehlt). → (angelegte Ordner, Fehler)"""
+    ordner, fehler = [], []
+    for s in schritte:
+        try:
+            if s["art"] == "anlegen":
+                t.mkdir("/".join(ziel + s["pfad"]))
+                ordner.append("/".join(s["pfad"]))
+            elif s["art"] == "kopieren" and s.get("quelle") and not t.exists("/".join(ziel + s["pfad"])):
+                t.put_bytes(t.read("/".join(m_teile + s["quelle"])), "/".join(ziel + s["pfad"]))
+        except Exception as e:   # noqa: BLE001 – Schritt überspringen, die übrigen laufen weiter
+            fehler.append(f"{'/'.join(s['pfad'])}: {e}"[:200])
+    return ordner, fehler
+
+
+def einsortieren(t, teile, dateien, ordner, sonst="", grund="nicht zuzuordnen – bleibt liegen"):
+    """Je Datei ein Vorschlag, in welchen Ordner der Vorlage sie gehört (Name, bei PDFs auch der Anfang des Textes) –
+    setzt f["ziel"], f["grund"]; passt nichts, ist das Ziel `sonst` (leer = bleibt liegen)."""
+    with db.tx() as c:
+        cf = bpablage.plan_conf(c)
+    for f in dateien:
+        text = ""
+        if f["name"].lower().endswith(".pdf") and f["groesse"] < 4 * 1024 * 1024:
+            try:
+                text = bpablage.pdf_anfang(t.read("/".join(teile + f["rel"].split("/")), 4 * 1024 * 1024))
+            except Exception:   # noqa: BLE001 – ohne Text: nur nach dem Namen
+                text = ""
+        v, _ = bpablage.vorschlaege(f["name"], text, [], ordner, cf) if ordner else ([], "")
+        f["ziel"], f["grund"] = (v[0]["pfad"], v[0]["grund"]) if v else (sonst, grund)
+    return dateien
 
 
 def pruefen(pid, projekt=None, kv=False):

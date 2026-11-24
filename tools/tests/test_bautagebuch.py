@@ -122,6 +122,19 @@ def test_bt_projekt_anlegen_aendern(ctx):
     pruefe(not finde(ctx.admin.gj(_a("/projects")), id=pid), "gelöschtes Projekt steht noch in der Liste")
 
 
+def test_bt_projektordner(ctx):
+    """Projektordner beim Anlegen (24.11.2026): ohne eingerichtete Ablage meldet der Server „aus“ und legt nichts an –
+    direkt im Bautagebuch und über den Durchgriff der Kopfleiste (/api/bp/bt/projektordner), den jede App benutzt."""
+    pid, _ = _projekt(ctx)
+    try:
+        r = ctx.admin.gj(_a(f"/projektordner?project_id={pid}"))
+        gleich(r["zustand"], "aus", f"ohne Ablage: {r}")
+        gleich(ctx.admin.gj(f"/adressen/api/bp/bt/projektordner?project_id={pid}")["zustand"], "aus", "über den Durchgriff")
+        ctx.admin.post(_a("/projektordner"), {"project_id": pid, "zuordnung": [{"rel": "../x", "ziel": "/etc"}]}, expect=409)
+    finally:
+        _weg(ctx, pid)
+
+
 def test_bt_berichtsnummern_fortlaufend(ctx):
     """Berichte werden je Projekt fortlaufend nummeriert (1, 2, 3 …), unabhängig vom Datum und von anderen Projekten."""
     pid, _ = _projekt(ctx)

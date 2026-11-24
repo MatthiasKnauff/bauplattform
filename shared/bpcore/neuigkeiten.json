@@ -1,5 +1,13 @@
 [
  {
+  "id": "projektordner-anlegen",
+  "datum": "2026-11-24",
+  "app": "start",
+  "titel": "Projektordner beim Anlegen",
+  "text": "Legst du ein neues Projekt an und gibt es auf dem Dateiserver noch keinen Projektordner (oder er ist leer), fragt ein Fenster, ob er nach der Projektvorlage des Büros angelegt werden soll. Liegen schon Dateien darin, schlägt es je Datei einen Ordner vor – einsortiert wird erst nach deinem OK.",
+  "ziel": ""
+ },
+ {
   "id": "gantt-neu-ein-fenster",
   "datum": "2026-11-24",
   "app": "gantt",

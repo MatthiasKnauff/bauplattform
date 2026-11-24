@@ -10,7 +10,7 @@ import time
 from lib import finde, gleich, pruefe
 
 NEU_PW = "Baustelle-2026-neu"
-APP_KEYS = ["bautagebuch", "gantt", "adressen", "baukosten", "aufgaben", "plaene", "ava", "kommunikation", "baudaten", "zeiten", "bauantrag", "waermeschutz", "wiki", "personal", "gebaeudemodell"]
+APP_KEYS = ["bautagebuch", "gantt", "adressen", "baukosten", "aufgaben", "plaene", "ava", "baudaten", "zeiten", "bauantrag", "waermeschutz", "wiki", "personal", "gebaeudemodell"]
 PW_ZEICHEN = set("abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789")   # ohne leicht verwechselbare Zeichen (0/O, 1/l/I)
 
 
@@ -73,7 +73,7 @@ def test_app_rechte_nur_adressen(ctx):
         c = _anmelden_mit_neuem_kennwort(ctx, name, pw)
         gleich(c.gj("/api/me")["apps"], ["adressen"], "Apps laut Startseite")
         c.get("/adressen/api/contacts", expect=200)
-        for pfad in ("/maengel/api/maengel", "/plaene/api/projekte", "/kommunikation/api/kom"):
+        for pfad in ("/maengel/api/maengel", "/plaene/api/projekte", "/maengel/api/kom"):
             c.get(pfad, expect=403)
         c.get("/bautagebuch/api/projects", expect=(401, 403))   # das Bautagebuch übernimmt die Sitzung ohne Recht gar nicht erst
         c.get("/verwaltung/api/users", expect=403)   # kein Administrator
@@ -264,7 +264,7 @@ def test_projektuebersicht_mit_testdaten(ctx):
         pruefe(p["bt"]["reports"] >= berichte, f"{kurz}: nur {p['bt']['reports']} Berichte (mindestens {berichte})")
         if mit_plan is not None:
             gleich(bool(p["plans"]), mit_plan, f"{kurz}: verknüpfter Bauzeitenplan")
-        pruefe(isinstance(p.get("weitere"), dict) and set(p["weitere"]) <= {"ava", "bauantrag", "waermeschutz", "honorar", "kommunikation"} and all(isinstance(n, int) and n > 0 for n in p["weitere"].values()),
+        pruefe(isinstance(p.get("weitere"), dict) and set(p["weitere"]) <= {"ava", "bauantrag", "waermeschutz", "honorar", "aufgaben"} and all(isinstance(n, int) and n > 0 for n in p["weitere"].values()),
                f"{kurz}: Unterlagen der übrigen Apps als Anzahl je App: {p.get('weitere')}")
 
 
@@ -375,7 +375,7 @@ def test_protokoll_filter(ctx):
 def test_zustand_der_dienste(ctx):
     """Zustand: alle Plattform-Dienste antworten, Datenbank mit aktuellem Schema, Testdaten gezählt."""
     s = ctx.admin.gj("/verwaltung/api/status")
-    for key in ("bauportal", "portal", "adressen", "aufgaben", "plaene", "kommunikation", "admin"):
+    for key in ("bauportal", "portal", "adressen", "aufgaben", "plaene", "admin"):
         x = finde(s["services"], key=key)
         pruefe(x and x["ok"], f"Dienst „{key}“ meldet einen Fehler: {x}")
     pruefe(s["db"]["schema"] >= 27, f"Schema {s['db']['schema']} älter als benötigt (27)")

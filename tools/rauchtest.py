@@ -24,10 +24,9 @@ APPS = {
     "bauzeitenplan": ("Bauzeitenplan", ["/api/health", "/api/bt-projects", "/api/firms", "/api/library", "/api/phases", "/api/catbuero", "/api/catlernen"]),   # api/settings entfiel mit dem KI-Vorschlag (K6-A, 22.11.2026)
     "adressen":      ("Adressen", ["/api/contacts", "/api/contacts/duplikate"]),
     "baukosten":     ("Baukosten", ["/api/bk", "/api/sources"]),
-    "maengel":       ("Aufgaben & Post (Offen)", ["/api/maengel", "/api/termine", "/api/erinnerungen", "/api/projekte"]),
+    "maengel":       ("Post & Vorgänge", ["/api/maengel", "/api/termine", "/api/erinnerungen", "/api/projekte", "/api/kom", "/api/kom/kontakte"]),
     "plaene":        ("Pläne", ["/api/projekte", "/api/kontakte", "/api/versandliste?project_id={pid}"]),
     "ava":           ("AVA", ["/api/projekte", "/api/kontakte", "/api/uebersicht", "/api/baudaten/kataloge"]),
-    "kommunikation": ("Aufgaben & Post (Verschickt)", ["/api/kom", "/api/kontakte"]),
     "baudaten":      ("Baudaten", ["/api/start", "/api/gruppen", "/api/firmen"]),
     "zeiten":        ("Zeiten", ["/api/grund", "/api/tag", "/api/woche", "/api/monat", "/api/offen", "/api/konten", "/api/auswertung"]),
     "honorar":       ("Honorar", ["/api/auftraege"]),

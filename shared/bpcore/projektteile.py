@@ -98,7 +98,7 @@ WEITERE = {   # App → (Tabelle, Name, Art im Papierkorb, archivierbar)
     "bauantrag": ("bauantrag", "name", "Bauantrag", False),
     "waermeschutz": ("ws_nachweis", "name", "Wärmeschutznachweis", False),
     "honorar": ("honorar_auftrag", "name", "Honorarauftrag", False),
-    "kommunikation": ("kom_vorgang", "coalesce(nullif(titel,''), art)", "Vorgang", False),
+    "aufgaben": ("kom_vorgang", "coalesce(nullif(titel,''), art)", "Vorgang", False),
 }
 
 

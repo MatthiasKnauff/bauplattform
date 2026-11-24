@@ -28,7 +28,6 @@ UPSTREAM = {   # Pfad → interne Adresse im Docker-Netz
     "maengel": E("AUFGABEN_INTERNAL", "http://aufgaben:8095"),
     "plaene": E("PLAENE_INTERNAL", "http://plaene:8096"),
     "ava": E("AVA_INTERNAL", "http://ava:8097"),
-    "kommunikation": E("KOMMUNIKATION_INTERNAL", "http://kommunikation:8098"),
     "baudaten": E("BAUDATEN_INTERNAL", "http://baudaten:8099"),
     "zeiten": E("ZEITEN_INTERNAL", "http://zeiten:8101"),
     "honorar": E("HONORAR_INTERNAL", "http://honorar:8103"),
@@ -41,7 +40,7 @@ UPSTREAM = {   # Pfad → interne Adresse im Docker-Netz
     "verwaltung": E("ADMIN_INTERNAL", "http://admin:8091"),
 }
 PORTAL = E("PORTAL_INTERNAL", "http://portal:8090")
-UMBENANNT = {"planung": "gebaeudemodell"}   # alte Pfade → neue (Lesezeichen, Links in Mails): 301 mit dem Rest des Pfads
+UMBENANNT = {"planung": "gebaeudemodell", "kommunikation": "maengel"}   # Kommunikation ist seit 24.11.2026 Teil von Post & Vorgänge   # alte Pfade → neue (Lesezeichen, Links in Mails): 301 mit dem Rest des Pfads
 HOP = {"connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailers", "transfer-encoding", "upgrade"}
 TIMEOUT = int(E("ROUTER_TIMEOUT", "300") or 300)   # KI-Prüfungen mit Ollama ohne Grafikkarte können dauern
 

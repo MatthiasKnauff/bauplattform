@@ -26,7 +26,7 @@ export async function versandPruefen(browser, repo) {
       if (f) return fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' });
       if (pf === 'api/bp/versand' && q.method() === 'POST') { gesendet.push(q.postData() || ''); return r.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, weg: 'test', betreff: 'x', neue_adressen: [] }) }); }
       const a = pf === 'api/me' ? { ok: true, id: 1, name: 'admin', vorname: 'Matthias', nachname: 'Test', role: 'admin', admin: true, look: {}, theme: 'hell' }
-        : pf === 'api/platform' ? { apps: [{ key: 'kommunikation', name: 'Kommunikation', url: '/', allowed: true }], user: { name: 'admin' }, projekte: [{ id: 1, name: 'A481 Tierheim' }] }
+        : pf === 'api/platform' ? { apps: [{ key: 'aufgaben', name: 'Post & Vorgänge', url: '/', allowed: true }], user: { name: 'admin' }, projekte: [{ id: 1, name: 'A481 Tierheim' }] }
         : pf === 'api/bp/versand/beteiligte' || pf === 'api/beteiligte' ? BET
         : pf === 'api/bp/textvorlagen' ? { vorlagen: [{ id: 'a', name: 'Terminbestätigung', betreff: 'Termin {projekt}', text: 'Guten Tag {firma},\n\nbitte bestätigen.\n\n{ich}' }] }
         : pf === 'api/vorgang/arten' ? [{ key: 'telefon', name: 'Telefonat', ic: '☎' }] : /kom$|antworten|vorgaenge|kontakte|mailadressen|liste|neuigkeit|projekte/.test(pf) ? [] : {};
@@ -82,15 +82,15 @@ export async function versandPruefen(browser, repo) {
     await ctx.close();
   } catch (e) { fehler.push('Baustein: Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
 
-  try {   // (4) Kommunikation
-    const { p, ctx } = await seite(fs.readFileSync(path.join(STAT, 'kommunikation.html'), 'utf8'), 'Kommunikation');
-    await p.waitForFunction(() => typeof verfassen === 'function', null, { timeout: 20000 });
-    await p.evaluate(() => { BPHead.projekt = { id: 1, name: 'A481 Tierheim' }; verfassen('n', { an: [{ name: 'Muster Rohbau GmbH', email: 'info@rohbau.test', contact_id: 1 }], betreff: 'Statik' }); });
+  try {   // (4) Post & Vorgänge (bis 24.11.2026 die App Kommunikation)
+    const { p, ctx } = await seite(fs.readFileSync(path.join(STAT, 'aufgaben.html'), 'utf8'), 'Post & Vorgänge');
+    await p.waitForFunction(() => window.PV && PV.neuArten, null, { timeout: 20000 });
+    await p.evaluate(() => { BPHead.projekt = { id: 1, name: 'A481 Tierheim' }; PV.neuArten.nachricht({ an: [{ name: 'Muster Rohbau GmbH', email: 'info@rohbau.test', contact_id: 1 }], betreff: 'Statik' }); });
     await p.waitForSelector('.bpv [data-betreff]', { timeout: 10000 });
     pruef(await p.evaluate(() => !document.querySelector('.kv') && document.querySelector('.bpv h3').textContent === 'Neue Nachricht' && !!document.querySelector('.bpv [data-bpneu="nachricht"].on') && !!document.querySelector('.bpv [data-v="vl"]')),
-      'Kommunikation: „Neue Nachricht“ soll der gemeinsame Dialog sein (mit Leiste „＋ Neu“ und Vorlagen)');
+      'Post & Vorgänge: „Neue Nachricht“ soll der gemeinsame Dialog sein (mit Leiste „＋ Neu“ und Vorlagen)');
     await ctx.close();
-  } catch (e) { fehler.push('Kommunikation: Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
+  } catch (e) { fehler.push('Post & Vorgänge: Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
 
   // (5) Druckseite und Ansehen-Fenster: „Senden“ über denselben Baustein
   pruef(/data-d="mail"/.test(fs.readFileSync(path.join(KASTEN, 'druck.js'), 'utf8')) && /unterlagenSenden\(BPHead\.mailVorgabe/.test(fs.readFileSync(path.join(KASTEN, 'druck.js'), 'utf8')), 'Druckseite (druck.js): „✉ Senden“ über BPHead.unterlagenSenden fehlt');

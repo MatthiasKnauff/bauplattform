@@ -15,7 +15,7 @@ COOKIE = os.environ.get("SSO_COOKIE_NAME", "bp_sso")
 DOMAIN = os.environ.get("SSO_COOKIE_DOMAIN", "").strip() or None
 SECURE = os.environ.get("COOKIE_SECURE") == "1"
 DAYS = int(os.environ.get("SSO_DAYS", "30") or 30)
-APPS = (("bautagebuch", "Bautagebuch"), ("gantt", "Bauzeitenplan"), ("adressen", "Adressen"), ("baukosten", "Baukosten"), ("aufgaben", "Aufgaben & Post"), ("plaene", "Pläne & Dateien"), ("ava", "Ausschreibung & Abrechnung"), ("kommunikation", "Post (Verschickt)"), ("baudaten", "Baudaten"), ("zeiten", "Zeiten"), ("bauantrag", "Bauantrag"), ("waermeschutz", "Wärmeschutz"), ("wiki", "Wiki"), ("personal", "Personal"), ("gebaeudemodell", "Gebäudemodell"))   # Apps mit Zugriffsrecht je Benutzer
+APPS = (("bautagebuch", "Bautagebuch"), ("gantt", "Bauzeitenplan"), ("adressen", "Adressen"), ("baukosten", "Baukosten"), ("aufgaben", "Post & Vorgänge"), ("plaene", "Pläne & Dateien"), ("ava", "Ausschreibung & Abrechnung"), ("baudaten", "Baudaten"), ("zeiten", "Zeiten"), ("bauantrag", "Bauantrag"), ("waermeschutz", "Wärmeschutz"), ("wiki", "Wiki"), ("personal", "Personal"), ("gebaeudemodell", "Gebäudemodell"))   # Apps mit Zugriffsrecht je Benutzer
 ABSCHALTBAR = (("honorar", "Honorar"), ("akquise", "Akquise"), ("admin", "Verwaltung"))   # Apps ohne Zugriffsrecht je Benutzer, die sich im Büro trotzdem abschalten lassen (Verwaltung → Apps); bei der Verwaltung nur die Kachel – ⚙ führt weiter hinein
 _TOUCH = 300   # „zuletzt gesehen“ höchstens alle 5 Minuten schreiben
 
@@ -196,8 +196,8 @@ def _apps_of(user):
         v = v + ["plaene"]
     if isinstance(v, list) and "ava" not in v and "-ava" not in v and ("baukosten" in v or "gantt" in v):
         v = v + ["ava"]   # neue App: wer Baukosten oder Bauzeitenplan nutzt, bekommt sie, bis sie abgewählt wird
-    if isinstance(v, list) and "kommunikation" not in v and "-kommunikation" not in v and any(a in v for a in ("bautagebuch", "gantt", "plaene", "aufgaben")):
-        v = v + ["kommunikation"]   # neue App: wer Pläne oder Rügen verschicken kann, bekommt sie, bis sie abgewählt wird
+    if isinstance(v, list) and "kommunikation" in v and "aufgaben" not in v and "-aufgaben" not in v:
+        v = v + ["aufgaben"]   # die Kommunikation ist seit 24.11.2026 Teil von Post & Vorgänge
     if isinstance(v, list) and "baudaten" not in v and "-baudaten" not in v and any(a in v for a in ("baukosten", "ava")):
         v = v + ["baudaten"]   # neue App: wer Baukosten oder Ausschreibung nutzt, bekommt sie, bis sie abgewählt wird
     if isinstance(v, list) and "zeiten" not in v and "-zeiten" not in v:

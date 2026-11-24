@@ -1,58 +1,34 @@
-/* Navigation „Aufgaben & Post“ – gemeinsam für die Seiten Aufgaben (Offen) und Kommunikation (Verschickt), damit beide wie eine App
-   wirken: links dieselben Gruppen, ein Klick auf einen Punkt der anderen Seite wechselt dorthin (#tab bzw. #art=…).
+/* Navigation von „Post & Vorgänge“ (App aufgaben) – Offen, Verlauf nach Art, Mit wem; eine Seite, kein Wechsel der Adresse.
+   Bis 24.11.2026 gemeinsam für zwei Apps (Aufgaben und Kommunikation); seitdem ist der Verlauf Teil derselben Seite.
    bpAufPost(el, o)
-     o.hier     'aufgaben' | 'kommunikation'
-     o.aktiv    id des gewählten Punkts: 'o:<tab>' (Offen), 'v:' bzw. 'v:<art>' (Verschickt), 'w:<k>' (Mit wem)
-     o.offen    { uebersicht, todos, maengel, termine, erinnerungen } – Zahlen (nur auf der Seite Aufgaben bekannt)
+     o.aktiv    id des gewählten Punkts: 'o:<tab>' (Offen), 'v:' bzw. 'v:<art>' (Verlauf), 'w:<k>' (Mit wem)
+     o.offen    { uebersicht, todos, maengel, termine, erinnerungen } – Zahlen
      o.offenTip { … } – was die Zahl zählt (Tooltip), z. B. „fällig – offen insgesamt: 26“
-     o.arten    [{ key, name, n }] – Arten des Verschickten mit Zahl (nur auf der Seite Kommunikation bekannt)
-     o.mitwem   [{ name, n, tip }] – Kontakte im Projekt (Kommunikation)
+     o.arten    [{ key, name, n }] – Arten im Verlauf mit Zahl (null: noch nicht geladen → Arten ohne Zahl)
+     o.mitwem   [{ name, n, tip }] – Kontakte im Verlauf
      o.buero    true: Gruppe „Büro“ mit „Bauplattform“ (ToDo-Liste mit Antworten, nur Verwaltung) · o.bueroZahl: wartende Punkte
-     o.wahl     (id) => …  Klick auf einen Punkt dieser Seite
-     o.filter   bpFilter(…) – Suchfeld mit Filtern oben in der Navigation (optional) */
+     o.wahl     (id) => …  Klick auf einen Punkt
+     o.filter   bpFilter(…) bzw. { einhaengen(el) } – Suchfeld oben in der Navigation (optional) */
 (() => {
   if (window.bpAufPost) return;
   const IC = { uebersicht: '<path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/>', todos: '<path d="M4 6h2M4 12h2M4 18h2M9 6h11M9 12h11M9 18h11"/>',
     maengel: '<path d="M12 3l10 18H2zM12 10v5M12 18v.5"/>', termine: '<path d="M4 5h16v15H4zM4 9h16M8 3v4M16 3v4"/>', erinnerungen: '<circle cx="12" cy="13" r="7"/><path d="M12 9v4l2 2M5 4l3 2M19 4l-3 2"/>',
     post: '<path d="M3 6h18v12H3z"/><path d="M3 7l9 6 9-6"/>', person: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>' };
   const OFFEN = [['uebersicht', 'Übersicht'], ['todos', 'To-dos'], ['maengel', 'Mängel & Weisungen'], ['termine', 'Termine & Verzug'], ['erinnerungen', 'Erinnerungen']];
-  const ARTEN = [['planversand', 'Planversand'], ['maengelruege', 'Mängelrüge'], ['terminruege', 'Terminrüge'], ['nachricht', 'Nachricht'], ['vorgang', 'Vorgang']];   // ohne Zahlen (Seite Aufgaben)
-  const ziel = (key) => { const H = window.BPHead, a = H && H.conf && (H.conf.apps || []).find((x) => x.key === key); return a && a.allowed !== false && H.appUrl ? H.appUrl(a) + '/' : null; };
-  /* Was nur eine der beiden Seiten weiß (Zahlen bei Offen, Arten bei Verschickt, Gruppe Büro), merkt sich der Browser –
-     so sieht die Navigation auf beiden Seiten gleich aus und springt beim Wechsel nicht. */
-  const MK = 'bp.aufpost.stand';
-  try {   // beim Wechsel zwischen den Seiten (andere Adresse, eigener Speicher) kommt der Stand im #…&ap=… mit – gleich wieder aus der Adresse nehmen
-    const m = /[#&]ap=([^&]*)/.exec(location.hash);
-    if (m) { localStorage.setItem(MK, decodeURIComponent(m[1])); history.replaceState(null, '', location.pathname + location.search + location.hash.replace(/&?ap=[^&]*/, '').replace(/^#$/, '')); }
-  } catch { /* egal */ }
-  const merk = (o) => {
-    let m = {}; try { m = JSON.parse(localStorage.getItem(MK) || '{}') || {}; } catch { /* egal */ }
-    const neu = { ...m };
-    if (o.offen) { neu.offen = o.offen; neu.offenTip = o.offenTip || {}; neu.buero = !!o.buero; neu.bueroZahl = o.bueroZahl || 0; }
-    if (o.arten && o.arten.length) neu.arten = o.arten.map((a) => ({ key: a.key, name: a.name, n: a.n }));
-    try { localStorage.setItem(MK, JSON.stringify(neu)); } catch { /* egal */ }
-    return { ...o, offen: o.offen || m.offen, offenTip: o.offenTip || m.offenTip, arten: (o.arten && o.arten.length ? o.arten : m.arten),
-      buero: o.offen ? o.buero : !!m.buero, bueroZahl: o.offen ? o.bueroZahl : m.bueroZahl };
-  };
-  window.bpAufPost = function (el, o0) {
-    const o = merk(o0);
+  const ARTEN = [['planversand', 'Planversand'], ['maengelruege', 'Mängelrüge'], ['terminruege', 'Terminrüge'], ['nachricht', 'Nachricht'], ['vorgang', 'Vorgang']];   // solange der Verlauf noch nicht geladen ist
+  window.bpAufPost = function (el, o) {
     const G = [{ titel: 'Offen', punkte: OFFEN.map(([k, t]) => ({ id: 'o:' + k, text: t, icon: IC[k], farbe: 'var(--af-aufgaben)', zahl: o.offen && o.offen[k] ? String(o.offen[k]) : '', zahlTip: (o.offenTip && o.offenTip[k]) || '' })) }];
-    if (o.hier === 'kommunikation' || ziel('kommunikation')) {
-      const A = o.arten ? o.arten.map((a) => [a.key, a.name, a.n]) : ARTEN;
-      G.push({ titel: 'Verschickt', punkte: [{ id: 'v:', text: 'Alles', icon: IC.post, farbe: 'var(--c-v)', zahl: o.arten ? String(o.arten.reduce((s, a) => s + a.n, 0)) : '' }]
-        .concat(A.map(([k, t, n]) => ({ id: 'v:' + k, text: t, icon: IC.post, zahl: n == null ? '' : String(n) }))) });
-    }
+    const A = o.arten ? o.arten.map((a) => [a.key, a.name, a.n]) : ARTEN;
+    G.push({ titel: 'Verlauf', punkte: [{ id: 'v:', text: 'Alles', icon: IC.post, farbe: 'var(--c-v)', zahl: o.arten ? String(o.arten.reduce((s, a) => s + a.n, 0)) : '' }]
+      .concat(A.map(([k, t, n]) => ({ id: 'v:' + k, text: t, icon: IC.post, zahl: n == null ? '' : String(n) }))) });
     if (o.buero) G.push({ titel: 'Büro', punkte: [{ id: 'o:bauplattform', text: 'Bauplattform', icon: '<path d="M4 20V9l8-5 8 5v11"/><path d="M9 20v-6h6v6"/>', zahl: o.bueroZahl ? String(o.bueroZahl) : '', zahlTip: 'Punkte, die auf deine Antwort warten' }] });
     if (o.mitwem && o.mitwem.length) G.push({ titel: 'Mit wem', punkte: o.mitwem.map((x, k) => ({ id: 'w:' + k, text: x.name, icon: IC.person, zahl: String(x.n), zahlTip: x.tip || '' })) });
-    bpNav(el, { kopf: { titel: 'Aufgaben & Post', klein: '' }, lage: true, attr: 'ap', aktiv: o.aktiv, gruppen: G,
-      davor: o.filter ? '<div class="ap-flt"></div>' : '', nachher: (x) => { if (o.filter) o.filter.einhaengen(x.querySelector('.ap-flt')); },   // Suchfeld mit Filtern (bp/filter.js) oben in der Navigation
-      wahl: (id) => {
-        const hier = o.hier === 'aufgaben' ? id.startsWith('o:') : !id.startsWith('o:');
-        if (hier) { o.wahl(id); return; }
-        const u = ziel(o.hier === 'aufgaben' ? 'kommunikation' : 'aufgaben'); if (!u) return;
-        let st = ''; try { st = localStorage.getItem(MK) || ''; } catch { /* egal */ }
-        location.href = u + (id.startsWith('o:') ? '#' + id.slice(2) : '#art=' + id.slice(2)) + (st ? '&ap=' + encodeURIComponent(st) : '');
-      } });
+    bpNav(el, { kopf: { titel: 'Post & Vorgänge', klein: '' }, lage: true, attr: 'ap', aktiv: o.aktiv, gruppen: G,
+      davor: o.filter ? '<div class="ap-flt"></div>' : '', nachher: (x) => {   // Suchfeld mit Filtern (bp/filter.js) oben in der Navigation – nur das der gezeigten Ansicht (der Platz bleibt beim Neuzeichnen stehen)
+        const pl = x.querySelector('.ap-flt'); if (!o.filter || !pl) return;
+        o.filter.einhaengen(pl); [...pl.children].forEach((c) => { if (c !== o.filter.el) c.remove(); });
+      },
+      wahl: (id) => o.wahl(id) });
     bpNav.breite(el, { key: 'aufpost' });
   };
 })();

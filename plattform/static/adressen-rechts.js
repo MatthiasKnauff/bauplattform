@@ -83,11 +83,11 @@ async function adrZuletzt(c) {
   box.innerHTML = `<b>Zuletzt</b>${L.slice(0, 3).map((x, i) => adrVz(x, i)).join('') || '<div class="mute">Noch kein Schriftverkehr.</div>'}`;
 }
 async function adrSchrift(el, c) {
-  const km = ((window.BPHead && BPHead.conf) || {}).apps ? BPHead.conf.apps.find((a) => a.key === 'kommunikation') : null;
+  const km = ((window.BPHead && BPHead.conf) || {}).apps ? BPHead.conf.apps.find((a) => a.key === 'aufgaben') : null;
   el.innerHTML = '<div class="adr-r mute">Schriftverkehr wird geladen …</div>';
   const L = await adrVerlauf(c); if (ADR_SEL !== c.id) return;
   el.innerHTML = `<div class="adr-r"><h3>${esc(c.name)}</h3>${L.map((x, i) => adrVz(x, i)).join('') || '<p class="mute">Noch kein Schriftverkehr.</p>'}
-    ${km ? `<div><a class="btn sm" href="${esc(BPHead.appUrl(km))}/#kontakt=${c.id}">↗ in der Kommunikation öffnen</a></div>` : ''}</div>`;
+    ${km ? `<div><a class="btn sm" href="${esc(BPHead.appUrl(km))}/#kontakt=${c.id}">↗ in Post & Vorgänge öffnen</a></div>` : ''}</div>`;
 }
 /* Schriftverkehr anklicken (23.11.2026): ein Eintrag öffnet sich mit Inhalt, Empfänger:in, Weg und Stand; ↑ ↓ blättert, „↗ öffnen“ führt zur Sache */
 function adrVzOeffnen(i) {

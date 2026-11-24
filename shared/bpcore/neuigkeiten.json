@@ -1,5 +1,13 @@
 [
  {
+  "id": "post-vorgaenge",
+  "datum": "2026-11-24",
+  "app": "aufgaben",
+  "titel": "Post & Vorgänge – eine App",
+  "text": "„Aufgaben & Post“ und „Kommunikation“ sind jetzt eine App: links unter „Offen“ To-dos, Mängel, Termine und Erinnerungen, unter „Verlauf“ alles, was verschickt und festgehalten wurde – ohne Seitenwechsel. „＋ Neu“ bietet auch Nachricht, Vorgang, Abnahme und Datei an. Alte Lesezeichen führen von selbst hierher.",
+  "ziel": "#navL"
+ },
+ {
   "id": "projektordner-anlegen",
   "datum": "2026-11-24",
   "app": "start",

@@ -27,7 +27,6 @@ SERVICES = [  # interne Adressen im Docker-Netz
     ("aufgaben", "Aufgaben & Mängel", os.environ.get("AUFGABEN_INTERNAL", "http://aufgaben:8095") + "/api/health"),
     ("plaene", "Pläne & Dateien", os.environ.get("PLAENE_INTERNAL", "http://plaene:8096") + "/api/health"),
     ("ava", "Ausschreibung & Abrechnung", os.environ.get("AVA_INTERNAL", "http://ava:8097") + "/api/health"),
-    ("kommunikation", "Kommunikation", os.environ.get("KOMMUNIKATION_INTERNAL", "http://kommunikation:8098") + "/api/health"),
     ("baudaten", "Baudaten", os.environ.get("BAUDATEN_INTERNAL", "http://baudaten:8099") + "/api/health"),
     ("zeiten", "Zeiten", os.environ.get("ZEITEN_INTERNAL", "http://zeiten:8101") + "/api/health"),
     ("bauantrag", "Bauantrag", os.environ.get("BAUANTRAG_INTERNAL", "http://bauantrag:8104") + "/api/health"),
@@ -157,8 +156,6 @@ def _apps_value(d):
         want.append("-plaene")
     if "ava" not in want:
         want.append("-ava")
-    if "kommunikation" not in want:
-        want.append("-kommunikation")
     if "baudaten" not in want:
         want.append("-baudaten")
     if "zeiten" not in want:

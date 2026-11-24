@@ -388,16 +388,16 @@ Alle Positions- und Preisdaten an einer Stelle; Ausschreibung & Abrechnung und B
 - Wer Baukosten oder Ausschreibung nutzt, bekommt die App automatisch (in der Verwaltung abwählbar).
 - Tabellen `pdb_*` (Migrationen 0023 Schema, 0025 Katalogdaten im Bautagebuch); gemeinsamer Zugriff `shared/bpcore/baudaten.py`.
 
-## Kommunikation (eigener Container)
+## Verlauf in „Post & Vorgänge“ (bis 24.11.2026 die App Kommunikation)
 
-Pfad `/kommunikation`, Container `bauplattform_kommunikation` (Port 8098, gleiches Image wie die Plattform, `APP_MODULE: kommunikation`).
+Teil der App `aufgaben` (Pfad `/maengel`, Routen in `plattform/aufgaben_post.py`, Seite `static/post-verlauf.js`); `/kommunikation/…` leitet dorthin weiter.
 Zeigt, was aus der Plattform an wen verschickt wurde – Planversand, Mängel- und Terminrügen (per E-Mail, an mich zum Weiterleiten
 oder als PDF) – aus dem Benachrichtigungsverlauf (Tabelle `benachrichtigungen`). Die App liest nur.
 
 - Projekt oben im Kopf oder alle Projekte; links „Mit wem“ mit Anzahl und letzter Sendung, rechts der Verlauf nach Tagen.
 - Ein Kontakt (links anklicken oder „👤 Kontakt …“): alles, was ihm geschickt wurde, über alle Projekte – links nach Projekten.
 - Filter nach Art, „nur von mir“, Suche; Export für Excel (CSV) und Drucken als Nachweis.
-- Wer Bautagebuch, Bauzeitenplan, Planstand oder Aufgaben & Mängel nutzt, bekommt die App automatisch (in der Verwaltung abwählbar).
+- Wer früher nur die Kommunikation hatte, bekommt Post & Vorgänge.
 
 ## Zeiten (eigener Container)
 

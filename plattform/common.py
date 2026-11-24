@@ -286,7 +286,7 @@ def projects_overview(c, user=None):
     P = lambda x: {"id": x["id"], "name": x["name"], "updated": x["updated"], "versions": x["versions"], "archived": bool(x["archived"])}
     K = lambda x: {"id": x["id"], "name": x["name"], "stufe": x["stufe"], "archived": bool(x["archived"]), "files": x["files"]}
     # die übrigen Apps mit eigenen Unterlagen je Projekt: nur zählen (öffnen geht aus der Übersicht; archivieren/löschen in der App)
-    WEITERE = (("ava", "ava_lv"), ("bauantrag", "bauantrag"), ("waermeschutz", "ws_nachweis"), ("honorar", "honorar_auftrag"), ("kommunikation", "kom_vorgang"))
+    WEITERE = (("ava", "ava_lv"), ("bauantrag", "bauantrag"), ("waermeschutz", "ws_nachweis"), ("honorar", "honorar_auftrag"), ("aufgaben", "kom_vorgang"))
     mehr = {app: {r["project_id"]: r["n"] for r in c.execute(f"SELECT project_id, COUNT(*) AS n FROM {tab} WHERE project_id IS NOT NULL GROUP BY project_id").fetchall()} for app, tab in WEITERE}
     out, used_p, used_k = [], set(), set()
     for p in bt:

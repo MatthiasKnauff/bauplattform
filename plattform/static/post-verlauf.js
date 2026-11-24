@@ -1,126 +1,24 @@
-<!doctype html>
-<html lang="de">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#84827c">
-<title>Aufgaben & Post</title>
-<link rel="icon" href="logo.png">
-<link rel="stylesheet" href="bp/bp.css">
-<link rel="stylesheet" href="static/kom-abnahme.css">
-<style>
-.wrap{padding-bottom:5rem}
-.top{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin:0 0 .7rem}
-.seg{display:inline-flex;max-width:100%;overflow-x:auto;scrollbar-width:none;border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:3px;gap:2px;background:var(--card)}
-.seg button{border:0;background:none;cursor:pointer;font:inherit;border-radius:calc(999px*var(--rkp,1));padding:.35rem .9rem;color:var(--mute);font-size:.9rem;white-space:nowrap;max-width:22rem;overflow:hidden;text-overflow:ellipsis}
-.seg button.on{background:var(--y);color:var(--on);font-weight:600}
-.ap-flt{margin:.1rem 0 .5rem}.ap-flt input[type=search]{width:100%;box-sizing:border-box;font:inherit;font-size:.9rem;padding:.4rem .6rem;border:1px solid var(--line);border-radius:calc(9px*var(--rk,1));background:var(--inp,var(--card));color:var(--ink)}.ap-flt input[type=search]:focus{outline:2px solid var(--y);outline-offset:0;border-color:transparent}
-.top input[type=search]{flex:1 1 220px;min-width:0;font:inherit;padding:.45rem .7rem;border-radius:calc(999px*var(--rkp,1));border:1px solid var(--line);background:var(--inp);color:var(--ink)}
-.chip{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:calc(999px*var(--rkp,1));padding:.25rem .7rem;font:inherit;font-size:.85rem;cursor:pointer}
-.chip.on{background:var(--y);border-color:var(--y);color:var(--on);font-weight:600}
-.chip small{opacity:.7}
-.ck{display:inline-flex;gap:.35rem;align-items:center;font-size:.88rem;color:var(--mute);margin-left:.4rem;cursor:pointer}
-.kb{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;background:var(--card);border:1px solid var(--y);border-radius:calc(12px*var(--rk,1));padding:.6rem .9rem;margin:0 0 .8rem}
-.kb b{font-size:1.05rem}.kb .mute{font-size:.88rem}
-.kb .x{margin-left:auto}
-.btn.zur{border-color:var(--red);color:var(--red);font-weight:600}.btn.zur:hover{background:color-mix(in srgb,var(--red) 12%,transparent)}
-.grid{display:grid;grid-template-columns:290px minmax(0,1fr);gap:1rem;align-items:start}.grid.ohne{grid-template-columns:minmax(0,1fr)}
-.side{background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));padding:.5rem 0;position:sticky;top:60px;max-height:calc(100vh - 80px);overflow:auto}
-#list>.tag:first-child{margin-top:0}.grid:has(#list>.tag:first-child) .side{margin-top:calc(.82rem*1.2 + .35rem)}   /* links oben bündig mit der ersten Karte rechts */
-.side h3{margin:.3rem .9rem .4rem;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);font-weight:600}
-.si{display:flex;gap:.6rem;align-items:center;width:100%;text-align:left;border:0;background:none;color:inherit;font:inherit;padding:.5rem .9rem;cursor:pointer}
-.si:hover{background:var(--hov)}
-.si.on{background:var(--hov)}
-.si span{flex:1;min-width:0;display:flex;flex-direction:column}
-.si b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.95rem}
-.si small{color:var(--mute);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.si i{font-style:normal;font-size:.8rem;color:var(--mute);background:var(--hov);border-radius:calc(999px*var(--rkp,1));padding:.05rem .5rem}
-.tag{margin:1rem 0 .35rem;line-height:1.2;font-size:.82rem;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
-.tag:first-child{margin-top:0}
-.e{background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));margin-bottom:.45rem}
-.e.f{border-color:var(--red)}
-.e summary{display:grid;grid-template-columns:1em 2rem minmax(0,1fr) auto;gap:.1rem .6rem;padding:.6rem .8rem;cursor:pointer;list-style:none;align-items:start}
-.e summary::-webkit-details-marker{display:none}.e summary::before{grid-row:1/3;line-height:1.7}   /* Dreieck aus head.css (Ausklappen) */
-.e .ic{font-size:1.2rem;line-height:1.4;grid-row:1/3}
-.e .h{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.e .h b{font-weight:600}
-.e .s{grid-column:2;color:var(--mute);font-size:.84rem;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.e .z{color:var(--mute);font-size:.8rem;white-space:nowrap;text-align:right}
-.e .art{display:inline-block;font-size:.75rem;border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:0 .45rem;margin-right:.35rem;color:var(--mute);vertical-align:1px}
-.e .art.mr{border-color:var(--red);color:var(--red)}.e .art.tr{border-color:var(--y);color:var(--y)}
-.e .d{padding:0 .8rem .7rem 3.4rem;font-size:.9rem}
-.e .d pre{white-space:pre-wrap;font:inherit;margin:.3rem 0;color:var(--ink);opacity:.9}
-.e .d .mute{font-size:.84rem}
-.e .d a{color:var(--y)}
-.leer{padding:2rem 1rem;text-align:center;color:var(--mute)}
-.mehr{margin:.6rem 0}
-.e .art.vg{border-color:var(--y);color:var(--y)}.vg-f{display:flex;gap:.4rem;flex-wrap:wrap;margin:.4rem 0}.vg-f img{height:84px;border-radius:calc(8px*var(--rk,1));display:block}
-/* Neue Nachricht / Vorgang */
-.modal.kv [hidden]{display:none!important}.kv-seg button{white-space:nowrap}
-.modal.kv{width:min(860px,100%);max-width:none;padding:0;display:flex;flex-direction:column;max-height:calc(100vh - 40px)}
-.kv-k{display:flex;align-items:center;gap:.8rem;padding:.8rem 1rem;border-bottom:1px solid var(--line)}.kv-t{font-size:1.05rem}.kv-x{margin-left:auto}
-.kv-seg{display:inline-flex;border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:2px;gap:2px}.kv-seg button{border:0;background:none;color:var(--ink);font:inherit;font-size:.88rem;padding:.25rem .8rem;border-radius:calc(999px*var(--rkp,1));cursor:pointer}.kv-seg button.on{background:var(--ink);color:var(--card)}
-.kv-b{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:1rem;padding:.8rem 1rem;overflow:auto;min-height:0}
-.kv-lb{display:flex;flex-direction:column;gap:.2rem;font-size:.8rem;color:var(--mute);margin-bottom:.6rem}
-.kv-lb input,.kv-lb textarea{font:inherit;font-size:.95rem;color:var(--ink);background:var(--inp);border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.45rem .6rem;width:100%;box-sizing:border-box}
-.kv-lb textarea{resize:vertical;min-height:7rem}.kv-2{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
-.kv-bt{display:flex;align-items:center;gap:.35rem}.kv-bt em{font-style:normal;color:var(--mute);font-size:.9rem}
-.kv-arten{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.35rem;margin-bottom:.7rem}.kv-arten button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:calc(9px*var(--rk,1));padding:.45rem .5rem;font:inherit;font-size:.84rem;text-align:left;cursor:pointer}.kv-arten button.on{border:2px solid var(--y);background:color-mix(in srgb,var(--y) 10%,var(--card));padding:calc(.45rem - 1px) calc(.5rem - 1px)}
-.kv-an{margin-bottom:.6rem}.kv-chips{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.3rem;background:var(--inp);margin-top:.2rem}
-.kv-chip{display:inline-flex;align-items:center;gap:.25rem;border:1px solid var(--y);color:var(--y);border-radius:calc(999px*var(--rkp,1));padding:.05rem .2rem .05rem .6rem;font-size:.86rem}.kv-chip button{border:0;background:none;color:inherit;cursor:pointer;font-size:.75rem}
-.kv-plus{border:1px dashed var(--line);background:transparent;color:var(--mute);border-radius:calc(999px*var(--rkp,1));padding:.1rem .6rem;font:inherit;font-size:.84rem;cursor:pointer}.kv-plus:hover{border-color:var(--y);color:var(--y)}
-.kv-mail{flex:1 1 9rem;min-width:7rem;border:0;background:transparent;color:var(--ink);font:inherit;font-size:.88rem;padding:.2rem .3rem;outline:0}
-.kv-ck{display:flex;gap:.4rem;align-items:center;font-size:.88rem;color:var(--mute)}
-.kv-r{border:2px dashed transparent;border-radius:calc(10px*var(--rk,1));padding:.2rem}.kv-r.over{border-color:var(--y);background:color-mix(in srgb,var(--y) 8%,transparent)}
-.kv-dz{display:grid;grid-template-columns:1fr 1fr;gap:.4rem}.kv-fs{display:contents}
-.kv-f{position:relative;height:84px;border-radius:calc(9px*var(--rk,1));overflow:hidden;border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--card);text-align:center}.kv-f img{width:100%;height:100%;object-fit:cover}.kv-f i{font-style:normal;font-size:1.4rem}.kv-f small{font-size:.7rem;padding:0 .3rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
-.kv-f button{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:.7rem;cursor:pointer}
-.kv-add{height:84px;border:2px dashed var(--line);border-radius:calc(9px*var(--rk,1));display:grid;place-items:center;color:var(--mute);cursor:pointer;font-size:1.1rem}.kv-add:hover{border-color:var(--y);color:var(--y)}
-.kv-hint{font-size:.8rem;color:var(--mute);margin:.6rem 0 0}
-.modal.kv .acts{padding:.7rem 1rem;border-top:1px solid var(--line);margin:0}
-.kv-fab{display:none}
-@media (max-width:760px){.kv-top{display:none}
-  .kv-fab{display:block;position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:60}
-  .kv-fb{width:56px;height:56px;border-radius:50%;border:0;background:var(--y);color:var(--on);font-size:1.9rem;box-shadow:var(--sh0,0 6px 18px rgba(0,0,0,.35));cursor:pointer}
-  .kv-fm{position:absolute;right:0;bottom:66px;background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));box-shadow:var(--sh0,0 8px 24px rgba(0,0,0,.3));padding:.3rem;width:max-content}.kv-fm button{display:block;width:100%;text-align:left;border:0;background:none;color:var(--ink);font:inherit;padding:.6rem .8rem;border-radius:calc(8px*var(--rk,1));cursor:pointer}.kv-fm button:hover{background:var(--hov)}
-  .modal-bg:has(.modal.kv){padding:0}.modal.kv{width:100%;height:100%;max-height:none;border-radius:0}
-  .kv-k{flex-wrap:wrap;gap:.5rem;padding:.6rem .8rem}.kv-t{flex:1 1 100%;order:0}.kv-x{position:absolute;right:.6rem;top:.55rem}.modal.kv{position:relative}.kv-seg button{font-size:.82rem;padding:.25rem .6rem}
-  .kv-b{grid-template-columns:1fr}.kv-arten{grid-template-columns:1fr 1fr}.kv-2{grid-template-columns:1fr}.kv-dz{grid-template-columns:repeat(3,1fr)}}
-@media (max-width:820px){.grid{grid-template-columns:1fr}.side{position:static;max-height:240px}.e .d{padding-left:.8rem}}
-@media print{.top,.bp-nav,.side,.bph,.kb .x,.mehr{display:none!important}.grid{display:block}.e{break-inside:avoid;border-color:#bbb}.e details>*:not(summary){display:block}.wrap{max-width:none}}
-.e.ant{margin-left:1.6rem;border-style:dashed}.art.an{background:color-mix(in srgb,#3b6fa8 16%,transparent);color:#3b6fa8}
-.kv-vl{display:flex;gap:.4rem;flex-wrap:wrap}.vl-l{display:flex;flex-direction:column;gap:.35rem;margin:.4rem 0}.vl-z{display:flex;gap:.4rem;align-items:center}.vl-z[hidden]{display:none}.vl-z input{flex:1;font:inherit}
-</style>
-</head>
-<body>
-<main class="bp-app">
-  <aside class="bp-nav" id="navL" aria-label="Aufgaben &amp; Post"></aside>
-  <section class="pane wrap bp-voll" id="pane">
-  <div class="top">
-    <div class="seg" id="scope" role="group" aria-label="Umfang"></div>
-    <input type="search" id="q" placeholder="Suchen – Betreff, Firma, Plan …" autocomplete="off">
-    <button class="btn sm pri kv-top" data-kvneu2 title="Nachricht, Vorgang, Abnahme, Rüge, Pläne oder Datei – oben im Fenster wählen und jederzeit wechseln">＋ Neu</button>
-    <button class="btn sm" id="kBtn" title="Einen Kontakt wählen und alles sehen, was ihm geschickt wurde">👤 Kontakt …</button>
-    <button class="btn sm" id="csvBtn" title="Die gezeigten Sendungen als Excel-Tabelle (CSV) speichern">⤓ Speichern unter …</button>
-    <button class="btn sm" id="drBtn" title="Als Nachweis drucken oder als PDF speichern">🖨 Drucken / PDF</button>
-    <label class="ck"><input type="checkbox" id="ich"> nur von mir</label>
-  </div>
-  <div id="kbox"></div>
-  <div class="grid" data-bph-trenn-ab="821" data-bph-trenn="kom" data-bph-trenn-min="200" data-bph-trenn-max="0.5"><aside class="side" id="side" aria-label="Übersicht"></aside><section id="list" aria-live="polite"></section></div>
-  </section>
-</main>
-<div class="kv-fab"><div class="kv-fm" hidden></div><button type="button" class="kv-fb" data-kvneu2 aria-label="Neu: Nachricht, Vorgang, Abnahme, Rüge …">＋</button></div>
-<script src="bp/baukasten.js"></script>
-<script src="bp/aufpost.js"></script>
-<script src="static/kom-abnahme.js"></script>
-<script>
+/* =====================================================================
+   Post & Vorgänge – „Verlauf“: was mit wem hin- und herging, je Projekt oder je Kontakt (Sendungen, Antworten aus dem Posteingang,
+   festgehaltene Vorgänge, Abnahmen). Bis 24.11.2026 die eigene App „Kommunikation“; jetzt ein Teil der Seite aufgaben.html.
+     PV.zeigen(el)      Verlauf in el aufbauen und laden (Navigation links zeichnet die Seite über apNav() mit PV.nav())
+     PV.weg()           Verlauf verlassen (andere Ansicht der Seite)
+     PV.nav()           { aktiv, arten, mitwem, filter, wahl } für bpAufPost
+     PV.ausHash()       #art= · #v= · #kontakt= · #post → true (gehört zum Verlauf), öffnet Abnahme bzw. Kontakt
+     PV.projekt / PV.laden / PV.beteiligte – gemeinsame Namen mit kom-abnahme.js
+   Server: plattform/aufgaben_post.py (Routen /api/kom …, /api/vorgang …), Abnahme kom_abnahme.py.
+   ===================================================================== */
+(() => {
+'use strict';
 const LS = bpLS('kom.');
 const F = { alle: LS.get('alle', false), arten: new Set(LS.get('arten', [])), q: '', ich: LS.get('ich', false) };
 let K = null;          // gewählter Kontakt {contact_id|email, name, …} – dann alles mit ihm, über alle Projekte
 let KP = null;         // im Kontakt: auf ein Projekt eingeschränkt
-let D = null, N = 300, tok = 0, ME = null, ANT = {};   // ANT: Antworten aus dem Posteingang je Sendung
+let D = null, N = 300, tok = 0, ANT = {}, HOST = null;   // HOST: Bereich, in dem der Verlauf gerade steht (sonst null)   // ANT: Antworten aus dem Posteingang je Sendung
 const IC = { planversand: '📐', plotauftrag: '🖨', maengelruege: '⚠️', terminruege: '⏱', lvversand: '📋', angebotsbesprechung: '🤝', bauvertrag: '📜', auftragsschreiben: '📄', brief: '✉️', nachricht: '✉️', vorgang: '📝' };
 const projekt = () => (window.BPHead && BPHead.projekt) || null;
+const ME = () => (window.BPHead && BPHead.me) || {};
+const $p = (s) => HOST && HOST.querySelector(s);
 const dt = (t) => { const d = new Date(t); return isNaN(d) ? t : d; };
 const uhr = (t) => { const d = dt(t); return d instanceof Date ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : ''; };
 const tagName = (t) => {
@@ -141,6 +39,7 @@ function params(ohne = {}) {
   return p.toString();
 }
 async function laden() {
+  if (!HOST) return;
   const my = ++tok;
   try {
     const vp = !K && (F.alle || projekt()) && (!F.arten.size || F.arten.has('vorgang')) && !F.ich ? api('api/vorgaenge' + (F.alle ? '' : '?pid=' + projekt().id)).catch(() => []) : Promise.resolve([]);
@@ -150,7 +49,7 @@ async function laden() {
     VG = (v || []).filter((x) => !x.gesendet && (!q || [x.titel, x.text, x.beteiligte, x.art_name].join(' ').toLowerCase().includes(q)));
     zeichnen();
   }
-  catch (e) { if (my === tok) $('#list').innerHTML = `<div class="leer">${esc(e.message)}</div>`; }
+  catch (e) { if (my === tok && HOST) $p('#pvList').innerHTML = `<div class="leer">${esc(e.message)}</div>`; }
 }
 const ENTW = new Set();   // markierte Entwürfe (zum Löschen)
 document.addEventListener('change', (e) => {
@@ -166,22 +65,21 @@ document.addEventListener('click', async (e) => {
   ENTW.clear(); await laden();
   if (pk.length) rueckgaengig(`${pk.length} Entw${pk.length === 1 ? 'urf' : 'ürfe'} gelöscht`, async () => { for (const p of pk) await api(`api/bp/papierkorb/${p}/zurueck`, 'POST').catch(() => {}); await laden(); });
 });
-const QIN = document.getElementById('q'); let QFOK = false;   // Suchfeld wandert in die Navigation; die Navigation wird neu gezeichnet, das Feld bleibt dasselbe
+const QIN = document.createElement('input'); let QFOK = false;   // Suchfeld oben in der Navigation; die Navigation wird neu gezeichnet, das Feld bleibt dasselbe
+Object.assign(QIN, { type: 'search', placeholder: 'Suchen – Betreff, Firma, Plan …', autocomplete: 'off' }); QIN.setAttribute('aria-label', 'Verlauf durchsuchen');
 QIN.addEventListener('focus', () => { QFOK = true; }); QIN.addEventListener('blur', () => setTimeout(() => { QFOK = document.activeElement === QIN; }, 0));
 function zeichnen() {
+  if (!HOST || !D) return;
   const p = projekt();
-  $('#scope').style.display = K ? 'none' : '';
-  $('#scope').innerHTML = `<button type="button" data-sc="p" class="${!F.alle ? 'on' : ''}" title="${esc(p ? p.name : '')}">${p ? esc(p.name) : 'Projekt oben wählen'}</button><button type="button" data-sc="a" class="${F.alle ? 'on' : ''}">Alle Projekte</button>`;
-  $('#ich').checked = F.ich;
-  bpAufPost($('#navL'), { hier: 'kommunikation', aktiv: K ? '' : 'v:' + (F.arten.size === 1 ? [...F.arten][0] : ''), arten: D.arten || [],   // links: Verschickt nach Art, Mit wem; Offen führt zu den Aufgaben
-    mitwem: K ? [] : (D.kontakte || []).map((x) => ({ name: x.name, n: x.n, tip: [x.gewerk, x.ansprech].filter(Boolean).join(' · ') })),
-    filter: { einhaengen: (pl) => { if (pl && QIN.parentElement !== pl) { const pos = QIN.selectionStart; pl.appendChild(QIN); if (QFOK) { QIN.focus(); try { QIN.setSelectionRange(pos, pos); } catch { /* egal */ } } } } },   // Suchfeld oben links wie bei den Aufgaben
-    wahl: (id) => { if (id.startsWith('w:')) { kontakt(D.kontakte[+id.slice(2)]); return; } K = null; KP = null; F.arten = new Set(id.slice(2) ? [id.slice(2)] : []); LS.set('arten', [...F.arten]); laden(); } });
-  $('#side').hidden = !K; $('#side').parentElement.classList.toggle('ohne', !K);   // ohne Kontakt stehen „Mit wem“ links in der Navigation
-  $('#kbox').innerHTML = K ? `<div class="kb"><span style="font-size:1.4rem">👤</span><span><b>${esc(K.name)}</b><br><span class="mute">${esc([K.ansprech, K.gewerk, K.email].filter(Boolean).join(' · '))}</span></span>
+  $p('#pvScope').style.display = K ? 'none' : '';
+  $p('#pvScope').innerHTML = `<button type="button" data-sc="p" class="${!F.alle ? 'on' : ''}" title="${esc(p ? p.name : '')}">${p ? esc(p.name) : 'Projekt oben wählen'}</button><button type="button" data-sc="a" class="${F.alle ? 'on' : ''}">Alle Projekte</button>`;
+  $p('#pvIch').checked = F.ich;
+  if (window.apNav) apNav();   // Navigation links (Post & Vorgänge zeichnet sie – mit PV.nav())
+  $p('#pvSide').hidden = !K; $p('#pvSide').parentElement.classList.toggle('ohne', !K);   // ohne Kontakt stehen „Mit wem“ links in der Navigation
+  $p('#pvKbox').innerHTML = K ? `<div class="kb"><span style="font-size:1.4rem">👤</span><span><b>${esc(K.name)}</b><br><span class="mute">${esc([K.ansprech, K.gewerk, K.email].filter(Boolean).join(' · '))}</span></span>
     <span class="mute">${D.gesamt} Sendung${D.gesamt === 1 ? '' : 'en'}${KP ? ' in diesem Projekt' : ' in allen Projekten'}</span><button type="button" class="btn sm x zur" data-kx title="Zurück zur Übersicht aller Sendungen">← Zurück zur Übersicht</button></div>` : '';
   // links: mit wem (Projekt/alle) bzw. in welchen Projekten (Kontakt)
-  const side = $('#side');
+  const side = $p('#pvSide');
   if (K) {
     const L = D.projekte || [], ges = L.reduce((s, x) => s + x.n, 0);
     side.innerHTML = `<h3>Projekte</h3><button type="button" class="si${!KP ? ' on' : ''}" data-kp=""><span><b>Alle Projekte</b></span><i>${ges}</i></button>`
@@ -194,7 +92,7 @@ function zeichnen() {
   // rechts: Protokoll nach Tagen
   const E = [...(D.eintraege || []), ...VG.map((v) => ({ ...v, ts: v.zeit, _vg: 1 }))].sort((a, b) => String(b.ts).localeCompare(String(a.ts)));
   if (!E.length) {
-    $('#list').innerHTML = `<div class="leer">${F.q || F.arten.size || F.ich ? 'Nichts gefunden – Filter oder Suche ändern.' : K ? `An ${esc(K.name)} wurde noch nichts verschickt.` : !F.alle && p ? `In ${esc(p.name)} wurde noch nichts verschickt.<br><small>Hier erscheinen Planversand, Mängel- und Terminrügen – sobald sie aus den Apps verschickt werden.</small>` : 'Noch nichts verschickt.'}</div>`;
+    $p('#pvList').innerHTML = `<div class="leer">${F.q || F.arten.size || F.ich ? 'Nichts gefunden – Filter oder Suche ändern.' : K ? `An ${esc(K.name)} wurde noch nichts verschickt.` : !F.alle && p ? `In ${esc(p.name)} wurde noch nichts verschickt.<br><small>Hier erscheinen Planversand, Mängel- und Terminrügen – sobald sie aus den Apps verschickt werden.</small>` : 'Noch nichts verschickt.'}</div>`;
     return;
   }
   const EN = E.filter((x) => x._vg && x.art === 'abnahme' && x.status === 'entwurf'); [...ENTW].forEach((id) => { if (!EN.some((x) => x.id === id)) ENTW.delete(id); });
@@ -210,9 +108,9 @@ function zeichnen() {
       <span class="s">${esc([K || !F.alle ? '' : x.projekt, x.weg_name, x.von ? 'von ' + x.von : '', x.email && x.email !== wer ? x.email : ''].filter(Boolean).join(' · '))}${x.status === 'fehler' ? ' · <b style="color:var(--red)">nicht zugestellt</b>' : ''}</span></summary>
       <div class="d">${x.ansprech || x.gewerk ? `<div class="mute">${esc([x.ansprech, x.gewerk].filter(Boolean).join(' · '))}</div>` : ''}${x.inhalt ? `<pre>${esc(x.inhalt)}</pre>` : ''}${x.fehler ? `<div class="mute">Fehler: ${esc(x.fehler)}</div>` : ''}
         <div class="mute">${esc(new Date(x.ts).toLocaleString('de-DE'))}${x.projekt ? ' · ' + esc(x.projekt) : ''}</div>
-        ${quelle(x) ? `<a href="${esc(quelle(x))}" data-qp="${x.project_id || ''}">↗ ${x.art === 'planversand' || x.art === 'plotauftrag' ? 'Planversandliste' : x.art.endsWith('ruege') ? 'Aufgaben & Mängel' : String(x.link || '').startsWith('ava:') ? 'In der Ausschreibung' : 'Quelle'} öffnen</a>` : ''}
+        ${quelle(x) ? `<a href="${esc(quelle(x))}" data-qp="${x.project_id || ''}">↗ ${x.art === 'planversand' || x.art === 'plotauftrag' ? 'Planversandliste' : x.art.endsWith('ruege') ? 'Mängel' : String(x.link || '').startsWith('ava:') ? 'In der Ausschreibung' : 'Quelle'} öffnen</a>` : ''}
         ${x.contact_id && !K ? ` · <a href="#" data-kc="${x.contact_id}">alles mit ${esc(x.kontakt)}</a>` : ''}
-        ${ME && (ME.is_admin || x.von === ME.full) ? ` · <a href="#" class="kweg" data-kweg="${x.id}" title="Aus dem Protokoll löschen (z. B. Testversand) – liegt danach im Papierkorb, steht im Protokoll">Löschen</a>` : ''}</div></details>`;
+        ${ME().is_admin || x.von === ME().full ? ` · <a href="#" class="kweg" data-kweg="${x.id}" title="Aus dem Protokoll löschen (z. B. Testversand) – liegt danach im Papierkorb, steht im Protokoll">Löschen</a>` : ''}</div></details>`;
     for (const a of (ANT[x.id] || []).sort((p, q) => String(p.zeit).localeCompare(String(q.zeit)))) {
       h += `<details class="e ant"><summary><span class="ic">↩</span><span class="h"><span class="art an">Antwort</span><b>${esc(a.von_name || a.von)}</b> – ${esc(a.betreff)}</span><span class="z">${uhr(a.zeit)}</span>
         <span class="s">${esc(a.vorschau.slice(0, 140))}${a.anhaenge && a.anhaenge.length ? ` · 📎 ${a.anhaenge.length}` : ''}</span></summary>
@@ -221,7 +119,7 @@ function zeichnen() {
     }
   }
   if (D.gesamt > (D.eintraege || []).length) h += `<button type="button" class="btn sm mehr" data-mehr>+ ältere anzeigen (${D.gesamt - (D.eintraege || []).length} weitere)</button>`;
-  $('#list').innerHTML = h;
+  $p('#pvList').innerHTML = h;
 }
 
 /* ---------- Vorlagen für Nachrichten (fürs ganze Büro): {firma} {projekt} {frist} {ich} ---------- */
@@ -248,7 +146,7 @@ function verfassen(modus, mit) {   // mit: Übergabe aus der Leiste „＋ Neu�
   mit = mit || {};
   if (modus === 'n' || modus === 'd') {   // Nachricht und Datei: der gemeinsame Versand-Dialog – gesendet und abgelegt vom Kern (/api/bp/versand)
     const k = KURZ(p.name);
-    BPHead.unterlagenSenden({ titel: modus === 'd' ? 'Datei versenden' : 'Neue Nachricht', art: 'nachricht', pid: p.id, projekt: p.name, link: 'kommunikation:', neu: modus === 'd' ? 'datei' : 'nachricht', mit,
+    BPHead.unterlagenSenden({ titel: modus === 'd' ? 'Datei versenden' : 'Neue Nachricht', art: 'nachricht', pid: p.id, projekt: p.name, link: 'aufgaben:#post', neu: modus === 'd' ? 'datei' : 'nachricht', mit,
       an: Array.isArray(mit.an) ? mit.an.filter((x) => x && x.email) : [], dateien: Array.isArray(mit._dateien) ? mit._dateien : [], betreff: mit.betreff || '', text: mit.text || '', kopie: false,
       textHilfe: `Signatur wird angehängt.${k ? ` Vor dem Betreff steht [${esc(k)}] – so findet die Antwort zurück ins Projekt.` : ''}`, vorlagenVerwalten: vlVerwalten, danach: () => laden() });
     return;
@@ -309,7 +207,7 @@ function verfassen(modus, mit) {   // mit: Übergabe aus der Leiste „＋ Neu�
     const sd = t.closest('[data-kvs]'); if (sd) { S.senden = sd.dataset.kvs === '1'; zeichne(); return; }
     const w = t.closest('[data-kvweg]'); if (w) { S.an.splice(+w.dataset.kvweg, 1); zeichne(); return; }
     const fw = t.closest('[data-kvfweg]'); if (fw) { const f = S.dateien.splice(+fw.dataset.kvfweg, 1)[0]; if (f && f._url) URL.revokeObjectURL(f._url); zeichne(); return; }
-    const pl = t.closest('[data-kvan]'); if (pl) { (async () => { const B = await beteiligte(p.id), K = await api('api/kontakte?q=').catch(() => []);
+    const pl = t.closest('[data-kvan]'); if (pl) { (async () => { const B = await beteiligte(p.id), K = await api('api/kom/kontakte?q=').catch(() => []);
       const da = new Set(S.an.map((x) => x.email.toLowerCase())), bid = new Set(B.map((x) => x.id));
       pickMenu(pl, { search: 'Firma, Person oder E-Mail …', empty: 'Niemand gefunden – E-Mail-Adresse direkt eintippen.',
         items: [...B.map((x) => ({ ...x, g: 'Beteiligte des Projekts' })), ...K.filter((x) => !bid.has(x.id)).map((x) => ({ ...x, g: 'Weitere Kontakte' }))].filter((x) => x.email && !da.has(x.email.toLowerCase()))
@@ -361,13 +259,12 @@ function kontaktWahl(anchor) {
     items: L.map((x) => ({ group: x.n ? 'Mit Sendungen' : 'Weitere Kontakte', title: x.name, sub: [x.gewerk, x.ansprech, x.email].filter(Boolean).join(' · ') + (x.n ? ` · ${x.n} Sendung${x.n === 1 ? '' : 'en'}` : ''), value: x.id, find: [x.ansprech, x.email, x.gewerk].join(' ') })),
     onPick: (id) => { const x = L.find((y) => y.id === id); kontakt({ contact_id: x.id, name: x.name, ansprech: x.ansprech, gewerk: x.gewerk, email: x.email }); },
   });
-  api('api/kontakte?q=').then(offen).catch((e) => toast(e.message, true));
+  api('api/kom/kontakte?q=').then(offen).catch((e) => toast(e.message, true));
 }
-/* Rügen werden in „Aufgaben & Mängel“ geschrieben (Mängel, Fristen, Briefvorlagen, sign-me) – von hier aus dorthin, der Dialog öffnet sich gleich */
 function kontakt(k) { K = k; KP = null; N = 300; laden(); scrollTo({ top: 0 }); }
 
 document.addEventListener('click', async (e) => {
-  const t = e.target;
+  const t = e.target; if (!HOST || !t.closest || !t.closest('.pv')) return;
   const sc = t.closest('[data-sc]'); if (sc) { F.alle = sc.dataset.sc === 'a'; LS.set('alle', F.alle); if (!F.alle && !projekt() && window.BPHead) BPHead.projektWahl && BPHead.projektWahl({}); laden(); return; }
   const ki = t.closest('[data-ki]'); if (ki) { kontakt(D.kontakte[+ki.dataset.ki]); return; }
   const kc = t.closest('[data-kc]'); if (kc) { e.preventDefault(); const x = D.eintraege.find((y) => y.contact_id === +kc.dataset.kc); kontakt({ contact_id: x.contact_id, name: x.kontakt, ansprech: x.ansprech, gewerk: x.gewerk, email: x.email }); return; }
@@ -381,35 +278,44 @@ document.addEventListener('click', async (e) => {
     return;
   }
   const qp = t.closest('[data-qp]'); if (qp && qp.dataset.qp) { e.preventDefault(); try { await BPHead.projektSetzen(+qp.dataset.qp); } catch { /* egal */ } location.href = qp.href; return; }
-  if (t.closest('[data-kvneu2]')) { BPHead.neuWechsel(BPHead.neuZuletzt(), {}); return; }   // „＋ Neu“: zuletzt gewählte Art, oben im Fenster wechselbar
-  const nv = t.closest('[data-kvneu]'); if (nv) { verfassen(nv.dataset.kvneu); return; }
-  if (t.closest('#kBtn')) { kontaktWahl($('#kBtn')); return; }
-  if (t.closest('#csvBtn')) { location.href = 'api/kom.csv?' + params({ n: 1 }); return; }
-  if (t.closest('#drBtn')) { document.querySelectorAll('#list details').forEach((d) => { d.open = true; }); setTimeout(() => print(), 50); }
+  if (t.closest('[data-pvk]')) { kontaktWahl(t.closest('[data-pvk]')); return; }
+  if (t.closest('[data-pvcsv]')) { location.href = 'api/kom.csv?' + params({ n: 1 }); return; }
+  if (t.closest('[data-pvdr]')) { HOST.querySelectorAll('#pvList details').forEach((d) => { d.open = true; }); setTimeout(() => print(), 50); }
 });
-document.addEventListener('change', (e) => { if (e.target.id === 'ich') { F.ich = e.target.checked; LS.set('ich', F.ich); laden(); } });
-let qT = 0;
-QIN.addEventListener('input', (e) => { clearTimeout(qT); qT = setTimeout(() => { F.q = e.target.value.trim(); laden(); }, 300); });
+document.addEventListener('change', (e) => { if (e.target.id === 'pvIch') { F.ich = e.target.checked; LS.set('ich', F.ich); laden(); } });
 
-(async () => {
-  let PC; [ME, PC] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(ME);   // gleichzeitig
-  await header('Aufgaben & Post', ME, PC, { app: 'kommunikation' });
-  const ah = /(?:^#|&)art=(\w*)/.exec(location.hash);   // aus den Aufgaben: #art=planversand (leer = alles)
-  if (ah) { F.arten = new Set(ah[1] ? [ah[1]] : []); LS.set('arten', [...F.arten]); history.replaceState(null, '', location.pathname); }
-  if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(() => { if (!K) { F.alle = false; LS.set('alle', false); } laden(); });
-  if (window.BPHead) {   // „＋ Neu“: diese Arten öffnet die Kommunikation selbst
-    Object.assign(BPHead.neuArten, { nachricht: (d) => verfassen('n', d), vorgang: (d) => verfassen('v', d), datei: (d) => verfassen('d', d), abnahme: (d) => abnahmeNeu(undefined, d) });
-    const nz = /(?:^#|&)neu=(\w+)/.exec(location.hash);   // aus einer anderen App hierher gewechselt
-    if (nz && BPHead.neuArten[nz[1]]) { const d = BPHead.neuUebergabe() || {}; history.replaceState(null, '', location.pathname); setTimeout(() => BPHead.neuArten[nz[1]](d), 300); }
-  }
-  const va = /(?:^#|&)v=(\d+)/.exec(location.hash);   // Link auf einen Vorgang (#v=<id>): eine Abnahme öffnet sich gleich
+
+const GERUEST = `<div class="pv"><div class="top">
+    <div class="seg" id="pvScope" role="group" aria-label="Umfang"></div>
+    <button class="btn sm" data-pvk title="Einen Kontakt wählen und alles sehen, was ihm geschickt wurde">👤 Kontakt …</button>
+    <button class="btn sm" data-pvcsv title="Die gezeigten Sendungen als Excel-Tabelle (CSV) speichern">⤓ Speichern unter …</button>
+    <button class="btn sm" data-pvdr title="Als Nachweis drucken oder als PDF speichern">🖨 Drucken / PDF</button>
+    <label class="ck"><input type="checkbox" id="pvIch"> nur von mir</label>
+  </div>
+  <div id="pvKbox"></div>
+  <div class="grid" data-bph-trenn-ab="821" data-bph-trenn="kom" data-bph-trenn-min="200" data-bph-trenn-max="0.5"><aside class="side" id="pvSide" aria-label="Übersicht"></aside><section id="pvList" aria-live="polite"><div class="leer">Lade …</div></section></div></div>`;
+
+function zeigen(el) { HOST = el; el.innerHTML = GERUEST; laden(); }
+function weg() { HOST = null; tok++; }
+function nav() {
+  return { aktiv: K ? '' : 'v:' + (F.arten.size === 1 ? [...F.arten][0] : ''), arten: (D && D.arten) || null,
+    mitwem: K || !D ? [] : (D.kontakte || []).map((x) => ({ name: x.name, n: x.n, tip: [x.gewerk, x.ansprech].filter(Boolean).join(' · ') })),
+    filter: { el: QIN, einhaengen: (pl) => { if (pl && QIN.parentElement !== pl) { const pos = QIN.selectionStart; pl.appendChild(QIN); if (QFOK) { QIN.focus(); try { QIN.setSelectionRange(pos, pos); } catch { /* egal */ } } } } },   // Suchfeld oben links wie bei den übrigen Ansichten
+    wahl: (id) => { if (id.startsWith('w:')) { kontakt(D.kontakte[+id.slice(2)]); return; } K = null; KP = null; F.arten = new Set(id.slice(2) ? [id.slice(2)] : []); LS.set('arten', [...F.arten]); laden(); } };
+}
+/* Adresse: #art=planversand (leer = alles), #v=<Vorgang> (Abnahme öffnet sich), #kontakt=<id>, #post – gehört zum Verlauf */
+function ausHash() {
+  const h = location.hash || '';
+  const ah = /(?:^#|&)art=(\w*)/.exec(h), va = /(?:^#|&)v=(\d+)/.exec(h), m = /(?:^#|&)kontakt=(\d+)/.exec(h);
+  if (!ah && !va && !m && !/^#post(&|$)/.test(h)) return false;
+  if (ah) { F.arten = new Set(ah[1] ? [ah[1]] : []); LS.set('arten', [...F.arten]); }
   if (va) api('api/abnahme/' + va[1]).then((A) => abnahmeOeffnen(A.id, A)).catch(() => {});
-  const m = /kontakt=(\d+)/.exec(location.hash);   // aus den Adressen: #kontakt=<id>
-  if (m) { const L = await api('api/kontakte?q='); const x = L.find((y) => y.id === +m[1]); if (x) K = { contact_id: x.id, name: x.name, ansprech: x.ansprech, gewerk: x.gewerk, email: x.email }; }
-  if (window.BPHead && BPHead.ready) await BPHead.ready.catch(() => {});
-  laden();
-  BPHead.live(['kom_vorgang', 'planversand'], () => { laden(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
-})().catch((e) => toast(e.message, true));
-</script>
-</body>
-</html>
+  if (m) api('api/kom/kontakte?q=').then((L) => { const x = L.find((y) => y.id === +m[1]); if (x) kontakt({ contact_id: x.id, name: x.name, ansprech: x.ansprech, gewerk: x.gewerk, email: x.email }); }).catch(() => {});
+  return true;
+}
+let QT = 0;
+QIN.addEventListener('input', (e) => { clearTimeout(QT); QT = setTimeout(() => { F.q = e.target.value.trim(); laden(); }, 300); });
+const neuArten = { nachricht: (d) => verfassen('n', d), vorgang: (d) => verfassen('v', d), datei: (d) => verfassen('d', d), abnahme: (d) => abnahmeNeu(undefined, d) };   // „＋ Neu“: diese Arten öffnet der Verlauf selbst
+function projektNeu() { if (!K) { F.alle = false; LS.set('alle', false); } laden(); }   // oben ein anderes Projekt gewählt
+window.PV = { zeigen, weg, nav, ausHash, laden, projektNeu, projekt, beteiligte, neuArten, an: () => !!HOST };
+})();

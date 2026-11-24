@@ -11,8 +11,8 @@ Für alles, was einen Benutzer verändert, legt der Test einen eigenen Benutzer 
 from lib import PW, finde, gleich, pruefe
 
 NEU_PW = "Baustelle-2026-neu"
-ALLE_APPS = ["bautagebuch", "gantt", "adressen", "baukosten", "aufgaben", "plaene", "ava", "kommunikation", "baudaten", "zeiten", "bauantrag", "waermeschutz", "wiki", "personal", "gebaeudemodell"]
-APPS_MIT_ME = ["adressen", "maengel", "plaene", "kommunikation", "zeiten", "verwaltung"]   # Pfade im Verteiler mit /api/me
+ALLE_APPS = ["bautagebuch", "gantt", "adressen", "baukosten", "aufgaben", "plaene", "ava", "baudaten", "zeiten", "bauantrag", "waermeschutz", "wiki", "personal", "gebaeudemodell"]
+APPS_MIT_ME = ["adressen", "maengel", "plaene", "zeiten", "verwaltung"]   # Pfade im Verteiler mit /api/me
 
 
 # ---------------------------------------------------------------- Hilfen

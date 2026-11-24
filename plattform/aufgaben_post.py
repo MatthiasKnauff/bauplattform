@@ -1,4 +1,7 @@
-"""Kommunikation: Was wurde mit wem verschickt – je Projekt und je Kontakt.
+"""Post & Vorgänge, Teil „Verlauf“: Was wurde mit wem verschickt – je Projekt und je Kontakt.
+
+Bis 24.11.2026 eine eigene App „Kommunikation“ (Container kommunikation, Pfad /kommunikation/); seitdem Teil der App
+Aufgaben (Post & Vorgänge, Pfad /maengel/) – die Routen hängen an deren Flask-App, alte Adressen leitet router.py weiter.
 
 Quelle ist der Benachrichtigungsverlauf (Tabelle benachrichtigungen, bpcore/benachrichtigung.py), in den alle Apps jede
 Sendung eintragen: Planversand, Mängelrügen, Terminrügen – per E-Mail, an mich zum Weiterleiten oder als PDF.
@@ -7,45 +10,14 @@ Diese App liest nur; neue Arten (z. B. LV-Versand) erscheinen hier, sobald eine 
 import csv, io, json, re, urllib.parse
 from datetime import datetime
 
-from flask import Response, g, jsonify, redirect, request
+from flask import Response, g, jsonify, request
 
-from bpcore import benachrichtigung, dateien, db, papierkorb, platform, rechte, sso, versand, vorgang
+from bpcore import benachrichtigung, dateien, db, papierkorb, rechte, versand, vorgang
 import common as C
 
-app = C.make_app(__name__)
-KEY = "kommunikation"
+from aufgaben import app   # noqa: F401 – Teil der App Aufgaben (Post & Vorgänge)
+KEY = "aufgaben"   # App im Papierkorb
 ARTEN = {**benachrichtigung.ARTEN, **versand.ARTEN, "lvversand": "LV-Versand", "brief": "Brief"}
-
-
-@app.before_request
-def guard():
-    p = request.path
-    if p.startswith(("/static/", "/bp/")) or p in ("/api/health", "/logo.png", "/api/brand"):
-        return
-    u = C.current_user()
-    if not u or u["must_change"]:
-        if p.startswith("/api/"):
-            return jsonify(error="Nicht angemeldet", login=C.login_url(C.app_base(KEY) + "/")), 401
-        return redirect(C.login_url(request.url))
-    if not sso.has_app(u, KEY):
-        msg = "Für „Aufgaben & Post – Verschickt“ ist dein Konto nicht freigeschaltet."
-        return C.gesperrt(KEY, msg)   # im Büro abgeschaltet oder für das Konto nicht freigeschaltet
-    g.user = u
-
-
-@app.get("/")
-def index():
-    return C.page("kommunikation.html")
-
-
-@app.get("/api/me")
-def me():
-    return jsonify(ok=True, **C.public(g.user))
-
-
-@app.get("/api/platform")
-def platform_conf():
-    return jsonify(platform.config(g.user))
 
 
 def _filter(a):
@@ -162,7 +134,7 @@ class _Args(dict):
         return v
 
 
-@app.get("/api/kontakte")
+@app.get("/api/kom/kontakte")
 def kontakte():
     q = "%" + (request.args.get("q") or "").strip().lower() + "%"
     with db.tx() as c:
@@ -319,7 +291,7 @@ def vorgang_neu():
             weg, err = _schicken(c, p, an, betreff, mt, [(fn, "application/pdf", pdfb)] + [x for x in anh if not x[1].startswith("image/")], f.get("kopie") == "1")
         with db.tx() as c:
             benachrichtigung.protokoll(c, "vorgang", an, project_id=pid, projekt=p["name"] if p else "", betreff=betreff, inhalt=mt, von=name, weg="mail",
-                                       status="fehler" if err else "gesendet", fehler=err or "", link=f"kommunikation:#v={vid}")
+                                       status="fehler" if err else "gesendet", fehler=err or "", link=f"aufgaben:#v={vid}")
             if not err:
                 c.execute("UPDATE kom_vorgang SET gesendet=? WHERE id=?", (datetime.now().isoformat(timespec="seconds"), vid))
         hinweis = "" if err else f"als PDF an {', '.join(x['email'] for x in an)}"

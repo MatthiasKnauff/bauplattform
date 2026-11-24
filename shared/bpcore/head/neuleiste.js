@@ -14,9 +14,9 @@
   const H = window.BPHead;
   if (H.neuLeiste) return;
   const ARTEN = [
-    ['nachricht', '✉', 'Nachricht', 'kommunikation'], ['vorgang', '📝', 'Vorgang', 'kommunikation'], ['abnahme', '🏁', 'Abnahme', 'kommunikation'],
+    ['nachricht', '✉', 'Nachricht', 'aufgaben'], ['vorgang', '📝', 'Vorgang', 'aufgaben'], ['abnahme', '🏁', 'Abnahme', 'aufgaben'],
     ['m4', '⚠', 'Mängelrüge', 'aufgaben', 'vor Abnahme · § 4 Abs. 7 VOB/B'], ['m13', '⚠', 'Mängelrüge nach Abnahme', 'aufgaben', '§ 13 Abs. 5 VOB/B'],
-    ['termin', '⏱', 'Terminrüge', 'aufgaben', '§ 5 VOB/B'], ['plaene', '📐', 'Pläne', 'plaene'], ['datei', '📎', 'Datei', 'kommunikation']];
+    ['termin', '⏱', 'Terminrüge', 'aufgaben', '§ 5 VOB/B'], ['plaene', '📐', 'Pläne', 'plaene'], ['datei', '📎', 'Datei', 'aufgaben']];
   H.NEU_ARTEN = ARTEN;
   H.neuArten = H.neuArten || {};
   const E = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -43,7 +43,7 @@
     try { sessionStorage.setItem('bp.neu', JSON.stringify(d)); } catch { /* egal */ }
     const apps = (H.conf && H.conf.apps) || [], ap = apps.find((y) => y.key === A[3] && y.allowed);
     if (!ap) { if (window.toast) toast(`„${A[2]}“ gibt es in einer App, die für dein Konto nicht freigeschaltet ist.`, true); return; }
-    const hash = A[3] === 'aufgaben' ? (art === 'termin' ? 'termine' : 'maengel') + '&neu=' + art : A[3] === 'plaene' ? 'plaene&neu=plaene' : 'neu=' + art;
+    const hash = A[3] === 'aufgaben' ? (art === 'termin' ? 'termine' : art === 'm4' || art === 'm13' ? 'maengel' : 'post') + '&neu=' + art : A[3] === 'plaene' ? 'plaene&neu=plaene' : 'neu=' + art;
     location.href = (H.appUrl ? H.appUrl(ap) : '/' + A[3]) + '/#' + hash;
   };
   document.addEventListener('click', (e) => {

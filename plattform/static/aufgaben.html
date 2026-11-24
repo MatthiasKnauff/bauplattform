@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#84827c">
-<title>Aufgaben & Post</title>
+<title>Post & Vorgänge</title>
 <link rel="icon" href="logo.png">
 <link rel="stylesheet" href="bp/bp.css">
 <style>
@@ -119,10 +119,12 @@ html[data-modus="einfach"] .top{order:-1}
 .rs-h{display:grid;gap:.25rem;padding:.45rem .7rem;border-radius:calc(8px*var(--rk,1));background:color-mix(in srgb,var(--y,#f5c542) 14%,var(--card));font-size:.88rem}.rs-h p{margin:0}
 </style>
 <link rel="stylesheet" href="static/todo.css">
+<link rel="stylesheet" href="static/kom-abnahme.css">
+<link rel="stylesheet" href="static/post-verlauf.css">
 </head>
 <body>
 <main class="bp-app">
-  <aside class="bp-nav" id="navL" aria-label="Aufgaben &amp; Post"></aside>
+  <aside class="bp-nav" id="navL" aria-label="Post &amp; Vorgänge"></aside>
   <section class="pane wrap bp-voll" id="pane">
   <div class="top">
     <span class="bf-undo bp-undo-k" role="toolbar" aria-label="Rückgängig"><span class="bf-ks"></span></span>   <!-- Rückgängig im Inhalt oben links, nicht in der Kopfleiste (23.11.2026) -->
@@ -141,6 +143,8 @@ html[data-modus="einfach"] .top{order:-1}
 <script src="bp/filter.js"></script>
 <script src="static/todo.js"></script>
 <script src="static/bp-todo.js"></script>
+<script src="static/kom-abnahme.js"></script>
+<script src="static/post-verlauf.js"></script>
 <script>
 const LS = bpLS('auf.');
 const HASH = new URLSearchParams((location.hash || '').slice(1).split('&').slice(1).join('&'));   // z. B. #termine&ruege=12|firma oder &gid=…&uid=…
@@ -215,6 +219,7 @@ window.bpNachVerlauf = () => reload();   // nach „Wiederherstellen“ die List
 /* ---------- Laden ---------- */
 async function reload(first) {
   try {
+    if (tab === 'post') { if (PV.an()) await PV.laden(); else render(); return; }   // Verlauf (post-verlauf.js)
     if (tab === 'todos') { await tdRef(); await tdLaden(); renderTabs(); return; }
     if (tab === 'bauplattform') { if (!BPT) await bptLaden(); render(); return; }
     if (tab === 'uebersicht') {   // sofort zeichnen, jeder Block füllt sich, sobald seine Daten da sind (nicht auf alles warten)
@@ -238,14 +243,24 @@ function renderTabs() {
   const nM = M ? M.filter((m) => m.status === 'ueberfaellig').length : 0, nE = E ? E.items.filter((x) => ['ueberfaellig', 'abgelaufen', 'heute'].includes(x.lage)).length : 0;
   const nT = (T ? T.filter((x) => x.status === 'offen').length : 0) + (VZ ? new Set(VZ.vorgaenge.map((x) => x.pid + '|' + x.key)).size : 0);
   const nTd = TD ? tdAlle().offen.filter((x) => x.f && x.f <= tdHeute()).length : 0;
-  $('#scope').style.visibility = tab === 'todos' || tab === 'bauplattform' ? 'hidden' : '';   // gelten nur für Übersicht, Mängel, Termine, Erinnerungen – „＋ Neu“ bleibt überall
+  $('#scope').style.visibility = tab === 'todos' || tab === 'bauplattform' || tab === 'post' ? 'hidden' : '';   // gelten nur für Übersicht, Mängel, Termine, Erinnerungen – „＋ Neu“ bleibt überall
   const nUe = (TD ? (TD.auto || []).filter((x) => !x.spaeter).length : 0) + nTd;
-  bpAufPost($('#navL'), { hier: 'aufgaben', aktiv: 'o:' + tab, buero: !!(ME && ME.is_admin), bueroZahl: bptOffen(), filter: { maengel: MF, termine: TF, erinnerungen: EF, todos: TDF, uebersicht: TDF, bauplattform: BPF }[tab] || TDF, offen: { uebersicht: nUe, todos: nTd, maengel: nM, termine: nT, erinnerungen: nE }, offenTip: { todos: `fällig (heute oder früher) – offen insgesamt: ${TD ? tdAlle().offen.length : 0}`, uebersicht: 'Hinweise der Plattform und fällige To-dos', erinnerungen: 'heute fällig oder abgelaufen', maengel: 'Frist abgelaufen' },   // links: Offen hier, Verschickt in der Kommunikation
-    wahl: (id) => { tab = id.slice(2); LS.set('tab', tab); history.replaceState(null, '', '#' + tab); render(); reload(tab === 'erinnerungen' && !E); } });
+  const pv = PV.nav();   // Verlauf: Arten, Mit wem, Suchfeld
+  bpAufPost($('#navL'), { aktiv: tab === 'post' ? pv.aktiv : 'o:' + tab, arten: pv.arten, mitwem: tab === 'post' ? pv.mitwem : [], buero: !!(ME && ME.is_admin), bueroZahl: bptOffen(),
+    filter: tab === 'post' ? pv.filter : { maengel: MF, termine: TF, erinnerungen: EF, todos: TDF, uebersicht: TDF, bauplattform: BPF }[tab] || TDF, offen: { uebersicht: nUe, todos: nTd, maengel: nM, termine: nT, erinnerungen: nE }, offenTip: { todos: `fällig (heute oder früher) – offen insgesamt: ${TD ? tdAlle().offen.length : 0}`, uebersicht: 'Hinweise der Plattform und fällige To-dos', erinnerungen: 'heute fällig oder abgelaufen', maengel: 'Frist abgelaufen' },
+    wahl: (id) => {
+      if (id.startsWith('o:')) { zuTab(id.slice(2)); return; }
+      if (tab !== 'post') zuTab('post');
+      PV.nav().wahl(id);   // Art bzw. Kontakt im Verlauf
+    } });
   $('#scope').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.scope === scope));
 }
+window.apNav = () => renderTabs();   // der Verlauf zeichnet die Navigation nach dem Laden neu
+function zuTab(t) { tab = t; LS.set('tab', tab); history.replaceState(null, '', '#' + tab); render(); if (t !== 'post') reload(tab === 'erinnerungen' && !E); }
 function render() {
+  if (tab !== 'post' && PV.an()) PV.weg();
   renderTabs();
+  if (tab === 'post') { if (!PV.an()) PV.zeigen($('#view')); return; }   // Verlauf: Sendungen, Antworten, Vorgänge (post-verlauf.js)
   if (tab === 'bauplattform') { bptRender($('#view')); return; }   // Büro → ToDo-Liste der Bauplattform (bp-todo.js)
   if (tab === 'todos') { window.TDMAX = undefined; if (!$('#todo')) $('#view').innerHTML = '<section class="todo voll" id="todo"></section>'; tdZeigen(); return; }
   if (tab === 'uebersicht') { renderUe(); return; }
@@ -816,6 +831,8 @@ window.bpRuegeAusSuche = ruegeAusSuche;   // suche.js ruft das direkt, wenn die 
 
 /* ---------- „＋ Neu“: Auswahl, was angelegt werden soll ---------- */
 const NEU = [
+  ['Nachrichten & Vorgänge', [['nachricht', '✉', 'Nachricht', 'An Firmen und Beteiligte – mit Signatur, landet im Verlauf'], ['vorgang', '📝', 'Vorgang festhalten', 'Telefonat, Besprechung, Notiz – mit Fotos, auf Wunsch als PDF an die Firma'],
+    ['abnahme', '🏁', 'Abnahme', 'Vor Ort: Mängel, Erklärung, drei Unterschriften'], ['datei', '📎', 'Datei versenden', 'Dateien aus der Ablage oder vom Gerät']]],
   ['Erinnern & erledigen', [['erinnerung', '⏰', 'Erinnerung', 'Zu einem Datum per Mail oder als Termin erinnern'], ['aufgabe', '☑', 'Aufgabe (To-do)', 'Für mich oder Kolleg:innen, mit Fälligkeit']]],
   ['Schreiben an Firmen (VOB/B)', [['m4', '⚠', 'Mängelrüge vor Abnahme', '§ 4 Abs. 7 – Mängel während der Ausführung beseitigen, ggf. mit Kündigungsandrohung'],
     ['m13', '🏁', 'Mängelrüge nach Abnahme', '§ 13 Abs. 5 – Mängelansprüche in der Gewährleistung'],
@@ -830,6 +847,7 @@ function neuWahl() {
     else if (m === 'aufgabe') { tab = 'todos'; LS.set('tab', tab); location.hash = 'todos'; reload().then(() => { const i = $('#tdNeu'); if (i) i.focus(); }); }
     else if (m === 'm4' || m === 'm13') ruegeNeu(m === 'm4' ? 'vob4' : 'vob13');
     else if (m === 'termin') terminNeu();
+    else if (PV.neuArten[m]) PV.neuArten[m]({});
   });
 }
 /* Rüge ohne Ausgangspunkt: Projekt und Firma wählen (Mängel aus dem Bautagebuch, Firmen aus Plan und Anwesenheit) */
@@ -943,14 +961,15 @@ async function setDialog(host) {
 
 (async () => {
   [ME, CONF] = await Promise.all([api('api/me'), api('api/platform')]); applyLook(ME);   // gleichzeitig
-  await header('Aufgaben & Post', ME, CONF);
+  await header('Post & Vorgänge', ME, CONF);
   BPHead.appEinstellungen([{ key: 'todo', label: 'To-dos', render: (h) => tdEinstellungen(h) }, { key: 'erinnerungen', label: 'Erinnerungen', render: (h) => setDialog(h) }]);   // Druck-Layouts: nur in der Verwaltung
   try { CFG = await api('api/einstellungen'); } catch { /* egal */ }
   const deep = /^(mangel|erinnerung)-(\d+)$/.exec(tab);   // Link aus einer E-Mail: direkt zum Eintrag
   if (deep) { tab = deep[1] === 'mangel' ? 'maengel' : 'erinnerungen'; scope = 'all'; history.replaceState(null, '', '#' + tab); }
+  if (PV.ausHash()) { tab = 'post'; history.replaceState(null, '', '#post'); }   // Verlauf: #art=…, #v=…, #kontakt=…, #post (früher die App Kommunikation)
   const tdDeep = /^todos&t=(\d+)$/.exec(tab);   // von der Startseite: eine eigene Aufgabe gleich zum Bearbeiten öffnen
   if (tdDeep) { tab = 'todos'; history.replaceState(null, '', '#todos'); }
-  if (!['uebersicht', 'todos', 'maengel', 'termine', 'erinnerungen', ...(ME && ME.is_admin ? ['bauplattform'] : [])].includes(tab)) tab = 'uebersicht';
+  if (!['uebersicht', 'todos', 'maengel', 'termine', 'erinnerungen', 'post', ...(ME && ME.is_admin ? ['bauplattform'] : [])].includes(tab)) tab = 'uebersicht';
   const gp = !deep && BPHead.projektId();   // Projekt aus der zuletzt benutzten App: Mängel dieses Projekts (Filter „Alle Projekte“ hebt das auf)
   renderTabs(); ladeBriefe(); if (tab === 'todos') render(); await reload(tab === 'erinnerungen' || tab === 'uebersicht');
   if (tdDeep && TD) { const x = (TD.manuell || []).find((y) => String(y.id) === tdDeep[1]); if (x) { TDOFFEN = x.key; tdZeigen(); const el = $('#todo .te'); if (el) el.scrollIntoView({ block: 'center' }); } }
@@ -965,10 +984,10 @@ async function setDialog(host) {
     const [mp, ...mf] = HASH.get('mruege').split('|'); history.replaceState(null, '', '#maengel');
     ruegeDialog(null, { pid: +mp, firma: mf.join('|') });
   }
-  if (window.BPHead) Object.assign(BPHead.neuArten, { m4: (d) => ruegeNeu('vob4', d), m13: (d) => ruegeNeu('vob13', d), termin: (d) => terminNeu(d) });   // „＋ Neu“: Rügen öffnet diese App selbst
+  if (window.BPHead) Object.assign(BPHead.neuArten, { m4: (d) => ruegeNeu('vob4', d), m13: (d) => ruegeNeu('vob13', d), termin: (d) => terminNeu(d) }, PV.neuArten);   // „＋ Neu“: Rügen, Nachricht, Vorgang, Abnahme, Datei öffnet diese App selbst
   if (HASH.get('neu')) {   // aus einer anderen App (Leiste „＋ Neu“): derselbe Ablauf wie hier, Firma mitgebracht
     const n = HASH.get('neu'), mit = (window.BPHead && BPHead.neuUebergabe && BPHead.neuUebergabe()) || {}; history.replaceState(null, '', '#' + tab);
-    if (n === 'm4' || n === 'm13') ruegeNeu(n === 'm4' ? 'vob4' : 'vob13', mit); else if (n === 'termin') terminNeu(mit);
+    if (n === 'm4' || n === 'm13') ruegeNeu(n === 'm4' ? 'vob4' : 'vob13', mit); else if (n === 'termin') terminNeu(mit); else if (PV.neuArten[n]) setTimeout(() => PV.neuArten[n](mit), 300);
   }
   if (tab === 'termine' && (HASH.get('ruege') || HASH.get('gid'))) {   // aus To-do oder Bauzeitenplan: Terminrüge gleich öffnen
     history.replaceState(null, '', '#termine');
@@ -984,7 +1003,13 @@ async function setDialog(host) {
   if (tab !== 'erinnerungen') api('api/erinnerungen?scope=' + scope + '&abgleich=1').then((r) => { E = r; renderTabs(); }).catch(() => {});
   if (tab !== 'maengel') api('api/maengel?scope=' + scope).then((r) => { M = r; renderTabs(); }).catch(() => {});
   if (tab !== 'termine') api('api/termine?scope=' + scope).then((r) => { T = r; renderTabs(); }).catch(() => {});
-  BPHead.live(['items', 'todo', 'erinnerungen', 'kom_vorgang'], async () => { await reload(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
+  BPHead.live(['items', 'todo', 'erinnerungen', 'kom_vorgang', 'planversand'], async () => { await reload(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
+  if (BPHead.beiProjektWahl) BPHead.beiProjektWahl(() => { if (tab === 'post') PV.projektNeu(); });
+  addEventListener('hashchange', () => {   // Link innerhalb der Seite (z. B. „↗ Mängel öffnen“ im Verlauf, #v=… einer Abnahme)
+    const t = (location.hash || '').slice(1).split('&')[0];
+    if (PV.ausHash()) { if (tab !== 'post') zuTab('post'); else PV.laden(); history.replaceState(null, '', '#post'); return; }
+    if (['uebersicht', 'todos', 'maengel', 'termine', 'erinnerungen'].includes(t) && t !== tab) zuTab(t);
+  });
 })().catch((e) => toast(e.message, true));
 </script>
 </body>

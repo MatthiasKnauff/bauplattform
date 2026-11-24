@@ -3,7 +3,7 @@
 Pläne: Projekte und Rechte, Adressen mit E-Mail, Einstellungen, Planordner je Projekt, Planversandliste (Liste und PDF),
 Mail-Vorlage. Alles, was die Ablage auf dem Dateiserver braucht (Planliste, Dateien, echter Versand), gibt es im Test
 nicht – diese Schnittstellen antworten dort absichtlich mit einem Fehler und werden hier nicht aufgerufen.
-Kommunikation: eine Mängelrüge „als PDF“ (ohne Mail) wird protokolliert und erscheint mit Filtern und im CSV-Export.
+Verlauf (Post & Vorgänge, bis 24.11.2026 App Kommunikation): eine Mängelrüge „als PDF“ (ohne Mail) wird protokolliert und erscheint mit Filtern und im CSV-Export.
 """
 import csv, io, re, uuid
 from datetime import date, timedelta
@@ -179,7 +179,7 @@ def test_kommunikation_ruege_protokolliert_und_gefiltert(ctx):
     x = _vorbereiten(ctx)
     try:
         _ruege_als_pdf(ctx, x)
-        r = a.gj(f"/kommunikation/api/kom?cid={x['kid']}")
+        r = a.gj(f"/maengel/api/kom?cid={x['kid']}")
         gleich(r["gesamt"], 1, "Sendungen an den Kontakt")
         e = r["eintraege"][0]
         gleich((e["art"], e["art_name"], e["weg"], e["weg_name"], e["status"]), ("maengelruege", "Mängelrüge", "pdf", "als PDF (selbst zugestellt)", "gesendet"), "Art und Weg")
@@ -194,13 +194,13 @@ def test_kommunikation_ruege_protokolliert_und_gefiltert(ctx):
                      (f"cid={x['kid']}&pid={x['pid']}", 1), (f"cid={x['kid']}&pid={ctx.projekt('T101')['id']}", 0),
                      (f"cid={x['kid']}&ich=1", 1), (f"q={x['firma'].lower()}", 1), (f"email={x['mail'].upper()}", 0),
                      (f"q=rt-gibt-es-nicht-{uuid.uuid4().hex[:6]}", 0)):
-            gleich(a.gj(f"/kommunikation/api/kom?{q}")["gesamt"], n, f"Filter {q}")
-        gleich(ctx.anmelden("Anna Bauer").gj(f"/kommunikation/api/kom?cid={x['kid']}&ich=1")["gesamt"], 0, "„nur meine“ bei Anna")
-        s = a.gj(f"/kommunikation/api/kontakte?q={x['firma'].lower()}")
+            gleich(a.gj(f"/maengel/api/kom?{q}")["gesamt"], n, f"Filter {q}")
+        gleich(ctx.anmelden("Anna Bauer").gj(f"/maengel/api/kom?cid={x['kid']}&ich=1")["gesamt"], 0, "„nur meine“ bei Anna")
+        s = a.gj(f"/maengel/api/kom/kontakte?q={x['firma'].lower()}")
         gleich([(y["id"], y["n"], y["ansprech"], y["email"]) for y in s], [(x["kid"], 1, "Petra Test", x["mail"])], "Kontaktsuche")
         v = a.gj(f"/adressen/api/bp/kontakt/{x['kid']}/verlauf")
         gleich([(y["art"], y["weg"], y["projekt"]) for y in v], [("maengelruege", "pdf", x["name"])], "Verlauf am Kontakt")
-        ctx.gast().get("/kommunikation/api/kom", expect=401)
+        ctx.gast().get("/maengel/api/kom", expect=401)
     finally:
         _aufraeumen(ctx, x)
 
@@ -211,13 +211,13 @@ def test_kommunikation_sendung_loeschen(ctx):
     x = _vorbereiten(ctx)
     try:
         _ruege_als_pdf(ctx, x)
-        e = a.gj(f"/kommunikation/api/kom?cid={x['kid']}")["eintraege"][0]
-        ctx.anmelden("Anna Bauer").delete(f"/kommunikation/api/kom/{e['id']}", expect=(403, 404))
-        r = a.delete(f"/kommunikation/api/kom/{e['id']}").json
-        gleich(a.gj(f"/kommunikation/api/kom?cid={x['kid']}")["gesamt"], 0, "gelöscht")
-        a.post(f"/kommunikation/api/bp/papierkorb/{r['papierkorb']}/zurueck", {})
-        gleich(a.gj(f"/kommunikation/api/kom?cid={x['kid']}")["gesamt"], 1, "aus dem Papierkorb zurück")
-        a.delete("/kommunikation/api/kom/999999999", expect=404)
+        e = a.gj(f"/maengel/api/kom?cid={x['kid']}")["eintraege"][0]
+        ctx.anmelden("Anna Bauer").delete(f"/maengel/api/kom/{e['id']}", expect=(403, 404))
+        r = a.delete(f"/maengel/api/kom/{e['id']}").json
+        gleich(a.gj(f"/maengel/api/kom?cid={x['kid']}")["gesamt"], 0, "gelöscht")
+        a.post(f"/maengel/api/bp/papierkorb/{r['papierkorb']}/zurueck", {})
+        gleich(a.gj(f"/maengel/api/kom?cid={x['kid']}")["gesamt"], 1, "aus dem Papierkorb zurück")
+        a.delete("/maengel/api/kom/999999999", expect=404)
     finally:
         _aufraeumen(ctx, x)
 
@@ -227,7 +227,7 @@ def test_kommunikation_csv_export(ctx):
     x = _vorbereiten(ctx)
     try:
         _ruege_als_pdf(ctx, x)
-        a = ctx.admin.get(f"/kommunikation/api/kom.csv?cid={x['kid']}")
+        a = ctx.admin.get(f"/maengel/api/kom.csv?cid={x['kid']}")
         pruefe(a.ctype.startswith("text/csv"), f"Inhaltstyp {a.ctype}")
         pruefe("Kommunikation.csv" in (a.headers.get("Content-Disposition") or ""), "Dateiname fehlt")
         pruefe(a.text.startswith("\ufeff"), "ohne BOM öffnet Excel die Umlaute falsch")
@@ -238,7 +238,7 @@ def test_kommunikation_csv_export(ctx):
         pruefe(re.fullmatch(r"\d\d\.\d\d\.\d{4}", z[0]) and re.fullmatch(r"\d\d:\d\d", z[1]), f"Datum/Uhrzeit {z[:2]}")
         gleich(z[2:], ["Mängelrüge", "als PDF (selbst zugestellt)", x["name"], x["firma"], "Petra Test", x["mail"],
                        f"Mängelrüge – Frist bis {_de(x['frist'])}", x["inhalt"], "Test-Admin", "gesendet"], "Inhalt der Zeile")
-        leer = list(csv.reader(io.StringIO(ctx.admin.get(f"/kommunikation/api/kom.csv?cid={x['kid']}&art=planversand").text[1:]), delimiter=";"))
+        leer = list(csv.reader(io.StringIO(ctx.admin.get(f"/maengel/api/kom.csv?cid={x['kid']}&art=planversand").text[1:]), delimiter=";"))
         gleich(leer, [CSV_KOPF], "Filter gilt auch im Export")
     finally:
         _aufraeumen(ctx, x)
@@ -249,10 +249,10 @@ def test_kommunikation_nur_sichtbare_projekte(ctx):
     x = _vorbereiten(ctx, leaders=[_uid(ctx, "Anna Bauer")])
     try:
         _ruege_als_pdf(ctx, x)
-        gleich(ctx.anmelden("Anna Bauer").gj(f"/kommunikation/api/kom?cid={x['kid']}")["gesamt"], 1, "Anna (Bauleitung) sieht die Rüge")
+        gleich(ctx.anmelden("Anna Bauer").gj(f"/maengel/api/kom?cid={x['kid']}")["gesamt"], 1, "Anna (Bauleitung) sieht die Rüge")
         bernd = ctx.anmelden("Bernd Krämer")   # darf das Projekt nicht sehen
-        gleich(bernd.gj(f"/kommunikation/api/kom?cid={x['kid']}")["gesamt"], 0, "Bernd sieht die Rüge eines fremden Projekts")
-        zeilen = list(csv.reader(io.StringIO(bernd.get(f"/kommunikation/api/kom.csv?cid={x['kid']}").text[1:]), delimiter=";"))
+        gleich(bernd.gj(f"/maengel/api/kom?cid={x['kid']}")["gesamt"], 0, "Bernd sieht die Rüge eines fremden Projekts")
+        zeilen = list(csv.reader(io.StringIO(bernd.get(f"/maengel/api/kom.csv?cid={x['kid']}").text[1:]), delimiter=";"))
         gleich(len(zeilen), 1, "Bernd bekommt die Rüge eines fremden Projekts im CSV-Export")
     finally:
         _aufraeumen(ctx, x)
@@ -327,16 +327,16 @@ def test_versand_kern(ctx):
         neu = a.uj("/api/bp/textvorlagen", {"vorlagen": alt + [{"id": "rt", "name": name, "betreff": "RT {projekt}", "text": "Guten Tag {firma}"}, {"name": "", "text": "ohne Namen"}]})["vorlagen"]
         gleich(len(neu), len(alt) + 1, "Vorlage ohne Namen fällt weg")
         pruefe(finde(neu, name=name), "neue Vorlage fehlt")
-        gleich(a.gj(f"/kommunikation/api/beteiligte?pid={ctx.pid}"), a.gj(f"/api/bp/versand/beteiligte?pid={ctx.pid}"), "Kommunikation liest dieselben Beteiligten")
+        gleich(a.gj(f"/maengel/api/beteiligte?pid={ctx.pid}"), a.gj(f"/api/bp/versand/beteiligte?pid={ctx.pid}"), "Kommunikation liest dieselben Beteiligten")
     finally:
         a.uj("/api/bp/textvorlagen", {"vorlagen": alt})
-    a.post("/kommunikation/api/nachricht", {}, expect=(404, 405))
+    a.post("/maengel/api/nachricht", {}, expect=(404, 405))
 
 
 def test_kommunikation_abnahme_nur_architekt(ctx):
     """Nur der Architekt unterschreibt (Bauherr und Unternehmer nicht anwesend): abgeschlossen und abgelegt, aber nicht gesperrt –
     Ergänzungen gehen weiter; erneut abschließen legt den neuen Stand ab, Folgen (Aufgaben) nur einmal."""
-    a, KO = ctx.admin, "/kommunikation/api"
+    a, KO = ctx.admin, "/maengel/api"
     d = a.pj(f"{KO}/abnahme", {"pid": ctx.pid, "daten": {}})
     vid = d["id"]
     try:
@@ -360,7 +360,7 @@ def test_kommunikation_abnahme_nur_architekt(ctx):
 def test_kommunikation_abnahme(ctx):
     """Abnahme: Entwurf anlegen, Mängel und Erklärungen speichern, ohne Unterschriften nicht abschließbar, mit drei Unterschriften
     (eine „nicht anwesend“) abschließen → gesperrt, PDF da; Nachtrag zur Abnahme; Entwurf löschen legt in den Papierkorb."""
-    a, KO = ctx.admin, "/kommunikation/api"
+    a, KO = ctx.admin, "/maengel/api"
     d = a.pj(f"{KO}/abnahme", {"pid": ctx.pid, "daten": {"teilnehmer": {"ag": "Herr Bauherr", "arch": "Test-Admin", "an": ""}}})
     vid, nid = d["id"], None
     try:
@@ -385,7 +385,7 @@ def test_kommunikation_abnahme(ctx):
         d = a.gj(f"{KO}/abnahme/{vid}")
         pruefe(d["status"] == "unterschrieben" and d["pdf"] and d["daten"].get("pruefsumme"), "unterschrieben, PDF und Prüfsumme gespeichert")
         a.put(f"{KO}/abnahme/{vid}", {"daten": {"firma": "anders"}}, expect=409)
-        a.get(f"/kommunikation/api/vorgang/{vid}.pdf").ist_pdf()
+        a.get(f"/maengel/api/vorgang/{vid}.pdf").ist_pdf()
         n = a.pj(f"{KO}/abnahme", {"pid": ctx.pid, "nachtrag_zu": vid})
         nid = n["id"]
         gleich((n["bezug"], n["daten"]["firma"], n["daten"]["maengel"]), (vid, "RT Tischlerei", []), "Nachtrag übernimmt Firma, ohne Mängel")
@@ -397,3 +397,11 @@ def test_kommunikation_abnahme(ctx):
         for x in (nid,):
             if x:
                 a.delete(f"{KO}/abnahme/{x}", expect=None)
+
+
+def test_kommunikation_ist_teil_von_post(ctx):
+    """Seit 24.11.2026 ist die Kommunikation Teil von Post & Vorgänge: alte Adressen /kommunikation/… leiten auf /maengel/ weiter."""
+    seite = ctx.admin.get("/kommunikation/").text
+    pruefe("static/post-verlauf.js" in seite and "<title>Post & Vorgänge</title>" in seite, "/kommunikation/ leitet nicht auf Post & Vorgänge weiter")
+    pruefe(isinstance(ctx.admin.gj("/kommunikation/api/kom")["eintraege"], list), "/kommunikation/api/… leitet nicht weiter")
+    pruefe(not any(a["key"] == "kommunikation" for a in ctx.admin.gj("/maengel/api/platform")["apps"]), "die App Kommunikation steht noch in der App-Liste")

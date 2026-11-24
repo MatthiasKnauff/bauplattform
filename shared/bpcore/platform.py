@@ -17,7 +17,7 @@ def version():
 
 
 # Pfade der Apps unter der gemeinsamen Adresse (Verteiler-Container „bauportal“, plattform/router.py)
-PATHS = {"portal": "", "bautagebuch": "bautagebuch", "gantt": "bauzeitenplan", "adressen": "adressen", "baukosten": "baukosten", "aufgaben": "maengel", "plaene": "plaene", "ava": "ava", "kommunikation": "kommunikation", "baudaten": "baudaten", "zeiten": "zeiten", "honorar": "honorar", "bauantrag": "bauantrag", "waermeschutz": "waermeschutz", "wiki": "wiki", "akquise": "akquise", "personal": "personal", "gebaeudemodell": "gebaeudemodell", "admin": "verwaltung"}
+PATHS = {"portal": "", "bautagebuch": "bautagebuch", "gantt": "bauzeitenplan", "adressen": "adressen", "baukosten": "baukosten", "aufgaben": "maengel", "plaene": "plaene", "ava": "ava", "baudaten": "baudaten", "zeiten": "zeiten", "honorar": "honorar", "bauantrag": "bauantrag", "waermeschutz": "waermeschutz", "wiki": "wiki", "akquise": "akquise", "personal": "personal", "gebaeudemodell": "gebaeudemodell", "admin": "verwaltung"}
 
 
 def apps():
@@ -35,10 +35,9 @@ def apps():
             ("gantt", "Bauzeitenplan", "GANTT_PORT", "8082", "GANTT_URL", {}),
             ("adressen", "Adressen", "ADRESSEN_PORT", "8093", "ADRESSEN_URL", {"einst": False}),   # einst False: keine eigenen Einstellungen – die Verwaltung lädt die App dafür gar nicht erst
             ("baukosten", "Baukosten", "BAUKOSTEN_PORT", "8094", "BAUKOSTEN_URL", {"einst": False}),
-            ("aufgaben", "Aufgaben & Post", "AUFGABEN_PORT", "8095", "AUFGABEN_URL", {}),
+            ("aufgaben", "Post & Vorgänge", "AUFGABEN_PORT", "8095", "AUFGABEN_URL", {}),
             ("plaene", "Pläne & Dateien", "PLAENE_PORT", "8096", "PLAENE_URL", {}),
             ("ava", "Ausschreibung & Abrechnung", "AVA_PORT", "8097", "AVA_URL", {}),
-            ("kommunikation", "Aufgaben & Post – Verschickt", "KOMMUNIKATION_PORT", "8098", "KOMMUNIKATION_URL", {"teil": "aufgaben"}),   # gehört zu Aufgaben & Post (eine Kachel)
             ("baudaten", "Baudaten", "BAUDATEN_PORT", "8099", "BAUDATEN_URL", {}),
             ("zeiten", "Zeiten", "ZEITEN_PORT", "8101", "ZEITEN_URL", {}),
             ("bauantrag", "Bauantrag", "BAUANTRAG_PORT", "8104", "BAUANTRAG_URL", {"einst": False}),

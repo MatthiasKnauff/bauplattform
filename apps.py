@@ -27,7 +27,6 @@ APPS = {
     "aufgaben":      dict(P, modul="aufgaben", port=8095),
     "plaene":        dict(P, modul="plaene", port=8096),
     "ava":           dict(P, modul="ava", port=8097),
-    "kommunikation": dict(P, modul="kommunikation", port=8098, timeout=120),
     "baudaten":      dict(P, modul="baudaten", port=8099, timeout=600),
     "orca_import":   dict(P, modul="orca_import", port=8100, timeout=900, worker=1, threads=8),   # ein Prozess: die Aufträge liegen im Speicher
     "zeiten":        dict(P, modul="zeiten", port=8101, timeout=120),

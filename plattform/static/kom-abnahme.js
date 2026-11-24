@@ -1,8 +1,8 @@
 'use strict';
-/* Kommunikation – Abnahme vor Ort: Angaben → Mängel (mit Fotos) → Erklärung → drei Unterschriften am Gerät → abschließen.
+/* Post & Vorgänge – Abnahme vor Ort: Angaben → Mängel (mit Fotos) → Erklärung → drei Unterschriften am Gerät → abschließen.
    Server: plattform/kom_abnahme.py, Logik und PDF: bpcore/abnahme.py. Gespeichert wird laufend (Entwurf); fällt das Netz kurz aus,
    bleibt der Stand im Gerät und wird beim nächsten Speichern nachgeholt. Nach dem Unterschreiben gesperrt – Ergänzungen als Nachtrag.
-   Gemeinsame Namen aus kommunikation.html: projekt, laden, beteiligte. */
+   Gemeinsame Namen aus post-verlauf.js: PV.projekt, PV.laden, PV.beteiligte. */
 const ABN = { S: ['Angaben', 'Mängel', 'Erklärung', 'Unterschreiben'] };
 const abnLS = { get(id) { try { return JSON.parse(localStorage.getItem('abn.' + id) || 'null'); } catch { return null; } },
   set(id, v) { try { localStorage.setItem('abn.' + id, JSON.stringify(v)); } catch { /* ohne Speicher: nur Server */ } },
@@ -15,7 +15,7 @@ const abnAlles = () => { try { const v = localStorage.getItem('abn.ansicht'); if
 const ROLLE = { ag: 'Auftraggeber:in', an: 'Auftragnehmer:in', arch: 'Architekt:in/Ingenieur:in' };
 
 async function abnahmeNeu(nachtragZu, mit) {   // mit: Übergabe aus der Leiste „＋ Neu“ (Firma)
-  const p = projekt(); if (!p) { toast('Bitte oben zuerst ein Projekt wählen.', true); if (window.BPHead && BPHead.projektWahl) BPHead.projektWahl({}); return; }
+  const p = PV.projekt(); if (!p) { toast('Bitte oben zuerst ein Projekt wählen.', true); if (window.BPHead && BPHead.projektWahl) BPHead.projektWahl({}); return; }
   try {
     const V = await api('api/abnahme/vorlage?pid=' + p.id);
     const d = { teilnehmer: { ag: V.ag_person || V.auftraggeber || '', arch: V.architekt || '', an: '' } };
@@ -192,7 +192,7 @@ async function abnahmeOeffnen(id, A0, V0, mit) {
   }
 
   async function klick(m, b, close) {
-    if (m === 'x') { await speichern(false); close(); laden(); return; }
+    if (m === 'x') { await speichern(false); close(); PV.laden(); return; }
     if (m === 'ans1' || m === 'ans2') { S.alles = m === 'ans2'; try { localStorage.setItem('abn.ansicht', S.alles ? 'alles' : 'schritte'); } catch { /* egal */ } await speichern(); zeichne(); return; }
     if (/^s\d$/.test(m)) { await speichern(); S.schritt = +m.slice(1); zeichne(); $b('.ab-b').scrollTop = 0; return; }
     const d = S.d;
@@ -214,8 +214,8 @@ async function abnahmeOeffnen(id, A0, V0, mit) {
     if (m === 'sig') { await speichern(); signieren(b.dataset.r); return; }
     if (m === 'vor') { await speichern(); BPHead.ansehen([{ url: `api/vorgang/${id}.pdf?t=${Date.now()}`, typ: 'pdf', name: S.A.bezug ? 'Nachtrag zur Abnahme' : 'Abnahme' }]); return; }
     if (m === 'weg') { if (!(await bpFrage('Diesen Entwurf löschen?', { ok: 'Löschen', gefahr: true }))) return;
-      try { const r = await api('api/abnahme/' + id, 'DELETE'); abnLS.weg(id); close(); laden();
-        if (r.papierkorb) rueckgaengig('Entwurf gelöscht', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); laden(); }, { neu: async () => { laden(); } }); } catch (e) { toast(e.message, true); } return; }
+      try { const r = await api('api/abnahme/' + id, 'DELETE'); abnLS.weg(id); close(); PV.laden();
+        if (r.papierkorb) rueckgaengig('Entwurf gelöscht', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); PV.laden(); }, { neu: async () => { PV.laden(); } }); } catch (e) { toast(e.message, true); } return; }
     if (m === 'fertig') {
       if (!(await speichern(false))) return;
       const zu = ['ag', 'an'].some((r) => ((d.unterschriften || {})[r] || {}).png);
@@ -234,7 +234,7 @@ async function abnahmeOeffnen(id, A0, V0, mit) {
   }
 
   async function senden() {   // gemeinsamer Versanddialog (BPHead.versand) – nur auf Knopfdruck, nie automatisch
-    const B = await beteiligte(S.A.project_id).catch(() => []);
+    const B = await PV.beteiligte(S.A.project_id).catch(() => []);
     const fn = (S.d.firma || '').toLowerCase(), D = (S.d.maengel || []).length, U = Object.values(S.d.unterschriften || {}).filter((u) => u && u.png).length;
     const E = B.filter((x) => x.email).map((x) => ({ name: x.name, sub: x.gewerk || '', email: x.email, contact_id: x.id, on: x.id === S.d.contact_id || (x.name || '').toLowerCase() === fn }));
     const nachtrag = !!S.A.bezug;

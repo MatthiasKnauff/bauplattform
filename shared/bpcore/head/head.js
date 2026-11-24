@@ -152,7 +152,6 @@
     gantt: SV('<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M7 13h6M10 17h7"/>'),
     adressen: SV('<rect x="4" y="3" width="15" height="18" rx="2"/><circle cx="11.5" cy="10" r="2.5"/><path d="M7.5 17a4 4 0 0 1 8 0"/>'),
     plaene: SV('<path d="M4 4h11l5 5v11H4z"/><path d="M15 4v5h5"/><path d="M8 13h8M8 17h5"/><path d="M7 9h4"/>'),
-    kommunikation: SV('<path d="M4 5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/><path d="M19 9h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-1v2l-3-2h-4"/><path d="M6 9h7M6 12h4"/>'),
     zeiten: SV('<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2"/><path d="M9 2h6"/>'),
     bauantrag: SV('<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 13l2 2 4-4"/><path d="M9 18h6"/>'),
     waermeschutz: SV('<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/><path d="M2.5 14.5h3M18.5 14.5h3M2.5 17.5h3M18.5 17.5h3"/>'),
@@ -412,7 +411,7 @@
   }
   /* ▦ Apps: alle Apps als Kacheln – in jeder App gleich; die Verwaltung gibt es nur hier */
   function sortApps() {
-    const apps = ((H.conf || {}).apps || []).filter((a) => a.allowed && !a.teil && a.kachel !== false);   // teil: Seite einer anderen App (Kommunikation → Aufgaben & Post); kachel: false = nur die Kachel weg (Verwaltung – ⚙ führt hin)
+    const apps = ((H.conf || {}).apps || []).filter((a) => a.allowed && !a.teil && a.kachel !== false);   // teil: Seite einer anderen App; kachel: false = nur die Kachel weg (Verwaltung – ⚙ führt hin)
     const rank = (a) => (a.key === 'portal' ? -1 : a.key === 'admin' ? 99 : 0);
     return apps.slice().sort((a, b) => rank(a) - rank(b));
   }
@@ -1616,8 +1615,8 @@
         <span class="bph-bn-t"><span><b>${esc(x.art_name)}</b>${x.projekt ? ' · ' + esc(x.projekt) : ''}</span><small>${dt(x.ts)} · ${esc(x.weg_name)}${x.von ? ' · von ' + esc(x.von) : ''}${x.email ? ' · ' + esc(x.email) : ''}${x.status === 'fehler' ? ' · <b>nicht zugestellt</b>' : ''}</small></span></summary>
         <div class="bph-bn-d">${x.betreff ? `<div><b>${esc(x.betreff)}</b></div>` : ''}${x.inhalt ? `<pre>${esc(x.inhalt)}</pre>` : ''}${x.fehler ? `<div class="bph-mu">Fehler: ${esc(x.fehler)}</div>` : ''}${lk(x.link) ? `<a href="${esc(lk(x.link))}" data-bnp="${x.project_id || ''}">↗ ${x.art === 'planversand' ? 'Planversandliste' : 'Liste'} öffnen</a>` : ''}</div></details></li>`).join('')}</ul>`
       : '<p class="bph-mu">Noch keine Pläne, Mängel- oder Terminrügen an diesen Kontakt verschickt.</p>';
-    const kom = apps.find((a) => a.key === 'kommunikation');
-    if (kom && L.length) host.insertAdjacentHTML('beforeend', `<p><a href="${esc(appUrl(kom))}/#kontakt=${cid}">↗ Alles mit diesem Kontakt in „Aufgaben & Post“</a></p>`);
+    const kom = apps.find((a) => a.key === 'aufgaben');
+    if (kom && L.length) host.insertAdjacentHTML('beforeend', `<p><a href="${esc(appUrl(kom))}/#kontakt=${cid}">↗ Alles mit diesem Kontakt in „Post & Vorgänge“</a></p>`);
     host.onclick = async (e) => {   // vorher das Projekt der Sendung als aktuelles Projekt setzen
       const a = e.target.closest('[data-bnp]'); if (!a || !a.dataset.bnp) return;
       e.preventDefault(); try { await H.projektSetzen(+a.dataset.bnp); } catch { /* egal */ } location.href = a.href;

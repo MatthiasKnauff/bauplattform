@@ -11,7 +11,7 @@ export async function breitePruefen(browser, repo) {
   const baukasten = 'void 0;\n' + BK.map((f) => fs.readFileSync(path.join(KASTEN, f), 'utf8')).join('\n;\n');
   const fehler = [];
   // [Seite, Auswahl des Bereichs, voll?]
-  const SEITEN = [['aufgaben', '#pane', true], ['kommunikation', '#pane', true], ['papierkorb', 'section.pane', true], ['plaene', 'section.pane', true], ['zeiten', 'section.pane', true],
+  const SEITEN = [['aufgaben', '#pane', true], ['aufgaben#post', '.pv', true], ['papierkorb', 'section.pane', true], ['plaene', 'section.pane', true], ['zeiten', 'section.pane', true],
     ['admin#sessions', '#main', true], ['admin#system', '#main', false]];
   for (const [seite, sel, voll] of SEITEN) {
     const [name, hash = ''] = seite.split('#');

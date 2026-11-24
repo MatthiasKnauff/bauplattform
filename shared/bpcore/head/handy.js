@@ -16,7 +16,7 @@
   if (window.bpHandy) return;
   const H = window.BPHead, esc = window.bpEsc, R = document.documentElement;
   const STUFE = { portal: 'voll', aufgaben: 'voll', adressen: 'voll', bautagebuch: 'eigen', zeiten: 'eigen',
-    plaene: 'ansicht', kommunikation: 'ansicht', gantt: 'ansicht', ava: 'ansicht', wiki: 'ansicht', personal: 'ansicht',
+    plaene: 'ansicht', gantt: 'ansicht', ava: 'ansicht', wiki: 'ansicht', personal: 'ansicht',
     gebaeudemodell: 'lesen', baukosten: 'lesen', honorar: 'lesen', bauantrag: 'lesen', waermeschutz: 'lesen', baudaten: 'lesen', akquise: 'lesen', papierkorb: 'lesen',
     admin: 'keine' };
   const VORGABE = ['portal', 'bautagebuch', 'aufgaben', 'adressen', 'suche'];
@@ -27,7 +27,7 @@
   /* die Plätze der Leiste: gewählt oder Vorgabe; was die Person nicht (mehr) hat, fällt heraus */
   /* Fehlt ein Platz (App für die Rolle aus), rückt die nächste erlaubte App nach – so viele Plätze wie gewählt (Vorgabe fünf), das ＋ steht so immer
      in der Mitte zwischen zwei und zwei (23.11.2026: ohne „Aufgaben“ hatte die Leiste nur vier Plätze, das ＋ stand rechts der Mitte) */
-  const ERSATZ = ['aufgaben', 'bautagebuch', 'adressen', 'plaene', 'kommunikation', 'zeiten', 'gantt', 'wiki', 'ava'];
+  const ERSATZ = ['aufgaben', 'bautagebuch', 'adressen', 'plaene', 'zeiten', 'gantt', 'wiki', 'ava'];
   function plaetze() {
     const L = Array.isArray(H.me && H.me.handy) && H.me.handy.length ? H.me.handy : VORGABE, da = (k) => k === 'suche' || k === 'portal' || apps().some((a) => a.key === k);
     const R = L.filter(da).slice(0, 5);

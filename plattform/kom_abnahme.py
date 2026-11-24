@@ -11,7 +11,7 @@ from flask import g, jsonify, request
 
 from bpcore import abnahme as AB, benachrichtigung, dateien, db, papierkorb, vorgang
 import common as C
-from kommunikation import KEY, _empfaenger, _projekt, _schicken, app
+from aufgaben_post import KEY, _empfaenger, _projekt, _schicken, app
 
 
 def _laden(c, vid):
@@ -232,7 +232,7 @@ def abnahme_senden(vid):
         weg, err = _schicken(c, p, an, betreff, text, [(r["name"], "application/pdf", dateien.inhalt(c, r))], bool(b.get("kopie")))
     with db.tx() as c:
         benachrichtigung.protokoll(c, "vorgang", an, project_id=x["project_id"], projekt=p["name"] if p else "", betreff=betreff, inhalt=text, von=C.full_name(g.user),
-                                   weg="mail", status="fehler" if err else "gesendet", fehler=err or "", link=f"kommunikation:#v={vid}")
+                                   weg="mail", status="fehler" if err else "gesendet", fehler=err or "", link=f"aufgaben:#v={vid}")
         if not err:
             c.execute("UPDATE kom_vorgang SET gesendet=? WHERE id=?", (datetime.now().isoformat(timespec="seconds"), vid))
     if err:

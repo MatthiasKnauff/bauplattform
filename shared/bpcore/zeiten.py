@@ -76,7 +76,7 @@ _ARTEN_STAND = [0.0]
 # App (und Bereich) → Leistungsphase; ohne Projekt immer „Büro“
 APP_ART = {"ava": "lph6", "ava:lv": "lph6", "ava:angebote": "lph7", "ava:auftraege": "lph8", "ava:aufmass": "lph8",
            "ava:rechnungen": "lph8", "ava:uebersicht": "lph8", "ava:tueren": "lph5", "bautagebuch": "lph8", "gantt": "lph8",
-           "aufgaben": "lph8", "plaene": "lph5", "baukosten": "lph3", "baudaten": "lph6", "kommunikation": "lph8"}
+           "aufgaben": "lph8", "plaene": "lph5", "baukosten": "lph3", "baudaten": "lph6"}
 LUECKE = 10      # Minuten: kürzere Lücken im selben Projekt werden geschlossen
 SLOT = 15        # Minuten: je Viertelstunde zählt, woran am meisten gearbeitet wurde
 BLOCK_MIN = 30   # Minuten: kürzere Blöcke gehen im Nachbarn auf (statt hin und her)

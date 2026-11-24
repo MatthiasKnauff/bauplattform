@@ -22,6 +22,7 @@ import { fensterPruefen } from './fenster.mjs';
 import { lvGrossPruefen } from './lvgross.mjs';
 import { startseitePruefen } from './startseite.mjs';
 import { versandPruefen } from './versand.mjs';
+import { postPruefen } from './postvorgaenge.mjs';
 import { baudatenPruefen } from './baudaten.mjs';
 import { breitePruefen } from './breite.mjs';
 import { assistentPruefen } from './assistent.mjs';
@@ -105,7 +106,7 @@ const ART = process.env.RT_ARTEFAKTE ? path.join(process.env.RT_ARTEFAKTE, 'ober
 // Pfad im Verteiler → Name (gleiche Liste wie tools/rauchtest.py)
 const APPS = {
   '': 'Startseite', bautagebuch: 'Bautagebuch', bauzeitenplan: 'Bauzeitenplan', adressen: 'Adressen', baukosten: 'Baukosten',
-  maengel: 'Aufgaben & Post (Offen)', plaene: 'Pläne', ava: 'Ausschreibung', kommunikation: 'Aufgaben & Post (Verschickt)', baudaten: 'Baudaten',
+  maengel: 'Post & Vorgänge', plaene: 'Pläne', ava: 'Ausschreibung', baudaten: 'Baudaten',
   zeiten: 'Zeiten', verwaltung: 'Verwaltung',
 };
 const GERAETE = { PC: { viewport: { width: 1400, height: 900 } }, Handy: { ...devices['iPhone 13'] } };
@@ -500,6 +501,10 @@ if (dran()) { let f = [];
 if (dran()) { let f = [];
   try { f = await projektordnerPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Projektordner:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Projektordner'); } else { ok++; console.log('  ok      Projektordner'); } }
+// Post & Vorgänge: Aufgaben und Kommunikation in EINER Seite – Navigation, Wechsel ohne Neuladen, alte Adressen – siehe postvorgaenge.mjs
+if (dran()) { let f = [];
+  try { f = await postPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Post & Vorgänge:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Post & Vorgänge'); } else { ok++; console.log('  ok      Post & Vorgänge'); } }
 await b.close();
 if (fehler.length) console.log('\n' + fehler.join('\n'));
 if (!TN) console.log(`\nSpalten-Menü an ${spaltenGeprueft} Tabellen geprüft.`);

@@ -1490,5 +1490,7 @@ def einstellungen():
         return jsonify(conf(c))
 
 
+import aufgaben_post   # noqa: E402,F401 – Verlauf (bis 24.11.2026 die App Kommunikation): Routen /api/kom, /api/vorgang, /api/abnahme …
+
 C.wait_schema()
 start_loop()

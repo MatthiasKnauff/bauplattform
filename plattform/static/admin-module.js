@@ -13,9 +13,9 @@ function modChips(p) {
     + MOD_WEITERE.filter(([k]) => (p.weitere || {})[k] && appOf(k)).map(([k, titel, was]) => `<button type="button" class="chip" data-mod="app:${k}" title="${p.weitere[k]} ${was} – antippen: öffnen, löschen">${titel}${p.weitere[k] > 1 ? ' · ' + p.weitere[k] : ''}</button>`).join('');
 }
 // die übrigen Apps mit eigenen Unterlagen je Projekt: öffnen, in den Papierkorb, archivieren wo die App es kennt (16.11.2026: alles aus der Verwaltung)
-const MOD_EINZELN = { ava: 'Leistungsverzeichnis', bauantrag: 'Bauantrag', waermeschutz: 'Wärmeschutznachweis', honorar: 'Honorarauftrag', kommunikation: 'Vorgang', plan: 'Bauzeitenplan', bk: 'Kostenermittlung' };
+const MOD_EINZELN = { ava: 'Leistungsverzeichnis', bauantrag: 'Bauantrag', waermeschutz: 'Wärmeschutznachweis', honorar: 'Honorarauftrag', aufgaben: 'Vorgang', plan: 'Bauzeitenplan', bk: 'Kostenermittlung' };
 const MOD_ARCHIV = new Set(['ava']);
-const MOD_WEITERE = [['ava', 'Ausschreibung', 'Leistungsverzeichnisse'], ['bauantrag', 'Bauantrag', 'Bauanträge'], ['waermeschutz', 'Wärmeschutz', 'Nachweise'], ['honorar', 'Honorar', 'Honoraraufträge'], ['kommunikation', 'Kommunikation', 'Vorgänge']];
+const MOD_WEITERE = [['ava', 'Ausschreibung', 'Leistungsverzeichnisse'], ['bauantrag', 'Bauantrag', 'Bauanträge'], ['waermeschutz', 'Wärmeschutz', 'Nachweise'], ['honorar', 'Honorar', 'Honoraraufträge'], ['aufgaben', 'Post & Vorgänge', 'Vorgänge']];
 async function modOeffnen(p, app) {
   if (p.bt && window.BPHead && BPHead.projektSetzen) { try { await BPHead.projektSetzen(p.bt.id); } catch { /* egal – die App öffnet trotzdem */ } }
   location.href = linkTo(app, '');

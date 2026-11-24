@@ -29,6 +29,7 @@ def _db():
         CREATE TABLE honorar_vertrag(id INTEGER PRIMARY KEY, pdf BLOB, datei_ref TEXT);
         CREATE TABLE honorar_fremd_re(id INTEGER PRIMARY KEY, datei BLOB, datei_ref TEXT);
         CREATE TABLE bh_datei(schluessel TEXT NOT NULL, nr INTEGER NOT NULL DEFAULT 0, inhalt BLOB, datei_ref TEXT, PRIMARY KEY (schluessel, nr));
+        CREATE TABLE bauantrag_formular(id INTEGER PRIMARY KEY, daten BLOB, datei_ref TEXT);
         CREATE TABLE bp_papierkorb(id INTEGER PRIMARY KEY, data TEXT);
     """)
     return c

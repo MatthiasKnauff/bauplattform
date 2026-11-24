@@ -61,18 +61,44 @@ function katNetzHtml(id) {
   const i = knIt(KN.id), werk = KatBuero.istWerk(KN.id), ab = werk ? KatBuero.abw(KN.id) : [], W = werk ? KatBuero.werk(KN.id) : null, darf = libDarf();
   if (KN.basis[KN.probe] == null) KN.basis[KN.probe] = knProbe(KN.probe);
   const jetzt = knProbe(KN.probe), vorher = KN.basis[KN.probe];
-  const ph = CATALOG.phases.find((p) => p.k === i.ph), nachbar = knAlle().filter((x) => x.ph === i.ph && x.id !== KN.id);
+  const ph = CATALOG.phases.find((p) => p.k === i.ph);
   const ru = (f) => (ab.includes(f) ? ` <button type="button" class="kn-ru" data-knru="${f}" title="zurück auf Werk: ${esc(f === 'd' ? W.d + ' AT' : f === 'a' ? (W.a || []).map((a) => (knIt(knId(a)) || {}).n || knId(a)).join(', ') || '–' : knArt({ ...i, fix: W.fix, w: W.w }))}">↺</button>` : '');
-  return `<div class="kn"><div class="kn-l"><b>${esc((ph && ph.n.split(' (')[0]) || '')}</b><small>auf eine Seite ziehen = Abhängigkeit</small>${nachbar.map((x) => `<div class="kn-li${x.id === KN.id ? ' on' : ''}" draggable="${darf}" data-knli="${esc(x.id)}">${esc(x.n)}</div>`).join('')}</div>
-    <div class="kn-m"><div class="kn-sp" data-kndrop="vor"><div class="kn-h">Vorgänger</div>${knVor(KN.id).map((v) => knKiste(v.id, 'vor', v)).join('') || '<p class="mut">keine – beginnt mit dem Abschnitt</p>'}<button type="button" class="kn-add" data-knadd="vor">＋ Vorgänger …</button></div>
+  return `<div class="kn">${knListeHtml(darf)}
+    <div class="kn-m"><div class="kn-mg"><div class="kn-sp" data-kndrop="vor"><div class="kn-h">Vorgänger</div>${knVor(KN.id).map((v) => knKiste(v.id, 'vor', v)).join('') || '<p class="mut">keine – beginnt mit dem Abschnitt</p>'}<button type="button" class="kn-add" data-knadd="vor">＋ Vorgänger …</button></div>
     <div class="kn-mitte"><div class="kn-mk"><b>${esc(i.n)}</b><small>${esc(i.gw || '–')} · ${esc((ph && ph.n.split(' (')[0]) || '')}${werk ? '' : ' · eigene Leistung'}</small>
       ${i.ms ? '<p class="mut">Meilenstein – ohne Dauer</p>' : `<label>Richtdauer <input type="number" min="0.5" max="999" step="0.5" value="${i.d}" data-knd class="${ab.includes('d') ? 'kn-gelb' : ''}"> AT${ru('d')}</label>
       <label>Art <select data-knart class="${ab.includes('fix') || ab.includes('w') ? 'kn-gelb' : ''}"${werk ? '' : ' disabled title="Art ändern geht bei Leistungen ab Werk"'}><option value="flaeche"${!i.fix && !i.w ? ' selected' : ''}>wächst mit der Fläche</option><option value="fix"${i.fix && !i.w ? ' selected' : ''}>feste Dauer</option><option value="w"${i.w ? ' selected' : ''}>Wartezeit – läuft in allen Einheiten zugleich</option></select>${ru('fix') || ru('w')}</label>
       <p class="mut">Richtdauer gilt für ein Einfamilienhaus mit 140 m²; mit „wächst mit der Fläche“ passt das Programm sie der Größe an.</p>`}
       ${ab.includes('a') ? `<p class="kn-gelb">Vorgänger vom Büro geändert${ru('a')}</p>` : ''}</div></div>
-    <div class="kn-sp" data-kndrop="nach"><div class="kn-h">Nachfolger</div>${knNach(KN.id).map((v) => knKiste(v.id, 'nach', v)).join('') || '<p class="mut">keine</p>'}<button type="button" class="kn-add" data-knadd="nach">＋ Nachfolger …</button></div></div>
+    <div class="kn-sp" data-kndrop="nach"><div class="kn-h">Nachfolger</div>${knNach(KN.id).map((v) => knKiste(v.id, 'nach', v)).join('') || '<p class="mut">keine</p>'}<button type="button" class="kn-add" data-knadd="nach">＋ Nachfolger …</button></div></div></div>
     <div class="kn-probe"><b>Probe</b><span class="kn-seg">${Object.entries(KN_PROBE).map(([k, [n]]) => `<button type="button" data-knprobe="${k}" class="${KN.probe === k ? 'on' : ''}">${esc(n)}</button>`).join('')}</span>
       <span>Gesamtbauzeit <b>${jetzt == null ? '–' : jetzt + ' AT'}</b>${vorher != null && jetzt != null && vorher !== jetzt ? ` <span class="${jetzt > vorher ? 'kn-mehr' : 'kn-weniger'}">(vorher ${vorher} AT, ${jetzt > vorher ? '+' : ''}${jetzt - vorher})</span>` : ''}</span></div></div>`;
+}
+/* Liste links (24.11.2026): alle Leistungen aller Abschnitte, je Abschnitt zuklappbar – offen ist anfangs der Abschnitt der Mitte.
+   Beim Neuzeichnen bleibt die Liste stehen (knNeu), nur die Markierung wandert; kommt die Mitte von woanders (Kiste, Suche),
+   geht ihr Abschnitt auf und die Zeile kommt nur bei Bedarf ins Bild. */
+function knListeHtml(darf) {
+  const ph = (knIt(KN.id) || {}).ph, P = [...CATALOG.phases], A = knAlle();
+  A.forEach((x) => { if (!P.some((p) => p.k === x.ph)) P.push({ k: x.ph, n: 'Ohne Abschnitt' }); });
+  return `<div class="kn-l"><small>auf eine Seite ziehen = Abhängigkeit</small>${P.map((p) => {
+    const L = A.filter((x) => x.ph === p.k); if (!L.length) return '';
+    return `<details class="kn-abs" data-knab="${esc(p.k)}"${p.k === ph ? ' open' : ''}><summary><b>${esc(p.n.split(' (')[0])}</b> <small>${L.length}</small></summary>${L.map((x) => `<div class="kn-li${x.id === KN.id ? ' on' : ''}" draggable="${darf}" data-knli="${esc(x.id)}">${esc(x.n)}</div>`).join('')}</details>`;
+  }).join('')}</div>`;
+}
+function knNeu(box, html) {   // Neuzeichnen ohne die Liste links: Kopf (Suchfeld) und Liste bleiben dieselben Knoten
+  const alt = box.querySelector('.fv > .kn'), t = document.createElement('div'); t.innerHTML = html;
+  const neu = t.querySelector('.fv > .kn'), nl = neu && neu.querySelector('.kn-l'), al = alt && alt.querySelector('.kn-l');
+  const gleich = (a, b) => a.replace(/ on"/g, '"').replace(/ open=""/g, '') === b.replace(/ on"/g, '"').replace(/ open=""/g, '');
+  if (!alt || !nl || !al || !gleich(al.innerHTML, nl.innerHTML.replace(/ open(?=>)/g, ' open=""'))) return false;
+  const fv = alt.parentNode;
+  [...fv.children].forEach((c) => { if (c !== alt && !c.classList.contains('fv-head')) c.remove(); });
+  [...t.querySelector('.fv').children].forEach((c) => { if (c !== neu && !c.classList.contains('fv-head')) fv.insertBefore(c, alt); });
+  [...alt.children].forEach((c) => { if (c.matches('.kn-m,.kn-probe')) c.remove(); });
+  [...neu.children].forEach((c) => { if (c.matches('.kn-m,.kn-probe')) alt.appendChild(c); });
+  al.querySelectorAll('.kn-li.on').forEach((x) => x.classList.remove('on'));
+  const on = al.querySelector(`[data-knli="${CSS.escape(KN.id)}"]`);
+  if (on) { on.classList.add('on'); const d = on.closest('details'); if (!d.open) d.open = true; on.scrollIntoView({ block: 'nearest' }); }
+  return true;
 }
 function knAuswahl(anker, seite) {
   const ziel = KN.id, L = knAlle().filter((x) => x.id !== ziel && !x.ms).filter((x) => (seite === 'vor' ? !knVorfahr(x.id, ziel) && !knVor(ziel).some((v) => v.id === x.id) : !knVorfahr(ziel, x.id) && !knNach(ziel).some((v) => v.id === x.id)));

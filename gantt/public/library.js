@@ -116,8 +116,10 @@ function renderLib() {
     fv.querySelectorAll('[draggable]').forEach((x) => x.removeAttribute('draggable')); };
   const modus = `<span class="kn-seg lv-modus" role="tablist"><button type="button" role="tab" data-lmodus="liste" aria-selected="${LIBMODUS === 'liste'}" class="${LIBMODUS === 'liste' ? 'on' : ''}">Liste</button><button type="button" role="tab" data-lmodus="netz" aria-selected="${LIBMODUS === 'netz'}" class="${LIBMODUS === 'netz' ? 'on' : ''}">Abhängigkeiten</button></span>`;
   if (LIBMODUS === 'netz' && window.KatBuero && typeof katNetzHtml === 'function') {
-    box.innerHTML = `<div class="fv"><div class="fv-head"><div><h3>Leistungskatalog</h3><span>eine Leistung in der Mitte – Vorgänger links, Nachfolger rechts</span></div>${modus}<input id="knQ" class="lv-q" type="search" data-vs="knSuch" data-vs-woerter autocomplete="off" placeholder="Leistung suchen – alle Abschnitte …" aria-label="Leistung suchen"></div>${libLernHtml()}${katNetzHtml(LIBNETZ)}</div>`;
-    LIBNETZ = null;   // nur einmal: danach führt die Ansicht selbst (Klick auf eine Kiste)
+    const html = `<div class="fv fv-kn"><div class="fv-head"><div><h3>Leistungskatalog</h3><span>eine Leistung in der Mitte – Vorgänger links, Nachfolger rechts</span></div>${modus}<input id="knQ" class="lv-q" type="search" data-vs="knSuch" data-vs-woerter autocomplete="off" placeholder="Leistung suchen – alle Abschnitte …" aria-label="Leistung suchen"></div>${libLernHtml()}${katNetzHtml(LIBNETZ)}</div>`;
+    LIBNETZ = null;
+    if (knNeu(box, html)) { nurLesen(); return; }   // Liste links bleibt stehen – nichts springt (24.11.2026)
+    box.innerHTML = html;   // nur einmal: danach führt die Ansicht selbst (Klick auf eine Kiste)
     if (window.bpNav && bpNav.breite) bpNav.breite(box.querySelector('.kn-l'), { key: 'katnetz', min: 150, max: 480 });   // linke Spalte in der Breite ziehen (23.11.2026)
     nurLesen(); return;
   }

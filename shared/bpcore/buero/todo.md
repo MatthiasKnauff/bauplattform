@@ -8,6 +8,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Seite „Ablauf“ auch für Einheiten** (Kisten „Gebäude / Allgemein“, „Einheit 1“, „Einheit 2“ mit Takt-Pfeilen) – Fragen offen, Mock folgt **ca. 30 min**
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; 3D-Auswahl später) – B erledigt durch das Raumbuch (17.11.: Gruppen, abweichender Raum eigene Zeile) **ca. 1,5 h**
+- ~~Leistungskatalog „Abhängigkeiten“: Liste links mit allen Abschnitten, nichts springt beim Klick, schmale Fenster nicht mehr gequetscht~~ (24.11.2026)
 - ~~Post & Vorgänge, Etappe 1: Aufgaben & Post und Kommunikation als eine App, eine Seite, ohne Neuladen; Container „kommunikation“ entfällt, alte Adressen leiten weiter (24.11.2026)~~
 - ~~Bautagebuch: eigenes Projekt-Auswahlfenster entfernt – Projekte (auch „aus Ordner anlegen“) wie in allen Apps über die gemeinsame Projektauswahl (24.11.2026)~~
 - ~~Neues Projekt: Projektordner nach der Vorlage anlegen (nach Rückfrage), lose Dateien einsortieren (24.11.2026)~~

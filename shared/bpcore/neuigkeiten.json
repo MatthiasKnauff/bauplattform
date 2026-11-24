@@ -1,5 +1,13 @@
 [
  {
+  "id": "katnetz-alle-abschnitte",
+  "datum": "2026-11-24",
+  "app": "gantt",
+  "titel": "Abhängigkeiten: alle Leistungen links",
+  "text": "In der Ansicht „Abhängigkeiten“ des Leistungskatalogs stehen links jetzt alle Leistungen aller Abschnitte (je Abschnitt zuklappbar). Ein Klick lässt die Liste stehen. In schmalen Fenstern steht die Liste oben und Vorgänger, Mitte, Nachfolger untereinander.",
+  "ziel": ".kn-l"
+ },
+ {
   "id": "post-vorgaenge",
   "datum": "2026-11-24",
   "app": "aufgaben",

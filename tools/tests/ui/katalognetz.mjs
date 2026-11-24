@@ -79,6 +79,19 @@ export async function katalogNetzPruefen(browser, repo) {
       pruef(m === v[0], `gewählte Leistung steht in der Mitte: ${m} / ${v[0]}`);
       await p.evaluate(() => { KN.id = 'estrich'; renderLib(); }); await warte(300);
     }
+    {   // 24.11.2026: Liste links mit allen Abschnitten; ein Klick darin lässt die Liste stehen (dieselben Knoten, gleiche Rollposition)
+      const a = await p.evaluate(() => ({ abs: document.querySelectorAll('.kn-l details.kn-abs').length, li: document.querySelectorAll('.kn-l .kn-li').length, alle: knAlle().length, offen: [...document.querySelectorAll('.kn-l details[open]')].map((d) => d.dataset.knab), ph: knIt(KN.id).ph }));
+      pruef(a.abs > 3 && a.li === a.alle && a.offen.includes(a.ph), `Liste links: alle Leistungen aller Abschnitte, nur der Abschnitt der Mitte offen: ${JSON.stringify(a)}`);
+      const v = await p.evaluate(() => { const l = document.querySelector('.kn-l'); [...l.querySelectorAll('details')].forEach((d) => { d.open = true; }); l.scrollTop = 600; window.__knl = l;
+        const z = [...l.querySelectorAll('.kn-li')].find((x) => { const r = x.getBoundingClientRect(), R = l.getBoundingClientRect(); return r.top > R.top + 40 && r.bottom < R.bottom - 40 && x.dataset.knli !== KN.id; }); return { id: z.dataset.knli, top: l.scrollTop }; });
+      await p.click(`.kn-l [data-knli="${v.id}"]`); await warte(300);
+      const n = await p.evaluate(() => ({ gleich: window.__knl === document.querySelector('.kn-l'), top: document.querySelector('.kn-l').scrollTop, mitte: KN.id, on: document.querySelector('.kn-l .kn-li.on').dataset.knli }));
+      pruef(n.gleich && n.top === v.top && n.mitte === v.id && n.on === v.id, `Klick in der Liste links: nichts springt – ${JSON.stringify({ v, n })}`);
+      await p.setViewportSize({ width: 1000, height: 900 }); await warte(200);
+      const g = await p.evaluate(() => { const [a, b] = [...document.querySelectorAll('.kn-mg > *')].map((x) => x.getBoundingClientRect()); return { a: Math.round(a.top), b: Math.round(b.top), w: Math.round(b.width), l: document.querySelector('.kn-l').offsetWidth, m: document.querySelector('.kn-m').offsetWidth, fv: document.querySelector('.kn').offsetWidth }; });
+      pruef(g.b > g.a && g.w > 250, `schmal: Vorgänger, Mitte, Nachfolger untereinander statt gequetscht – ${JSON.stringify(g)}`);
+      await p.setViewportSize({ width: 1600, height: 900 }); await p.evaluate(() => { KN.id = 'estrich'; renderLib(); }); await warte(300);
+    }
     await p.evaluate(() => knVerbinde('el_roh', 'estrich')); await warte(500);
     pruef(((letzt('api/catbuero') || {}).estrich || {}).a && letzt('api/catbuero').estrich.a.includes('el_roh'), `neuer Vorgänger als Abweichung: ${JSON.stringify(letzt('api/catbuero'))}`);
     const n0 = PUT.length; await p.evaluate(() => knVerbinde('estrich', 'putz')); await warte(400);

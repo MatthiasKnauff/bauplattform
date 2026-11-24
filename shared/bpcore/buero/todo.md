@@ -262,10 +262,10 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Zeiten: Rahmen um mehrere Blöcke (markieren, gemeinsam ändern/übernehmen/zusammenfassen/löschen) – Rückfrage gestellt **ca. 45 min**
 
 ## Später
+- Leistungskatalog: Leistungsbereiche (LB) – Mock „Leistungsbereiche im Katalog“ liegt bereit, zurückgestellt am 24.11.2026 (später nachfragen)
 - Bauzeitenplan Etappe 2: alle Pläne des Projekts im Baum, Ziehen/Ablegen, Schalter „nur geöffneten Plan“, Katalog als Reiter rechts, Kennzahlen in der Leiste, Suche in die Navigation, verstecktes Menüband entfernen, genaue Texte im Rückgängig-Dock. **ca. 2–3 h** – zurückgestellt am 22.11.2026 (Mock verworfen, bei Bedarf neu)
 - Bauzeitenplan: Leistungswerte aus der Praxis lernen – Ist-Dauern je Gewerk aus dem Bautagebuch (Firmen auf der Baustelle) ersetzen die Richtwerte **ca. 1 h**
 - Kanban-Board für To-dos (wie Nextcloud Deck) – „im Moment nicht“ (14.11.2026)
-- Aufgaben & Post auch im Code zu einer App zusammenlegen (ein Container statt zwei; Kommunikation als Teil der App Aufgaben, Rechte und Verweise umstellen) **ca. 1,5 h**
 - Honorar: Schnellrechner mit Speichern zur späteren Übernahme (＋ wie im Bautagebuch) – Mock folgt **ca. 1 h**
 - Urlaubsfenster: Termine der Person in der Zeit (Bauzeitenplan, Abnahmen, Bauantrag-Abgaben) anzeigen; Warnung beim Beantragen **ca. 30 min**
 

@@ -596,3 +596,21 @@ def test_seite_als_recht(ctx):
     finally:
         a.delete(f"/verwaltung/api/users/{uid}", expect=200)
         a.delete(f"/verwaltung/api/rollen/{neu['key']}", expect=None)
+
+
+def test_umzug_benutzer_darstellung(ctx):
+    """Umzug ins neue Bauportal (26.11.2026): Benutzer mit Darstellung – nur für die Verwaltung, ohne Kennwörter."""
+    alt = ctx.admin.gj("/verwaltung/api/bp/darstellung")
+    try:
+        ctx.admin.uj("/verwaltung/api/bp/darstellung", {"stil": {"rahmen": "mac", "verlauf": "app"}})
+        l = ctx.admin.gj("/verwaltung/api/bp/umzug/benutzer")["benutzer"]
+        pruefe(any(b["darstellung"]["stil"] == {"rahmen": "mac", "verlauf": "app"} and b["admin"] for b in l), "Stil der Person steht im Umzug")
+        pruefe(not any(k in str(l).lower() for k in ("pw_hash", "password", "kennwort")), "keine Kennwörter")
+    finally:
+        ctx.admin.uj("/verwaltung/api/bp/darstellung", {"stil": alt.get("stil") or {}})
+    uid, name, pw = _benutzer_anlegen(ctx, ["adressen"])
+    try:
+        c = _anmelden_mit_neuem_kennwort(ctx, name, pw)
+        c.get("/adressen/api/bp/umzug/benutzer", expect=403)   # kein Administrator
+    finally:
+        ctx.admin.delete(f"/verwaltung/api/users/{uid}", expect=200)

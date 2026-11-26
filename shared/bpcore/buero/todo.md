@@ -311,6 +311,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Handyansicht Etappe 3: Ansichten der übrigen Apps je **30–60 min**, Verwaltung nur „Für mich“
 
 ## Erledigt
+- ~~Umzug ins neue Bauportal: Benutzer mit ihrer Darstellung als Export für die Verwaltung (/api/bp/umzug/benutzer)~~ (26.11.2026)
 - ~~Navigation/Filter an der Ursache: bpNav lässt den Platz „davor“ beim Neuzeichnen stehen, bpFilter sein Eingabefeld – Merk-Krücke für den Fokus entfernt~~ (22.11.2026)
 - ~~Filterfeld (bp/filter.js): Klick in die Navigation holte den Fokus zurück ins Suchfeld und rollte nach oben (Adressen)~~ (22.11.2026)
 - ~~Bauzeitenplan „Zeit und Stand“: Grund auch als eigener Text, Block auch rechts unter Details, Felder bündig, Meilenstein ohne Fortschritt/Überzug~~ (22.11.2026)

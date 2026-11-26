@@ -22,6 +22,7 @@ Die Kopfleiste zeigt: Bauportal / App · aktuelles Projekt · KI-Auswahl · Benu
 /api/bp/kontakt/<id>/verlauf  Benachrichtigungsverlauf (Planversand, Rügen …)
 /api/bp/kontakte    GET ?q= / ?ids=  Kontakte suchen · POST, PUT /<id>  anlegen/ändern (Kontaktfelder der Stammdaten-Masken)
 /api/bp/projekt  GET/PUT {id}  aktuelles Projekt des Benutzers – beim Wechsel der App bleibt man im selben Projekt
+/api/bp/umzug/benutzer GET  nur Verwaltung: Benutzer mit Darstellung (ohne Kennwörter) für den Umstieg ins neue Bauportal
 /api/bp/kopf GET  alles für die Kopfleiste beim Öffnen in einer Abfrage: conf (wie /api/platform; ?conf=0 ohne), ki, projekt, darstellung
 /api/bp/ki   GET  Auswahl des Benutzers und welche Anbieter eingerichtet sind
              PUT  {"ki": "intern"|"ollama"|"claude"|"gemini"|"chatgpt"} – gilt in allen Apps und auf allen Geräten
@@ -428,6 +429,22 @@ def blueprint(get_user=None):
         return {"theme": sso.theme_of(u) or "dunkel", "accent": u["accent"] or "", "farbschema": pr.get("farbschema", ""), "modus": _modus(c, pr, u), "modus_apps": _modus_apps(pr),
                 "ki_immer": bool(pr.get("ki_immer")), "ki_vorgabe": pr.get("ki_vorgabe") or "buero", "schrift": pr.get("schrift", ""), "schrift_g": pr.get("schrift_g", ""),
                 "stil": pr.get("stil") or {}, "logo": pr.get("logo", ""), "handy": pr.get("handy") or []}
+
+    @bp.get("/api/bp/umzug/benutzer")
+    def umzug_benutzer():
+        """Umzug ins neue Bauportal (26.11.2026): Benutzer mit ihrer Darstellung (Schema, Akzent, Schrift, Stil) – nur für die
+        Verwaltung, ohne Kennwörter. Das neue Bauportal liest das einmal beim Umstieg und legt die Wahl je Person an."""
+        u = user()
+        if not u or not u["is_admin"]:
+            return jsonify(error="Nur für die Verwaltung."), 403
+        with db.tx() as c:
+            aus = []
+            for r in c.execute("SELECT * FROM users ORDER BY name").fetchall():
+                d = _darstellung(c, r)
+                aus.append({"name": r["name"], "email": r["email"] or "", "admin": bool(r["is_admin"]),
+                            "aktiv": bool(r["active"]) if "active" in r.keys() else True,
+                            "darstellung": {k: d[k] for k in ("theme", "accent", "farbschema", "schrift", "schrift_g", "stil")}})
+        return jsonify(benutzer=aus)
 
     @bp.route("/api/bp/darstellung", methods=["GET", "PUT"])
     def darstellung():

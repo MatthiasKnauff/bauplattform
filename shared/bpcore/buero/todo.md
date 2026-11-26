@@ -311,6 +311,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Handyansicht Etappe 3: Ansichten der übrigen Apps je **30–60 min**, Verwaltung nur „Für mich“
 
 ## Erledigt
+- ~~Umzug ins neue Bauportal: Export der Benutzer mit Rolle und Kennwort-Prüfwert (werkzeug-Hash) – alle melden sich dort mit dem bisherigen Kennwort an~~ (26.11.2026)
 - ~~Bauantrag: Anschreiben an die Bauherrschaft dazu, Ausfertigungen bei beiden (Vorgabe 1×)~~ (26.11.2026)
 - ~~Umzug ins neue Bauportal: Benutzer mit ihrer Darstellung als Export für die Verwaltung (/api/bp/umzug/benutzer)~~ (26.11.2026)
 - ~~Navigation/Filter an der Ursache: bpNav lässt den Platz „davor“ beim Neuzeichnen stehen, bpFilter sein Eingabefeld – Merk-Krücke für den Fokus entfernt~~ (22.11.2026)

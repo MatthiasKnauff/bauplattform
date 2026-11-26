@@ -22,7 +22,7 @@ Die Kopfleiste zeigt: Bauportal / App · aktuelles Projekt · KI-Auswahl · Benu
 /api/bp/kontakt/<id>/verlauf  Benachrichtigungsverlauf (Planversand, Rügen …)
 /api/bp/kontakte    GET ?q= / ?ids=  Kontakte suchen · POST, PUT /<id>  anlegen/ändern (Kontaktfelder der Stammdaten-Masken)
 /api/bp/projekt  GET/PUT {id}  aktuelles Projekt des Benutzers – beim Wechsel der App bleibt man im selben Projekt
-/api/bp/umzug/benutzer GET  nur Verwaltung: Benutzer mit Darstellung (ohne Kennwörter) für den Umstieg ins neue Bauportal
+/api/bp/umzug/benutzer GET  nur Verwaltung: Benutzer mit Rolle, Darstellung und Kennwort-Prüfwert (nie das Kennwort) für den Umstieg ins neue Bauportal
 /api/bp/kopf GET  alles für die Kopfleiste beim Öffnen in einer Abfrage: conf (wie /api/platform; ?conf=0 ohne), ki, projekt, darstellung
 /api/bp/ki   GET  Auswahl des Benutzers und welche Anbieter eingerichtet sind
              PUT  {"ki": "intern"|"ollama"|"claude"|"gemini"|"chatgpt"} – gilt in allen Apps und auf allen Geräten
@@ -432,8 +432,9 @@ def blueprint(get_user=None):
 
     @bp.get("/api/bp/umzug/benutzer")
     def umzug_benutzer():
-        """Umzug ins neue Bauportal (26.11.2026): Benutzer mit ihrer Darstellung (Schema, Akzent, Schrift, Stil) – nur für die
-        Verwaltung, ohne Kennwörter. Das neue Bauportal liest das einmal beim Umstieg und legt die Wahl je Person an."""
+        """Umzug ins neue Bauportal (26.11.2026): Benutzer mit Rolle und Darstellung (Schema, Akzent, Schrift, Stil) – nur für die
+        Verwaltung. Dazu der gespeicherte Prüfwert des Kennworts (werkzeug-Hash, nie das Kennwort selbst; Entscheidung Matthias
+        26.11.2026): Das neue Bauportal legt die Personen an, alle melden sich dort mit ihrem bisherigen Kennwort an."""
         u = user()
         if not u or not u["is_admin"]:
             return jsonify(error="Nur für die Verwaltung."), 403
@@ -441,7 +442,8 @@ def blueprint(get_user=None):
             aus = []
             for r in c.execute("SELECT * FROM users ORDER BY name").fetchall():
                 d = _darstellung(c, r)
-                aus.append({"name": r["name"], "email": r["email"] or "", "admin": bool(r["is_admin"]),
+                aus.append({"name": r["name"], "email": r["email"] or "", "admin": bool(r["is_admin"]), "rolle": r["rolle"] or "",
+                            "pruefwert": r["pass_hash"] or "",
                             "aktiv": bool(r["active"]) if "active" in r.keys() else True,
                             "darstellung": {k: d[k] for k in ("theme", "accent", "farbschema", "schrift", "schrift_g", "stil")}})
         return jsonify(benutzer=aus)

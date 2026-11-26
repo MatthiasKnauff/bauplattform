@@ -605,7 +605,8 @@ def test_umzug_benutzer_darstellung(ctx):
         ctx.admin.uj("/verwaltung/api/bp/darstellung", {"stil": {"rahmen": "mac", "verlauf": "app"}})
         l = ctx.admin.gj("/verwaltung/api/bp/umzug/benutzer")["benutzer"]
         pruefe(any(b["darstellung"]["stil"] == {"rahmen": "mac", "verlauf": "app"} and b["admin"] for b in l), "Stil der Person steht im Umzug")
-        pruefe(not any(k in str(l).lower() for k in ("pw_hash", "password", "kennwort")), "keine Kennwörter")
+        pruefe(all(set(b) >= {"name", "rolle", "pruefwert"} for b in l), "je Person Rolle und Kennwort-Prüfwert")
+        pruefe(all(not b["pruefwert"] or b["pruefwert"].split(":")[0] in ("scrypt", "pbkdf2") for b in l), "nur Prüfwerte (werkzeug), keine Kennwörter")
     finally:
         ctx.admin.uj("/verwaltung/api/bp/darstellung", {"stil": alt.get("stil") or {}})
     uid, name, pw = _benutzer_anlegen(ctx, ["adressen"])

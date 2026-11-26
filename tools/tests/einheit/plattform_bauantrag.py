@@ -317,3 +317,14 @@ def test_statistik_nicht_doppelt():
          {"key": "lageplan", "name": "Lageplan", "status": "da"}]
     assert [x["text"] for x in BAN.liste({}, B)] == ["Lageplan"], BAN.liste({}, B)
     assert [x["text"] for x in BP.deckblatt({}, B)["punkte"]] == ["Lageplan"]
+
+
+def test_anschreiben_bauherrschaft():
+    """Anschreiben an die Bauherrschaft (26.11.2026): Vorgabe 1×, Anschrift aus den Angaben der Bauherrschaft; die Bauaufsicht ebenfalls 1×."""
+    from bpcore import bauantrag_paket as BP
+    W = {"bezeichnung": "Neubau EFH", "gs_strasse": "Weg 1", "gs_ort": "45127 Essen", "bauherr_name": "Familie Muster", "bauherr_anschrift": "Weg 2\n45127 Essen"}
+    b = BP.anschreiben_bh({}, W, "Bauantrag")
+    gleich((b["an"], b["ausfertigungen"], b["empfaenger"]), (True, 1, "Familie Muster\nWeg 2\n45127 Essen"), "Vorgaben")
+    pruefe("1-facher Ausfertigung" in b["text"] and "Neubau EFH" in b["text"], "Text nennt Vorhaben und Ausfertigungen")
+    gleich(BP.anschreiben({}, W, "Bauantrag")["ausfertigungen"], 1, "Bauaufsicht in der Regel 1×")
+    gleich(BP.anschreiben_bh({"anschreiben_bh": {"ausfertigungen": 2, "an": False}}, W, "Bauantrag")["ausfertigungen"], 2, "eigene Zahl bleibt")

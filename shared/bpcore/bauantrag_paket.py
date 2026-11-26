@@ -172,7 +172,7 @@ def anschreiben(P, W, verfahren_name, V=None):
     lage = ", ".join(x for x in (f"Gemarkung {W['gemarkung']}" if W.get("gemarkung") else "", f"Flur {W['flur']}" if W.get("flur") else "",
                                  f"Flurstück {W['flurstueck']}" if W.get("flurstueck") else "") if x)
     verf, az = verfahren_name or "Bauantrag", A.get("aktenzeichen") or (V or {}).get("aktenzeichen") or ""
-    grund = dict(vorhaben=W.get("bezeichnung") or "–", grundstueck=gs + (f" ({lage})" if lage else ""), ausfertigungen=A.get("ausfertigungen") or 3)
+    grund = dict(vorhaben=W.get("bezeichnung") or "–", grundstueck=gs + (f" ({lage})" if lage else ""), ausfertigungen=A.get("ausfertigungen") or 1)
     betreff = f"{verf} – {W.get('bezeichnung') or ''}".strip(" –")
     if V:
         e = V.get("eingereicht") or ""
@@ -189,8 +189,29 @@ def anschreiben(P, W, verfahren_name, V=None):
     else:
         vorgabe = ANSCHREIBEN_TEXT.format(verfahren=verf, **grund)
     return {"an": A.get("an", True), "behoerde_id": A.get("behoerde_id"), "empfaenger": A.get("empfaenger") or W.get("behoerde") or "",
-            "ansprechpartner": A.get("ansprechpartner") or "", "aktenzeichen": az, "ausfertigungen": A.get("ausfertigungen") or 3,
+            "ansprechpartner": A.get("ansprechpartner") or "", "aktenzeichen": az, "ausfertigungen": A.get("ausfertigungen") or 1,
             "text": A.get("text") or vorgabe, "text_vorgabe": vorgabe, "anlagen": A.get("anlagen") or "liste", "betreff": A.get("betreff") or betreff + f"\n{gs}"}
+
+
+ANSCHREIBEN_BH_TEXT = ("Guten Tag,\n\nanbei erhalten Sie den {verfahren} für das Vorhaben „{vorhaben}“ auf dem Grundstück {grundstueck}, "
+                       "wie er bei der Bauaufsicht eingereicht wird – in {ausfertigungen}-facher Ausfertigung für Ihre Unterlagen.\n\n"
+                       "Bitte prüfen Sie die Unterlagen und unterschreiben Sie dort, wo es vorgesehen ist. Für Rückfragen stehen wir Ihnen gern zur Verfügung.\n\n"
+                       "Mit freundlichen Grüßen")
+
+
+def anschreiben_bh(P, W, verfahren_name, V=None):
+    """Anschreiben an die Bauherrschaft (26.11.2026): begleitet ihre Ausfertigung des Antrags – an/aus, Empfänger:in (aus den Angaben
+    der Bauherrschaft), Ausfertigungen (Vorgabe 1), Betreff, Text (Vorgabe mit den Angaben des Antrags)."""
+    A = P.get("anschreiben_bh") or {}
+    gs = ", ".join(x for x in (W.get("gs_strasse"), W.get("gs_ort")) if x) or "–"
+    verf = verfahren_name or "Bauantrag"
+    if V:
+        verf = ("Ergänzung zum " if V.get("art") == "ergaenzung" else "Änderungsantrag zum ") + verf
+    n = A.get("ausfertigungen") or 1
+    vorgabe = ANSCHREIBEN_BH_TEXT.format(verfahren=verf, vorhaben=W.get("bezeichnung") or "–", grundstueck=gs, ausfertigungen=n)
+    emp = "\n".join(x for x in (W.get("bauherr_name") or "", W.get("bauherr_anschrift") or "") if x)
+    return {"an": A.get("an", True), "empfaenger": A.get("empfaenger") or emp, "ausfertigungen": n, "text": A.get("text") or vorgabe,
+            "text_vorgabe": vorgabe, "betreff": A.get("betreff") or f"{verf} – {W.get('bezeichnung') or ''}".strip(" –") + f"\n{gs}"}
 
 
 def trennblatt_pdf(nr, titel, inhalt):

@@ -6037,5 +6037,13 @@
   "titel": "Planung bei Plänen ohne Projekt",
   "text": "Ist ein Bauzeitenplan mit keinem Projekt verknüpft, sagen die Reiter „Planung“ und „Fragen und Antworten“ das jetzt und bieten „Mit Projekt verknüpfen …“ an. Danach übernimmt die Planung die Angaben, mit denen der Plan erzeugt wurde.",
   "ziel": ""
+ },
+ {
+  "id": "anschreiben-bauherr-1126",
+  "datum": "2026-11-26",
+  "app": "bauantrag",
+  "titel": "Anschreiben an die Bauherrschaft",
+  "text": "Neben dem Anschreiben an die Bauaufsicht gibt es jetzt eines an die Bauherrschaft – es begleitet ihre Ausfertigung. Bei beiden steht die Zahl der Ausfertigungen, in der Regel 1×. Im Druck kommt es einmal vorne dazu.",
+  "ziel": ""
  }
 ]

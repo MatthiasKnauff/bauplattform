@@ -101,6 +101,19 @@ def paket_setzen(aid):
                     if r["contact_person"] and not A.get("ansprechpartner"):
                         A["ansprechpartner"] = r["contact_person"]
             P["anschreiben"] = A
+        if isinstance(b.get("anschreiben_bh"), dict):   # Anschreiben an die Bauherrschaft (26.11.2026)
+            A = P.get("anschreiben_bh") or {}
+            for f, n in (("empfaenger", 600), ("text", 6000), ("betreff", 400)):
+                if f in b["anschreiben_bh"]:
+                    A[f] = str(b["anschreiben_bh"][f] or "").strip()[:n]
+            if "an" in b["anschreiben_bh"]:
+                A["an"] = bool(b["anschreiben_bh"]["an"])
+            if "ausfertigungen" in b["anschreiben_bh"]:
+                try:
+                    A["ausfertigungen"] = max(1, min(9, int(b["anschreiben_bh"]["ausfertigungen"])))
+                except (TypeError, ValueError):
+                    pass
+            P["anschreiben_bh"] = A
         if k.startswith("u") and b.get("nutzung") in ("ausfuellen", "beilegen"):
             c.execute("UPDATE bauantrag_unterlage SET art=? WHERE id=? AND antrag_id=?", (b["nutzung"], int(k[1:]), aid))
         P["an"], P["aus"] = sorted(an), sorted(aus)
@@ -315,15 +328,24 @@ def paket(aid):
         ausf = request.args.get("ausf", type=int) or 1   # mehrere Ausfertigungen hintereinander – ein PDF zum Durchdrucken
         W, dd = _w(c, a)   # Fingerabdruck aller Angaben: gleich → dasselbe PDF (Zwischenspeicher, Browser fragt nur noch nach)
         fp = hashlib.sha1(json.dumps([W, a["daten"], a["bauvorlagen"], a["land"], a["verfahren"], sorted(nur) if nur is not None else None, ausf,
-                                     {k: dd.get(k) for k in ("paket", "gewaehlt", "anlagen", "deckblatt", "anschreiben", "gliederung")}], sort_keys=True, default=str).encode()).hexdigest()
+                                     {k: dd.get(k) for k in ("paket", "gewaehlt", "anlagen", "deckblatt", "anschreiben", "anschreiben_bh", "gliederung")}], sort_keys=True, default=str).encode()).hexdigest()
         if request.if_none_match and fp in request.if_none_match:
             return Response(status=304, headers={"ETag": f'"{fp}"', "Cache-Control": "private, no-cache"})
         data = _PAKET.get((aid, fp))
         if data is None:
-            data, fehler = _paket_bauen(c, a, nur=nur, wd=(W, dd))
+            nur_bh = nur is not None and nur == {"anschreiben_bh"}   # nur das Anschreiben an die Bauherrschaft
+            data, fehler = (anschreiben_pdf(c, a, W, dd["anschreiben_bh"], dd["projekt"], dd["gliederung"], bauherr=True), "") if nur_bh else _paket_bauen(c, a, nur=nur, wd=(W, dd))
             if not data:
                 return jsonify(error=fehler), 409
-            data = BAN.ausfertigungen_pdf(data, ausf)
+            data = data if nur_bh else BAN.ausfertigungen_pdf(data, ausf)
+            if nur is not None and "anschreiben_bh" in nur and not nur_bh:   # das Anschreiben an die Bauherrschaft einmal vorne, nicht je Ausfertigung
+                from pypdf import PdfReader, PdfWriter
+                import io
+                w = PdfWriter()
+                for teil in (anschreiben_pdf(c, a, W, dd["anschreiben_bh"], dd["projekt"], dd["gliederung"], bauherr=True), data):
+                    for pg in PdfReader(io.BytesIO(teil)).pages:
+                        w.add_page(pg)
+                buf = io.BytesIO(); w.write(buf); data = buf.getvalue()
             _PAKET[(aid, fp)] = data
             while len(_PAKET) > 12:   # nur die letzten Stände behalten
                 _PAKET.pop(next(iter(_PAKET)))
@@ -336,6 +358,17 @@ def paket(aid):
 
 
 _PAKET = {}   # (Antrag, Fingerabdruck) → PDF – erspart das Neubauen, wenn sich nichts geändert hat
+
+
+@app.get("/api/antraege/<int:aid>/anschreiben_bh.pdf")
+def anschreiben_bh(aid):
+    with db.tx() as c:
+        a = _antrag(c, aid)
+        if not a:
+            return jsonify(error="Antrag nicht gefunden."), 404
+        W, d = _w(c, a)
+        data = anschreiben_pdf(c, a, W, d["anschreiben_bh"], d["projekt"], d["gliederung"], bauherr=True)
+    return _pdf_antwort(data, f"Anschreiben Bauherrschaft {a['name']}.pdf"[:150], request.args.get("dl"))
 
 
 @app.get("/api/antraege/<int:aid>/anschreiben.pdf")
@@ -364,8 +397,9 @@ def behoerden():
     return jsonify(behoerden=out)
 
 
-def anschreiben_pdf(c, a, W, A, projekt, G=None):
-    """Anschreiben an die Bauaufsicht als Brief (Druck-Layout „Bauantrag – Anschreiben“, wie die Rügen): Briefkopf, Anschrift im Fenster,
+def anschreiben_pdf(c, a, W, A, projekt, G=None, bauherr=False):
+    """bauherr: Anschreiben an die Bauherrschaft (ohne z. Hd., Aktenzeichen und Anlagenliste – nur die Zahl der Ausfertigungen).
+    Anschreiben an die Bauaufsicht als Brief (Druck-Layout „Bauantrag – Anschreiben“, wie die Rügen): Briefkopf, Anschrift im Fenster,
     Datum, Bearbeiter, Betreff, Text, Anlagen-Hinweis."""
     import base64
     import io
@@ -381,14 +415,14 @@ def anschreiben_pdf(c, a, W, A, projekt, G=None):
     unter, frei, bogen = layout.bogen(c, LAY)   # Briefbogen je Layout: unterlegen · Druck auf Briefpapier · ohne
     EIG = layout.eigene_werte(c, a["project_id"])
     kurz = S.get("co_short") or S.get("office_name") or ""
-    emp = A["empfaenger"] + (f"\nz. Hd. {A['ansprechpartner']}" if A.get("ansprechpartner") else "")
-    if A.get("ansprechpartner") and "\n" in A["empfaenger"]:   # „z. Hd.“ unter den Namen der Behörde, vor die Straße
+    emp = A["empfaenger"] + (f"\nz. Hd. {A['ansprechpartner']}" if A.get("ansprechpartner") and not bauherr else "")
+    if A.get("ansprechpartner") and not bauherr and "\n" in A["empfaenger"]:   # „z. Hd.“ unter den Namen der Behörde, vor die Straße
         z = A["empfaenger"].split("\n")
         emp = "\n".join([z[0], f"z. Hd. {A['ansprechpartner']}"] + z[1:])
     V = {"Empfaenger": emp, "Datum": time.strftime("%d.%m.%Y"), "Bearbeiter": C.full_name(g.user) if g else "", "Betreff": A["betreff"].replace("\n", " · ")}
     LW = {**layout.buero_werte(S=S), "datum": V["Datum"], "bearbeiter": V["Bearbeiter"], "projekt": projekt, "bauvorhaben": W.get("bezeichnung") or projekt,
           "dokument": BA_VERF.get(a["verfahren"], "Bauantrag"), "grundlage": f"Aktenzeichen: {A['aktenzeichen']}" if A.get("aktenzeichen") else "",
-          "behoerde": (A["empfaenger"].split("\n") or [""])[0], **{k: v for k, v in EIG.items() if v}}
+          "behoerde": "" if bauherr else (A["empfaenger"].split("\n") or [""])[0], **{k: v for k, v in EIG.items() if v}}
     buf = io.BytesIO()
     cv = canvas.Canvas(buf, pagesize=A4)
     cv.setTitle(f"Anschreiben {a['name']}")
@@ -421,7 +455,10 @@ def anschreiben_pdf(c, a, W, A, projekt, G=None):
                 cv.showPage(); y = A4[1] - 25 * mm; cv.setFont(F["b" if fett else "n"], 9.5)
             cv.drawString(L + einzug, y, z); y -= 4.6 * mm
     E = [e for s in (G or []) for e in s["eintraege"]]
-    if A.get("anlagen", "liste") == "liste" and E:   # Anlagen ausgeschrieben, Nachzureichendes extra
+    if bauherr:
+        zeile("Anlage", True)
+        zeile(f"Antragsunterlagen in {A['ausfertigungen']}-facher Ausfertigung")
+    elif A.get("anlagen", "liste") == "liste" and E:   # Anlagen ausgeschrieben, Nachzureichendes extra
         zeile(f"Anlagen (Bauvorlagen in {A['ausfertigungen']}-facher Ausfertigung)", True)
         for s in G:
             da = [e for e in s["eintraege"] if e["stand"] == "bei"]

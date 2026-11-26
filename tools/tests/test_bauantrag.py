@@ -96,6 +96,12 @@ def test_bauantrag(ctx):
             d = a.uj(f"{BA}/antraege/{aid}/paket", {"anschreiben": {"empfaenger": "Stadt RT – Bauaufsicht\nTeststr. 1\n45127 Essen", "ansprechpartner": "Frau Test", "ausfertigungen": 2}})
             gleich((d["anschreiben"]["ansprechpartner"], d["anschreiben"]["ausfertigungen"]), ("Frau Test", 2), "Anschreiben")
             pruefe("2-facher" in d["anschreiben"]["text"], "Text-Vorschlag nennt die Ausfertigungen")
+            # Anschreiben an die Bauherrschaft (26.11.2026): Vorgabe 1×, eigenes PDF, im Druck einmal vorne
+            gleich((d["anschreiben_bh"]["an"], d["anschreiben_bh"]["ausfertigungen"]), (True, 1), "Anschreiben an die Bauherrschaft: an, 1-fach")
+            d = a.uj(f"{BA}/antraege/{aid}/paket", {"anschreiben_bh": {"ausfertigungen": 2, "empfaenger": "Familie Test\nWeg 1\n45127 Essen"}})
+            pruefe("2-facher" in d["anschreiben_bh"]["text"] and d["anschreiben_bh"]["empfaenger"].startswith("Familie Test"), "Bauherrschaft: Ausfertigungen und Anschrift")
+            a.get(f"{BA}/antraege/{aid}/anschreiben_bh.pdf").ist_pdf()
+            a.get(f"{BA}/antraege/{aid}/paket.pdf?teile=anschreiben_bh").ist_pdf()
             d = a.uj(f"{BA}/antraege/{aid}/paket", {"deckblatt": {"neu": "Statik (folgt)", "punkt": "Statik (folgt)", "an": True}})
             pruefe(any(x["text"] == "Statik (folgt)" and x["an"] for x in d["deckblatt"]["punkte"]), "eigener Punkt auf dem Deckblatt")
             d = a.uj(f"{BA}/antraege/{aid}/paket", {"trenner": {"nr": 2, "titel": "Pläne"}})

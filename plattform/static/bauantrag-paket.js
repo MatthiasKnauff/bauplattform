@@ -238,7 +238,7 @@ function ausfuellenOeffnen() {
    Unterlagen, eigene ergänzbar), Reihenfolge mit fünf Trennblättern (umbenennen, an/aus, ziehen) ---------- */
 let BEH = null;
 function paketPruefenHtml() {
-  const A = D.anschreiben, Dk = D.deckblatt;
+  const A = D.anschreiben, Dk = D.deckblatt, B = D.anschreiben_bh;
   if (!BEH) api('api/behoerden').then((r) => { BEH = r.behoerden; if (SCHRITT === 'pruefen') zeichne(); }).catch(() => { BEH = []; });
   const beh = BEH || [], b = beh.find((x) => x.id === A.behoerde_id);
   const an = (attr, on, txt) => `<button type="button" class="bap-ck${on ? ' an' : ''}" ${attr} aria-pressed="${on}" title="${txt}"></button>`;
@@ -262,6 +262,13 @@ function paketPruefenHtml() {
         <label class="ba-f"><span>Anlagen im Anschreiben</span><span class="seg" role="group"><button type="button" data-baanl="liste" class="${A.anlagen !== 'verweis' ? 'on' : ''}">ausgeschrieben</button><button type="button" data-baanl="verweis" class="${A.anlagen === 'verweis' ? 'on' : ''}">gemäß Inhaltsverzeichnis</button></span></label>
         <label class="ba-f w"><span>Text ${A.text !== A.text_vorgabe ? '<button type="button" class="ba-q" data-batextvor title="Text wieder aus den Angaben des Antrags">↺ Vorschlag</button>' : ''}</span><textarea rows="8" data-baa="text">${esc(A.text)}</textarea></label>
       </div><button type="button" class="btn sm" data-baansehen>Anschreiben ansehen</button>` : '<p class="ba-hilfe" style="margin:0">Ohne Anschreiben – das Paket beginnt mit dem Deckblatt.</p>'}</div>
+    <div class="ba-k"><h3>${an('data-babhan', B.an, 'Anschreiben an die Bauherrschaft')} Anschreiben an die Bauherrschaft<span class="mute">begleitet ihre Ausfertigung</span></h3>
+      ${B.an ? `<div class="ba-g">
+        <label class="ba-f w2"><span>Empfänger:in (Anschrift)</span><textarea rows="3" data-babh="empfaenger">${esc(B.empfaenger)}</textarea></label>
+        <label class="ba-f"><span>Ausfertigungen</span><span class="seg" role="group">${[1, 2, 3].map((n) => `<button type="button" data-babhaus="${n}" class="${+B.ausfertigungen === n ? 'on' : ''}">${n}-fach</button>`).join('')}</span></label>
+        <label class="ba-f w"><span>Betreff</span><textarea rows="2" data-babh="betreff">${esc(B.betreff)}</textarea></label>
+        <label class="ba-f w"><span>Text ${B.text !== B.text_vorgabe ? '<button type="button" class="ba-q" data-babhvor title="Text wieder aus den Angaben des Antrags">↺ Vorschlag</button>' : ''}</span><textarea rows="7" data-babh="text">${esc(B.text)}</textarea></label>
+      </div><button type="button" class="btn sm" data-babhansehen>Anschreiben ansehen</button>` : '<p class="ba-hilfe" style="margin:0">Ohne Anschreiben an die Bauherrschaft.</p>'}</div>
     <div class="ba-k"><h3>${an('data-badeck', Dk.an, 'Deckblatt beilegen')} Deckblatt mit Inhaltsverzeichnis<span class="mute">Inhalt und Seitenzahlen kommen aus der Reihenfolge unten</span></h3>
       ${Dk.an ? '<p class="ba-hilfe" style="margin:0">Mit allen Anlagen und ihren Nummern – genannte Anlagen mit ihrem Stand statt der Seitenzahl.</p>' : ''}</div>
     ${anlagenHtml()}
@@ -271,15 +278,20 @@ function paketPruefenHtml() {
       <p class="ba-hilfe" id="baForm" style="margin:.5rem 0"></p><button type="button" class="btn pri" data-pdf>🖨 Drucken …</button>${D.abgabe === 'digital' ? ` <a class="btn" href="api/antraege/${AID}/paket.zip" download title="Je Anlage eine Datei, dazu Anschreiben und Gesamt-PDF – für das Bauportal">⤓ ZIP für das Bauportal</a>` : ''}</div>`;
 }
 async function baPaket(body, text) {
-  const id = AID, vorher = JSON.parse(JSON.stringify({ a: D.anschreiben, d: D.deckblatt }));
+  const id = AID, vorher = JSON.parse(JSON.stringify({ a: D.anschreiben, d: D.deckblatt, b: D.anschreiben_bh }));
   try { D = await api(`api/antraege/${id}/paket`, 'PUT', body); zeichne(); if (text) rueckgaengig(text, async () => {
     const z = { anschreiben: { an: vorher.a.an, empfaenger: vorher.a.empfaenger, ansprechpartner: vorher.a.ansprechpartner, aktenzeichen: vorher.a.aktenzeichen,
       text: vorher.a.text, betreff: vorher.a.betreff, ausfertigungen: vorher.a.ausfertigungen } };
-    D = await api(`api/antraege/${id}/paket`, 'PUT', body.deckblatt ? { deckblatt: { an: vorher.d.an } } : body.trenner ? { trenner: body._alt } : z); zeichne(); }, { neu: async () => { D = await api('api/antraege/' + id); zeichne(); } }); }
+    D = await api(`api/antraege/${id}/paket`, 'PUT', body.deckblatt ? { deckblatt: { an: vorher.d.an } } : body.trenner ? { trenner: body._alt }
+      : body.anschreiben_bh ? { anschreiben_bh: { an: vorher.b.an, empfaenger: vorher.b.empfaenger, text: vorher.b.text, betreff: vorher.b.betreff, ausfertigungen: vorher.b.ausfertigungen } } : z); zeichne(); }, { neu: async () => { D = await api('api/antraege/' + id); zeichne(); } }); }
   catch (e) { toast(e.message, true); }
 }
 V.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-baan],[data-badeck],[data-baaus],[data-batextvor],[data-baansehen],[data-bapers]'); if (!b || !D) return;
+  const b = e.target.closest('[data-baan],[data-badeck],[data-baaus],[data-batextvor],[data-baansehen],[data-bapers],[data-babhan],[data-babhaus],[data-babhvor],[data-babhansehen]'); if (!b || !D) return;
+  if (b.dataset.babhan !== undefined) return baPaket({ anschreiben_bh: { an: !D.anschreiben_bh.an } }, D.anschreiben_bh.an ? 'Ohne Anschreiben an die Bauherrschaft' : 'Mit Anschreiben an die Bauherrschaft');
+  if (b.dataset.babhaus) return baPaket({ anschreiben_bh: { ausfertigungen: +b.dataset.babhaus } }, `Bauherrschaft: ${b.dataset.babhaus}-fache Ausfertigung`);
+  if (b.dataset.babhvor !== undefined) return baPaket({ anschreiben_bh: { text: '' } }, 'Text an die Bauherrschaft wieder als Vorschlag');
+  if (b.dataset.babhansehen !== undefined) return BPHead.ansehen([{ url: `api/antraege/${AID}/anschreiben_bh.pdf?t=${Date.now()}`, typ: 'pdf', name: 'Anschreiben an die Bauherrschaft' }]);
   if (b.dataset.baan !== undefined) return baPaket({ anschreiben: { an: !D.anschreiben.an } }, D.anschreiben.an ? 'Ohne Anschreiben' : 'Mit Anschreiben');
   if (b.dataset.badeck !== undefined) return baPaket({ deckblatt: { an: !D.deckblatt.an } }, D.deckblatt.an ? 'Ohne Deckblatt' : 'Mit Deckblatt');
   if (b.dataset.baaus) return baPaket({ anschreiben: { ausfertigungen: +b.dataset.baaus } }, `${b.dataset.baaus}-fache Ausfertigung`);
@@ -290,6 +302,7 @@ V.addEventListener('click', (e) => {
 V.addEventListener('change', (e) => {
   const t = e.target; if (!D) return;
   if (t.dataset.baa) return baPaket({ anschreiben: { [t.dataset.baa]: t.value } }, 'Anschreiben geändert');
+  if (t.dataset.babh) return baPaket({ anschreiben_bh: { [t.dataset.babh]: t.value } }, 'Anschreiben an die Bauherrschaft geändert');
   if (t.dataset.babeh !== undefined) return baPaket({ anschreiben: { behoerde_id: t.value ? +t.value : null } }, 'Behörde gewählt');
   if (t.dataset.baptitel) { const nr = +t.dataset.baptitel, alt = (D.paket.find((x) => x.key === 't' + nr) || {}).titel;
     return baPaket({ trenner: { nr, titel: t.value }, _alt: { nr, titel: alt } }, `Trennblatt ${nr} umbenannt`); }

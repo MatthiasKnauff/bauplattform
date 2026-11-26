@@ -140,7 +140,8 @@ def _detail(c, a, dateien=None):
     return {"antrag": {k: a[k] for k in ("id", "project_id", "name", "verfahren", "land", "status", "erstellt", "geaendert", "von")},
             "projekt": p["name"] if p else "", "felder": F, "bauvorlagen": B, "fehlt": {"felder": ff, "bauvorlagen": fb},
             "schritte": BA.SCHRITTE, "paket": S, "gewaehlt": gew, "haupt_nr": haupt,
-            "deckblatt": BP.deckblatt(P, B), "anschreiben": BP.anschreiben(P, W, BA.VERFAHREN.get(a["verfahren"]), VS), "version": VS,
+            "deckblatt": BP.deckblatt(P, B), "anschreiben": BP.anschreiben(P, W, BA.VERFAHREN.get(a["verfahren"]), VS),
+            "anschreiben_bh": BP.anschreiben_bh(P, W, BA.VERFAHREN.get(a["verfahren"]), VS), "version": VS,
             "anlagen": AN, "gliederung": G, "abgabe": P.get("abgabe") or "papier", "druck_max": druck_max(c, P), "formate": [x[0] for x in BAN.DIN], "platzhalter": P.get("platzhalter", True) is not False, "packliste": len(BAN.packliste(G, P.get("abgabe"))), "stand_namen": BAN.STAND,
             "einreichungen": daten.get("_einreichungen") or []}
 
